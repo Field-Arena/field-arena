@@ -19,3 +19,4 @@ export default function MarketingHomePage() {
     </>
   );
 }
+// This is a placeholder page for the marketing home page. You can customize it as needed.
