@@ -1,20 +1,23 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Fraunces, Inter } from 'next/font/google';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const fraunces = Fraunces({
+  variable: '--font-fraunces',
   subsets: ['latin'],
+  weight: ['500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'FieldArena',
-  description: 'FieldArena',
+  title: 'Field & Arena — Run the whole show, not six of them',
+  description:
+    'Entries, scoring, staffing, and payouts for equestrian shows — one system instead of six.',
 };
 
 export default function RootLayout({
@@ -26,7 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${fraunces.variable} antialiased`}
       >
         {children}
       </body>
