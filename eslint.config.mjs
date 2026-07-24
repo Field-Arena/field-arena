@@ -5,7 +5,14 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 const eslintConfig = defineConfig([
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'node_modules/**']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'node_modules/**',
+    'src/shared/types/database.types.ts',
+  ]),
 
   // Base Next.js configs (apply to all matched files)
   ...nextVitals,
