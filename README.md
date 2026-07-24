@@ -1,9 +1,9 @@
 # FieldArena
 
-A fresh [Next.js](https://nextjs.org) project (App Router, TypeScript, Tailwind
-CSS v4), set up with the same commit/tooling and folder-structure conventions
-referenced from the Devminified HR System — see [`CLAUDE.md`](./CLAUDE.md) and
-[`.claude/rules/`](./.claude/rules/).
+FieldArena — an equestrian event-management platform, built with
+[Next.js](https://nextjs.org) (App Router, TypeScript, Tailwind CSS v4). Commit,
+tooling, and folder-structure conventions are documented in
+[`CLAUDE.md`](./CLAUDE.md) and [`.claude/rules/`](./.claude/rules/).
 
 ## Getting started
 

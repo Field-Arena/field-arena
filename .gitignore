@@ -1,0 +1,80 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — never commit real secrets; example files ARE committed
+# so collaborators know which vars to set.
+.env*
+!.env.local.example
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# supabase cli cache
+supabase/.temp/
+
+# claude code internal
+.claude/scheduled_tasks.lock
+
+# Playwright e2e screenshots — overwritten on each rerun. The dir is
+# tracked via .gitkeep so the path exists, but the .png files don't
+# need to be committed.
+tests/e2e/screenshots/*.png
+tests/e2e/screenshots/*.jpg
+tests/e2e/screenshots/*.webp
+
+# Playwright test artefacts — traces, reports, retries.
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Rider / payment export CSVs contain PII (names, emails, payment details).
+# Never commit. Anonymized samples are explicitly whitelisted below.
+*.csv
+!docs/samples/*.csv
+!supabase/functions/**/*.csv
+# Route handlers whose URL ends in .csv are ours, not data.
+!src/app/api/**/*.csv/
+!src/app/api/**/*.csv/**
+
+# Scoresheets, rider documents, and payment records may contain PII. Never
+# commit raw spreadsheets or exported PDFs. Reference docs under docs/ are
+# whitelisted explicitly.
+*.xlsx
+*.xls
+*.pdf
+!docs/**/*.pdf
+.playwright-mcp/
