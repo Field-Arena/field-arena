@@ -3,26 +3,33 @@ import { NAV_LINKS } from '../constants';
 
 export function SiteHeader() {
   return (
-    <header className="border-line bg-cream/90 sticky top-0 z-40 border-b backdrop-blur">
-      <div className="mx-auto flex max-w-[1080px] items-center gap-3 px-6 py-3.5">
-        <span className="bg-hunter font-[family-name:var(--font-fraunces)] flex h-[30px] w-[30px] items-center justify-center rounded-[7px] text-sm font-bold text-white">
-          F<span className="text-gold">&amp;</span>A
-        </span>
-        <span className="font-[family-name:var(--font-fraunces)] text-hunter text-base font-semibold">Field &amp; Arena</span>
+    <header className="site-header">
+      <div className="container nav">
+        <a className="brand" href="#top" aria-label="Field and Arena home">
+          <span className="brand-mark">
+            <span>
+              F<span style={{ color: '#fff' }}>&amp;</span>A
+            </span>
+          </span>
+          <span>Field &amp; Arena</span>
+        </a>
 
-        <nav className="ml-auto flex items-center gap-5 text-[13.5px] font-medium">
+        <nav className="nav-links" aria-label="Main navigation">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="text-ink-soft hover:text-hunter">
+            <a key={link.href} href={link.href}>
               {link.label}
             </a>
           ))}
-          <Link
-            href="/login"
-            className="bg-hunter hover:bg-hunter-mid rounded-lg px-4 py-2.5 font-semibold text-white"
-          >
+        </nav>
+
+        <div className="nav-actions">
+          <Link className="btn btn-secondary" href="/login">
             Log in
           </Link>
-        </nav>
+          <a className="btn btn-primary" href="#demo">
+            Book a demo
+          </a>
+        </div>
       </div>
     </header>
   );
