@@ -184,7 +184,7 @@
 }
 .dash-topbar-note {
   margin-left: auto;
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 13px;
   max-width: 620px;
   text-align: right;
@@ -208,7 +208,7 @@
   margin: 0 0 4px;
 }
 .dash-head p {
-  color: var(--muted);
+  color: var(--fa-muted);
   margin: 0;
   font-size: 15px;
 }
@@ -336,7 +336,7 @@
 .stat-label {
   font-size: 10.5px;
   letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--fa-muted);
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -352,7 +352,7 @@
 }
 .stat-sub {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--fa-muted);
 }
 
 /* Ring timers */
@@ -399,7 +399,7 @@
   margin: 0 0 3px;
 }
 .show-detail-meta {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 13px;
   margin: 0 0 18px;
 }
@@ -409,7 +409,7 @@
   padding: 0 16px 8px;
   font-size: 10.5px;
   letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--fa-muted);
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -450,7 +450,7 @@
   margin-top: 16px;
 }
 .show-detail-foot span {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 13.5px;
 }
 

@@ -7,7 +7,7 @@ export function BenefitsSection() {
         <div>
           <span className="eyebrow">Benefits</span>
           <h2>Less administrative work. Faster information. More confidence.</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '18px' }}>
+          <p style={{ color: 'var(--fa-muted)', fontSize: '18px' }}>
             Field &amp; Arena is designed to reduce repeated data entry and give organizers a clearer
             operational picture without forcing officials, staff, volunteers, or exhibitors to learn
             a complicated enterprise system.
