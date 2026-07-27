@@ -61,7 +61,7 @@ export const ROLE_WORKSPACES: Record<string, RoleWorkspace> = {
     title: 'SuperAdmin Console',
     hint: 'Manage every organizer, show, and role from one command center',
     href: '/dashboard/superadmin',
-    status: 'pending',
+    status: 'migrated',
     legacyView: 'views/superadmin.html',
     icon: 'shield',
   },

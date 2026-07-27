@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import './dashboard.css';
 import { OrganizerShell } from '@/modules/staff/ui/organizer-shell';
+import { SuperAdminShell } from '@/modules/superadmin/ui/superadmin-shell';
 import { PendingWorkspace } from '@/shared/ui/pending-workspace';
 import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
@@ -61,6 +62,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (workspace.status === 'pending') {
     return <PendingWorkspace workspace={workspace} roleLabel={role} userName={profile.name} />;
+  }
+
+  /**
+   * Shell chosen by role, not one shell parameterised by role. The console and
+   * the organizer workspace are different layouts — a platform-wide section bar
+   * over full-width tables versus a per-show sidebar — and the legacy app kept
+   * them as separate views for the same reason.
+   */
+  if (role === 'SuperAdmin') {
+    return <SuperAdminShell profile={profile}>{children}</SuperAdminShell>;
   }
 
   return (
