@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { LogOutIcon } from 'lucide-react';
 import { SUPERADMIN_NAV } from '../constants';
 import { OrganizerSearch } from './organizer-search';
+import { AddOrganizerDialog } from './add-organizer-dialog';
+import { useRefreshPendingInvites } from '../hooks/use-organization-mutations';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import { RoleRail } from '@/shared/ui/role-rail';
@@ -30,6 +32,7 @@ export function SuperAdminShell({
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
+  const { mutate: refreshInvites, isPending: isRefreshingInvites } = useRefreshPendingInvites();
   const isOrganizerList = pathname === '/dashboard/superadmin';
 
   return (
@@ -110,21 +113,18 @@ export function SuperAdminShell({
           <div className="flex flex-wrap items-center gap-2 border-t border-border px-6 py-2.5">
             {isOrganizerList && <OrganizerSearch />}
 
+            <AddOrganizerDialog />
+
             <button
               type="button"
-              disabled
-              title="Adding an organizer needs the onboarding form and invite email"
-              className="rounded-lg border border-hunter-deep bg-hunter-deep px-3 py-1.5 text-[13px] font-bold text-white opacity-45"
+              disabled={isRefreshingInvites}
+              title="Extends every outstanding invite by 7 days. No email is sent — the email provider is not configured."
+              onClick={() => {
+                refreshInvites();
+              }}
+              className="rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] font-bold text-hunter-deep transition hover:border-hunter-soft disabled:opacity-45"
             >
-              + Add Organizer
-            </button>
-            <button
-              type="button"
-              disabled
-              title="Sending invite emails needs the email provider wired"
-              className="rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] font-bold text-hunter-deep opacity-45"
-            >
-              Resend Invite (All Pending)
+              {isRefreshingInvites ? 'Refreshing…' : 'Resend Invite (All Pending)'}
             </button>
             <button
               type="button"

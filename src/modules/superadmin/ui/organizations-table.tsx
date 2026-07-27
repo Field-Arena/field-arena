@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { OrganizationRowActions } from './organization-row-actions';
 import type { OrganizationSummary } from '../data/queries';
 
 /**
@@ -101,43 +102,7 @@ export function OrganizationsTable({ organizations }: { organizations: Organizat
                 {formatMoney(org.revenueEstimate, org.currency, org.locale)}
               </td>
               <td className="px-4 py-3">
-                <span className="flex flex-wrap justify-end gap-1.5">
-                  {/*
-                    Edit and "Enter as organizer" are rendered but inert, and
-                    explicitly marked so. Editing needs a form this pass has not
-                    built, and entering as an organizer needs the organizer
-                    workspace to accept an impersonated org context, which it does
-                    not yet — it still renders fixed demo figures. A button that
-                    looks live and silently does nothing is worse than one that
-                    says why.
-                  */}
-                  <button
-                    type="button"
-                    disabled
-                    title="Editing an organization is not migrated yet"
-                    className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep opacity-45"
-                  >
-                    Edit
-                  </button>
-                  {!org.onboarded && (
-                    <button
-                      type="button"
-                      disabled
-                      title="Sending invite email needs the email provider wired"
-                      className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep opacity-45"
-                    >
-                      Resend invite
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    disabled
-                    title="Impersonation needs the organizer workspace to accept an org context"
-                    className="rounded-lg border border-gold bg-gold-pale px-2.5 py-1.5 text-xs font-bold text-hunter-deep opacity-45"
-                  >
-                    Enter as organizer →
-                  </button>
-                </span>
+                <OrganizationRowActions org={org} />
               </td>
             </tr>
           ))}
