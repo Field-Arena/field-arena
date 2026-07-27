@@ -16,7 +16,10 @@
   --color-gold-dark: #9e7c11;
   --color-gold-pale: #fff8df;
   --color-ink: #18211d;
-  --color-muted: #617069;
+  /* Prefixed for the same reason --fa-muted is: shadcn's @theme inline block
+     below also defines --color-muted, as a pale surface. Two different colours
+     cannot share one utility name, so brand body text is text-fa-muted. */
+  --color-fa-muted: #617069;
   --color-border: #dfe8e3;
   --color-cream: #fbfaf5;
 
@@ -908,8 +911,11 @@ body {
 }
 
 @theme inline {
+  /* `--font-sans: var(--font-sans)` as written by shadcn init is circular, and
+     would leave the font-sans utility resolving to nothing. The brand @theme
+     block above already binds --font-sans to Inter, so this only needs the
+     heading alias. Headings use the serif face via .mk h1/h2 and .dash-head. */
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -930,7 +936,11 @@ body {
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--fa-muted);
+  /* Must stay pointed at --muted, not --fa-muted. shadcn uses bg-muted as a
+     pale surface for button hovers, table headers, skeletons and badges;
+     pointing it at the brand body-text grey turns all of those into dark grey
+     blocks with dark text on them. */
+  --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
