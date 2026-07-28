@@ -4,12 +4,13 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOutIcon } from 'lucide-react';
-import { ORGANIZER_NAV } from '../constants';
-import { DashIcon } from './dash-icon';
+import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
+import { DashIcon } from '@/shared/ui/dash-icon';
 import { ImpersonationBanner } from './impersonation-banner';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import {
+  RIDER_WORKSPACE,
   ROLE_RAIL_ORDER,
   ROLE_WORKSPACES,
   type RoleWorkspace,
@@ -44,9 +45,24 @@ export function OrganizerShell({
    * on it. Everyone else sees only their own role.
    */
   const isSuperAdmin = profile.platform_role === 'SuperAdmin';
+
+  /**
+   * Rider is on the rail but is not a platform_role — riders live in a separate
+   * identity table — so it resolves against RIDER_WORKSPACE rather than the
+   * role map. The legacy rail showed all nine destinations including Rider, and
+   * this keeps that order.
+   */
+  const workspaceFor = (role: string): RoleWorkspace | undefined =>
+    role === 'Rider' ? RIDER_WORKSPACE : ROLE_WORKSPACES[role];
+
   const railRoles = isSuperAdmin
-    ? ROLE_RAIL_ORDER.filter((role) => role in ROLE_WORKSPACES)
+    ? ROLE_RAIL_ORDER.filter((role) => workspaceFor(role) !== undefined)
     : ROLE_RAIL_ORDER.filter((role) => role === profile.platform_role);
+
+  // A SuperAdmin impersonating an organizer needs the organizer nav, not their
+  // own — impersonating is about seeing what the organizer sees.
+  const role = impersonating ? 'Organizer' : (profile.platform_role ?? 'Organizer');
+  const navItems = ROLE_NAV[role] ?? ORGANIZER_NAV;
 
   return (
     <div className="dash">
@@ -56,7 +72,7 @@ export function OrganizerShell({
         </div>
         <div className="dash-rail-label">{isSuperAdmin ? 'ROLES' : 'ROLE'}</div>
         {railRoles.map((role) => {
-          const target = ROLE_WORKSPACES[role];
+          const target = workspaceFor(role);
           if (!target) return null;
           const active = role === profile.platform_role;
           const label = target.status === 'pending' ? `${target.title} (not migrated)` : target.title;
@@ -115,8 +131,14 @@ export function OrganizerShell({
           </>
         )}
 
-        <nav className="dash-nav" aria-label="Organizer navigation">
-          {ORGANIZER_NAV.map((item) => {
+        {/*
+          Navigation follows the role, not the shell. Organizer and Show Admin
+          share the full organizer nav; the per-show roles each get the sections
+          their own legacy view had, so a Judge is not shown Billing and
+          MemberDatabase links they cannot use.
+        */}
+        <nav className="dash-nav" aria-label={`${workspace.title} navigation`}>
+          {navItems.map((item) => {
             const active =
               item.href === '/dashboard'
                 ? pathname === '/dashboard'

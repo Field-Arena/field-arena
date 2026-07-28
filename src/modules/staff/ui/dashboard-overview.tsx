@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { SHOW_STAGES } from '../constants';
-import { DashIcon } from './dash-icon';
+import { DashIcon } from '@/shared/ui/dash-icon';
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
 

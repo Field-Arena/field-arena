@@ -392,6 +392,43 @@ on conflict do nothing;
 -- ---------------------------------------------------------------------------
 -- Sales CRM
 -- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- Judge panels
+-- ---------------------------------------------------------------------------
+-- Seats the seeded judges and scribes onto classes, which is what makes the
+-- Judge and Scribe workspaces show anything: their assignments come from
+-- class_panel, not from staff_assignments alone. Being staffed on a show means
+-- you are booked; being on a panel means you are judging a specific class.
+--
+-- One seat per class, with the judge and scribe paired. Seat 'J1' and position
+-- 'C' match the legacy scoring screen's own naming — C is the judge at the short
+-- side of the arena, the primary seat in a single-judge class.
+insert into public.class_panel (class_id, seat_id, position, judge_staff_id, scribe_staff_id)
+select
+  c.id,
+  'J1',
+  'C',
+  (select sa.id from public.staff_assignments sa
+    where sa.show_id = c.show_id and sa.role = 'Judge'
+    order by sa.name limit 1),
+  (select sa.id from public.staff_assignments sa
+    where sa.show_id = c.show_id and sa.role = 'Scribe'
+    order by sa.name limit 1)
+from public.classes c
+where c.show_id in (
+  'c0000000-0000-4000-8000-000000000001',
+  'c0000000-0000-4000-8000-000000000002'
+)
+  -- Only where the show actually has a judge staffed, or the seat would be empty.
+  and exists (
+    select 1 from public.staff_assignments sa
+    where sa.show_id = c.show_id and sa.role = 'Judge'
+  )
+on conflict (class_id, seat_id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Sales CRM
+-- ---------------------------------------------------------------------------
 insert into public.leads (org_name, contact_name, email, shows_per_year, status, cost_per_event, avg_revenue_per_show)
 values
   ('Sandhills Dressage Club',    'Marion Webb',  'marion@sandhills-demo.test',  4, 'demo_scheduled', 450.00,  9800.00),

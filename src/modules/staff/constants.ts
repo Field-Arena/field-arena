@@ -8,6 +8,37 @@ export const ORGANIZER_NAV = [
   { key: 'billing', label: 'Billing', icon: 'billing', href: '/dashboard/billing' },
 ] as const;
 
+/**
+ * Per-role sidebar navigation, from each legacy view's own sections.
+ *
+ * Keyed by platform_role so the shell can pick one without a switch statement.
+ * Judge and Scribe share a nav because they shared judge-scribe.html — the
+ * difference is scope (whose assignments), not which screens exist.
+ */
+export const ROLE_NAV: Record<string, { key: string; label: string; icon: string; href: string }[]> =
+  {
+    Judge: [
+      { key: 'assignments', label: 'My Assignments', icon: 'check-square', href: '/dashboard/judging' },
+      { key: 'schedule', label: 'Ring Times', icon: 'grid', href: '/dashboard/judging/schedule' },
+    ],
+    Scribe: [
+      { key: 'assignments', label: 'My Assignments', icon: 'flag', href: '/dashboard/judging' },
+      { key: 'schedule', label: 'Ring Times', icon: 'grid', href: '/dashboard/judging/schedule' },
+    ],
+    Announcer: [
+      { key: 'live', label: 'Up Next', icon: 'speaker', href: '/dashboard/announcing' },
+      { key: 'results', label: 'Results — Live', icon: 'trophy', href: '/dashboard/announcing/results' },
+    ],
+    ShowStaff: [
+      { key: 'ops', label: 'Show Operations', icon: 'grid', href: '/dashboard/operations' },
+      { key: 'directory', label: 'Directories', icon: 'users', href: '/dashboard/operations/directory' },
+    ],
+    Vendor: [
+      { key: 'bookings', label: 'My Bookings', icon: 'tag', href: '/dashboard/vendor' },
+      { key: 'discover', label: 'Reserve Space', icon: 'plus', href: '/dashboard/vendor/discover' },
+    ],
+  };
+
 export const ROLE_RAIL = [
   { key: 'superadmin', icon: 'shield', label: 'Super Admin' },
   { key: 'organizer', icon: 'grid', label: 'Organizer' },
