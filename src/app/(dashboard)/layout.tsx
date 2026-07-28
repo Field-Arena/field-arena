@@ -4,6 +4,7 @@ import { OrganizerShell } from '@/modules/staff/ui/organizer-shell';
 import { SuperAdminShell } from '@/modules/superadmin/ui/superadmin-shell';
 import { PendingWorkspace } from '@/shared/ui/pending-workspace';
 import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
+import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -69,13 +70,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
    * the organizer workspace are different layouts — a platform-wide section bar
    * over full-width tables versus a per-show sidebar — and the legacy app kept
    * them as separate views for the same reason.
+   *
+   * A SuperAdmin who has entered as an organizer gets the organizer workspace
+   * instead, which is the entire point of impersonation. The cookie only resolves
+   * for a SuperAdmin (see getImpersonatedOrgId), so nobody else can reach this.
    */
-  if (role === 'SuperAdmin') {
+  const impersonating = role === 'SuperAdmin' ? await getImpersonatedOrgId() : null;
+
+  if (role === 'SuperAdmin' && !impersonating) {
     return <SuperAdminShell profile={profile}>{children}</SuperAdminShell>;
   }
 
+  // While impersonating, the shell should read as the Organizer workspace rather
+  // than "SuperAdmin Console" — the whole point is to see what they see.
+  const shellWorkspace = impersonating ? (ROLE_WORKSPACES.Organizer ?? workspace) : workspace;
+
   return (
-    <OrganizerShell profile={profile} workspace={workspace}>
+    <OrganizerShell
+      profile={profile}
+      workspace={shellWorkspace}
+      impersonating={impersonating !== null}
+    >
       {children}
     </OrganizerShell>
   );

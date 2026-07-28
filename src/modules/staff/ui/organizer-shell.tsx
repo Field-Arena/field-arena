@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LogOutIcon } from 'lucide-react';
 import { ORGANIZER_NAV } from '../constants';
 import { DashIcon } from './dash-icon';
+import { ImpersonationBanner } from './impersonation-banner';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import {
@@ -18,10 +19,12 @@ export function OrganizerShell({
   children,
   profile,
   workspace,
+  impersonating = false,
 }: {
   children: ReactNode;
   profile: StaffProfile;
   workspace: RoleWorkspace;
+  impersonating?: boolean;
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
@@ -149,6 +152,14 @@ export function OrganizerShell({
       </aside>
 
       <div className="dash-main">
+        {/*
+          An impersonation banner that is impossible to miss. Someone acting on a
+          customer's live data while believing it is their own is exactly how a
+          support session turns into an incident, so this is a full-width bar with
+          a permanent exit, not a subtle badge.
+        */}
+        {impersonating && <ImpersonationBanner />}
+
         <header className="dash-topbar">
           <span className="dash-topbar-title">{workspace.title}</span>
           <span className="dash-badge">{profile.platform_role ?? 'Staff'}</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
   useUpdateOrganization,
 } from '../hooks/use-organization-mutations';
 import { FeeModelField, FormField } from './organizer-form-fields';
+import { enterAsOrganizer } from '../data/impersonation';
 import type { OrganizationSummary } from '../data/queries';
 
 /**
@@ -35,6 +36,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const [entering, startEntering] = useTransition();
   const suspend = useSetOrganizationSuspended();
   const remove = useSetOrganizationDeleted();
   const update = useUpdateOrganization({
@@ -114,18 +116,22 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       )}
 
       {/*
-        Impersonation is still inert, and says so. It needs the organizer
-        workspace to accept an impersonated organization context, which it cannot
-        yet — that workspace still renders fixed demo figures rather than reading
-        an org from the session.
+        useTransition rather than a mutation hook: enterAsOrganizer ends in a
+        redirect, so there is no result to cache and no success state to toast —
+        the only UI need is a pending flag while the navigation happens.
       */}
       <button
         type="button"
-        disabled
-        title="Entering as an organizer needs the organizer workspace to accept an org context — not migrated yet"
-        className="rounded-lg border border-gold bg-gold-pale px-2.5 py-1.5 text-xs font-bold text-hunter-deep opacity-45"
+        disabled={entering}
+        title={`Open the organizer workspace as ${org.name}`}
+        onClick={() => {
+          startEntering(async () => {
+            await enterAsOrganizer(org.id);
+          });
+        }}
+        className="rounded-lg border border-gold bg-gold-pale px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-gold-dark disabled:opacity-45"
       >
-        Enter as organizer →
+        {entering ? 'Entering…' : 'Enter as organizer →'}
       </button>
 
       {/* ---- Edit ---- */}
