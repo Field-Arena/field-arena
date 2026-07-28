@@ -47,6 +47,20 @@ export async function getOrganizerContext(
    */
   const impersonatedOrgId = await getImpersonatedOrgId();
 
+  /**
+   * A SuperAdmin who is not impersonating has no business on an organizer route.
+   * The dashboard layout renders the console shell for them, so letting one
+   * through produces console chrome wrapped around organizer content — two
+   * different workspaces stitched together. Sending them to the console is
+   * coherent, and "Enter as organizer" is the way in.
+   *
+   * Guarded here rather than per page because all ten organizer pages call this,
+   * and a layout cannot see the pathname to decide.
+   */
+  if (profile.platform_role === 'SuperAdmin' && !impersonatedOrgId) {
+    redirect('/dashboard/superadmin');
+  }
+
   let orgId = impersonatedOrgId ?? profile.org_id;
   if (!orgId) {
     const { data: assignment } = await supabase

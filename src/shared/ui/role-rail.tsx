@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { RIDER_WORKSPACE, ROLE_RAIL_ORDER, ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 import { RoleIcon } from '@/shared/ui/role-icon';
+import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -52,25 +53,32 @@ export function RoleRail({ currentRole }: { currentRole: string | null }) {
             : 'text-[#8ba093] hover:bg-white/10 hover:text-[#d7e2da]'
         );
 
+        /*
+          The styled tooltip rather than a native `title`. The rail is icons only
+          — there is no visible label at any width — so this is how a role is
+          identified, and the legacy rail worked the same way through data-tip.
+        */
         if (!isSuperAdmin) {
           return (
-            <span key={role} className={classes} title={target.title} aria-label={target.title}>
-              <RoleIcon role={role} size={20} />
-            </span>
+            <Tip key={role} text={target.title} className="grid place-items-center">
+              <span className={classes} aria-label={target.title}>
+                <RoleIcon role={role} size={20} />
+              </span>
+            </Tip>
           );
         }
 
         return (
-          <Link
-            key={role}
-            href={target.href}
-            className={classes}
-            title={label}
-            aria-label={label}
-            aria-current={active ? 'page' : undefined}
-          >
-            <RoleIcon role={role} size={20} />
-          </Link>
+          <Tip key={role} text={label} className="grid place-items-center">
+            <Link
+              href={target.href}
+              className={classes}
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
+            >
+              <RoleIcon role={role} size={20} />
+            </Link>
+          </Tip>
         );
       })}
     </aside>
