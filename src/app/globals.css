@@ -46,6 +46,90 @@
 
   --font-sans: var(--font-inter);
   --font-serif: var(--font-fraunces);
+
+  /* ── Public-site design tokens ──────────────────────────────────────────
+     The landing and sign-up designs. Token names are the design handoff's own
+     names; the palette is the client's existing brand, so values must not
+     drift. These are additive — the workspace keeps the tokens above.
+
+     Note fa- prefixes on `paper` and `line`: shadcn's @theme inline block
+     already claims --color-background and --color-border, and two different
+     colours cannot share one utility name. Everything else is collision-free. */
+  --color-forest: #0d2c23; /* dark section backgrounds, nav, footer */
+  --color-forest-raised: #103428; /* cards on dark sections */
+  --color-gold-light: #e3c566; /* gold text on dark, CTA hover fill */
+  --color-paper: #fbfaf7; /* public-site page background */
+  --color-mint: #edf5f1; /* alternate section background, CTA panel */
+  --color-ink-deep: #16261f; /* body text on light */
+  --color-ink-lead: #4c5c55; /* lead paragraphs on light */
+  --color-fa-muted-2: #7a8781; /* fine print */
+  --color-line: #e2e8e4; /* borders on paper / white */
+  --color-line-mint: #dce6e0; /* borders on mint */
+  --color-line-mint-2: #c7d6ce; /* workflow connector rule */
+  --color-line-strong: #c4d3cb; /* secondary button border on mint */
+  --color-field: #d7e0da; /* form input border */
+  --color-dot: #d9dedb; /* browser-chrome dots */
+  --color-alert-bg: #fcf1ef; /* inline error surface */
+  --color-alert-line: #f0d3ce;
+  --color-alert-fg: #8e3627;
+
+  /* No public-site font tokens here on purpose.
+     Registering --font-display / --font-body (and then --font-editorial /
+     --font-ui) in this block did NOT produce a font-family utility: Tailwind
+     emitted the variables but generated no matching `.font-*` rule, so every
+     heading silently fell back to the browser's default serif while the colour
+     tokens in this same block worked throughout — which is exactly what made
+     the theme look healthy. The public pages therefore bind the faces directly:
+       font-[family-name:var(--font-nr)]   Newsreader, display
+       font-[family-name:var(--font-ar)]   Archivo, UI and body
+     Both variables come from next/font in layout.tsx. Verify in a browser's
+     computed styles, not by reading the CSS, before changing this. */
+}
+
+/* ── Public-site motion ─────────────────────────────────────────────────────
+   The designs ship no JavaScript: the discipline marquee and the pulsing status
+   dots are pure CSS. All three are decorative, so they stop outright under
+   prefers-reduced-motion rather than merely slowing down. */
+@keyframes fa-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fa-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes fa-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fa-motion {
+    animation: none !important;
+  }
+}
+
+/* The public site's sticky nav is 74px tall, so anchored headings must clear
+   it or the nav covers whatever the link jumped to. */
+.fa-public [id] {
+  scroll-margin-top: 74px;
 }
 
 /* ── Field & Arena design tokens ─────────────────────────────────────────

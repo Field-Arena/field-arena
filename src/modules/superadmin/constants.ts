@@ -100,3 +100,70 @@ export const SHEET_FAMILIES = [
   'placing',
   'unassigned',
 ] as const;
+
+/**
+ * Console sidebar, grouped the way the Admin Console design groups it.
+ *
+ * Same destinations as SUPERADMIN_NAV above — that flat list still drives
+ * anything that needs the console's routes without the grouping. The split
+ * matters visually: "Clients" are the things a platform owner works *in*
+ * (organizers, their people, the pipeline that creates them), while "Platform"
+ * and "Tools" are configuration and one-off utilities. The design labels them
+ * separately for that reason, so the grouping lives here rather than being
+ * inferred in the component.
+ */
+export const SUPERADMIN_SIDEBAR = [
+  {
+    heading: 'Clients',
+    items: [
+      { key: 'overview', label: 'Organizers', href: '/dashboard/superadmin', icon: 'organizers' },
+      { key: 'users', label: 'Users', href: '/dashboard/superadmin/users', icon: 'users' },
+      { key: 'sales', label: 'Sales Funnel', href: '/dashboard/superadmin/sales', icon: 'funnel' },
+    ],
+  },
+  {
+    heading: 'Platform',
+    items: [
+      {
+        key: 'catalog',
+        label: 'Scoring catalog',
+        href: '/dashboard/superadmin/catalog',
+        icon: 'catalog',
+      },
+      {
+        key: 'documents',
+        label: 'Documents',
+        href: '/dashboard/superadmin/documents',
+        icon: 'documents',
+      },
+      { key: 'billing', label: 'Billing', href: '/dashboard/superadmin/billing', icon: 'billing' },
+    ],
+  },
+] as const;
+
+/**
+ * Sidebar entries the design shows but this build cannot honour yet.
+ *
+ * Rendered disabled with the reason on hover rather than omitted: the legacy
+ * console had both, and silently dropping them makes the console look like it
+ * lost features. Both were static walkthroughs (preview-signup-pages.html,
+ * preview-rider-demo.html) of screens that are becoming real routes here, so
+ * rebuilding them as previews would mean maintaining a second copy of every
+ * signup screen.
+ */
+export const SUPERADMIN_TOOLS = [
+  {
+    key: 'signup-preview',
+    label: 'Signup flow preview',
+    icon: 'preview',
+    reason:
+      'Step through every signup and invite page. The legacy preview was a static walkthrough of screens that are becoming real routes here.',
+  },
+  {
+    key: 'demo-show',
+    label: 'Demo show',
+    icon: 'demo',
+    reason:
+      'Rider signup, the wizard, checkout, and confirmation screen by screen. The legacy Demo page was a static walkthrough of those same screens.',
+  },
+] as const;

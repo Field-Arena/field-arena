@@ -243,6 +243,19 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Sign-up confirmation. Supabase's stock template mails a confirmation LINK
+# only; the app's sign-up screen asks for a six-digit code, so this template
+# renders the token instead. Without it, sign-up mails a link nobody can use and
+# the verify step has nothing to type.
+#
+# The hosted project carries the same template — it is set through the
+# Management API (config/auth: mailer_subjects_confirmation and
+# mailer_templates_confirmation_content), not from this file, which only governs
+# `supabase start`. Change both together or local and deployed drift apart.
+[auth.email.template.confirmation]
+subject = "Your Field & Arena confirmation code"
+content_path = "./supabase/templates/confirmation.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

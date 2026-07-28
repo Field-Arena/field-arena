@@ -3,7 +3,23 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2Icon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  CircleSlashIcon,
+  EllipsisVerticalIcon,
+  Loader2Icon,
+  MailIcon,
+  PencilIcon,
+  RotateCcwIcon,
+  Trash2Icon,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/ui/shadcn/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -71,93 +87,103 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
    * account to act as yet.
    */
   const pending = !org.onboarded;
-  const buttonClass =
-    'rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-hunter-soft disabled:opacity-45';
 
   return (
-    <span className="flex flex-wrap justify-end gap-1.5">
-      {pending && (
-        <button
-          type="button"
-          disabled
-          title="Send (or resend) a fresh Organizer invite email — needs the email provider configured"
-          className={buttonClass}
-          style={{ opacity: 0.45 }}
-        >
-          Resend invite
-        </button>
-      )}
-
-      <button
-        type="button"
-        title="Edit this organizer's account details"
-        onClick={() => {
-          setEditOpen(true);
-        }}
-        className={buttonClass}
-      >
-        Edit
-      </button>
-
-      {org.deletedAt ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            remove.mutate({ id: org.id, value: false });
-          }}
-          className={buttonClass}
-        >
-          Restore
-        </button>
-      ) : (
-        <button
-          type="button"
-          disabled={busy}
-          title="Delete this organizer — soft delete, all data is kept"
-          onClick={() => {
-            setDeleteOpen(true);
-          }}
-          className="text-status-danger rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-status-danger disabled:opacity-45"
-        >
-          Delete
-        </button>
-      )}
-
-      <button
-        type="button"
-        disabled={busy}
-        title={
-          org.suspended
-            ? 'Reactivate this organizer — riders can purchase again'
-            : 'Suspend this organizer — their shows become invisible to riders'
-        }
-        onClick={() => {
-          suspend.mutate({ id: org.id, value: !org.suspended });
-        }}
-        className={buttonClass}
-      >
-        {org.suspended ? 'Reactivate' : 'Suspend'}
-      </button>
-
+    <span className="flex items-center justify-end gap-1.5">
       {/*
         useTransition rather than a mutation hook: enterAsOrganizer ends in a
         redirect, so there is no result to cache and no success state to toast —
         the only UI need is a pending flag while the navigation happens.
+
+        The label differs for a pending org because there is no organizer account
+        to act as yet — the legacy row said "Preview onboarding form" for the same
+        reason.
       */}
       <button
         type="button"
         disabled={entering}
         title="Full impersonation — you'll act as this organizer, not just view their shows"
+        className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-line-strong px-3 py-2 text-[12.5px] font-bold text-forest transition-colors hover:border-gold hover:bg-[#FFFCF2] disabled:opacity-45"
         onClick={() => {
           startEntering(async () => {
             await enterAsOrganizer(org.id);
           });
         }}
-        className="rounded-lg border border-gold bg-gold-pale px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-gold-dark disabled:opacity-45"
       >
-        {entering ? 'Entering…' : pending ? 'Preview onboarding form →' : 'Enter as organizer →'}
+        {entering ? 'Entering…' : pending ? 'Preview onboarding' : 'Enter as organizer'}
+        <ArrowRightIcon className="size-[13px]" aria-hidden />
       </button>
+
+      {/*
+        Everything else collapses into an overflow menu. Four buttons abreast
+        overflowed the actions column and wrapped onto a second line, which broke
+        the row rhythm — and only one of them is the action anyone actually
+        reaches for. Destructive items sit last, behind a separator.
+      */}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label={`More actions for ${org.name}`}
+          className="grid size-8 flex-none place-items-center rounded-lg border border-transparent text-fa-muted-2 transition-colors hover:border-field hover:bg-white hover:text-forest"
+        >
+          <EllipsisVerticalIcon className="size-4" aria-hidden />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-52 rounded-xl border-line-mint p-1.5">
+          <DropdownMenuItem
+            onSelect={() => {
+              setEditOpen(true);
+            }}
+          >
+            <PencilIcon className="size-[15px] text-fa-muted" aria-hidden />
+            Edit organizer
+          </DropdownMenuItem>
+
+          {pending && (
+            <DropdownMenuItem
+              disabled
+              title="Send a fresh Organizer invite email — needs the email provider configured"
+            >
+              <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
+              Resend invite
+            </DropdownMenuItem>
+          )}
+
+          <DropdownMenuItem
+            disabled={busy}
+            onSelect={() => {
+              suspend.mutate({ id: org.id, value: !org.suspended });
+            }}
+          >
+            <CircleSlashIcon className="size-[15px] text-fa-muted" aria-hidden />
+            {org.suspended ? 'Reactivate access' : 'Suspend access'}
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="bg-[#EEF2EF]" />
+
+          {org.deletedAt ? (
+            <DropdownMenuItem
+              disabled={busy}
+              onSelect={() => {
+                remove.mutate({ id: org.id, value: false });
+              }}
+            >
+              <RotateCcwIcon className="size-[15px] text-fa-muted" aria-hidden />
+              Restore organizer
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              disabled={busy}
+              variant="destructive"
+              onSelect={() => {
+                setDeleteOpen(true);
+              }}
+            >
+              <Trash2Icon className="size-[15px]" aria-hidden />
+              Delete organizer
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* ---- Edit ---- */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>

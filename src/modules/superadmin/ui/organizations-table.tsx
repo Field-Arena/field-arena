@@ -1,113 +1,168 @@
 import Link from 'next/link';
-import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { cn } from '@/shared/lib/utils';
 import { OrganizationRowActions } from './organization-row-actions';
 import type { OrganizationSummary } from '../data/queries';
 
 /**
- * The "Clients — Organizers" table, matching the legacy console's columns:
- * organizer (with onboarding state and location), shows, riders, estimated
- * revenue, then per-row actions.
+ * The "Clients — Organizers" table, built to the Admin Console design.
+ *
+ * A CSS grid rather than a <table>: the design's rows are two-line cells (name +
+ * status pill above location) with a right-aligned action cluster, and the
+ * column track has to stay identical between the header strip and every row. A
+ * grid states that once; a table would need matching widths on both.
+ * Semantics are kept with explicit roles so it still reads as a table.
  *
  * Revenue is labelled an estimate because it is one — entries x avg_entry_value,
- * exactly as the legacy console computed it. Settled revenue lives on the billing
- * page and comes from paid orders.
- *
- * Show and rider counts are derived per organization in the query rather than
- * read from a stored column: the legacy schema carried shows.entries_count and
- * its own comment called it a placeholder for a computed count, which is right —
- * a stored counter is a second source of truth that drifts the moment an entry is
- * written by a path that forgets to increment it.
+ * exactly as the legacy console computed it. Settled revenue lives on the
+ * billing page and comes from paid orders.
  */
+
+const COLUMNS = 'grid-cols-[minmax(200px,1fr)_72px_72px_84px_216px]';
+const DISPLAY = 'font-[family-name:var(--font-nr)]';
+
+function StatusPill({
+  tone,
+  children,
+}: {
+  tone: 'success' | 'warn' | 'danger' | 'info';
+  children: React.ReactNode;
+}) {
+  const tones = {
+    success: 'bg-[#E4F1E8] text-[#2E7048] [--dot:#3E8E5A]',
+    warn: 'bg-[#F6EAC8] text-[#8A6D14] [--dot:#C9A227]',
+    danger: 'bg-alert-bg text-alert-fg [--dot:#B4432F]',
+    info: 'bg-mint text-forest [--dot:#5A6B63]',
+  } as const;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex h-[19px] flex-none items-center gap-[5px] rounded-full px-2 text-[10px] font-bold tracking-[.04em]',
+        tones[tone]
+      )}
+    >
+      <span aria-hidden className="size-[5px] rounded-full bg-[var(--dot)]" />
+      {children}
+    </span>
+  );
+}
+
 export function OrganizationsTable({ organizations }: { organizations: OrganizationSummary[] }) {
   if (organizations.length === 0) {
     return (
-      <p className="text-fa-muted rounded-xl border border-dashed border-border bg-white px-5 py-8 text-center text-sm">
-        No organizers yet.
-      </p>
+      <div className="rounded-[14px] border border-line bg-white px-5 pb-[60px] pt-14 text-center">
+        <div className={`${DISPLAY} mb-2 text-2xl text-forest`}>No organizers match.</div>
+        <p className="m-0 text-[13.5px] text-fa-muted-2">
+          Check the spelling, or clear the search to see every client.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-white">
-      <table className="w-full border-collapse text-[13.5px]">
-        <caption className="sr-only">
-          Every organizer on the platform, with shows, riders and estimated revenue
-        </caption>
-        <thead>
-          <tr className="bg-hunter-pale">
-            <th
-              scope="col"
-              className="text-fa-muted px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em]"
-            >
-              Organizer
-            </th>
-            <th
-              scope="col"
-              className="text-fa-muted px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-[0.04em]"
-            >
-              Shows
-            </th>
-            <th
-              scope="col"
-              className="text-fa-muted px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-[0.04em]"
-            >
-              Riders
-            </th>
-            <th
-              scope="col"
-              className="text-fa-muted px-3 py-2.5 text-right text-[11px] font-bold uppercase tracking-[0.04em]"
-            >
-              Revenue (est.)
-            </th>
-            <th
-              scope="col"
-              className="text-fa-muted px-4 py-2.5 text-right text-[11px] font-bold uppercase tracking-[0.04em]"
-            >
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="rounded-[14px] border border-line bg-white">
+      <div className="overflow-x-auto">
+        <div role="table" aria-label="Organizers" className="min-w-[740px]">
+          <div
+            role="row"
+            className={cn(
+              'grid gap-3.5 border-b border-line bg-[#F6F3EC] px-5 py-[11px]',
+              COLUMNS
+            )}
+          >
+            {['Organizer', 'Shows', 'Riders', 'Revenue', 'Actions'].map((label, index) => (
+              <span
+                key={label}
+                role="columnheader"
+                className={cn(
+                  'text-[10px] font-bold uppercase tracking-[.14em] text-fa-muted-2',
+                  index > 0 && 'text-right'
+                )}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+
           {organizations.map((org) => (
-            <tr key={org.id} className="border-b border-border last:border-b-0">
-              <td className="px-4 py-3">
-                <span className="flex flex-wrap items-center gap-2">
+            <div
+              key={org.id}
+              role="row"
+              className={cn(
+                'relative grid items-center gap-3.5 border-b border-[#EEF2EF] px-5 py-[15px] transition-colors last:border-b-0 hover:bg-[#FAFCFB]',
+                COLUMNS
+              )}
+            >
+              <div role="cell" className="flex min-w-0 flex-col gap-[5px]">
+                <div className="flex flex-wrap items-center gap-[9px]">
                   <Link
                     href={`/dashboard/superadmin/organizations/${org.id}`}
-                    className="font-bold text-hunter-deep no-underline hover:underline"
+                    className="text-sm font-bold tracking-[-.005em] text-forest transition-colors hover:text-gold"
                   >
                     {org.name}
                   </Link>
                   {org.onboarded ? (
-                    <StatusBadge tone="success">Onboard</StatusBadge>
+                    <StatusPill tone="success">Onboard</StatusPill>
                   ) : (
-                    <StatusBadge tone="warn">Pending</StatusBadge>
+                    <StatusPill tone="warn">Pending</StatusPill>
                   )}
-                  {org.deletedAt && <StatusBadge tone="danger">Deleted</StatusBadge>}
-                  {org.suspended && <StatusBadge tone="danger">Suspended</StatusBadge>}
-                  {org.isDemo && <StatusBadge tone="info">Demo</StatusBadge>}
+                  {org.deletedAt && <StatusPill tone="danger">Deleted</StatusPill>}
+                  {org.suspended && <StatusPill tone="danger">Suspended</StatusPill>}
+                  {org.isDemo && <StatusPill tone="info">Demo</StatusPill>}
+                </div>
+                <span className="text-xs leading-[1.45] text-fa-muted-2">
+                  {[org.city, org.region].filter(Boolean).join(', ') || 'No location set'}
                 </span>
-                <span className="text-fa-muted mt-0.5 block text-xs">
-                  {[org.city, org.region].filter(Boolean).join(', ') || '—'}
-                </span>
-              </td>
-              <td className="px-3 py-3 text-right font-semibold text-hunter-deep">
+              </div>
+
+              {/* Zero reads as absence, not as a measurement, so it is greyed —
+                  the design draws empty counts in a lighter tone for exactly
+                  that reason. */}
+              <span
+                role="cell"
+                className={cn(
+                  `${DISPLAY} text-right text-xl`,
+                  org.showCount > 0 ? 'text-forest' : 'text-[#C4CDC8]'
+                )}
+              >
                 {org.showCount}
-              </td>
-              <td className="px-3 py-3 text-right font-semibold text-hunter-deep">
+              </span>
+              <span
+                role="cell"
+                className={cn(
+                  `${DISPLAY} text-right text-xl`,
+                  org.riderCount > 0 ? 'text-forest' : 'text-[#C4CDC8]'
+                )}
+              >
                 {org.riderCount}
-              </td>
-              <td className="px-3 py-3 text-right font-semibold text-hunter-deep">
+              </span>
+              <span
+                role="cell"
+                className={cn(
+                  `${DISPLAY} text-right text-xl`,
+                  org.revenueEstimate > 0 ? 'text-forest' : 'text-[#C4CDC8]'
+                )}
+              >
                 {formatMoney(org.revenueEstimate, org.currency, org.locale)}
-              </td>
-              <td className="px-4 py-3">
+              </span>
+
+              <div role="cell" className="flex items-center justify-end gap-1.5">
                 <OrganizationRowActions org={org} />
-              </td>
-            </tr>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+        <span className="text-[12.5px] text-fa-muted-2">
+          {organizations.length} {organizations.length === 1 ? 'organizer' : 'organizers'}
+        </span>
+        <span className="text-[12.5px] text-[#9AA6A0]">
+          Revenue is estimated from entered fees — nothing has been collected yet.
+        </span>
+      </div>
     </div>
   );
 }

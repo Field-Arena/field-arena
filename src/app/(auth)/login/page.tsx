@@ -1,40 +1,49 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { AuthShell } from '@/modules/auth/ui/auth-shell';
 import { LoginForm } from '@/modules/auth/ui/login-form';
+import { LoginNotice } from '@/modules/auth/ui/login-notice';
+import { ROUTES } from '@/shared/constants/routes';
 
 export const metadata: Metadata = {
   title: 'Sign in — Field & Arena',
 };
 
 /**
- * The route middleware redirects unauthenticated users to, and where invite and
+ * Where the proxy redirects unauthenticated users, and where invite and
  * password-reset links land. The header also renders the same LoginForm in a
  * dialog, which is closer to how the legacy app behaved — but a route has to
  * exist regardless, because a redirect and an emailed link both need a URL.
+ *
+ * The `error` param is also what stops this page from becoming half of an
+ * infinite redirect — see the guest-only rule in proxy.ts.
  */
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   return (
-    <main className="grid min-h-screen place-items-center bg-cream px-5 py-12">
-      <div className="w-full max-w-[420px]">
-        <Link
-          href="/"
-          className="mb-8 flex items-center justify-center gap-3 text-hunter-deep no-underline"
-        >
-          <span className="grid size-11 place-items-center rounded-xl bg-hunter-deep font-serif font-bold text-gold">
-            F&amp;A
+    <AuthShell alternate={{ label: 'Create an account', href: ROUTES.signup }}>
+      <div className="[animation:fa-in_.22s_ease-out_both]">
+        <div className="mb-[18px] flex items-center gap-3">
+          <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
+          <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-forest">
+            Log in
           </span>
-          <span className="font-serif text-xl font-bold">Field &amp; Arena</span>
-        </Link>
-
-        <div className="rounded-2xl border border-border bg-white p-7 shadow-[0_18px_60px_rgba(13,44,35,0.10)]">
-          <h1 className="mb-1 font-serif text-2xl font-bold text-hunter-deep">Sign in</h1>
-          <p className="text-fa-muted mb-6 text-sm">
-            Welcome back. Sign in to reach your workspace.
-          </p>
-
-          <LoginForm />
         </div>
+        <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[38px] font-medium leading-[1.02] tracking-[-.024em] text-forest">
+          Welcome back.
+        </h1>
+        <p className="mb-7 max-w-[330px] text-[15px] leading-[1.56] text-fa-muted">
+          Organizer, staff, or rider — one login for Field &amp; Arena.
+        </p>
+
+        {error && <LoginNotice error={error} />}
+
+        <LoginForm />
       </div>
-    </main>
+    </AuthShell>
   );
 }

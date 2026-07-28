@@ -22,7 +22,7 @@ import { env } from '@/shared/lib/env';
  * a protected page render empty. RLS is what actually protects the data, so a
  * request that slips past this matcher still returns nothing.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -63,7 +63,20 @@ export async function middleware(request: NextRequest) {
     return copyCookies(response, NextResponse.redirect(url));
   }
 
-  if (isGuestOnly && user) {
+  /**
+   * A signed-in user has no business on the login or sign-up form — EXCEPT when
+   * the app itself sent them there to explain something, which it signals with
+   * an `error` param.
+   *
+   * Without that exception this is an infinite redirect. The dashboard layout
+   * bounces an authenticated account that has no users/riders row to
+   * `/login?error=no_profile`; the rule below would bounce it straight back to
+   * /dashboard; the layout would bounce it again. The browser gives up with
+   * ERR_TOO_MANY_REDIRECTS and the user never sees the message. Every account
+   * predating the schema rebuild is in exactly that state, so this is a live
+   * case rather than a hypothetical.
+   */
+  if (isGuestOnly && user && !request.nextUrl.searchParams.has('error')) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.dashboard;
     url.search = '';

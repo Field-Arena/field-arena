@@ -1,35 +1,56 @@
-import { SiteHeader } from '@/modules/marketing/ui/site-header';
-import { HeroSection } from '@/modules/marketing/ui/hero-section';
-import { DisciplineStrip } from '@/modules/marketing/ui/discipline-strip';
-import { ProblemSection } from '@/modules/marketing/ui/problem-section';
-import { PlatformSection } from '@/modules/marketing/ui/platform-section';
-import { ShowcaseSection } from '@/modules/marketing/ui/showcase-section';
-import { DisciplinesSection } from '@/modules/marketing/ui/disciplines-section';
-import { WorkspaceSection } from '@/modules/marketing/ui/workspace-section';
-import { RolesSection } from '@/modules/marketing/ui/roles-section';
-import { WorkflowSection } from '@/modules/marketing/ui/workflow-section';
-import { BenefitsSection } from '@/modules/marketing/ui/benefits-section';
-import { CtaSection } from '@/modules/marketing/ui/cta-section';
-import { SiteFooter } from '@/modules/marketing/ui/site-footer';
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import { LandingNav, LandingFooter } from '@/modules/marketing/ui/landing/chrome';
+import {
+  LandingHero,
+  DisciplineMarquee,
+  ProblemSection,
+  PlatformSection,
+  TourSection,
+  DisciplinesSection,
+  RolesSection,
+  WorkflowSection,
+  BenefitsSection,
+  FinalCtaSection,
+} from '@/modules/marketing/ui/landing/sections';
+import { DemoDialogMount } from '@/modules/marketing/ui/landing/demo-dialog-mount';
+import { LoginDialog } from '@/modules/auth/ui/login-dialog';
 
-export default function MarketingHomePage() {
+export const metadata: Metadata = {
+  title: 'Field & Arena — Run your entire equestrian event from one platform',
+  description:
+    'Entries, payments, scheduling, officials, show-day operations, scoring, results, vendors, and volunteers — connected in one system built for equestrian competition.',
+};
+
+/**
+ * The marketing landing page, entirely server-rendered.
+ *
+ * The design reference ships no JavaScript at all — the discipline marquee and
+ * the pulsing status dots are CSS animations, and everything else is a hover
+ * state. The one client component is the mobile nav drawer inside LandingNav,
+ * which needs open/closed state that the desktop-only reference never had.
+ */
+export default function LandingPage() {
   return (
-    <div className="mk">
-      <SiteHeader />
-      <main id="top">
-        <HeroSection />
-        <DisciplineStrip />
+    <div className="fa-public bg-paper font-[family-name:var(--font-ar)] text-ink-deep">
+      <LandingNav />
+      <main>
+        <LandingHero />
+        <DisciplineMarquee />
         <ProblemSection />
         <PlatformSection />
-        <ShowcaseSection />
+        <TourSection />
         <DisciplinesSection />
-        <WorkspaceSection />
         <RolesSection />
         <WorkflowSection />
         <BenefitsSection />
-        <CtaSection />
+        <FinalCtaSection />
       </main>
-      <SiteFooter />
+      <LandingFooter />
+      <Suspense>
+        <DemoDialogMount />
+      </Suspense>
+      <LoginDialog />
     </div>
   );
 }
