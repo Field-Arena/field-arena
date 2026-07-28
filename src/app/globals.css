@@ -1,4 +1,8 @@
 @import 'tailwindcss';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /* Tailwind theme tokens (available as utilities: bg-hunter, text-gold, …).
    Kept in sync with the marketing design-system vars below so future
@@ -12,18 +16,60 @@
   --color-gold-dark: #9e7c11;
   --color-gold-pale: #fff8df;
   --color-ink: #18211d;
-  --color-muted: #617069;
+  /* Prefixed for the same reason --fa-muted is: shadcn's @theme inline block
+     below also defines --color-muted, as a pale surface. Two different colours
+     cannot share one utility name, so brand body text is text-fa-muted. */
+  --color-fa-muted: #617069;
   --color-border: #dfe8e3;
   --color-cream: #fbfaf5;
+
+  /* Workspace palette, ported from the legacy app stylesheet
+     (public/assets/styles.css). The marketing site and the operational
+     workspace ran slightly different greens and creams; these are the
+     workspace values, kept distinct rather than reconciled so dashboards match
+     what staff already use. */
+  --color-hunter-mid: #345043;
+  --color-ink-soft: #6b7169;
+
+  /* Status palette. Drives every state badge — entry status, order payment
+     state, vendor booking state, document approval. Each has a text colour and
+     the pale background it sits on, which is how the legacy pills were built.
+     Text-on-background pairs are kept together so contrast stays checkable. */
+  --color-status-success: #2e7d46;
+  --color-status-success-bg: #dcefe1;
+  --color-status-warn: #9a6a12;
+  --color-status-warn-bg: #fcebd2;
+  --color-status-danger: #b23a3a;
+  --color-status-danger-bg: #f7e1e1;
+  --color-status-info: #2c5aa0;
+  --color-status-info-bg: #e1ecf7;
 
   --font-sans: var(--font-inter);
   --font-serif: var(--font-fraunces);
 }
 
-/* ── Field & Arena marketing design system ──────────────────────────────
-   Ported from the reference marketing site. Serif headings use Fraunces
-   (loaded in layout.tsx); everything else uses Inter. */
+/* ── Field & Arena design tokens ─────────────────────────────────────────
+   Two token systems share this block and they collide on three names.
+   `shadcn init` resolved those collisions in its own favour, which broke the
+   marketing pages: --muted went from #617069 (body-text grey) to a near-white,
+   making every paragraph invisible against a white background.
+
+   The split below is deliberate:
+
+     --border   Means "hairline border colour" in BOTH systems, so it keeps the
+                unprefixed name and takes the brand value. shadcn components
+                then pick up brand borders for free.
+     --fa-muted Prefixed. shadcn's --muted is a near-white *surface*; ours is a
+                body-*text* grey. Same word, opposite roles — they cannot share.
+     --fa-radius Prefixed. shadcn derives control radii (sm/md/lg/xl) from a
+                10px base; our 22px is a card radius. Sharing it turns every
+                button into a lozenge.
+
+   Serif headings use Fraunces, body text Inter — both loaded in layout.tsx.
+   Do not let a tool add a third font here: shadcn's init also introduced Geist
+   bound to --font-sans, which silently replaced Inter site-wide. */
 :root {
+  /* Brand palette */
   --hunter: #173f32;
   --hunter-deep: #0d2c23;
   --hunter-soft: #2f6655;
@@ -32,15 +78,51 @@
   --gold-dark: #9e7c11;
   --gold-pale: #fff8df;
   --ink: #18211d;
-  --muted: #617069;
-  --border: #dfe8e3;
   --white: #ffffff;
   --cream: #fbfaf5;
   --shadow: 0 18px 60px rgba(13, 44, 35, 0.12);
-  --radius: 22px;
   --serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
   --sans: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
+
+  /* Brand tokens whose names shadcn also claims — see header. */
+  --fa-muted: #617069;
+  --fa-radius: 22px;
+
+  /* shadcn semantic tokens. Brand-aligned wherever the semantics genuinely
+     match; left neutral where they do not. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #0d2c23;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: #617069;
+  --accent: #edf5f1;
+  --accent-foreground: #0d2c23;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #dfe8e3;
+  --input: #dfe8e3;
+  --ring: #c9a227;
+  --radius: 0.625rem;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 html {
@@ -228,7 +310,7 @@ body {
 }
 .hero-copy p {
   max-width: 680px;
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 19px;
   margin-bottom: 18px;
 }
@@ -345,7 +427,7 @@ body {
 }
 .float-card small {
   display: block;
-  color: var(--muted);
+  color: var(--fa-muted);
   font-weight: 600;
   margin-top: 3px;
 }
@@ -392,7 +474,7 @@ body {
   margin-bottom: 46px;
 }
 .section-head p {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 18px;
 }
 .section-head p + p {
@@ -407,7 +489,7 @@ body {
 .problem-card {
   padding: 26px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--fa-radius);
   background: #fff;
   transition: 0.18s ease;
 }
@@ -427,7 +509,7 @@ body {
   margin-bottom: 18px;
 }
 .problem-card p {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 15px;
   margin-bottom: 0;
 }
@@ -455,7 +537,7 @@ body {
   min-height: 245px;
   padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: var(--radius);
+  border-radius: var(--fa-radius);
   background: rgba(255, 255, 255, 0.055);
 }
 .feature-number {
@@ -481,7 +563,7 @@ body {
 }
 .showcase-card {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--fa-radius);
   overflow: hidden;
   background: #fff;
   box-shadow: 0 14px 36px rgba(13, 44, 35, 0.08);
@@ -503,7 +585,7 @@ body {
   margin-bottom: 6px;
 }
 .showcase-cap p {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 14.5px;
   margin-bottom: 0;
 }
@@ -519,7 +601,7 @@ body {
   gap: 20px;
   padding: 26px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--fa-radius);
   background: #fff;
 }
 .role-icon {
@@ -533,7 +615,7 @@ body {
   font-size: 27px;
 }
 .role-card p {
-  color: var(--muted);
+  color: var(--fa-muted);
   margin-bottom: 0;
 }
 
@@ -563,7 +645,7 @@ body {
 .step {
   position: relative;
   padding: 30px 24px;
-  border-radius: var(--radius);
+  border-radius: var(--fa-radius);
   background: #fff;
   border: 1px solid var(--border);
 }
@@ -581,7 +663,7 @@ body {
   margin-bottom: 22px;
 }
 .step p {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 15px;
   margin-bottom: 0;
 }
@@ -612,7 +694,7 @@ body {
   white-space: nowrap;
 }
 .metric span {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-weight: 700;
 }
 .quote {
@@ -629,7 +711,7 @@ body {
   color: var(--hunter-deep);
 }
 .quote small {
-  color: var(--muted);
+  color: var(--fa-muted);
   font-weight: 700;
 }
 
@@ -684,7 +766,7 @@ body {
 }
 .footer-grid a {
   display: block;
-  color: var(--muted);
+  color: var(--fa-muted);
   font-size: 14px;
   margin: 9px 0;
 }
@@ -692,7 +774,7 @@ body {
   color: var(--hunter-deep);
 }
 .footer-grid p {
-  color: var(--muted);
+  color: var(--fa-muted);
   max-width: 320px;
   font-size: 14px;
 }
@@ -825,5 +907,101 @@ body {
   .hero-actions .btn,
   .cta-actions .btn {
     width: 100%;
+  }
+}
+
+@theme inline {
+  /* `--font-sans: var(--font-sans)` as written by shadcn init is circular, and
+     would leave the font-sans utility resolving to nothing. The brand @theme
+     block above already binds --font-sans to Inter, so this only needs the
+     heading alias. Headings use the serif face via .mk h1/h2 and .dash-head. */
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  /* Must stay pointed at --muted, not --fa-muted. shadcn uses bg-muted as a
+     pale surface for button hovers, table headers, skeletons and badges;
+     pointing it at the brand body-text grey turns all of those into dark grey
+     blocks with dark text on them. */
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }

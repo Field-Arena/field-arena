@@ -1,12 +1,113 @@
+/**
+ * The organizer sidebar, transcribed from the legacy showstaff.html sidebar
+ * (lines 862-871) — nine items, with their labels and `data-tip` tooltip text
+ * verbatim.
+ *
+ * Two corrections against the earlier version of this file: the labels are spaced
+ * ("Member Database", not "MemberDatabase") and the financial section is called
+ * "Financial", not "Billing". Master Schedule, Venues and Horses were missing
+ * entirely; Documents was invented — legacy has no Documents item in this
+ * sidebar, because per-show documents live inside Show Manager.
+ */
 export const ORGANIZER_NAV = [
-  { key: 'dashboard', label: 'Dashboard', icon: 'grid', href: '/dashboard' },
-  { key: 'members', label: 'MemberDatabase', icon: 'database', href: '/dashboard/members' },
-  { key: 'shows', label: 'ShowManager', icon: 'pencil', href: '/dashboard/shows' },
-  { key: 'users', label: 'Users', icon: 'users', href: '/dashboard/users' },
-  { key: 'documents', label: 'Documents', icon: 'doc', href: '/dashboard/documents' },
-  { key: 'eventsales', label: 'EventSales', icon: 'tag', href: '/dashboard/event-sales' },
-  { key: 'billing', label: 'Billing', icon: 'billing', href: '/dashboard/billing' },
+  {
+    key: 'dashboard',
+    label: 'Dashboard',
+    icon: 'dashboard',
+    href: '/dashboard',
+    tip: 'Overview of everything across your shows',
+  },
+  {
+    key: 'members',
+    label: 'Member Database',
+    icon: 'members',
+    href: '/dashboard/members',
+    tip: "Your organization's full contact database, across every show",
+  },
+  {
+    key: 'shows',
+    label: 'Show Manager',
+    icon: 'showmanager',
+    href: '/dashboard/shows',
+    tip: 'Set up, schedule, and run your show — start to finish',
+  },
+  {
+    key: 'schedule',
+    label: 'Master Schedule',
+    icon: 'schedule',
+    href: '/dashboard/schedule',
+    tip: 'The master schedule for your currently focused show',
+  },
+  {
+    key: 'users',
+    label: 'Users',
+    icon: 'users',
+    href: '/dashboard/users',
+    tip: 'Invite and manage everyone with access',
+  },
+  {
+    key: 'venues',
+    label: 'Venues',
+    icon: 'venues',
+    href: '/dashboard/venues',
+    tip: "Your organization's reusable venues — name, contact info, ring layout, and stables, built once and picked up by any show",
+  },
+  {
+    key: 'horses',
+    label: 'Horses',
+    icon: 'horses',
+    href: '/dashboard/horses',
+    tip: 'Every horse entered, and what documents are still missing',
+  },
+  {
+    key: 'eventsales',
+    label: 'Event Sales',
+    icon: 'eventsales',
+    href: '/dashboard/event-sales',
+    tip: 'Rider entries, stabling, and add-ons',
+  },
+  {
+    key: 'billing',
+    label: 'Financial',
+    icon: 'financial',
+    href: '/dashboard/billing',
+    tip: 'Invoices, payouts, and financial reporting',
+  },
 ] as const;
+
+/**
+ * Per-role sidebar navigation, from each legacy view's own sections.
+ *
+ * Keyed by platform_role so the shell can pick one without a switch statement.
+ * Judge and Scribe share a nav because they shared judge-scribe.html — the
+ * difference is scope (whose assignments), not which screens exist.
+ */
+export const ROLE_NAV: Record<
+  string,
+  { key: string; label: string; icon: string; href: string; tip: string }[]
+> =
+  {
+    Judge: [
+      { key: 'assignments', label: 'My Assignments', icon: 'dashboard', href: '/dashboard/judging', tip: 'Every class you are on a panel for' },
+      { key: 'schedule', label: 'Ring Times', icon: 'schedule', href: '/dashboard/judging/schedule', tip: "Today's ring times for your assignments" },
+    ],
+    Scribe: [
+      { key: 'assignments', label: 'My Assignments', icon: 'dashboard', href: '/dashboard/judging', tip: 'Every class you are recording for' },
+      { key: 'schedule', label: 'Ring Times', icon: 'schedule', href: '/dashboard/judging/schedule', tip: "Today's ring times for your assignments" },
+    ],
+    Announcer: [
+      { key: 'live', label: 'Up Next', icon: 'dashboard', href: '/dashboard/announcing', tip: 'Ring status and who rides next' },
+      { key: 'results', label: 'Results — Live', icon: 'financial', href: '/dashboard/announcing/results', tip: 'Published standings, class by class' },
+    ],
+    ShowStaff: [
+      { key: 'ops', label: 'Show Operations', icon: 'dashboard', href: '/dashboard/operations', tip: 'Live board and on-the-ground operations' },
+      { key: 'directory', label: 'Directories', icon: 'users', href: '/dashboard/operations/directory', tip: 'Rider, horse and vendor directories' },
+    ],
+    Vendor: [
+      { key: 'bookings', label: 'My Bookings', icon: 'eventsales', href: '/dashboard/vendor', tip: 'Your booth space across every organizer' },
+      { key: 'discover', label: 'Reserve Space', icon: 'venues', href: '/dashboard/vendor/discover', tip: 'Shows with booth space still available' },
+    ],
+  };
 
 export const ROLE_RAIL = [
   { key: 'superadmin', icon: 'shield', label: 'Super Admin' },
