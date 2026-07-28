@@ -9,47 +9,62 @@
  * routes. Once the rider and invite flows are migrated they can be visited
  * directly, so a preview harness for them would be a copy to keep in sync.
  */
+/**
+ * Glyphs and tooltips are the legacy button bar's own, transcribed from the HTML
+ * entities in superadmin.html lines 377-400 — ◆ for the home button, 💰 for
+ * Sales Funnel, ▤ Scoring Catalog, 📁 Documents, 🧾 Billing, 👥 Users,
+ * 👀 Signup Flow Preview, 🏆 Demo, ＋ Add Organizer, ✉ Resend Invite.
+ *
+ * `accent` marks the two buttons legacy styled gold (sa-cat-gold): Sales Funnel
+ * and Add Organizer.
+ */
 export const SUPERADMIN_NAV = [
   {
     key: 'overview',
+    glyph: '◆',
     label: 'Super Admin',
     href: '/dashboard/superadmin',
-    hint: 'Your organizers — the platform’s clients',
+    hint: 'Super Admin home',
     accent: false,
   },
   {
     key: 'sales',
+    glyph: '💰',
     label: 'Sales Funnel',
     href: '/dashboard/superadmin/sales',
-    hint: 'Master lead list, demos, and onboarding',
+    hint: 'Sales Funnel — master lead list, demos, and onboarding',
     accent: true,
   },
   {
     key: 'catalog',
+    glyph: '▤',
     label: 'Scoring Catalog',
     href: '/dashboard/superadmin/catalog',
-    hint: 'Platform-level test-sheet library every organizer draws from',
+    hint: 'Scoring Catalog',
     accent: false,
   },
   {
     key: 'documents',
+    glyph: '📁',
     label: 'Documents',
     href: '/dashboard/superadmin/documents',
-    hint: 'Platform reference files, including the Tests folder',
+    hint: 'Documents',
     accent: false,
   },
   {
     key: 'billing',
+    glyph: '🧾',
     label: 'Billing',
     href: '/dashboard/superadmin/billing',
-    hint: 'Platform revenue and payout settings',
+    hint: 'Billing',
     accent: false,
   },
   {
     key: 'users',
+    glyph: '👥',
     label: 'Users',
     href: '/dashboard/superadmin/users',
-    hint: 'Every platform account and pending invite',
+    hint: 'Users',
     accent: false,
   },
 ] as const;

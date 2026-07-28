@@ -119,17 +119,30 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
     .order('name');
   if (error) throw error;
 
-  // Which organizations have an Organizer who actually accepted their invite.
-  const { data: organizerAccounts, error: accountsError } = await supabase
-    .from('users')
-    .select('org_id')
-    .eq('platform_role', 'Organizer')
-    .not('org_id', 'is', null);
-  if (accountsError) throw accountsError;
+  /**
+   * Onboard vs pending, matching api/organizations.js line 461 exactly:
+   *
+   *   an accepted Organizer account   → onboard
+   *   otherwise an outstanding invite → pending
+   *   otherwise the org has shows     → onboard
+   *   otherwise                       → pending
+   *
+   * The third tier is load-bearing and easy to miss. Organizations that predate
+   * the invite flow have no account and no invite, but they have shows and are
+   * plainly in business — the legacy comment calls them out as "legacy seed orgs
+   * (no status field) count as onboard". Checking only for an account marks every
+   * one of them Pending and offers a Resend-invite button for an invite that was
+   * never sent.
+   */
+  const [organizerAccounts, openInvites] = await Promise.all([
+    supabase.from('users').select('org_id').eq('platform_role', 'Organizer').not('org_id', 'is', null),
+    supabase.from('invites').select('org_id').is('accepted_at', null).not('org_id', 'is', null),
+  ]);
+  if (organizerAccounts.error) throw organizerAccounts.error;
+  if (openInvites.error) throw openInvites.error;
 
-  // .not('org_id', 'is', null) already excluded nulls, so no further filtering is
-  // needed — and the generated types know it.
-  const onboardedOrgs = new Set(organizerAccounts.map((row) => row.org_id));
+  const accountOrgs = new Set(organizerAccounts.data.map((row) => row.org_id));
+  const pendingInviteOrgs = new Set(openInvites.data.map((row) => row.org_id));
 
   // One round trip for every show, then counted in memory. With a handful of
   // organizations this beats a query per organization, which is the N+1 the
@@ -219,7 +232,11 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       entryCount,
       riderCount: ridersByOrg.get(org.id)?.size ?? 0,
       revenueEstimate: entryCount * (org.avg_entry_value ?? 0),
-      onboarded: onboardedOrgs.has(org.id),
+      onboarded: accountOrgs.has(org.id)
+        ? true
+        : pendingInviteOrgs.has(org.id)
+          ? false
+          : orgShows.length > 0,
     };
   });
 }

@@ -63,17 +63,66 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const { errors } = form.formState;
   const busy = suspend.isPending || remove.isPending;
 
+  /**
+   * Button order and labels follow the legacy row exactly (superadmin.html
+   * lines 1108-1119): Resend invite (pending only), Edit, Delete, Suspend, then
+   * the impersonation button — whose label is "Preview onboarding form" rather
+   * than "Enter as organizer" for a pending org, because there is no organizer
+   * account to act as yet.
+   */
+  const pending = !org.onboarded;
+  const buttonClass =
+    'rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-hunter-soft disabled:opacity-45';
+
   return (
     <span className="flex flex-wrap justify-end gap-1.5">
+      {pending && (
+        <button
+          type="button"
+          disabled
+          title="Send (or resend) a fresh Organizer invite email — needs the email provider configured"
+          className={buttonClass}
+          style={{ opacity: 0.45 }}
+        >
+          Resend invite
+        </button>
+      )}
+
       <button
         type="button"
+        title="Edit this organizer's account details"
         onClick={() => {
           setEditOpen(true);
         }}
-        className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-hunter-soft"
+        className={buttonClass}
       >
         Edit
       </button>
+
+      {org.deletedAt ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            remove.mutate({ id: org.id, value: false });
+          }}
+          className={buttonClass}
+        >
+          Restore
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          title="Delete this organizer — soft delete, all data is kept"
+          onClick={() => {
+            setDeleteOpen(true);
+          }}
+          className="text-status-danger rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-status-danger disabled:opacity-45"
+        >
+          Delete
+        </button>
+      )}
 
       <button
         type="button"
@@ -86,34 +135,10 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         onClick={() => {
           suspend.mutate({ id: org.id, value: !org.suspended });
         }}
-        className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-hunter-soft disabled:opacity-45"
+        className={buttonClass}
       >
         {org.suspended ? 'Reactivate' : 'Suspend'}
       </button>
-
-      {org.deletedAt ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            remove.mutate({ id: org.id, value: false });
-          }}
-          className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-hunter-soft disabled:opacity-45"
-        >
-          Restore
-        </button>
-      ) : (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setDeleteOpen(true);
-          }}
-          className="text-status-danger rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-status-danger disabled:opacity-45"
-        >
-          Delete
-        </button>
-      )}
 
       {/*
         useTransition rather than a mutation hook: enterAsOrganizer ends in a
@@ -123,7 +148,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       <button
         type="button"
         disabled={entering}
-        title={`Open the organizer workspace as ${org.name}`}
+        title="Full impersonation — you'll act as this organizer, not just view their shows"
         onClick={() => {
           startEntering(async () => {
             await enterAsOrganizer(org.id);
@@ -131,7 +156,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         }}
         className="rounded-lg border border-gold bg-gold-pale px-2.5 py-1.5 text-xs font-bold text-hunter-deep transition hover:border-gold-dark disabled:opacity-45"
       >
-        {entering ? 'Entering…' : 'Enter as organizer →'}
+        {entering ? 'Entering…' : pending ? 'Preview onboarding form →' : 'Enter as organizer →'}
       </button>
 
       {/* ---- Edit ---- */}

@@ -65,7 +65,7 @@ export function AddOrganizerDialog() {
           type="button"
           className="rounded-lg border border-hunter-deep bg-hunter-deep px-3 py-1.5 text-[13px] font-bold text-white transition hover:brightness-110"
         >
-          + Add Organizer
+          <span aria-hidden>＋</span> Add Organizer
         </button>
       </DialogTrigger>
 

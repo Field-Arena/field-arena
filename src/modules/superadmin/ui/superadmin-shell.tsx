@@ -77,7 +77,7 @@ export function SuperAdminShell({
                         : 'border-border bg-white text-hunter-deep hover:border-hunter-soft'
                   )}
                 >
-                  {item.label}
+                  <span aria-hidden>{item.glyph}</span> {item.label}
                 </Link>
               );
             })}
@@ -124,15 +124,24 @@ export function SuperAdminShell({
               }}
               className="rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] font-bold text-hunter-deep transition hover:border-hunter-soft disabled:opacity-45"
             >
+              <span aria-hidden>✉</span>{' '}
               {isRefreshingInvites ? 'Refreshing…' : 'Resend Invite (All Pending)'}
             </button>
             <button
               type="button"
               disabled
-              title="The legacy Demo and Signup Flow Preview pages were static walkthroughs; those screens are becoming real routes here"
+              title="Rider signup, all wizard steps, checkout, and confirmation — screen by screen. The legacy Demo page was a static walkthrough; those screens are becoming real routes here."
               className="rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] font-bold text-hunter-deep opacity-45"
             >
-              Signup Flow Preview
+              <span aria-hidden>🏆</span> Demo
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Step through every signup/invite page. The legacy preview was a static walkthrough of screens becoming real routes here."
+              className="rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] font-bold text-hunter-deep opacity-45"
+            >
+              <span aria-hidden>👀</span> Signup Flow Preview
             </button>
           </div>
 

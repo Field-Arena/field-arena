@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LogOutIcon } from 'lucide-react';
 import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
 import { DashIcon } from '@/shared/ui/dash-icon';
+import { RoleIcon } from '@/shared/ui/role-icon';
 import { ImpersonationBanner } from './impersonation-banner';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
@@ -87,7 +88,7 @@ export function OrganizerShell({
                 title={target.title}
                 aria-label={target.title}
               >
-                <DashIcon name={target.icon ?? 'grid'} size={20} />
+                <RoleIcon role={role} size={20} />
               </span>
             );
           }
@@ -101,7 +102,7 @@ export function OrganizerShell({
               aria-label={label}
               aria-current={active ? 'page' : undefined}
             >
-              <DashIcon name={target.icon ?? 'grid'} size={20} />
+              <RoleIcon role={role} size={20} />
             </Link>
           );
         })}
