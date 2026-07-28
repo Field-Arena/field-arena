@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOutIcon } from 'lucide-react';
 import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
-import { DashIcon } from '@/shared/ui/dash-icon';
+import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
+import { Tip } from '@/shared/ui/tip';
 import { ImpersonationBanner } from './impersonation-banner';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
@@ -82,28 +83,25 @@ export function OrganizerShell({
           // navigate — render it as a static indicator rather than a dead link.
           if (!isSuperAdmin) {
             return (
-              <span
-                key={role}
-                className="dash-rail-btn active"
-                title={target.title}
-                aria-label={target.title}
-              >
-                <RoleIcon role={role} size={20} />
-              </span>
+              <Tip key={role} text={target.title} className="grid place-items-center">
+                <span className="dash-rail-btn active" aria-label={target.title}>
+                  <RoleIcon role={role} size={20} />
+                </span>
+              </Tip>
             );
           }
 
           return (
-            <Link
-              key={role}
-              href={target.href}
-              className={`dash-rail-btn${active ? ' active' : ''}`}
-              title={label}
-              aria-label={label}
-              aria-current={active ? 'page' : undefined}
-            >
-              <RoleIcon role={role} size={20} />
-            </Link>
+            <Tip key={role} text={label} className="grid place-items-center">
+              <Link
+                href={target.href}
+                className={`dash-rail-btn${active ? ' active' : ''}`}
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+              >
+                <RoleIcon role={role} size={20} />
+              </Link>
+            </Tip>
           );
         })}
       </aside>
@@ -125,10 +123,12 @@ export function OrganizerShell({
         {profile.platform_role === 'Organizer' && (
           <>
             <div className="dash-side-heading">VIEWING AS</div>
-            <select className="dash-select" defaultValue="organizer" aria-label="Viewing as role">
-              <option value="organizer">Organizer</option>
-              <option value="showadmin">Show Admin</option>
-            </select>
+            <Tip text="Preview as Organizer (full access) or ShowAdmin (financials hidden)" className="block w-full">
+              <select className="dash-select" defaultValue="organizer" aria-label="Viewing as role">
+                <option value="organizer">Organizer</option>
+                <option value="showadmin">Show Admin</option>
+              </select>
+            </Tip>
           </>
         )}
 
@@ -145,14 +145,12 @@ export function OrganizerShell({
                 ? pathname === '/dashboard'
                 : pathname.startsWith(item.href);
             return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`dash-nav-item${active ? ' active' : ''}`}
-              >
-                <DashIcon name={item.icon} />
-                <span>{item.label}</span>
-              </Link>
+              <Tip key={item.key} text={item.tip} className="block w-full">
+                <Link href={item.href} className={`dash-nav-item${active ? ' active' : ''}`}>
+                  <NavIcon name={item.icon} />
+                  <span>{item.label}</span>
+                </Link>
+              </Tip>
             );
           })}
         </nav>
