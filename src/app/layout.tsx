@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Fraunces, Inter } from 'next/font/google';
 import './globals.css';
+import { QueryProvider } from '@/providers/query-provider';
+import { Toaster } from '@/shared/ui/shadcn/sonner';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -31,7 +33,10 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${fraunces.variable} antialiased`}
       >
-        {children}
+        <QueryProvider>
+          {children}
+          <Toaster />
+        </QueryProvider>
       </body>
     </html>
   );
