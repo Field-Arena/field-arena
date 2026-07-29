@@ -180,3 +180,103 @@ export type UpdateLeadInput = z.input<typeof updateLeadSchema>;
 export const leadIdSchema = z.object({ id: z.uuid() });
 
 export type LeadIdInput = z.infer<typeof leadIdSchema>;
+
+// ── Scoring catalog ──────────────────────────────────────────────────────────
+
+const SHEET_FAMILY_VALUES = [
+  'movement',
+  'freestyle',
+  'weighted',
+  'placing',
+  'unassigned',
+] as const;
+
+/** One numbered movement on a movement-family sheet. */
+export const movementItemSchema = z.object({
+  n: z.number().int().min(1),
+  text: z.string().max(1000),
+  coef: z.number().min(0).max(20),
+});
+
+export type MovementItem = z.infer<typeof movementItemSchema>;
+
+/** One collective mark (Gaits, Impulsion, …). */
+export const collectiveItemSchema = z.object({
+  name: z.string().max(200),
+  coef: z.number().min(0).max(20),
+});
+
+export type CollectiveItem = z.infer<typeof collectiveItemSchema>;
+
+/**
+ * The `def` jsonb for a sheet. The header fields and the movement/collective
+ * arrays are what the editor touches; catchall keeps any other keys a seed or a
+ * future family put there rather than dropping them on save.
+ */
+export const sheetDefSchema = z
+  .object({
+    arena: z.string().max(200).optional(),
+    rideTime: z.string().max(200).optional(),
+    maxPoints: z.number().min(0).max(100000).optional(),
+    intro: z.string().max(2000).optional(),
+    errorScheduleText: z.string().max(500).optional(),
+    movements: z.array(movementItemSchema).optional(),
+    collectives: z.array(collectiveItemSchema).optional(),
+  })
+  .catchall(z.unknown());
+
+export type SheetDef = z.infer<typeof sheetDefSchema>;
+
+/** "Upload official sheet" — creates a catalog stub. Only a title is required. */
+export const createSheetSchema = z.object({
+  title: z.string().trim().min(1, 'A sheet title is required').max(200),
+  level: blankToUndef,
+  discipline: z.string().trim().optional(),
+  family: z.enum(SHEET_FAMILY_VALUES),
+  governingBody: blankToUndef,
+  sourceFile: blankToUndef,
+});
+
+export type CreateSheetInput = z.input<typeof createSheetSchema>;
+
+/** Any subset of a sheet's fields, from the detail editor's Save. */
+export const updateSheetSchema = z.object({
+  id: z.uuid(),
+  title: z.string().trim().min(1).max(200).optional(),
+  level: z.string().trim().nullish(),
+  discipline: z.string().trim().optional(),
+  family: z.enum(SHEET_FAMILY_VALUES).optional(),
+  governingBody: z.string().trim().nullish(),
+  source: z.string().trim().nullish(),
+  def: sheetDefSchema.optional(),
+});
+
+export type UpdateSheetInput = z.input<typeof updateSheetSchema>;
+
+export const sheetIdSchema = z.object({ id: z.uuid() });
+
+export type SheetIdInput = z.infer<typeof sheetIdSchema>;
+
+// ── Documents (catalog file store) ───────────────────────────────────────────
+
+/** Uploading a file: the bytes arrive base64-encoded from the client. */
+export const uploadDocumentSchema = z.object({
+  folder: z.string().trim().min(1).max(60),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  dataBase64: z.string().min(1, 'File data is required'),
+  contentType: z.string().max(200).optional(),
+});
+
+export type UploadDocumentInput = z.infer<typeof uploadDocumentSchema>;
+
+export const documentIdSchema = z.object({ id: z.uuid() });
+
+export type DocumentIdInput = z.infer<typeof documentIdSchema>;
+
+/** Moving a file between folders (Tests ↔ Documents). */
+export const moveDocumentSchema = z.object({
+  id: z.uuid(),
+  folder: z.string().trim().min(1).max(60),
+});
+
+export type MoveDocumentInput = z.infer<typeof moveDocumentSchema>;

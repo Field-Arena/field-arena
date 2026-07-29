@@ -133,6 +133,65 @@ export const SHEET_FAMILIES = [
 ] as const;
 
 /**
+ * Scoring-family display metadata for the catalog, transcribed from the Admin
+ * Console design's FAM_STYLE plus the legacy FAMILIES blurbs. Each family has a
+ * label, a one-line explanation of how it scores, and a badge colour triple.
+ */
+export const CATALOG_FAMILY_META: Record<
+  string,
+  { label: string; blurb: string; bg: string; fg: string; bd: string }
+> = {
+  movement: {
+    label: 'Movement test',
+    blurb: 'Numbered movements × coefficient + collectives − errors → %',
+    bg: '#EDF5F1',
+    fg: '#2E7048',
+    bd: '#D3E6DA',
+  },
+  freestyle: {
+    label: 'Freestyle',
+    blurb: 'Technical + Artistic panels → %',
+    bg: '#F6EAC8',
+    fg: '#8A6D14',
+    bd: '#EBDCAF',
+  },
+  weighted: {
+    label: 'Weighted / 100',
+    blurb: 'Scored category sections summed toward 100',
+    bg: '#F3EEF6',
+    fg: '#6B4E8A',
+    bd: '#E6DAF0',
+  },
+  placing: {
+    label: 'Placing',
+    blurb: 'Rank-only — horses placed against each other',
+    bg: '#E8EFF6',
+    fg: '#2F5A87',
+    bd: '#D3E1EE',
+  },
+  unassigned: {
+    label: 'Unassigned',
+    blurb: 'Scoring family not yet confirmed',
+    bg: '#F1F3F2',
+    fg: '#7A8781',
+    bd: '#E2E8E4',
+  },
+};
+
+/** Score types (governing bodies) — the catalog's provenance filter. */
+export const CATALOG_SCORE_TYPES = ['USEF', 'USDF', 'USEF/USDF', 'FEI', 'Independent'] as const;
+
+/** Disciplines a catalog sheet can belong to, from the upload modal. */
+export const CATALOG_DISCIPLINES = [
+  'Dressage',
+  'Western Dressage',
+  'Eventing',
+  'Hunter',
+  'Jumper',
+  'Combined Driving',
+] as const;
+
+/**
  * Console sidebar, grouped the way the Admin Console design groups it.
  *
  * Same destinations as SUPERADMIN_NAV above — that flat list still drives

@@ -20,12 +20,21 @@ import {
   createLeadSchema,
   updateLeadSchema,
   leadIdSchema,
+  createSheetSchema,
+  updateSheetSchema,
+  sheetIdSchema,
+  uploadDocumentSchema,
+  documentIdSchema,
+  moveDocumentSchema,
 } from '../schemas';
 import { ONBOARDING_CHECKLIST_TEMPLATE } from '../constants';
 
 const CONSOLE_PATH = '/dashboard/superadmin';
 const USERS_PATH = '/dashboard/superadmin/users';
 const SALES_PATH = '/dashboard/superadmin/sales';
+const CATALOG_PATH = '/dashboard/superadmin/catalog';
+const DOCUMENTS_PATH = '/dashboard/superadmin/documents';
+const DOCS_BUCKET = 'catalog-docs';
 
 /**
  * Confirms the caller is a Super Admin, and returns their profile.
@@ -547,4 +556,150 @@ export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: b
 
   revalidatePath(`${SALES_PATH}/${id}`);
   return { emailSent: false };
+}
+
+// ── Scoring catalog ──────────────────────────────────────────────────────────
+//
+// Same pattern as the other console writes: the caller's own client, gated by
+// scoring_catalog_write (is_super_admin). A sheet is a reusable test template
+// every organizer's show draws from.
+
+/** Creates a catalog stub — the "Upload official sheet" flow. */
+export async function createScoringSheet(input: unknown): Promise<{ id: string }> {
+  const parsed = createSheetSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('scoring_catalog')
+    .insert({
+      title: parsed.title,
+      level: parsed.level ?? null,
+      discipline: parsed.discipline ?? 'Dressage',
+      family: parsed.family,
+      governing_body: parsed.governingBody ?? null,
+      source_file: parsed.sourceFile ?? null,
+      // A brand-new sheet is a stub until its criteria are transcribed.
+      source: null,
+      def: {},
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+
+  revalidatePath(CATALOG_PATH);
+  return { id: data.id };
+}
+
+/** Updates any subset of a sheet's fields, including its `def` structure. */
+export async function updateScoringSheet(input: unknown): Promise<{ ok: true }> {
+  const parsed = updateSheetSchema.parse(input);
+  const { id } = parsed;
+
+  const updates: Database['public']['Tables']['scoring_catalog']['Update'] = {
+    updated_at: new Date().toISOString(),
+  };
+  if (parsed.title !== undefined) updates.title = parsed.title;
+  if (parsed.level !== undefined) updates.level = emptyToNull(parsed.level);
+  if (parsed.discipline !== undefined) updates.discipline = parsed.discipline;
+  if (parsed.family !== undefined) updates.family = parsed.family;
+  if (parsed.governingBody !== undefined) updates.governing_body = emptyToNull(parsed.governingBody);
+  if (parsed.source !== undefined) updates.source = emptyToNull(parsed.source);
+  if (parsed.def !== undefined) {
+    // The def is validated Zod data whose catchall widens to unknown; it is
+    // structurally valid Json, so this cast is safe.
+    updates.def = parsed.def as Database['public']['Tables']['scoring_catalog']['Update']['def'];
+  }
+
+  const supabase = await createServerClient();
+  const { error } = await supabase.from('scoring_catalog').update(updates).eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(CATALOG_PATH);
+  revalidatePath(`${CATALOG_PATH}/${id}`);
+  return { ok: true };
+}
+
+/** Removes a catalog sheet. */
+export async function deleteScoringSheet(input: unknown): Promise<{ ok: true }> {
+  const { id } = sheetIdSchema.parse(input);
+  const supabase = await createServerClient();
+  const { error } = await supabase.from('scoring_catalog').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(CATALOG_PATH);
+  return { ok: true };
+}
+
+// ── Documents (catalog file store) ───────────────────────────────────────────
+//
+// Uploads land in the private catalog-docs bucket and a catalog_documents row.
+// All through the caller's own client: the fa_catalog_docs_write storage policy
+// and catalog_documents_write both gate on is_super_admin(), so a non-admin's
+// upload is rejected by Postgres/Storage rather than by an app check.
+
+/** Uploads a file to a folder in the catalog store. */
+export async function uploadCatalogDocument(input: unknown): Promise<{ id: string }> {
+  const parsed = uploadDocumentSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const bytes = Buffer.from(parsed.dataBase64, 'base64');
+  const safeName = parsed.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${parsed.folder}/${crypto.randomUUID()}-${safeName}`;
+
+  const { error: uploadError } = await supabase.storage.from(DOCS_BUCKET).upload(path, bytes, {
+    contentType: parsed.contentType ?? 'application/pdf',
+    upsert: false,
+  });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data, error } = await supabase
+    .from('catalog_documents')
+    .insert({ folder: parsed.folder, name: parsed.name, path })
+    .select('id')
+    .single();
+  if (error) {
+    // Don't leave an orphaned object if the row insert fails.
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(error.message);
+  }
+
+  revalidatePath(DOCUMENTS_PATH);
+  return { id: data.id };
+}
+
+/** Deletes a document — both its row and the stored object. */
+export async function deleteCatalogDocument(input: unknown): Promise<{ ok: true }> {
+  const { id } = documentIdSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: row } = await supabase
+    .from('catalog_documents')
+    .select('path')
+    .eq('id', id)
+    .maybeSingle();
+
+  const { error } = await supabase.from('catalog_documents').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+
+  if (row?.path) {
+    // Best-effort: the row is already gone, so a stray object is not worth failing on.
+    await supabase.storage.from(DOCS_BUCKET).remove([row.path]);
+  }
+
+  revalidatePath(DOCUMENTS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Moves a document between folders (Tests ↔ Documents). Only the folder column
+ * changes — the stored object keeps its key, which is just an opaque path.
+ */
+export async function moveCatalogDocument(input: unknown): Promise<{ ok: true }> {
+  const { id, folder } = moveDocumentSchema.parse(input);
+  const supabase = await createServerClient();
+  const { error } = await supabase.from('catalog_documents').update({ folder }).eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(DOCUMENTS_PATH);
+  return { ok: true };
 }

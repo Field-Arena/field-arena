@@ -270,11 +270,65 @@ export async function listScoringCatalog() {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('scoring_catalog')
-    .select('id, title, level, discipline, family, governing_body, source_file, updated_at')
-    .order('discipline')
+    .select('id, title, level, discipline, family, governing_body, source, source_file, updated_at')
     .order('title');
   if (error) throw error;
   return data;
+}
+
+export type CatalogSheetRow = Awaited<ReturnType<typeof listScoringCatalog>>[number];
+
+export async function getScoringSheet(id: string) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('scoring_catalog')
+    .select(
+      'id, title, level, discipline, family, source, source_file, governing_body, def, created_at, updated_at'
+    )
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export type ScoringSheet = NonNullable<Awaited<ReturnType<typeof getScoringSheet>>>;
+
+export interface CatalogDocument {
+  id: string;
+  folder: string;
+  name: string;
+  url: string | null;
+  createdAt: string;
+}
+
+/**
+ * Every platform document, each with a fresh signed download URL.
+ *
+ * All through the caller's own client: catalog_documents_select and the
+ * fa_catalog_docs_read storage policy both resolve SuperAdmin, so no admin
+ * client is needed. The bucket is private, so a one-hour signed URL is minted
+ * per row for the "View / Download" link.
+ */
+export async function listCatalogDocuments(): Promise<CatalogDocument[]> {
+  const supabase = await createServerClient();
+  const { data: rows, error } = await supabase
+    .from('catalog_documents')
+    .select('id, folder, name, path, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const { data } = await supabase.storage.from('catalog-docs').createSignedUrl(row.path, 3600);
+      return {
+        id: row.id,
+        folder: row.folder,
+        name: row.name,
+        url: data?.signedUrl ?? null,
+        createdAt: row.created_at,
+      };
+    })
+  );
 }
 
 export async function listPlatformUsers() {

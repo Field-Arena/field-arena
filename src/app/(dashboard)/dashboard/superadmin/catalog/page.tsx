@@ -1,113 +1,87 @@
 import type { Metadata } from 'next';
-import { listScoringCatalog } from '@/modules/superadmin/data/queries';
-import { StatusBadge } from '@/shared/ui/status-badge';
-import { StatTile } from '@/shared/ui/stat-tile';
+import { InfoIcon } from 'lucide-react';
+import { listScoringCatalog, listCatalogDocuments } from '@/modules/superadmin/data/queries';
+import { CatalogBoard } from '@/modules/superadmin/ui/catalog-board';
 
 export const metadata: Metadata = {
   title: 'Scoring Catalog — SuperAdmin Console',
 };
 
+const NR = 'font-[family-name:var(--font-nr)]';
+
 /**
- * The platform test-sheet library.
- *
- * This is the table whose absence was the clearest data-loss bug in the legacy
- * build: the catalog was a hardcoded `const CATALOG` array inside
- * superadmin.html with no backend, so every edit made through its own catalog
- * editor was lost on refresh. It is now real rows.
- *
- * `family` decides how a sheet renders, and only the movement family has a
- * renderer today — freestyle, weighted and placing sheets exist as catalog
- * entries with no scoring UI behind them yet. That is surfaced rather than
- * hidden, because an organizer picking a freestyle sheet needs to know it cannot
- * be scored yet.
+ * The platform's canonical library of test sheets, matching the Admin Console
+ * design: a "Platform library" header, an advisory banner, six family stat
+ * tiles, then the interactive board (upload, score-type filter, search, table).
  */
 export default async function ScoringCatalogPage() {
-  const sheets = await listScoringCatalog();
+  const [sheets, docs] = await Promise.all([listScoringCatalog(), listCatalogDocuments()]);
+  const testDocs = docs.filter((d) => d.folder === 'Tests');
 
   const byFamily = new Map<string, number>();
-  const byBody = new Map<string, number>();
   for (const sheet of sheets) {
     const family = sheet.family ?? 'unassigned';
     byFamily.set(family, (byFamily.get(family) ?? 0) + 1);
-    const body = sheet.governing_body ?? 'Independent';
-    byBody.set(body, (byBody.get(body) ?? 0) + 1);
   }
+  const stubs = sheets.filter((s) => !s.source_file).length;
+
+  const tiles: { label: string; value: number }[] = [
+    { label: 'Sheets', value: sheets.length },
+    { label: 'Movement', value: byFamily.get('movement') ?? 0 },
+    { label: 'Freestyle', value: byFamily.get('freestyle') ?? 0 },
+    { label: 'Weighted', value: byFamily.get('weighted') ?? 0 },
+    { label: 'Placing', value: byFamily.get('placing') ?? 0 },
+    { label: 'Stubs', value: stubs },
+  ];
 
   return (
     <div className="space-y-7">
-      <div>
-        <h1 className="mb-1 font-serif text-[32px] font-bold leading-tight text-hunter-deep">
+      <div className="max-w-[680px]">
+        <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-gold">
+          Platform library
+        </div>
+        <h1 className={`${NR} mb-2.5 text-[32px] font-medium leading-[1.06] tracking-[-.022em] text-hunter-deep`}>
           Scoring Catalog
         </h1>
-        <p className="text-fa-muted text-[15px]">
-          The platform-level test-sheet library every organizer&rsquo;s show draws from.
+        <p className="text-[14.5px] leading-[1.6] text-fa-muted">
+          The platform&rsquo;s canonical library of official test sheets. Field &amp; Arena curates
+          each sheet once here; every organizer&rsquo;s show draws its scoring from this catalog.
+          Each sheet maps to one of the scoring families that drive the scoreboard.
         </p>
       </div>
 
-      <section aria-label="Catalog summary">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile label="Sheets" value={sheets.length} sub="in the catalog" />
-          <StatTile
-            label="Movement family"
-            value={byFamily.get('movement') ?? 0}
-            sub="scoreable today"
-          />
-          <StatTile
-            label="Other families"
-            value={sheets.length - (byFamily.get('movement') ?? 0)}
-            sub="no renderer yet"
-          />
-          <StatTile label="Governing bodies" value={byBody.size} />
-        </div>
-      </section>
+      <div className="flex items-start gap-3 rounded-xl border border-[#EBDCAF] bg-[#FCF6E4] px-4 py-3.5">
+        <InfoIcon className="mt-0.5 size-4 flex-none text-[#8A6D14]" aria-hidden />
+        <p className="text-[13.5px] leading-[1.55] text-[#7A5E12]">
+          Attach the official USDF / USEF / FEI document to every sheet before a show publishes
+          against it. Scoring family is what the scoreboard reads — set it carefully; changing it
+          after entries open re-runs every score on that sheet.
+        </p>
+      </div>
 
-      <section aria-label="Test sheets" className="space-y-3">
-        <h2 className="font-serif text-lg font-bold text-hunter-deep">All sheets</h2>
+      <div className="flex flex-wrap gap-3">
+        {tiles.map((tile) => {
+          const zero = tile.value === 0;
+          return (
+            <div
+              key={tile.label}
+              className="flex min-w-[138px] flex-[1_1_150px] flex-col gap-1.5 rounded-[11px] border border-[#E7E0D0] bg-[#F6F3EC] px-[18px] pb-[15px] pt-4"
+            >
+              <span
+                className={`${NR} text-[30px] leading-none`}
+                style={{ color: zero ? '#C4CDC8' : '#0D2C23' }}
+              >
+                {tile.value}
+              </span>
+              <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2">
+                {tile.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border bg-white">
-          <table className="w-full border-collapse text-[13.5px]">
-            <caption className="sr-only">
-              Platform scoring catalog: every test sheet, its level, discipline and family
-            </caption>
-            <thead>
-              <tr className="bg-hunter-pale">
-                {['Title', 'Level', 'Discipline', 'Governing body', 'Family'].map((heading) => (
-                  <th
-                    key={heading}
-                    scope="col"
-                    className="text-fa-muted px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-[0.04em]"
-                  >
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sheets.map((sheet) => (
-                <tr key={sheet.id} className="border-b border-border last:border-b-0">
-                  <td className="px-3 py-2.5 font-semibold text-hunter-deep">{sheet.title}</td>
-                  <td className="text-fa-muted px-3 py-2.5">{sheet.level ?? '—'}</td>
-                  <td className="text-fa-muted px-3 py-2.5">{sheet.discipline ?? '—'}</td>
-                  <td className="text-fa-muted px-3 py-2.5">
-                    {sheet.governing_body ?? 'Independent'}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {sheet.family === 'movement' ? (
-                      <StatusBadge tone="success">Movement</StatusBadge>
-                    ) : (
-                      <StatusBadge tone="warn">
-                        {sheet.family === 'unassigned'
-                          ? 'Unassigned'
-                          : `${(sheet.family ?? '').charAt(0).toUpperCase()}${(sheet.family ?? '').slice(1)} — no renderer`}
-                      </StatusBadge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <CatalogBoard sheets={sheets} docs={testDocs} />
     </div>
   );
 }

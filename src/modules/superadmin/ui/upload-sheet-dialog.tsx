@@ -1,0 +1,177 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRightIcon, Loader2Icon, UploadIcon } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/shared/ui/shadcn/dialog';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Label } from '@/shared/ui/shadcn/label';
+import {
+  CATALOG_DISCIPLINES,
+  CATALOG_FAMILY_META,
+  CATALOG_SCORE_TYPES,
+  SHEET_FAMILIES,
+} from '../constants';
+import { createSheetSchema, type CreateSheetInput } from '../schemas';
+import { useCreateScoringSheet } from '../hooks/use-catalog-mutations';
+import { FormField } from './organizer-form-fields';
+
+const SELECT =
+  'w-full rounded-lg border border-[#D7CFBB] bg-white px-3.5 py-3 text-[14px] text-[#16261F] focus-visible:border-gold focus-visible:outline-none';
+
+/**
+ * "Upload official sheet" — the design's upload modal. It creates a catalog stub
+ * from the sheet's metadata (the file itself isn't stored in this build) and
+ * opens the new sheet so its criteria can be transcribed.
+ */
+export function UploadSheetDialog() {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const form = useForm<CreateSheetInput>({
+    resolver: zodResolver(createSheetSchema),
+    defaultValues: {
+      title: '',
+      level: '',
+      discipline: 'Dressage',
+      family: 'movement',
+      governingBody: 'USEF/USDF',
+      sourceFile: '',
+    },
+  });
+
+  const { mutate, isPending } = useCreateScoringSheet({
+    onSuccess: (id) => {
+      setOpen(false);
+      form.reset();
+      router.push(`/dashboard/superadmin/catalog/${id}`);
+    },
+  });
+
+  const { errors } = form.formState;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-[9px] bg-hunter-deep px-[18px] py-3 text-[13.5px] font-bold text-paper transition hover:bg-gold hover:text-hunter-deep"
+        >
+          <UploadIcon className="size-[15px]" aria-hidden />
+          Upload official sheet
+        </button>
+      </DialogTrigger>
+
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle className="font-[family-name:var(--font-nr)] text-[22px] font-medium text-[#16261F]">
+            Upload an official sheet
+          </DialogTitle>
+          <DialogDescription className="leading-relaxed">
+            Creates a catalog <strong className="text-[#16261F]">stub</strong> from the source sheet.
+            You then tag its scoring family and scaffold the criteria the renderer reads. The file
+            isn&apos;t stored in this build — only its name is captured.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          onSubmit={(event) => {
+            void form.handleSubmit((values) => {
+              mutate(values);
+            })(event);
+          }}
+          className="space-y-4"
+          noValidate
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField
+              id="us-title"
+              label="Sheet title"
+              placeholder="e.g. First Level Test 4"
+              error={errors.title}
+              registration={form.register('title')}
+            />
+            <FormField
+              id="us-level"
+              label="Level"
+              placeholder="e.g. First"
+              error={errors.level}
+              registration={form.register('level')}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="us-discipline">Discipline</Label>
+              <select id="us-discipline" className={SELECT} {...form.register('discipline')}>
+                {CATALOG_DISCIPLINES.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="us-family">Scoring family</Label>
+              <select id="us-family" className={SELECT} {...form.register('family')}>
+                {SHEET_FAMILIES.map((f) => (
+                  <option key={f} value={f}>
+                    {CATALOG_FAMILY_META[f]?.label ?? f}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="us-score">Score type</Label>
+              <select id="us-score" className={SELECT} {...form.register('governingBody')}>
+                {CATALOG_SCORE_TYPES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <FormField
+            id="us-file"
+            label="Source file name (optional)"
+            placeholder="2023_First_Level_Test_4.pdf"
+            error={errors.sourceFile}
+            registration={form.register('sourceFile')}
+          />
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending} className="gap-2">
+              {isPending ? (
+                <Loader2Icon className="animate-spin" aria-hidden />
+              ) : (
+                <ArrowRightIcon className="size-[14px]" aria-hidden />
+              )}
+              {isPending ? 'Creating…' : 'Create stub & open'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
