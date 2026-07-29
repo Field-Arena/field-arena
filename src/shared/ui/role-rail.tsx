@@ -20,8 +20,21 @@ import { cn } from '@/shared/lib/utils';
  * SuperAdmin keeps it because api/_lib/authz.js documents their reach as "a real
  * support/impersonation capability, not a bug".
  */
-export function RoleRail({ currentRole }: { currentRole: string | null }) {
+export function RoleRail({
+  currentRole,
+  variant = 'default',
+}: {
+  currentRole: string | null;
+  /**
+   * 'console' matches the Admin Console design: wider, darker, larger targets,
+   * and no F&A mark — the console's own sidebar carries the brand right beside
+   * it, so repeating it here reads as two logos. Opt-in so the organizer
+   * workspace, which shares this component, keeps its existing rail.
+   */
+  variant?: 'default' | 'console';
+}) {
   const isSuperAdmin = currentRole === 'SuperAdmin';
+  const isConsole = variant === 'console';
 
   const workspaceFor = (role: string) =>
     role === 'Rider' ? RIDER_WORKSPACE : ROLE_WORKSPACES[role];
@@ -31,11 +44,26 @@ export function RoleRail({ currentRole }: { currentRole: string | null }) {
     : ROLE_RAIL_ORDER.filter((role) => role === currentRole);
 
   return (
-    <aside className="flex w-[54px] flex-none flex-col items-center gap-1.5 bg-hunter-deep py-3.5">
-      <div className="font-serif text-sm font-bold leading-none text-white">
-        F<span className="text-gold">&amp;</span>A
-      </div>
-      <div className="mb-3 text-[8px] tracking-[0.12em] text-[#7f8f84]">
+    <aside
+      className={cn(
+        'flex flex-none flex-col items-center',
+        isConsole
+          ? 'sticky top-0 h-dvh w-[74px] gap-1.5 border-r border-[rgba(255,255,255,.07)] bg-[#08201A] pb-[18px] pt-5'
+          : 'w-[54px] gap-1.5 bg-hunter-deep py-3.5'
+      )}
+    >
+      {!isConsole && (
+        <div className="font-serif text-sm font-bold leading-none text-white">
+          F<span className="text-gold">&amp;</span>A
+        </div>
+      )}
+      <div
+        className={cn(
+          isConsole
+            ? 'mb-2.5 text-[8.5px] font-bold uppercase tracking-[.16em] text-[rgba(251,250,247,.34)]'
+            : 'mb-3 text-[8px] tracking-[0.12em] text-[#7f8f84]'
+        )}
+      >
         {isSuperAdmin ? 'ROLES' : 'ROLE'}
       </div>
 
@@ -47,10 +75,15 @@ export function RoleRail({ currentRole }: { currentRole: string | null }) {
           target.status === 'pending' ? `${target.title} — not migrated yet` : target.title;
 
         const classes = cn(
-          'grid size-10 place-items-center rounded-[11px] transition',
+          'grid place-items-center transition',
+          isConsole ? 'size-11 rounded-[10px] border' : 'size-10 rounded-[11px]',
           active
-            ? 'bg-gold text-hunter-deep'
-            : 'text-[#8ba093] hover:bg-white/10 hover:text-[#d7e2da]'
+            ? isConsole
+              ? 'border-[rgba(201,162,39,.42)] bg-[#17402F] text-gold'
+              : 'bg-gold text-hunter-deep'
+            : isConsole
+              ? 'border-transparent text-[rgba(251,250,247,.5)] hover:bg-[#17402F] hover:text-gold-light'
+              : 'text-[#8ba093] hover:bg-white/10 hover:text-[#d7e2da]'
         );
 
         /*
