@@ -1,5 +1,8 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
+import type { PermissionKey } from '@/shared/constants/permissions';
+import { resolveStaffPermissions, countEnabledPermissions } from '../utils';
 
 /**
  * SuperAdmin console reads.
@@ -241,14 +244,24 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
   });
 }
 
+const LEAD_COLUMNS =
+  'id, org_name, contact_name, email, phone, website, shows_per_year, status, cost_per_event, avg_revenue_per_show, notes, calendly_event_uri, demo_at, onboarding_at, onboarding_checklist, onboarding_email_sent_at, created_at, updated_at';
+
 export async function listLeads() {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('leads')
-    .select(
-      'id, org_name, contact_name, email, phone, shows_per_year, status, cost_per_event, avg_revenue_per_show, demo_at, onboarding_at, created_at'
-    )
+    .select(LEAD_COLUMNS)
     .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export type LeadRow = Awaited<ReturnType<typeof listLeads>>[number];
+
+export async function getLead(id: string): Promise<LeadRow | null> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.from('leads').select(LEAD_COLUMNS).eq('id', id).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -284,4 +297,154 @@ export async function listPendingInvites() {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
+}
+
+export interface PlatformAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: string | null;
+  createdAt: string;
+  /**
+   * `pending` means the account was provisioned but the person has never signed
+   * in — they still owe the set-password step from their invite email. Legacy
+   * drew the same line as "Active" vs "Invite pending".
+   */
+  status: 'active' | 'pending';
+}
+
+/**
+ * Every staff-side login on the platform — Super Admins, Organizers, and every
+ * per-show role — with whether they have actually signed in yet.
+ *
+ * The role list comes through the caller's own client (RLS lets a SuperAdmin
+ * read every users row). The signed-in-yet flag does not: `last_sign_in_at`
+ * lives on auth.users, which the authenticated role cannot read through PostgREST
+ * at all, so it can only come from the auth admin API. That single admin call is
+ * the one deviation from this file's "user client only" rule, and it is
+ * unavoidable — there is no RLS path to auth session metadata.
+ */
+export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
+  const supabase = await createServerClient();
+  const { data: rows, error } = await supabase
+    .from('users')
+    .select('id, name, email, platform_role, created_at')
+    .order('platform_role')
+    .order('name');
+  if (error) throw error;
+
+  const admin = createAdminClient();
+  const { data: authList, error: authError } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+  if (authError) throw authError;
+
+  const signedInById = new Map(authList.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]));
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.platform_role,
+    createdAt: row.created_at,
+    status: signedInById.get(row.id) ? 'active' : 'pending',
+  }));
+}
+
+export interface DirectoryStaff {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string;
+  showId: string;
+  showName: string;
+  status: string | null;
+  permissions: Record<PermissionKey, boolean>;
+  permissionCount: number;
+}
+
+export interface DirectoryOrganizer {
+  id: string;
+  name: string;
+  city: string | null;
+  region: string | null;
+  showCount: number;
+  /** For the "Add a user" show picker — only this org's shows. */
+  shows: { id: string; name: string }[];
+  staff: DirectoryStaff[];
+}
+
+/**
+ * The "Organizer Staff Directory": every organizer, each with its shows and the
+ * staff working across them. Ported from the legacy /all-staff view.
+ *
+ * All reads go through the caller's own client. A SuperAdmin passes can_view_show
+ * for every show (is_super_admin short-circuits it), so staff_assignments returns
+ * every row — no admin client needed. Three flat selects joined in memory rather
+ * than a PostgREST embed: staff_assignments → shows has one FK, but grouping and
+ * the per-org show list are both needed anyway, so one pass builds both.
+ */
+export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[]> {
+  const supabase = await createServerClient();
+
+  const [orgsRes, showsRes, staffRes] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('id, name, city, region')
+      .is('deleted_at', null)
+      .order('name'),
+    supabase.from('shows').select('id, name, org_id'),
+    supabase
+      .from('staff_assignments')
+      .select(
+        'id, show_id, name, email, role, status, permissions, can_scratch_skip_dq, can_view_money'
+      ),
+  ]);
+  if (orgsRes.error) throw orgsRes.error;
+  if (showsRes.error) throw showsRes.error;
+  if (staffRes.error) throw staffRes.error;
+
+  const showById = new Map(showsRes.data.map((s) => [s.id, s]));
+
+  const showsByOrg = new Map<string, { id: string; name: string }[]>();
+  for (const show of showsRes.data) {
+    const list = showsByOrg.get(show.org_id) ?? [];
+    list.push({ id: show.id, name: show.name });
+    showsByOrg.set(show.org_id, list);
+  }
+
+  const staffByOrg = new Map<string, DirectoryStaff[]>();
+  for (const row of staffRes.data) {
+    const show = showById.get(row.show_id);
+    if (!show) continue;
+    const resolved = resolveStaffPermissions(row);
+    const staff: DirectoryStaff = {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      showId: row.show_id,
+      showName: show.name,
+      status: row.status,
+      permissions: resolved,
+      permissionCount: countEnabledPermissions(resolved),
+    };
+    const list = staffByOrg.get(show.org_id) ?? [];
+    list.push(staff);
+    staffByOrg.set(show.org_id, list);
+  }
+
+  return orgsRes.data.map((org) => {
+    const shows = showsByOrg.get(org.id) ?? [];
+    return {
+      id: org.id,
+      name: org.name,
+      city: org.city,
+      region: org.region,
+      showCount: shows.length,
+      shows,
+      staff: (staffByOrg.get(org.id) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  });
 }

@@ -1,14 +1,47 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { Database } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { getStaffProfile } from '@/modules/auth/data/queries';
+import { env } from '@/shared/lib/env';
+import { ROUTES } from '@/shared/constants/routes';
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
   organizationFlagSchema,
+  addSuperAdminSchema,
+  superAdminIdSchema,
+  addOrgStaffSchema,
+  changeStaffRoleSchema,
+  updateStaffPermissionsSchema,
+  staffIdSchema,
+  createLeadSchema,
+  updateLeadSchema,
+  leadIdSchema,
 } from '../schemas';
+import { ONBOARDING_CHECKLIST_TEMPLATE } from '../constants';
 
 const CONSOLE_PATH = '/dashboard/superadmin';
+const USERS_PATH = '/dashboard/superadmin/users';
+const SALES_PATH = '/dashboard/superadmin/sales';
+
+/**
+ * Confirms the caller is a Super Admin, and returns their profile.
+ *
+ * The Super Admin actions below reach for the service-role admin client, which
+ * bypasses RLS — so unlike the organization actions, the policy can no longer be
+ * the gate. This is that gate, run first in every one of them. getStaffProfile
+ * goes through the caller's own client, so it reads the caller's real role.
+ */
+async function requireSuperAdmin() {
+  const profile = await getStaffProfile();
+  if (profile?.platform_role !== 'SuperAdmin') {
+    throw new Error('Only a Super Admin can manage Super Admins.');
+  }
+  return profile;
+}
 
 /**
  * SuperAdmin write actions, ported from api/organizations.js.
@@ -168,4 +201,350 @@ export async function refreshPendingInvites(): Promise<{ refreshed: number; emai
 
   revalidatePath(CONSOLE_PATH);
   return { refreshed: data.length, emailSent: false };
+}
+
+/**
+ * Invites another Super Admin and provisions them immediately.
+ *
+ * Legacy created only an invite row and minted the users row on acceptance. This
+ * app has no accept-invite provisioning yet, and signInWithPassword blocks any
+ * account with no users/riders row — so an invite alone would let the new Super
+ * Admin sign in and then bounce straight back out. Instead this creates the auth
+ * user (which emails a set-password link) AND the SuperAdmin users row in one
+ * step, so they are a working Super Admin the moment they set their password.
+ * Until they do, they read as "Invite pending" because they have never signed in.
+ *
+ * inviteUserByEmail and the users insert both need the service-role client:
+ * creating an auth user is not an RLS-governed operation at all. requireSuperAdmin
+ * above is what authorizes this, since the policy no longer can.
+ */
+export async function addSuperAdmin(input: unknown): Promise<{ email: string }> {
+  await requireSuperAdmin();
+  const { name, email } = addSuperAdminSchema.parse(input);
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const admin = createAdminClient();
+
+  // A pre-existing account with this address cannot be silently promoted: it may
+  // be a rider (the single-identity trigger forbids a users row alongside a
+  // riders row) or already staff. Report it rather than half-acting.
+  const { data: existing } = await admin
+    .from('users')
+    .select('id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+  if (existing) {
+    throw new Error('A user with this email already exists.');
+  }
+
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    normalizedEmail,
+    {
+      data: { name },
+      redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(USERS_PATH)}`,
+    }
+  );
+  if (inviteError) {
+    // The most common cause is an auth account that already exists for this
+    // address without a staff profile (e.g. a rider, or a stalled signup).
+    throw new Error(
+      /already.*regist|exist/i.test(inviteError.message)
+        ? 'That email already has an account. It can only be added as a Super Admin from the database, not through this invite.'
+        : inviteError.message
+    );
+  }
+
+  const { error: insertError } = await admin.from('users').insert({
+    id: invited.user.id,
+    name,
+    email: normalizedEmail,
+    platform_role: 'SuperAdmin',
+  });
+  if (insertError) {
+    // Leave no orphaned auth user behind if the profile insert fails.
+    await admin.auth.admin.deleteUser(invited.user.id);
+    throw new Error(insertError.message);
+  }
+
+  revalidatePath(USERS_PATH);
+  return { email: normalizedEmail };
+}
+
+/**
+ * Removes a Super Admin (or cancels a still-pending one) by deleting the account.
+ *
+ * Deleting the auth user cascades to the users row (users.id references
+ * auth.users on delete cascade), so this removes them entirely — matching the
+ * legacy "deletes their account entirely; they'll need a brand-new invite". Two
+ * guards, both from the legacy handler: you cannot remove yourself, and you
+ * cannot remove the last remaining Super Admin.
+ */
+export async function removeSuperAdmin(input: unknown): Promise<{ ok: true }> {
+  const caller = await requireSuperAdmin();
+  const { id } = superAdminIdSchema.parse(input);
+
+  if (id === caller.id) {
+    throw new Error("You can't remove your own account.");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: target } = await admin
+    .from('users')
+    .select('id, platform_role')
+    .eq('id', id)
+    .maybeSingle();
+  if (target?.platform_role !== 'SuperAdmin') {
+    throw new Error('Super Admin not found.');
+  }
+
+  const { count } = await admin
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('platform_role', 'SuperAdmin');
+  if ((count ?? 0) <= 1) {
+    throw new Error("Can't remove the last remaining Super Admin.");
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(USERS_PATH);
+  return { ok: true };
+}
+
+/**
+ * staff_assignments.role stores the human label ('Show Admin'); users.platform_role
+ * stores the compact form ('ShowAdmin'). Every other grantable role is identical
+ * in both. The legacy code carried the same split.
+ */
+function platformRoleForStaff(role: string): string {
+  return role === 'Show Admin' ? 'ShowAdmin' : role;
+}
+
+/**
+ * Adds a staff member to one of an organizer's shows.
+ *
+ * Two things happen: the per-show grant (a staff_assignments row, which is what
+ * the directory shows and what RLS resolves permissions from) and, if this email
+ * has no account yet, an invite + provisioned users row so they can actually sign
+ * in — the same reason addSuperAdmin provisions eagerly. Someone already holding
+ * an account keeps it; they just gain the new assignment.
+ *
+ * requireSuperAdmin gates it because the provisioning half uses the service-role
+ * client. The assignment insert itself still goes through the caller's client, so
+ * staff_assignments_write (canManageStaff on the show) is also enforced.
+ */
+export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
+  await requireSuperAdmin();
+  const parsed = addOrgStaffSchema.parse(input);
+  const email = parsed.email.trim().toLowerCase();
+  const name = parsed.name ?? email;
+
+  const supabase = await createServerClient();
+  const { error: assignError } = await supabase.from('staff_assignments').insert({
+    show_id: parsed.showId,
+    email,
+    name,
+    role: parsed.role,
+    status: 'pending',
+  });
+  if (assignError) throw new Error(assignError.message);
+
+  // Provision a login only if this person has no account at all yet.
+  const admin = createAdminClient();
+  const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
+    admin.from('users').select('id').eq('email', email).maybeSingle(),
+    admin.from('riders').select('id').eq('email', email).maybeSingle(),
+  ]);
+
+  if (!existingStaffUser && !existingRider) {
+    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { name },
+      redirectTo: `${env.siteUrl}${ROUTES.authCallback}`,
+    });
+    // Best-effort: the assignment is the grant that matters. If the invite fails
+    // (e.g. the address already has an auth account), the row still stands and
+    // they can be provisioned separately — so this does not throw.
+    if (!inviteError) {
+      await admin.from('users').insert({
+        id: invited.user.id,
+        name,
+        email,
+        platform_role: platformRoleForStaff(parsed.role),
+      });
+    }
+  }
+
+  revalidatePath(USERS_PATH);
+  return { email };
+}
+
+/** Changes one staff member's role (directory inline dropdown). */
+export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
+  const { staffId, role } = changeStaffRoleSchema.parse(input);
+  const supabase = await createServerClient();
+  const { error } = await supabase
+    .from('staff_assignments')
+    .update({ role })
+    .eq('id', staffId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(USERS_PATH);
+  return { ok: true };
+}
+
+/**
+ * Saves the per-person permission toggles.
+ *
+ * The whole resolved set is written as the explicit `permissions` jsonb, so what
+ * the editor showed is exactly what is stored — matching the legacy submitStaffPerm.
+ */
+export async function updateStaffPermissions(input: unknown): Promise<{ ok: true }> {
+  const { staffId, permissions } = updateStaffPermissionsSchema.parse(input);
+  const supabase = await createServerClient();
+  const { error } = await supabase
+    .from('staff_assignments')
+    .update({ permissions })
+    .eq('id', staffId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(USERS_PATH);
+  return { ok: true };
+}
+
+/** Removes a staff assignment. Hard delete, matching legacy. */
+export async function removeStaffAssignment(input: unknown): Promise<{ ok: true }> {
+  const { staffId } = staffIdSchema.parse(input);
+  const supabase = await createServerClient();
+  const { error } = await supabase.from('staff_assignments').delete().eq('id', staffId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(USERS_PATH);
+  return { ok: true };
+}
+
+// ── Sales funnel (leads) ─────────────────────────────────────────────────────
+//
+// Every lead action goes through the caller's own client, gated by the
+// leads_super_admin_all policy — same pattern as the organization actions. No
+// admin client, because nothing here touches auth or another user's account.
+
+/** A cleared text field stores NULL rather than an empty string. */
+function emptyToNull(value: string | null | undefined): string | null {
+  if (value) return value;
+  return null;
+}
+
+/** Adds a manually-sourced target. It always lands in the funnel as "new". */
+export async function createLead(input: unknown): Promise<{ id: string }> {
+  const parsed = createLeadSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const showsNumber = parsed.showsPerYear ? Number(parsed.showsPerYear) : null;
+  const showsPerYear =
+    showsNumber != null && Number.isFinite(showsNumber) && showsNumber >= 0
+      ? Math.floor(showsNumber)
+      : null;
+
+  const { data, error } = await supabase
+    .from('leads')
+    .insert({
+      org_name: parsed.orgName,
+      contact_name: parsed.contactName ?? null,
+      email: parsed.email ? parsed.email.toLowerCase() : null,
+      phone: parsed.phone ?? null,
+      website: parsed.website ?? null,
+      shows_per_year: showsPerYear,
+      status: 'new',
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+
+  revalidatePath(SALES_PATH);
+  return { id: data.id };
+}
+
+/**
+ * Updates any subset of a lead's fields — the detail page saves contact,
+ * economics, notes, status, the onboarding date, and the checklist through here.
+ * Only keys that are actually present are written, so one form's Save never
+ * clobbers another's fields. Changing status has no side effects, matching legacy
+ * (demo_at and onboarding_at are set explicitly, never inferred from a stage).
+ */
+export async function updateLead(input: unknown): Promise<{ ok: true }> {
+  const parsed = updateLeadSchema.parse(input);
+  const { id } = parsed;
+
+  const updates: Database['public']['Tables']['leads']['Update'] = {
+    updated_at: new Date().toISOString(),
+  };
+  if (parsed.orgName !== undefined) updates.org_name = parsed.orgName;
+  if (parsed.contactName !== undefined) updates.contact_name = emptyToNull(parsed.contactName);
+  if (parsed.email !== undefined) updates.email = parsed.email ? parsed.email.toLowerCase() : null;
+  if (parsed.phone !== undefined) updates.phone = emptyToNull(parsed.phone);
+  if (parsed.website !== undefined) updates.website = emptyToNull(parsed.website);
+  if (parsed.status !== undefined) updates.status = parsed.status;
+  if (parsed.notes !== undefined) updates.notes = emptyToNull(parsed.notes);
+  if (parsed.showsPerYear !== undefined) updates.shows_per_year = parsed.showsPerYear;
+  if (parsed.costPerEvent !== undefined) updates.cost_per_event = parsed.costPerEvent;
+  if (parsed.avgRevenuePerShow !== undefined) updates.avg_revenue_per_show = parsed.avgRevenuePerShow;
+  if (parsed.onboardingAt !== undefined) {
+    updates.onboarding_at = parsed.onboardingAt ? new Date(parsed.onboardingAt).toISOString() : null;
+  }
+  if (parsed.onboardingChecklist !== undefined) {
+    updates.onboarding_checklist = parsed.onboardingChecklist;
+  }
+
+  const supabase = await createServerClient();
+  const { error } = await supabase.from('leads').update(updates).eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(SALES_PATH);
+  revalidatePath(`${SALES_PATH}/${id}`);
+  return { ok: true };
+}
+
+/**
+ * Seeds the onboarding checklist (first time only) and records that the email
+ * went out. The email itself is not actually delivered — like the organizer
+ * invite, custom mail needs an email provider this project has not configured
+ * yet — so this reports emailSent:false rather than pretending. The checklist and
+ * the sent-at timestamp are real and are what the detail page reads.
+ */
+export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: boolean }> {
+  const { id } = leadIdSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: lead, error: readError } = await supabase
+    .from('leads')
+    .select('onboarding_checklist')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (!lead) throw new Error('Lead not found.');
+
+  const existing = Array.isArray(lead.onboarding_checklist) ? lead.onboarding_checklist : [];
+  const checklist =
+    existing.length > 0
+      ? existing
+      : ONBOARDING_CHECKLIST_TEMPLATE.map((label, index) => ({
+          id: `ob${String(index)}`,
+          label,
+          done: false,
+        }));
+
+  const { error } = await supabase
+    .from('leads')
+    .update({
+      onboarding_checklist: checklist,
+      onboarding_email_sent_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`${SALES_PATH}/${id}`);
+  return { emailSent: false };
 }

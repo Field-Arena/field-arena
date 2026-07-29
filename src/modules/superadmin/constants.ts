@@ -92,6 +92,37 @@ export const LEAD_STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'i
   lost: 'danger',
 };
 
+/**
+ * Sales-funnel status pill colours, transcribed exactly from the Admin Console
+ * design's TARGET_PILL map. Each stage has a background, a foreground, and a dot.
+ * These are the design's own hexes rather than the app's status tokens because
+ * the funnel uses a warmer, six-step palette the generic status badge doesn't.
+ */
+export const LEAD_PILL: Record<string, { bg: string; fg: string; dot: string }> = {
+  new: { bg: '#EDF5F1', fg: '#5A6B63', dot: '#9AA6A0' },
+  demo_scheduled: { bg: '#F9F0D8', fg: '#8A6D14', dot: '#C9A227' },
+  demo_completed: { bg: '#E6F1EA', fg: '#2E7048', dot: '#3E8E5A' },
+  onboarding: { bg: '#E4EDE8', fg: '#0D2C23', dot: '#0D2C23' },
+  customer: { bg: '#F6EAC8', fg: '#8A6D14', dot: '#C9A227' },
+  lost: { bg: '#FCF1EF', fg: '#8E3627', dot: '#B4432F' },
+};
+
+/**
+ * The onboarding checklist seeded onto a lead the first time its onboarding
+ * email is sent, verbatim from the legacy ONBOARDING_CHECKLIST_TEMPLATE. Stored
+ * per lead as [{id, label, done}] so a given org can drop items it doesn't need.
+ */
+export const ONBOARDING_CHECKLIST_TEMPLATE = [
+  'Staff list — names, emails, and roles for everyone helping run the show',
+  'Prize list',
+  "Waiver — let us know if you'll use our standard waiver or want to provide your own",
+  'Add-ons and pricing — stalls, shavings, and anything else riders can add to their entry',
+  'Vendor spaces and pricing',
+  'Venue details — full address and any access notes',
+  'Stabling — how many stalls and how many barns',
+  'Ticket pricing, and whether this is a qualifying/rated show or a schooling show',
+] as const;
+
 /** Scoring-sheet families, matching the CHECK constraint on scoring_catalog.family. */
 export const SHEET_FAMILIES = [
   'movement',
