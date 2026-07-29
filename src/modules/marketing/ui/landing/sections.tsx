@@ -45,7 +45,7 @@ export function LandingHero() {
   return (
     <section
       id="top"
-      className="relative overflow-hidden bg-forest px-5 pb-28 pt-16 md:px-8 md:pb-40 md:pt-20 lg:px-10 lg:pb-[200px] lg:pt-24"
+      className="relative overflow-hidden bg-forest px-5 pb-20 pt-16 md:px-8 md:pb-24 md:pt-20 lg:px-10 lg:pb-28 lg:pt-24"
     >
       <div
         aria-hidden
@@ -284,7 +284,7 @@ export function TourSection() {
           <p className="m-0 max-w-[300px] text-[15px] leading-[1.6] text-fa-muted">{TOUR.aside}</p>
         </div>
 
-        <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white transition-colors duration-150 hover:border-gold">
             <div
               aria-hidden
