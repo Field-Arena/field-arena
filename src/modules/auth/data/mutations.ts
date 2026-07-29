@@ -142,7 +142,10 @@ async function landAfterSignup(
   const destination = await provisionedDestination(supabase, userId);
   if (!destination) {
     await supabase.auth.signOut();
-    return { status: 'done', redirectTo: `${ROUTES.login}?error=pending_invite` };
+    // Land on the marketing page and open the login DIALOG with the notice —
+    // the ?notice= deep link (see LoginDialogMount), not the standalone /login
+    // page, so the message shows in the modal the rest of the app signs in with.
+    return { status: 'done', redirectTo: `${ROUTES.home}?notice=pending_invite` };
   }
   revalidatePath('/', 'layout');
   return { status: 'done', redirectTo: destination };

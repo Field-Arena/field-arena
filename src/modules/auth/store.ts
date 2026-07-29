@@ -10,16 +10,26 @@ import { create } from 'zustand';
  */
 interface LoginDialogState {
   open: boolean;
+  /**
+   * A message shown inside the dialog above the form — e.g. why a just-verified
+   * but un-provisioned account can't get in. Cleared when the dialog closes.
+   */
+  notice: string | null;
   openDialog: () => void;
+  openWithNotice: (notice: string) => void;
   setOpen: (open: boolean) => void;
 }
 
 export const useLoginDialogStore = create<LoginDialogState>((set) => ({
   open: false,
+  notice: null,
   openDialog: () => {
-    set({ open: true });
+    set({ open: true, notice: null });
+  },
+  openWithNotice: (notice) => {
+    set({ open: true, notice });
   },
   setOpen: (open) => {
-    set({ open });
+    set(open ? { open: true } : { open: false, notice: null });
   },
 }));
