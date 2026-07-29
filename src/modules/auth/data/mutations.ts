@@ -83,85 +83,69 @@ export async function signInWithPassword(input: unknown): Promise<LoginOutcome> 
     return { status: 'error', message: error.message };
   }
 
-  /**
-   * An authenticated user with no profile row cannot do anything: every RLS
-   * policy resolves the caller's role through public.users or public.riders, so
-   * a profile-less session sees zero rows everywhere and the dashboard renders
-   * empty with no explanation. Detected here so the message is accurate.
-   *
-   * This is a real state, not a hypothetical: the six accounts that predate the
-   * schema rebuild are all in it.
-   */
-  const userId = data.user.id;
-  {
-    const [{ data: staff }, { data: rider }] = await Promise.all([
-      supabase.from('users').select('id').eq('id', userId).maybeSingle(),
-      supabase.from('riders').select('id').eq('id', userId).maybeSingle(),
-    ]);
-
-    if (!staff && !rider) {
-      await supabase.auth.signOut();
-      return {
-        status: 'error',
-        message:
-          'This account is not set up on Field & Arena yet. Ask your organizer or a platform admin to invite you.',
-      };
-    }
-
-    if (rider) {
-      revalidatePath('/', 'layout');
-      return { status: 'done', redirectTo: ROUTES.home };
-    }
+  // Field & Arena is invite-only: an account with neither a staff nor a rider row
+  // was never provisioned, so it is signed out with the explanation shown right
+  // here in the login dialog rather than dropped into an empty workspace.
+  const destination = await provisionedDestination(supabase, data.user.id);
+  if (!destination) {
+    await supabase.auth.signOut();
+    return { status: 'error', message: NOT_PROVISIONED_MESSAGE };
   }
-
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: ROUTES.dashboard };
+  return { status: 'done', redirectTo: destination };
+}
+
+type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
+
+const NOT_PROVISIONED_MESSAGE =
+  'This account is not set up on Field & Arena yet. Ask your organizer or a platform admin to invite you.';
+
+/**
+ * The workspace an authenticated account should open, or null when it has no
+ * profile at all.
+ *
+ * Access is invite-only. A login is provisioned by an organizer or a platform
+ * admin — a public.users staff row, or a public.riders row an organizer adds for
+ * a competitor — and NEVER by signing up. Staff land in the dashboard, riders in
+ * their portal; null means the account was never provisioned and each caller
+ * decides how to say so.
+ *
+ * The caller's own client is passed in rather than made fresh: it already holds
+ * the session the sign-in/sign-up/verify just established, which a new client
+ * built from the same request's cookies would not yet see.
+ */
+async function provisionedDestination(
+  supabase: ServerClient,
+  userId: string
+): Promise<string | null> {
+  const [{ data: staff }, { data: rider }] = await Promise.all([
+    supabase.from('users').select('id').eq('id', userId).maybeSingle(),
+    supabase.from('riders').select('id').eq('id', userId).maybeSingle(),
+  ]);
+  if (staff) return ROUTES.dashboard;
+  if (rider) return ROUTES.home;
+  return null;
 }
 
 /**
- * Ensures the signed-in account has a rider profile, and reports where to land.
+ * Where sign-up / verification lands once the emailed code checks out.
  *
- * Self-service sign-up creates a RIDER, never staff. That is not an arbitrary
- * choice: signInWithPassword above signs out any account with no row in
- * public.users or public.riders, and staff rows carry an org and a platform role
- * that only an organizer or platform admin can legitimately grant. A public form
- * that minted staff accounts would let anyone assign themselves a role. Riders
- * are the self-provisioned identity — the legacy app drew the same line.
- *
- * Insert runs under the new user's own session, which is what
- * riders_insert_self (id = auth.uid()) requires; the service-role key is not
- * needed and is deliberately not used.
+ * The distinction from the sign-in path is deliberate: the code IS validated and
+ * the sign-up step never shows the "not set up" error itself. A provisioned
+ * account opens its workspace; an un-provisioned one is signed out and sent to
+ * the login screen, where the invite-only notice explains why it cannot get in.
  */
-async function ensureRiderProfile(userId: string, email: string): Promise<string> {
-  const supabase = await createServerClient();
-
-  const { data: existingStaff } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle();
-
-  // An invited staff member who happens to sign up with the same address keeps
-  // their staff account — creating a rider row alongside it would give one
-  // person two identities and an ambiguous landing page.
-  if (existingStaff) {
-    revalidatePath('/', 'layout');
-    return ROUTES.dashboard;
+async function landAfterSignup(
+  supabase: ServerClient,
+  userId: string
+): Promise<{ status: 'done'; redirectTo: string }> {
+  const destination = await provisionedDestination(supabase, userId);
+  if (!destination) {
+    await supabase.auth.signOut();
+    return { status: 'done', redirectTo: `${ROUTES.login}?error=pending_invite` };
   }
-
-  const { data: existingRider } = await supabase
-    .from('riders')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (!existingRider) {
-    const { error } = await supabase.from('riders').insert({ id: userId, email });
-    if (error) throw new Error(error.message);
-  }
-
   revalidatePath('/', 'layout');
-  return ROUTES.home;
+  return { status: 'done', redirectTo: destination };
 }
 
 /**
@@ -206,7 +190,10 @@ export async function signUpWithPassword(input: unknown): Promise<SignUpOutcome>
     return { status: 'verify', email };
   }
 
-  return { status: 'done', redirectTo: await ensureRiderProfile(data.user.id, email) };
+  // Confirmation is off, so the account is live immediately. The account is still
+  // un-provisioned, so it is signed out and sent to the login screen's notice —
+  // sign-up itself does not error.
+  return landAfterSignup(supabase, data.user.id);
 }
 
 /** Exchanges the six-digit email code for a session. */
@@ -231,7 +218,10 @@ export async function verifyEmailCode(input: unknown): Promise<VerifyOutcome> {
     return { status: 'error', message: 'That code did not check out. Send a new one and retry.' };
   }
 
-  return { status: 'done', redirectTo: await ensureRiderProfile(data.user.id, email) };
+  // The code checked out — email is confirmed. An un-provisioned account is then
+  // sent to the login screen's invite-only notice; the verify step itself does
+  // not show an error.
+  return landAfterSignup(supabase, data.user.id);
 }
 
 /** Sends a fresh six-digit code to an account that has not confirmed yet. */
