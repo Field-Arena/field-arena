@@ -18,6 +18,7 @@ import {
   updateStaffPermissionsSchema,
   staffIdSchema,
   createLeadSchema,
+  updateSettlementSchema,
   updateLeadSchema,
   leadIdSchema,
   createSheetSchema,
@@ -702,4 +703,31 @@ export async function moveCatalogDocument(input: unknown): Promise<{ ok: true }>
 
   revalidatePath(DOCUMENTS_PATH);
   return { ok: true };
+}
+
+/**
+ * Updates one organizer's settlement settings.
+ *
+ * Written with the user's client so the organizations UPDATE policy decides
+ * whether this caller may touch the row — the service key would bypass it and
+ * turn a SuperAdmin-only action into anyone-with-the-action.
+ */
+export async function updateSettlement(input: unknown): Promise<void> {
+  const data = updateSettlementSchema.parse(input);
+
+  const supabase = await createServerClient();
+  const { error } = await supabase
+    .from('organizations')
+    .update({
+      payout_cadence: data.payoutCadence,
+      // 0 and null mean the same thing to the column; normalise so the UI never
+      // shows "0%" where it means "none".
+      holdback_percent: data.holdbackPercent === 0 ? null : data.holdbackPercent,
+    })
+    .eq('id', data.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/superadmin/billing/${data.id}`);
+  revalidatePath('/dashboard/superadmin/billing');
 }

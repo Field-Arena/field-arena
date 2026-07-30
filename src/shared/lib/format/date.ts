@@ -27,6 +27,39 @@ export function formatDateShort(iso: string | null | undefined): string {
 }
 
 /**
+ * A show's date range, collapsed the way a person would say it:
+ * "May 2–3, 2026" within one month, "Apr 29 – May 2, 2026" across two, and a
+ * single date when there is only one. Falls back to whichever end exists, since
+ * both columns are nullable.
+ */
+export function formatDateRange(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined
+): string {
+  const start = parseIsoDate(startIso);
+  const end = parseIsoDate(endIso);
+
+  if (!start) return end ? formatDateShort(endIso) : '';
+  if (!end || start.getTime() === end.getTime()) return formatDateShort(startIso);
+
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+
+  // An en dash, not a hyphen: this is a range, and the hyphen reads as part of
+  // the number beside it at small sizes.
+  if (sameMonth) {
+    const month = start.toLocaleDateString(undefined, { month: 'short' });
+    return `${month} ${String(start.getDate())}–${String(end.getDate())}, ${String(end.getFullYear())}`;
+  }
+  if (sameYear) {
+    const left = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const right = end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return `${left} – ${right}, ${String(end.getFullYear())}`;
+  }
+  return `${formatDateShort(startIso)} – ${formatDateShort(endIso)}`;
+}
+
+/**
  * A timestamptz from the database, rendered with both date and time. Unlike the
  * date-only columns above these are real instants, so no parsing workaround is
  * needed.

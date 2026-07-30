@@ -502,3 +502,270 @@ export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[
     };
   });
 }
+
+// ── Billing ────────────────────────────────────────────────────────────────
+
+export interface BillingSummary {
+  /** Everything riders have actually paid, across every organization. */
+  grossPaid: number;
+  /** The platform's cut of that, fixed at order creation and never refundable. */
+  platformFees: number;
+  refunded: number;
+  /** What organizers are owed: gross, less the platform's cut and refunds. */
+  netToOrganizers: number;
+  paidOrders: number;
+  pendingOrders: number;
+  failedOrders: number;
+}
+
+export interface OrganizationBilling {
+  id: string;
+  name: string;
+  city: string | null;
+  region: string | null;
+  feeModel: string;
+  currency: string | null;
+  locale: string | null;
+  paidOrders: number;
+  gross: number;
+  platformFee: number;
+  refunded: number;
+  net: number;
+  /**
+   * Whether a Stripe Connect account is attached. A BOOLEAN, never the id.
+   *
+   * The RLS migration revokes column-level SELECT on stripe_connect_account_id
+   * from authenticated and anon, so this cannot be read with the user's client at
+   * all — it is fetched with the service key and reduced to a flag here, so the
+   * payment identifier never leaves the server even in a props payload.
+   */
+  stripeConnected: boolean;
+}
+
+/**
+ * Platform billing, computed from paid orders.
+ *
+ * fee_total is READ, never recalculated. It is written once when the order is
+ * created and is the figure the refund cap is enforced against
+ * (orders_refund_within_cap). Recomputing it here from today's fee model would
+ * silently disagree with what was actually charged the moment an organization's
+ * model changes.
+ *
+ * Only 'paid' orders count toward money. Pending and failed rows are reported as
+ * counts because they say something operational — a wall of pending orders means
+ * checkout is breaking — but they are not revenue.
+ */
+export async function getBillingSummary(): Promise<BillingSummary> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('amount_total, fee_total, refunded_amount, status');
+  if (error) throw error;
+
+  const paid = data.filter((row) => row.status === 'paid');
+
+  const grossPaid = paid.reduce((sum, row) => sum + row.amount_total, 0);
+  const platformFees = paid.reduce((sum, row) => sum + (row.fee_total ?? 0), 0);
+  const refunded = paid.reduce((sum, row) => sum + (row.refunded_amount ?? 0), 0);
+
+  return {
+    grossPaid,
+    platformFees,
+    refunded,
+    netToOrganizers: grossPaid - platformFees - refunded,
+    paidOrders: paid.length,
+    pendingOrders: data.filter((row) => row.status === 'pending').length,
+    failedOrders: data.filter((row) => row.status === 'failed').length,
+  };
+}
+
+/**
+ * Per-organization billing.
+ *
+ * Orders reach an organization through their show, so the org id is embedded off
+ * shows rather than stored on the order — there is no orders.org_id to read, and
+ * adding one would be a second source of truth for something the show already
+ * answers.
+ *
+ * Organizations are listed with explicit columns for the reason given at the top
+ * of this file: '*' is rejected outright for an authenticated role.
+ */
+export async function listOrganizationBilling(): Promise<OrganizationBilling[]> {
+  const supabase = await createServerClient();
+
+  const admin = createAdminClient();
+
+  const [orgs, orders, connect] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('id, name, city, region, fee_model, currency, locale')
+      .is('deleted_at', null)
+      .order('name'),
+    supabase
+      .from('orders')
+      .select('amount_total, fee_total, refunded_amount, shows!inner(org_id)')
+      .eq('status', 'paid'),
+    admin.from('organizations').select('id, stripe_connect_account_id'),
+  ]);
+
+  if (orgs.error) throw orgs.error;
+  if (orders.error) throw orders.error;
+  if (connect.error) throw connect.error;
+
+  const connected = new Set(
+    connect.data.filter((row) => row.stripe_connect_account_id).map((row) => row.id)
+  );
+
+  const byOrg = new Map<string, { count: number; gross: number; fee: number; refunded: number }>();
+  for (const order of orders.data) {
+    const orgId = order.shows.org_id;
+    if (!orgId) continue;
+    const bucket = byOrg.get(orgId) ?? { count: 0, gross: 0, fee: 0, refunded: 0 };
+    bucket.count += 1;
+    bucket.gross += order.amount_total;
+    bucket.fee += order.fee_total ?? 0;
+    bucket.refunded += order.refunded_amount ?? 0;
+    byOrg.set(orgId, bucket);
+  }
+
+  return orgs.data.map((org) => {
+    const totals = byOrg.get(org.id) ?? { count: 0, gross: 0, fee: 0, refunded: 0 };
+    return {
+      id: org.id,
+      name: org.name,
+      city: org.city,
+      region: org.region,
+      feeModel: org.fee_model,
+      currency: org.currency,
+      locale: org.locale,
+      paidOrders: totals.count,
+      gross: totals.gross,
+      platformFee: totals.fee,
+      refunded: totals.refunded,
+      net: totals.gross - totals.fee - totals.refunded,
+      stripeConnected: connected.has(org.id),
+    };
+  });
+}
+
+export interface ShowBilling {
+  id: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  volume: number;
+  platformFee: number;
+  net: number;
+}
+
+export interface OrganizationBillingDetail {
+  id: string;
+  name: string;
+  city: string | null;
+  region: string | null;
+  currency: string | null;
+  locale: string | null;
+  feeModel: string;
+  payoutCadence: string;
+  holdbackPercent: number | null;
+  /** Boolean only — never the account id. See OrganizationBilling. */
+  stripeConnected: boolean;
+  volume: number;
+  platformFee: number;
+  net: number;
+  shows: ShowBilling[];
+}
+
+/**
+ * One organizer's billing: their Connect status, settlement settings, and what
+ * every show of theirs has taken.
+ *
+ * Shows with no paid orders are still listed at zero. A show that sold nothing is
+ * a real and interesting state on a reconciliation screen — omitting it would
+ * make the page look like the show does not exist.
+ */
+export async function getOrganizationBillingDetail(
+  orgId: string
+): Promise<OrganizationBillingDetail | null> {
+  const supabase = await createServerClient();
+  const admin = createAdminClient();
+
+  const [org, shows, connect] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('id, name, city, region, currency, locale, fee_model, payout_cadence, holdback_percent')
+      .eq('id', orgId)
+      .maybeSingle(),
+    supabase
+      .from('shows')
+      .select('id, name, start_date, end_date')
+      .eq('org_id', orgId)
+      .order('start_date', { ascending: false }),
+    admin
+      .from('organizations')
+      .select('stripe_connect_account_id')
+      .eq('id', orgId)
+      .maybeSingle(),
+  ]);
+
+  if (org.error) throw org.error;
+  if (shows.error) throw shows.error;
+  if (connect.error) throw connect.error;
+  if (!org.data) return null;
+
+  const showIds = shows.data.map((show) => show.id);
+
+  // `in` with an empty list is a syntax error in PostgREST, so the query is
+  // skipped entirely for an organizer that has not built a show yet.
+  const orders = showIds.length
+    ? await supabase
+        .from('orders')
+        .select('show_id, amount_total, fee_total, refunded_amount')
+        .eq('status', 'paid')
+        .in('show_id', showIds)
+    : { data: [], error: null };
+
+  if (orders.error) throw orders.error;
+
+  const byShow = new Map<string, { volume: number; fee: number; refunded: number }>();
+  for (const order of orders.data) {
+    const bucket = byShow.get(order.show_id) ?? { volume: 0, fee: 0, refunded: 0 };
+    bucket.volume += order.amount_total;
+    bucket.fee += order.fee_total ?? 0;
+    bucket.refunded += order.refunded_amount ?? 0;
+    byShow.set(order.show_id, bucket);
+  }
+
+  const showRows: ShowBilling[] = shows.data.map((show) => {
+    const totals = byShow.get(show.id) ?? { volume: 0, fee: 0, refunded: 0 };
+    return {
+      id: show.id,
+      name: show.name,
+      startDate: show.start_date,
+      endDate: show.end_date,
+      volume: totals.volume,
+      platformFee: totals.fee,
+      net: totals.volume - totals.fee - totals.refunded,
+    };
+  });
+
+  return {
+    id: org.data.id,
+    name: org.data.name,
+    city: org.data.city,
+    region: org.data.region,
+    currency: org.data.currency,
+    locale: org.data.locale,
+    feeModel: org.data.fee_model,
+    // Nullable in the generated type despite the column default, so the
+    // fallback is real rather than defensive.
+    payoutCadence: org.data.payout_cadence ?? 'weekly',
+    holdbackPercent: org.data.holdback_percent,
+    stripeConnected: Boolean(connect.data?.stripe_connect_account_id),
+    volume: showRows.reduce((sum, row) => sum + row.volume, 0),
+    platformFee: showRows.reduce((sum, row) => sum + row.platformFee, 0),
+    net: showRows.reduce((sum, row) => sum + row.net, 0),
+    shows: showRows,
+  };
+}

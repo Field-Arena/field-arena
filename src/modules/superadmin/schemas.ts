@@ -280,3 +280,24 @@ export const moveDocumentSchema = z.object({
 });
 
 export type MoveDocumentInput = z.infer<typeof moveDocumentSchema>;
+
+/**
+ * Per-organizer settlement settings.
+ *
+ * Both fields mirror CHECK/precision constraints on public.organizations, so an
+ * invalid value is rejected here with a readable message instead of by Postgres
+ * with a constraint name. Holdback is `null` for "none" rather than 0 — the
+ * column treats null as no holdback at all, and 0% is the same outcome by a
+ * different route, so the two are collapsed to null on the way in.
+ */
+export const updateSettlementSchema = z.object({
+  id: z.uuid(),
+  payoutCadence: z.enum(['daily', 'weekly']),
+  holdbackPercent: z
+    .number()
+    .min(0, 'Holdback cannot be negative')
+    .max(100, 'Holdback cannot exceed 100%')
+    .nullable(),
+});
+
+export type UpdateSettlementInput = z.infer<typeof updateSettlementSchema>;
