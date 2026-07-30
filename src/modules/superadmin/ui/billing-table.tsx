@@ -49,14 +49,15 @@ export function BillingTable({ rows }: { rows: OrganizationBilling[] }) {
             role="row"
             className={cn('grid gap-3.5 border-b border-line bg-[#F6F3EC] px-5 py-[11px]', COLUMNS)}
           >
-            {HEADINGS.map((label, index) => (
+            {HEADINGS.map((label) => (
               <span
                 key={label || 'actions'}
                 role="columnheader"
                 className="text-[10px] font-bold uppercase tracking-[.14em] text-fa-muted-2"
               >
+                {/* The design leaves the action column unlabelled; screen
+                    readers still need a name for it. */}
                 {label || <span className="sr-only">Actions</span>}
-                {index === 0 ? null : null}
               </span>
             ))}
           </div>

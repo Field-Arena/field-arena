@@ -18,9 +18,9 @@ const NR = 'font-[family-name:var(--font-nr)]';
  * charge has gone through this codebase yet — so zero here is a real figure, not
  * a placeholder.
  *
- * The design bundle has no Billing screen: its sidebar links to one, but no view
- * was drawn. This follows the console's own established patterns — eyebrow, stat
- * bar, bordered grid table — rather than inventing a third visual language.
+ * Built to the Admin Console design's Billing screen: eyebrow, heading, lead,
+ * money cards, then billing per organizer. Nothing else belongs on it — fee-model
+ * explainers and Stripe setup notes are not part of that screen.
  */
 export default async function BillingPage() {
   const [summary, organizations] = await Promise.all([
@@ -71,7 +71,6 @@ export default async function BillingPage() {
       )}
 
       <BillingTable rows={organizations} />
-
     </div>
   );
 }
