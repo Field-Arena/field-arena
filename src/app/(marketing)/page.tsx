@@ -15,6 +15,7 @@ import {
 } from '@/modules/marketing/ui/landing/sections';
 import { DemoDialogMount } from '@/modules/marketing/ui/landing/demo-dialog-mount';
 import { LoginDialog } from '@/modules/auth/ui/login-dialog';
+import { LoginDialogMount } from '@/modules/auth/ui/login-dialog-mount';
 
 export const metadata: Metadata = {
   title: 'Field & Arena — Run your entire equestrian event from one platform',
@@ -49,6 +50,9 @@ export default function LandingPage() {
       <LandingFooter />
       <Suspense>
         <DemoDialogMount />
+      </Suspense>
+      <Suspense>
+        <LoginDialogMount />
       </Suspense>
       <LoginDialog />
     </div>

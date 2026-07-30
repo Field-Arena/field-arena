@@ -74,7 +74,10 @@ export function useSignUp(options?: {
           toast.error(outcome.message);
           return;
         default:
-          toast.success('Welcome to Field & Arena.');
+          // Neutral on purpose: a provisioned account lands in its workspace, an
+          // un-provisioned one is routed to the login notice — "Welcome" would be
+          // wrong for the latter.
+          toast.success('Account created.');
           router.refresh();
           router.push(outcome.redirectTo);
       }
@@ -92,7 +95,7 @@ export function useVerifyEmail() {
         toast.error(outcome.message);
         return;
       }
-      toast.success('Email confirmed. Welcome to Field & Arena.');
+      toast.success('Email confirmed.');
       router.refresh();
       router.push(outcome.redirectTo);
     },

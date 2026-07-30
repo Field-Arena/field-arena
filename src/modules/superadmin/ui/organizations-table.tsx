@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
 import { OrganizationRowActions } from './organization-row-actions';
@@ -96,12 +95,14 @@ export function OrganizationsTable({ organizations }: { organizations: Organizat
             >
               <div role="cell" className="flex min-w-0 flex-col gap-[5px]">
                 <div className="flex flex-wrap items-center gap-[9px]">
-                  <Link
-                    href={`/dashboard/superadmin/organizations/${org.id}`}
-                    className="text-sm font-bold tracking-[-.005em] text-forest transition-colors hover:text-gold"
-                  >
+                  {/* Plain text, not a link. It pointed at
+                      /dashboard/superadmin/organizations/[id], which does not
+                      exist — a 404 on the console's main table. Entering the
+                      organizer is what that link was reaching for, and the row's
+                      own primary action already does it. */}
+                  <span className="text-sm font-bold tracking-[-.005em] text-forest">
                     {org.name}
-                  </Link>
+                  </span>
                   {org.onboarded ? (
                     <StatusPill tone="success">Onboard</StatusPill>
                   ) : (

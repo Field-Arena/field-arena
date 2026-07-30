@@ -5,6 +5,7 @@ import { ArrowRightIcon, XIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/shadcn/dialog';
 import { ROUTES } from '@/shared/constants/routes';
 import { LoginForm } from './login-form';
+import { AuthAlert } from './auth-primitives';
 import { useLoginDialogStore } from '../store';
 
 /**
@@ -19,6 +20,7 @@ import { useLoginDialogStore } from '../store';
 export function LoginDialog() {
   const open = useLoginDialogStore((state) => state.open);
   const setOpen = useLoginDialogStore((state) => state.setOpen);
+  const notice = useLoginDialogStore((state) => state.notice);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -52,6 +54,12 @@ export function LoginDialog() {
           <DialogDescription className="mb-7 max-w-[330px] text-[15px] leading-[1.56] text-fa-muted">
             Organizer, staff, or rider — one login for Field &amp; Arena.
           </DialogDescription>
+
+          {notice && (
+            <div className="mb-6">
+              <AuthAlert tone="error">{notice}</AuthAlert>
+            </div>
+          )}
 
           <LoginForm
             showFooter={false}

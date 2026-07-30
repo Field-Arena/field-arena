@@ -16,6 +16,10 @@ import { useSignOut } from '../hooks/use-auth-mutations';
 const MESSAGES: Record<string, string> = {
   no_profile:
     'This account is signed in but is not set up on Field & Arena yet, so there is no workspace to open. Ask your organizer or a platform admin to invite you — or sign out and use a different account.',
+  // Shown after a successful sign-up whose account no organizer or admin has
+  // provisioned yet: the code validated, but there is nothing to sign in to.
+  pending_invite:
+    'Your email is confirmed, but this account is not set up on Field & Arena yet. Ask your organizer or a platform admin to invite you, then sign in.',
   missing_code: 'That link is incomplete. Request a new one and try again.',
 };
 

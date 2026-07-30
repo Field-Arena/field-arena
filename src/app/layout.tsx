@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Archivo, Fraunces, Inter, Newsreader } from 'next/font/google';
+import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import { QueryProvider } from '@/providers/query-provider';
 import { Toaster } from '@/shared/ui/shadcn/sonner';
@@ -61,6 +62,18 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${fraunces.variable} ${newsreader.variable} ${archivo.variable} antialiased`}
       >
+        {/*
+          Top navigation progress bar on every route change, in the brand forest
+          green. Height and a subtle glow that reads on both the light dashboard
+          and the dark public pages; the default spinner is off since the bar
+          alone is enough and the route-level skeletons carry the rest.
+        */}
+        <NextTopLoader
+          color="#0d2c23"
+          height={3}
+          showSpinner={false}
+          shadow="0 0 10px #0d2c23,0 0 5px #0d2c23"
+        />
         <QueryProvider>
           {children}
           <Toaster />

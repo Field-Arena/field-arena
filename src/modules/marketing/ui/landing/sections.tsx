@@ -295,11 +295,16 @@ export function TourSection() {
               <span className="size-[9px] rounded-full bg-dot" />
               <span className="ml-3 font-mono text-[11px] text-[#8A968F]">{TOUR.chromeUrl}</span>
             </div>
+            {/* Same asset as the hero, which already fetches it with priority,
+                so eager here is a free hint rather than an extra request — and it
+                stops this element being reported as an LCP image with no loading
+                hint when the tour card is what the browser measures. */}
             <Image
               src={TOUR.feature.src}
               alt={TOUR.feature.alt}
               width={1600}
               height={1000}
+              loading="eager"
               sizes="(max-width: 1024px) 100vw, 700px"
               className="block h-auto w-full"
             />

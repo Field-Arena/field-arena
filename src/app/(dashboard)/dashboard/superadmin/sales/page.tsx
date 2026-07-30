@@ -1,117 +1,94 @@
 import type { Metadata } from 'next';
 import { listLeads } from '@/modules/superadmin/data/queries';
-import { LEAD_STATUSES, LEAD_STATUS_TONE } from '@/modules/superadmin/constants';
-import { StatusBadge } from '@/shared/ui/status-badge';
-import { StatTile } from '@/shared/ui/stat-tile';
-import { formatMoney } from '@/shared/lib/format/currency';
-import { formatTimestamp } from '@/shared/lib/format/date';
+import { FunnelBoard, type LeadListItem } from '@/modules/superadmin/ui/funnel-board';
 
 export const metadata: Metadata = {
   title: 'Sales Funnel — SuperAdmin Console',
 };
 
-// Typed as Map<string, string> deliberately. LEAD_STATUSES is `as const`, so
-// inference would narrow the key to the literal union and reject a lookup with
-// the plain `string` that comes back from the database column.
-const STATUS_LABELS = new Map<string, string>(LEAD_STATUSES.map((s) => [s.value, s.label]));
+const NR = 'font-[family-name:var(--font-nr)]';
 
+/**
+ * The Sales Funnel, matching the Admin Console design: a "Pipeline" header, six
+ * stat tiles, then the interactive board (search, closing-rate breakdown, and the
+ * newest-targets table). Data is read here and the counts computed once; the
+ * board is the only client piece.
+ */
 export default async function SalesFunnelPage() {
   const leads = await listLeads();
 
-  // Counted per stage in one pass rather than one query per stage.
-  const byStatus = new Map<string, number>();
+  const counts: Record<string, number> = {};
   for (const lead of leads) {
     const key = lead.status ?? 'new';
-    byStatus.set(key, (byStatus.get(key) ?? 0) + 1);
+    counts[key] = (counts[key] ?? 0) + 1;
   }
 
-  const pipelineValue = leads
-    .filter((l) => l.status !== 'lost' && l.status !== 'customer')
-    .reduce((sum, l) => sum + (l.avg_revenue_per_show ?? 0), 0);
+  // Closing rate: of the leads that reached a real outcome (demo done, onboarding,
+  // won, or lost), how many became customers. New and demo-scheduled are excluded —
+  // they have not had a real chance yet. Matches the legacy formula exactly.
+  const resolved =
+    (counts.demo_completed ?? 0) +
+    (counts.onboarding ?? 0) +
+    (counts.customer ?? 0) +
+    (counts.lost ?? 0);
+  const closingRate = resolved ? Math.round(((counts.customer ?? 0) / resolved) * 100) : null;
+
+  const tiles: { label: string; value: string }[] = [
+    { label: 'Total leads', value: String(leads.length) },
+    { label: 'Demos scheduled', value: String(counts.demo_scheduled ?? 0) },
+    { label: 'Demos completed', value: String(counts.demo_completed ?? 0) },
+    { label: 'Onboarding', value: String(counts.onboarding ?? 0) },
+    { label: 'Customers', value: String(counts.customer ?? 0) },
+    { label: 'Closing rate', value: closingRate === null ? '—' : `${String(closingRate)}%` },
+  ];
+
+  const items: LeadListItem[] = leads.map((lead) => ({
+    id: lead.id,
+    org: lead.org_name,
+    contact: lead.contact_name,
+    email: lead.email,
+    shows: lead.shows_per_year,
+    status: lead.status,
+  }));
 
   return (
     <div className="space-y-7">
-      <div>
-        <h1 className="mb-1 font-serif text-[32px] font-bold leading-tight text-hunter-deep">
+      <div className="max-w-[680px]">
+        <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-gold">
+          Pipeline
+        </div>
+        <h1 className={`${NR} mb-2.5 text-[32px] font-medium leading-[1.06] tracking-[-.022em] text-hunter-deep`}>
           Sales Funnel
         </h1>
-        <p className="text-fa-muted text-[15px]">Master lead list, demos, and onboarding.</p>
+        <p className="text-[14.5px] leading-[1.6] text-fa-muted">
+          The master target list — organizations we&apos;re selling Field &amp; Arena to. Leads land
+          here automatically when someone books a demo through Calendly, or add one yourself below.
+        </p>
       </div>
 
-      <section aria-label="Pipeline summary">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <StatTile label="Leads" value={leads.length} sub="all stages" />
-          <StatTile label="Demo scheduled" value={byStatus.get('demo_scheduled') ?? 0} />
-          <StatTile label="Onboarding" value={byStatus.get('onboarding') ?? 0} />
-          <StatTile label="Customers" value={byStatus.get('customer') ?? 0} />
-          <StatTile
-            label="Open pipeline"
-            value={formatMoney(pipelineValue)}
-            sub="est. revenue per show"
-            tone="money"
-          />
-        </div>
-      </section>
+      <div className="flex flex-wrap gap-3">
+        {tiles.map((tile) => {
+          const zero = tile.value === '0' || tile.value === '—';
+          return (
+            <div
+              key={tile.label}
+              className="flex min-w-[138px] flex-[1_1_150px] flex-col gap-1.5 rounded-[11px] border border-[#E7E0D0] bg-[#F6F3EC] px-[18px] pb-[15px] pt-4"
+            >
+              <span
+                className={`${NR} text-[30px] leading-none`}
+                style={{ color: zero ? '#C4CDC8' : '#0D2C23' }}
+              >
+                {tile.value}
+              </span>
+              <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2">
+                {tile.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
-      <section aria-label="Leads" className="space-y-3">
-        <h2 className="font-serif text-lg font-bold text-hunter-deep">Master target list</h2>
-
-        {leads.length === 0 ? (
-          <p className="text-fa-muted rounded-xl border border-dashed border-border bg-white px-5 py-8 text-center text-sm">
-            No leads yet.
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-border bg-white">
-            <table className="w-full border-collapse text-[13.5px]">
-              <caption className="sr-only">Sales leads and their pipeline stage</caption>
-              <thead>
-                <tr className="bg-hunter-pale">
-                  {['Organization', 'Contact', 'Shows / yr', 'Stage', 'Est. revenue', 'Demo'].map(
-                    (heading, index) => (
-                      <th
-                        key={heading}
-                        scope="col"
-                        className={`text-fa-muted px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.04em] ${
-                          index === 2 || index === 4 ? 'text-right' : 'text-left'
-                        }`}
-                      >
-                        {heading}
-                      </th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-border last:border-b-0">
-                    <td className="px-3 py-2.5 font-semibold text-hunter-deep">{lead.org_name}</td>
-                    <td className="text-fa-muted px-3 py-2.5">
-                      {lead.contact_name ?? '—'}
-                      {lead.email && (
-                        <span className="block text-xs">{lead.email}</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-hunter-deep">
-                      {lead.shows_per_year ?? '—'}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <StatusBadge tone={LEAD_STATUS_TONE[lead.status ?? 'new'] ?? 'neutral'}>
-                        {STATUS_LABELS.get(lead.status ?? 'new') ?? lead.status}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-hunter-deep">
-                      {lead.avg_revenue_per_show ? formatMoney(lead.avg_revenue_per_show) : '—'}
-                    </td>
-                    <td className="text-fa-muted px-3 py-2.5">
-                      {lead.demo_at ? formatTimestamp(lead.demo_at) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <FunnelBoard leads={items} counts={counts} total={leads.length} />
     </div>
   );
 }
