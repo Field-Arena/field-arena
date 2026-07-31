@@ -16,7 +16,7 @@ import { cn } from '@/shared/lib/utils';
  */
 
 const FIELD_CLASSES =
-  'h-auto w-full rounded-[10px] border-field bg-white px-4 py-[15px] text-[15px] text-ink-deep ' +
+  'h-auto w-full rounded-xl border-field bg-white px-4 py-[15px] text-[15px] text-ink-deep ' +
   'placeholder:text-[#9AA6A0] focus-visible:border-gold focus-visible:ring-[3px] ' +
   'focus-visible:ring-gold/[.16] aria-invalid:border-alert-line';
 

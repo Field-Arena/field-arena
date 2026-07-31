@@ -27,5 +27,24 @@ export type LoginOutcome =
   | { status: 'done'; redirectTo: string }
   | { status: 'error'; message: string };
 
+/**
+ * Sending a one-time sign-in code.
+ *
+ * 'sent' is returned even for an address with no account. Saying so would turn
+ * this into an account-enumeration oracle, exactly as it would on the password
+ * reset beside it — see requestPasswordReset. Only faults the visitor can act on
+ * (rate limit, mail transport) come back as 'error'.
+ */
+export type SignInCodeOutcome = { status: 'sent' } | { status: 'error'; message: string };
+
 /** Which panel the sign-up screen is showing. */
 export type SignUpStep = 'account' | 'verify';
+
+/**
+ * Which panel the sign-in screen is showing.
+ *
+ * 'login' and 'forgot' are both in the design. 'code' is authored: the reference
+ * prototype stops at "One-time code sent", which would leave a visitor holding a
+ * code with nowhere to type it.
+ */
+export type LoginView = 'login' | 'forgot' | 'code';

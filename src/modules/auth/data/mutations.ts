@@ -1,7 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import {
+  SESSION_PERSISTENCE_COOKIE,
+  SESSION_PERSISTENCE_OFF,
+} from '@/shared/lib/supabase/session-persistence';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import {
@@ -9,8 +14,15 @@ import {
   requestPasswordResetSchema,
   signUpSchema,
   verifyEmailSchema,
+  verifySignInCodeSchema,
 } from '../schemas';
-import type { SignUpOutcome, VerifyOutcome, ResendOutcome, LoginOutcome } from '../types';
+import type {
+  SignUpOutcome,
+  VerifyOutcome,
+  ResendOutcome,
+  LoginOutcome,
+  SignInCodeOutcome,
+} from '../types';
 
 /**
  * Runs a Supabase auth call that sends an email, turning a transport failure
@@ -67,9 +79,11 @@ async function withMailTransport<T>(
  * toast for a successful login. The client navigates instead.
  */
 export async function signInWithPassword(input: unknown): Promise<LoginOutcome> {
-  const { email, password } = loginSchema.parse(input);
+  const { email, password, remember = true } = loginSchema.parse(input);
 
-  const supabase = await createServerClient();
+  await recordSessionPersistence(remember);
+
+  const supabase = await createServerClient({ persistSession: remember });
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -93,6 +107,32 @@ export async function signInWithPassword(input: unknown): Promise<LoginOutcome> 
   }
   revalidatePath('/', 'layout');
   return { status: 'done', redirectTo: destination };
+}
+
+/**
+ * Records the "Keep me signed in on this device" choice for the proxy to read.
+ *
+ * Written BEFORE the sign-in call, not after: Supabase sets its auth cookies
+ * during that call, and Next.js applies the whole cookie mutation set to one
+ * response — so a flag written afterwards would still be too late for any client
+ * that reads the response before the next navigation. Writing it first costs
+ * nothing if the sign-in then fails, since the flag alone grants no access.
+ */
+async function recordSessionPersistence(remember: boolean): Promise<void> {
+  const cookieStore = await cookies();
+
+  if (remember) {
+    cookieStore.delete(SESSION_PERSISTENCE_COOKIE);
+    return;
+  }
+
+  // No maxAge: the flag has to die with the browser session it describes.
+  cookieStore.set(SESSION_PERSISTENCE_COOKIE, SESSION_PERSISTENCE_OFF, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: env.siteUrl.startsWith('https://'),
+    path: '/',
+  });
 }
 
 type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
@@ -267,4 +307,75 @@ export async function requestPasswordReset(input: unknown): Promise<void> {
   if (error) {
     console.error('[auth] password reset request failed', error.message);
   }
+}
+
+/**
+ * Emails a one-time sign-in code — the design's "sign in with another method".
+ *
+ * `shouldCreateUser: false` matters: left at its default, Supabase would create
+ * an account for any address typed into the box, which on an invite-only
+ * platform is a way to mint logins from the sign-in form.
+ *
+ * The address is not confirmed to exist in the response, for the same reason the
+ * password reset beside it stays silent.
+ */
+export async function sendSignInCode(input: unknown): Promise<SignInCodeOutcome> {
+  const { email } = requestPasswordResetSchema.parse(input);
+
+  const supabase = await createServerClient();
+  const attempt = await withMailTransport('sign-in-code', () =>
+    supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}`,
+      },
+    })
+  );
+  if (!attempt.ok) return { status: 'error', message: attempt.message };
+
+  const { error } = attempt.value;
+
+  /**
+   * A rate limit is worth surfacing — it tells the visitor to wait rather than
+   * keep pressing. Anything else is logged and reported as sent, so the response
+   * cannot be used to tell a registered address from an unregistered one.
+   */
+  if (error) {
+    if (/rate limit/i.test(error.message)) {
+      return { status: 'error', message: readableAuthError(error.message) };
+    }
+    console.error('[auth] sign-in code request failed', error.message);
+  }
+  return { status: 'sent' };
+}
+
+/** Exchanges an emailed one-time sign-in code for a session. */
+export async function verifySignInCode(input: unknown): Promise<LoginOutcome> {
+  const { email, token, remember = true } = verifySignInCodeSchema.parse(input);
+
+  await recordSessionPersistence(remember);
+
+  const supabase = await createServerClient({ persistSession: remember });
+  const attempt = await withMailTransport('verify-sign-in-code', () =>
+    // 'email' covers the OTP that signInWithOtp sends to an existing account.
+    supabase.auth.verifyOtp({ email, token, type: 'email' })
+  );
+  if (!attempt.ok) return { status: 'error', message: attempt.message };
+
+  const { data, error } = attempt.value;
+  if (error) return { status: 'error', message: readableAuthError(error.message) };
+  if (!data.user) {
+    return { status: 'error', message: 'That code did not check out. Send a new one and retry.' };
+  }
+
+  // Same invite-only rule as the password path: a code proves the address, not
+  // that anybody has provisioned the account behind it.
+  const destination = await provisionedDestination(supabase, data.user.id);
+  if (!destination) {
+    await supabase.auth.signOut();
+    return { status: 'error', message: NOT_PROVISIONED_MESSAGE };
+  }
+  revalidatePath('/', 'layout');
+  return { status: 'done', redirectTo: destination };
 }

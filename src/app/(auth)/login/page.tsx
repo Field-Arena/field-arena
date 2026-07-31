@@ -26,24 +26,15 @@ export default async function LoginPage({
 
   return (
     <AuthShell alternate={{ label: 'Create an account', href: ROUTES.signup }}>
-      <div className="[animation:fa-in_.22s_ease-out_both]">
-        <div className="mb-[18px] flex items-center gap-3">
-          <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
-          <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-forest">
-            Log in
-          </span>
+      {error && (
+        <div className="mb-6">
+          <LoginNotice error={error} />
         </div>
-        <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[38px] font-medium leading-[1.02] tracking-[-.024em] text-forest">
-          Welcome back.
-        </h1>
-        <p className="mb-7 max-w-[330px] text-[15px] leading-[1.56] text-fa-muted">
-          Organizer, staff, or rider — one login for Field &amp; Arena.
-        </p>
+      )}
 
-        {error && <LoginNotice error={error} />}
-
-        <LoginForm />
-      </div>
+      {/* The heading block belongs to the form: it changes with the panel, and
+          the reset and code panels have their own. */}
+      <LoginForm headingLevel="h1" />
     </AuthShell>
   );
 }

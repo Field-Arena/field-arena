@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     'node_modules/**',
     'src/shared/types/database.types.ts',
+    // Design bundles exported from claude.ai. They are the visual spec, read
+    // by hand — the prototype JS they ship with is not this project's code and
+    // linting it only produces noise about files nobody will edit.
+    'Field Arena Landing Redesign/**',
   ]),
 
   // Base Next.js configs (apply to all matched files)

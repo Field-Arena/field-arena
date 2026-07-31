@@ -40,21 +40,14 @@ export function LoginDialog() {
           <XIcon className="size-[15px]" aria-hidden />
         </button>
 
+        {/* The visible heading moves with the panel — sign in, reset, code — so
+            the dialog's accessible name is a fixed one that does not chase it. */}
+        <DialogTitle className="sr-only">Log in to Field &amp; Arena</DialogTitle>
+        <DialogDescription className="sr-only">
+          Sign in to Field &amp; Arena, or reset your password.
+        </DialogDescription>
+
         <div className="px-9 pb-[30px] pt-9">
-          <div className="mb-[18px] flex items-center gap-3">
-            <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
-            <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-forest">
-              Log in
-            </span>
-          </div>
-
-          <DialogTitle className="mb-2.5 font-[family-name:var(--font-nr)] text-[38px] font-medium leading-[1.02] tracking-[-.024em] text-forest">
-            Welcome back.
-          </DialogTitle>
-          <DialogDescription className="mb-7 max-w-[330px] text-[15px] leading-[1.56] text-fa-muted">
-            Organizer, staff, or rider — one login for Field &amp; Arena.
-          </DialogDescription>
-
           {notice && (
             <div className="mb-6">
               <AuthAlert tone="error">{notice}</AuthAlert>

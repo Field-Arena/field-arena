@@ -1807,11 +1807,24 @@ export type Database = {
     }
     Functions: {
       abandon_stale_orders: { Args: never; Returns: undefined }
+      booking_show_id: { Args: { target_booking_id: string }; Returns: string }
       can_access_org: { Args: { target_org_id: string }; Returns: boolean }
       can_manage_show: { Args: { target_show_id: string }; Returns: boolean }
       can_view_show: { Args: { target_show_id: string }; Returns: boolean }
+      class_results_published: {
+        Args: { target_class_id: string }
+        Returns: boolean
+      }
+      class_show_id: { Args: { target_class_id: string }; Returns: string }
       current_org_id: { Args: never; Returns: string }
       current_platform_role: { Args: never; Returns: string }
+      delete_division: { Args: { division_id: string }; Returns: undefined }
+      entry_is_own: { Args: { target_entry_id: string }; Returns: boolean }
+      entry_is_own_and_published: {
+        Args: { target_entry_id: string }
+        Returns: boolean
+      }
+      entry_show_id: { Args: { target_entry_id: string }; Returns: string }
       has_show_permission: {
         Args: { permission_key: string; target_show_id: string }
         Returns: boolean
@@ -1820,9 +1833,32 @@ export type Database = {
         Args: { allowed_roles?: string[]; target_show_id: string }
         Returns: boolean
       }
+      has_staff_on_org: { Args: { target_org_id: string }; Returns: boolean }
+      horse_in_approvable_show: {
+        Args: { target_horse_id: string }
+        Returns: boolean
+      }
+      horse_in_viewable_show: {
+        Args: { target_horse_id: string }
+        Returns: boolean
+      }
       is_rider: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      org_is_public: { Args: { target_org_id: string }; Returns: boolean }
+      rename_division: {
+        Args: { division_id: string; new_name: string }
+        Returns: undefined
+      }
+      rider_in_viewable_show: {
+        Args: { target_rider_id: string }
+        Returns: boolean
+      }
       safe_uuid: { Args: { value: string }; Returns: string }
+      show_is_publicly_visible: {
+        Args: { target_show_id: string }
+        Returns: boolean
+      }
+      show_is_published: { Args: { target_show_id: string }; Returns: boolean }
       storage_show_id: { Args: { object_name: string }; Returns: string }
     }
     Enums: {

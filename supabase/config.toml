@@ -256,6 +256,12 @@ otp_expiry = 3600
 subject = "Your Field & Arena confirmation code"
 content_path = "./supabase/templates/confirmation.html"
 
+# The sign-in panel's "Email me a one-time code instead". Stock template is
+# link-only; the app asks for six digits — see the note in the file.
+[auth.email.template.magic_link]
+subject = "Your Field & Arena sign-in code"
+content_path = "./supabase/templates/magic-link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

@@ -10,14 +10,23 @@ import {
   signUpWithPassword,
   verifyEmailCode,
   resendEmailCode,
+  sendSignInCode,
+  verifySignInCode,
 } from '../data/mutations';
 import type {
   LoginInput,
   RequestPasswordResetInput,
   SignUpInput,
   VerifyEmailInput,
+  VerifySignInCodeInput,
 } from '../schemas';
-import type { SignUpOutcome, VerifyOutcome, ResendOutcome, LoginOutcome } from '../types';
+import type {
+  SignUpOutcome,
+  VerifyOutcome,
+  ResendOutcome,
+  LoginOutcome,
+  SignInCodeOutcome,
+} from '../types';
 
 /**
  * Per layers.md, side effects and toasts live in the mutation hook rather than
@@ -137,6 +146,41 @@ export function useRequestPasswordReset() {
     // leaking whether an account exists.
     onSettled: () => {
       toast.success('If that address has an account, a reset link is on its way.');
+    },
+  });
+}
+
+/** Sends the one-time sign-in code offered beside the password reset. */
+export function useSendSignInCode() {
+  return useMutation<SignInCodeOutcome, Error, RequestPasswordResetInput>({
+    mutationFn: (input) => sendSignInCode(input),
+    onSuccess: (outcome) => {
+      if (outcome.status === 'error') {
+        toast.error(outcome.message);
+        return;
+      }
+      toast.success('If that address has an account, a code is on its way.');
+    },
+  });
+}
+
+/** Signs in with the emailed one-time code. Lands exactly where a password would. */
+export function useVerifySignInCode(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation<LoginOutcome, Error, VerifySignInCodeInput>({
+    mutationFn: (input) => verifySignInCode(input),
+    onSuccess: (outcome) => {
+      if (outcome.status === 'error') {
+        toast.error(outcome.message);
+        return;
+      }
+      options?.onSuccess?.();
+      toast.success('Signed in.');
+      // See useSignIn — refresh before push, so Server Components re-render with
+      // the session cookie rather than from an unauthenticated cached tree.
+      router.refresh();
+      router.push(outcome.redirectTo);
     },
   });
 }

@@ -19,7 +19,7 @@
   /* Prefixed for the same reason --fa-muted is: shadcn's @theme inline block
      below also defines --color-muted, as a pale surface. Two different colours
      cannot share one utility name, so brand body text is text-fa-muted. */
-  --color-fa-muted: #617069;
+  --color-fa-muted: #5a6b63;
   --color-border: #dfe8e3;
   --color-cream: #fbfaf5;
 
@@ -132,10 +132,22 @@
   scroll-margin-top: 74px;
 }
 
+/* `body` carries line-height 1.55 for the workspace, where nearly all text is
+   sans-serif body copy. The public design reference sets no such baseline: it
+   leaves headings, nav links, buttons, eyebrows, and the marquee at `normal`
+   and only declares a line-height where the design asks for one (hero .98,
+   section heads 1.04, lead paragraphs 1.62, card body 1.6). Inheriting 1.55
+   into a 25px Newsreader card heading turns a 29px line into 39px, which
+   pushes every card taller than the design. Reset it at the public wrapper so
+   the explicit values in the components are the only ones that apply. */
+.fa-public {
+  line-height: normal;
+}
+
 /* ── Field & Arena design tokens ─────────────────────────────────────────
    Two token systems share this block and they collide on three names.
    `shadcn init` resolved those collisions in its own favour, which broke the
-   marketing pages: --muted went from #617069 (body-text grey) to a near-white,
+   marketing pages: --muted went from #5A6B63 (body-text grey) to a near-white,
    making every paragraph invisible against a white background.
 
    The split below is deliberate:
@@ -170,7 +182,7 @@
     'Segoe UI', sans-serif;
 
   /* Brand tokens whose names shadcn also claims — see header. */
-  --fa-muted: #617069;
+  --fa-muted: #5a6b63;
   --fa-radius: 22px;
 
   /* shadcn semantic tokens. Brand-aligned wherever the semantics genuinely
@@ -186,7 +198,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: #617069;
+  --muted-foreground: #5a6b63;
   --accent: #edf5f1;
   --accent-foreground: #0d2c23;
   --destructive: oklch(0.577 0.245 27.325);
@@ -1087,5 +1099,19 @@ body {
   }
   html {
     @apply font-sans;
+  }
+
+  /* Every design file in the bundle opens its stylesheet with
+     `a { text-decoration: none; }`, so no link in the reference is underlined
+     unless it draws its own rule — the sign-up terms links, for one, carry a
+     1px gold bottom border instead. Without this the browser default underlines
+     them all, which on those links renders as a second, wrong-coloured line
+     sitting under the gold one.
+
+     Scoped to the public site and placed in `base` on purpose: it must lose to
+     Tailwind's `underline` utility, so a link that genuinely wants one still
+     gets it by asking. */
+  .fa-public a {
+    text-decoration: none;
   }
 }

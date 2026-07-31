@@ -144,7 +144,7 @@ function RemoveSuperAdminAction({
         onClick={() => {
           setOpen(true);
         }}
-        className="rounded-lg border border-line-strong px-3 py-1.5 text-[12.5px] font-bold text-status-danger transition-colors hover:border-status-danger hover:bg-status-danger-bg"
+        className="rounded-lg border border-status-danger px-3 py-1.5 text-[12.5px] font-bold text-status-danger transition-colors hover:bg-status-danger-bg"
       >
         {pending ? 'Cancel invite' : 'Remove'}
       </button>

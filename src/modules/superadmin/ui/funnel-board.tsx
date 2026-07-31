@@ -133,6 +133,13 @@ export function FunnelBoard({
           <span className="inline-flex h-5 items-center rounded-full bg-[#F9F0D8] px-[9px] text-[10.5px] font-bold text-[#8A6D14]">
             {total}
           </span>
+          {/* Not a link to a separate page: the table below already lists
+              every lead (listLeads has no limit), so "viewing all" is just
+              this table. Plain text states that rather than pointing a link
+              at a fuller view that doesn't exist. */}
+          <span className="ml-auto text-[12.5px] font-bold text-hunter-deep">
+            Showing all {total} {total === 1 ? 'target' : 'targets'}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
