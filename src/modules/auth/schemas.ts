@@ -10,6 +10,12 @@ export const loginSchema = z.object({
    * Strength rules belong on the sign-up and reset forms.
    */
   password: z.string().min(1, 'Password is required'),
+  /**
+   * "Keep me signed in on this device". Optional so that any caller which never
+   * renders the checkbox still parses, and it then falls back to the design's
+   * default — the box starts ticked.
+   */
+  remember: z.boolean().optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -19,6 +25,18 @@ export const requestPasswordResetSchema = z.object({
 });
 
 export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetSchema>;
+
+/** The one-time sign-in code offered as an alternative to resetting a password. */
+export const verifySignInCodeSchema = z.object({
+  email: z.email('Enter a valid email address'),
+  token: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Enter all six digits from the email'),
+  remember: z.boolean().optional(),
+});
+
+export type VerifySignInCodeInput = z.infer<typeof verifySignInCodeSchema>;
 
 /**
  * Self-service sign-up.

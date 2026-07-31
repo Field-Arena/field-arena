@@ -1,52 +1,17 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { getOrganizerContext } from '@/modules/staff/data/context';
-import { NewShowForm } from '@/modules/shows/ui/new-show-form';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-
-export const metadata: Metadata = { title: 'New Show — Field & Arena' };
+import { redirect } from 'next/navigation';
 
 /**
- * Create a show.
+ * The standalone "New Show" form was replaced by the instant-create
+ * "+ New Show" button on /dashboard/shows (see NewShowButton) — a show is
+ * now created with one click and Setup is filled in afterward, rather than
+ * asking for everything up front.
  *
- * Restricted to an organization owner. A ShowAdmin's authority comes from a
- * staff_assignments row for one specific show, so they can edit shows they are
- * staffed on but cannot create new ones for an organization they do not own —
- * the Server Action refuses regardless, and this says so rather than presenting
- * a form that will fail on submit.
+ * This route stays only to catch a stale bookmark or browser-history entry
+ * and send it somewhere real, rather than falling through to the dynamic
+ * "/shows/[showId]" segment with "new" as the id — that segment queries
+ * Postgres with it directly, which rejects a non-uuid with a raw
+ * invalid-input-syntax error instead of a clean not-found.
  */
-export default async function NewShowPage() {
-  const context = await getOrganizerContext();
-  const canCreate = context.profile.platform_role === 'Organizer' || context.impersonating;
-
-  return (
-    <>
-      <div className="dash-head">
-        <div>
-          <h1>New Show</h1>
-          <p>The essentials. Classes, divisions and add-ons come next in Show Manager.</p>
-        </div>
-        <Link href="/dashboard/shows" className="dash-btn dash-btn-outline">
-          Back to Show Manager
-        </Link>
-      </div>
-
-      <div className="dash-card">
-        <div className="showbar">
-          <span className="showbar-org">{context.orgName}</span>
-        </div>
-
-        {canCreate ? (
-          <div style={{ marginTop: 16 }}>
-            <NewShowForm />
-          </div>
-        ) : (
-          <EmptyPanel
-            title="Only an organization owner can create a show"
-            note="Your access is scoped to the specific shows you are staffed on. Ask the organizer to create the show, then you can manage it."
-          />
-        )}
-      </div>
-    </>
-  );
+export default function NewShowRedirectPage() {
+  redirect('/dashboard/shows');
 }

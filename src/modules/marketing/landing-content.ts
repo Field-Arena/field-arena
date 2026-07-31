@@ -297,7 +297,12 @@ export const FOOTER = {
     },
     {
       heading: 'Get started',
+      // The reference lists Book a demo · Log in · Support. "Support" is
+      // dropped rather than wired to a placeholder anchor — the README asks for
+      // real hrefs and there is no support page yet. "Create an account" is the
+      // one addition: the reference predates the signup flow.
       links: [
+        { label: 'Book a demo', href: '/#demo' },
         { label: 'Create an account', href: ROUTES.signup },
         { label: 'Log in', href: ROUTES.login },
       ],

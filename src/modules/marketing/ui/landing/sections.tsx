@@ -27,14 +27,20 @@ import {
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
 const H2 =
-  `${DISPLAY} text-[32px] font-medium leading-[1.04] tracking-[-.022em] md:text-[42px] lg:text-[50px]`;
+  `${DISPLAY} text-[32px] font-medium leading-[1.04] tracking-[-.022em] md:text-[42px] xl:text-[50px]`;
 const SECTION = 'px-5 py-[72px] md:px-8 lg:px-10 lg:py-28';
 
-function Eyebrow({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+/**
+ * Every eyebrow in the reference is #C9A227, on light and forest sections
+ * alike — there is no light/dark split. An earlier `dark` prop swapped the two
+ * forest eyebrows to #E3C566 on the strength of the README's accessibility
+ * note, but that note describes what the reference already does elsewhere, not
+ * an instruction to change these. Gold on forest measures ~6.1:1, so AA for
+ * normal text holds without the swap.
+ */
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className={`mb-[18px] text-[10.5px] font-bold uppercase tracking-[.18em] ${dark ? 'text-gold-light' : 'text-gold'}`}
-    >
+    <div className="mb-[18px] text-[10.5px] font-bold uppercase tracking-[.18em] text-gold">
       {children}
     </div>
   );
@@ -45,7 +51,7 @@ export function LandingHero() {
   return (
     <section
       id="top"
-      className="relative overflow-hidden bg-forest px-5 pb-20 pt-16 md:px-8 md:pb-24 md:pt-20 lg:px-10 lg:pb-28 lg:pt-24"
+      className="relative overflow-hidden bg-forest px-5 pb-20 pt-16 md:px-8 md:pb-24 md:pt-20 lg:px-10 lg:pb-[200px] lg:pt-24"
     >
       <div
         aria-hidden
@@ -69,7 +75,7 @@ export function LandingHero() {
           </div>
 
           <h1
-            className={`mb-[26px] text-pretty ${DISPLAY} text-[40px] font-medium leading-[.98] tracking-[-.025em] text-paper md:text-[60px] lg:text-[76px]`}
+            className={`mb-[26px] text-pretty ${DISPLAY} text-[40px] font-medium leading-[.98] tracking-[-.025em] text-paper md:text-[60px] xl:text-[76px]`}
           >
             Run your entire equestrian event from{' '}
             <em className="italic text-gold-light">one</em> modern platform.
@@ -90,7 +96,7 @@ export function LandingHero() {
             <Button
               asChild
               variant="outline"
-              className="h-auto rounded-[10px] border-[rgba(251,250,247,.24)] bg-transparent px-[26px] py-4 text-[14.5px] font-semibold text-paper transition-colors duration-150 hover:border-gold hover:bg-transparent hover:text-gold-light"
+              className="h-auto gap-2.5 rounded-[10px] border-[rgba(251,250,247,.24)] bg-transparent px-6 py-[15px] text-[14.5px] font-semibold text-paper transition-colors duration-150 hover:border-gold hover:bg-transparent hover:text-gold-light"
             >
               <Link href="/#platform">Explore the platform</Link>
             </Button>
@@ -112,7 +118,7 @@ export function LandingHero() {
             className="pointer-events-none absolute -inset-x-[18px] -inset-y-7 bg-[radial-gradient(60%_60%_at_50%_40%,rgba(201,162,39,.22),transparent_70%)] blur-[12px]"
           />
 
-          <div className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,.14)] bg-forest-raised shadow-[0_40px_90px_rgba(0,0,0,.5)]">
+          <div className="relative overflow-hidden rounded-[16px] border border-[rgba(255,255,255,.14)] bg-forest-raised shadow-[0_40px_90px_rgba(0,0,0,.5)]">
             <div className="flex items-center justify-between gap-3 border-b border-[rgba(255,255,255,.10)] px-4 py-[13px]">
               <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[rgba(251,250,247,.5)]">
                 {HERO.frameLabel}
@@ -139,13 +145,13 @@ export function LandingHero() {
           {/* Both callouts hang off the frame's edges and collide once it
               narrows, so they are hidden below lg. The gold one must stay at
               top-116px — any higher and it covers the LIVE pill. */}
-          <div className="absolute -left-[34px] bottom-[54px] hidden max-w-[226px] rounded-xl bg-paper px-[18px] py-3.5 shadow-[0_20px_44px_rgba(0,0,0,.32)] lg:block">
+          <div className="absolute -left-[34px] bottom-[54px] hidden max-w-[226px] rounded-[12px] bg-paper px-[18px] py-3.5 shadow-[0_20px_44px_rgba(0,0,0,.32)] lg:block">
             <div className="mb-1.5 text-[9.5px] font-bold uppercase tracking-[.16em] text-gold">
               {HERO.calloutCream.eyebrow}
             </div>
             <div className="text-[13px] leading-[1.45] text-ink-deep">{HERO.calloutCream.body}</div>
           </div>
-          <div className="absolute -right-[26px] top-[116px] hidden max-w-[214px] rounded-xl bg-gold px-[18px] py-3.5 shadow-[0_20px_44px_rgba(0,0,0,.34)] lg:block">
+          <div className="absolute -right-[26px] top-[116px] hidden max-w-[214px] rounded-[12px] bg-gold px-[18px] py-3.5 shadow-[0_20px_44px_rgba(0,0,0,.34)] lg:block">
             <div className="mb-1.5 text-[9.5px] font-bold uppercase tracking-[.16em] text-[rgba(13,44,35,.6)]">
               {HERO.calloutGold.eyebrow}
             </div>
@@ -238,8 +244,8 @@ export function PlatformSection() {
       />
       <div className="relative mx-auto max-w-[1240px]">
         <div className="mb-14 max-w-[780px] lg:mb-[62px]">
-          <Eyebrow dark>One operating system</Eyebrow>
-          <h2 className={`mb-5 text-pretty ${H2} text-paper lg:text-[52px]`}>
+          <Eyebrow>One operating system</Eyebrow>
+          <h2 className={`mb-5 text-pretty ${H2} text-paper xl:text-[52px]`}>
             Everything needed to plan, run, score, and close out an equestrian event.
           </h2>
           <p className="m-0 text-[16.5px] leading-[1.65] text-[rgba(251,250,247,.6)]">
@@ -285,7 +291,7 @@ export function TourSection() {
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-white transition-colors duration-150 hover:border-gold">
+          <div className="flex flex-col overflow-hidden rounded-[16px] border border-line bg-white transition-colors duration-150 hover:border-gold">
             <div
               aria-hidden
               className="flex items-center gap-[7px] border-b border-line bg-[#F4F8F6] px-4 py-3"
@@ -322,7 +328,7 @@ export function TourSection() {
             {TOUR.secondary.map((item) => (
               <div
                 key={item.title}
-                className="overflow-hidden rounded-2xl border border-line bg-white transition-colors duration-150 hover:border-gold"
+                className="overflow-hidden rounded-[16px] border border-line bg-white transition-colors duration-150 hover:border-gold"
               >
                 <Image
                   src={item.src}
@@ -333,7 +339,7 @@ export function TourSection() {
                   className="block h-auto w-full"
                 />
                 <div className="border-t border-line px-6 pb-[26px] pt-[22px]">
-                  <h3 className="mb-[7px] text-base font-bold text-forest">{item.title}</h3>
+                  <h3 className="mb-[7px] text-base font-bold leading-[normal] text-forest">{item.title}</h3>
                   <p className="m-0 text-[13.5px] leading-[1.58] text-fa-muted">{item.body}</p>
                 </div>
               </div>
@@ -415,7 +421,7 @@ export function RolesSection() {
               key={role.title}
               className={`border-line px-7 py-8 transition-colors duration-150 hover:bg-[#F4F8F6] ${gridDividerClasses(index, ROLES.length, { base: 1, sm: 2, lg: 3 })}`}
             >
-              <h3 className="mb-2.5 text-base font-bold text-forest">{role.title}</h3>
+              <h3 className="mb-2.5 text-base font-bold leading-[normal] text-forest">{role.title}</h3>
               <p className="m-0 text-[13.5px] leading-[1.6] text-fa-muted">{role.body}</p>
             </article>
           ))}
@@ -481,7 +487,7 @@ export function BenefitsSection() {
       />
       <div className="relative mx-auto grid max-w-[1240px] items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,.86fr)] lg:gap-[76px]">
         <div>
-          <Eyebrow dark>Benefits</Eyebrow>
+          <Eyebrow>Benefits</Eyebrow>
           <h2 className={`mb-5 ${H2} text-paper`}>
             Less administrative work. Faster information. More confidence.
           </h2>
@@ -540,7 +546,7 @@ export function FinalCtaSection() {
         <div>
           <Eyebrow>Bring your next event online</Eyebrow>
           <h2
-            className={`mb-[18px] ${DISPLAY} text-[32px] font-medium leading-[1.02] tracking-[-.024em] text-forest md:text-[42px] lg:text-[52px]`}
+            className={`mb-[18px] ${DISPLAY} text-[32px] font-medium leading-[1.02] tracking-[-.024em] text-forest md:text-[42px] xl:text-[52px]`}
           >
             See how Field &amp; Arena fits your event.
           </h2>

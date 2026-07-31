@@ -31,5 +31,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "Field Arena Landing Redesign",
+    "Field Arena Landing Redesign_Batch2"
+  ]
 }

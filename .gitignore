@@ -78,3 +78,10 @@ tests/e2e/screenshots/*.webp
 *.pdf
 !docs/**/*.pdf
 .playwright-mcp/
+
+# Design bundles exported from claude.ai. They are the visual spec and are read
+# locally, but one export is ~32 MB of inlined screenshots — keep them in the
+# working copy, not in the repo's history.
+Field Arena Landing Redesign/
+Field Arena Landing Redesign_Batch2/
+Field Arena Landing Redesign*.zip

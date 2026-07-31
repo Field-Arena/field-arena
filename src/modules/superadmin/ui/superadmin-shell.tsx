@@ -9,7 +9,7 @@ import type { StaffProfile } from '@/modules/auth/data/queries';
 import { RoleRail } from '@/shared/ui/role-rail';
 import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
-import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '../constants';
+import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS, INVITE_TTL_DAYS } from '../constants';
 import { useRefreshPendingInvites } from '../hooks/use-organization-mutations';
 import { OrganizerSearch } from './organizer-search';
 import { AddOrganizerDialog } from './add-organizer-dialog';
@@ -160,7 +160,7 @@ export function SuperAdminShell({
             <button
               type="button"
               disabled={isRefreshingInvites}
-              title="Extends every outstanding invite by 7 days. No email is sent — the email provider is not configured."
+              title={`Extends every outstanding invite by ${String(INVITE_TTL_DAYS)} days. No email is sent — the email provider is not configured.`}
               onClick={() => {
                 refreshInvites();
               }}

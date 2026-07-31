@@ -11,6 +11,7 @@ import {
   refreshPendingInvites,
 } from '../data/mutations';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../schemas';
+import { INVITE_TTL_DAYS } from '../constants';
 
 /**
  * Mutation hooks for the console.
@@ -100,7 +101,7 @@ export function useRefreshPendingInvites() {
       toast.success(
         emailSent
           ? `${String(refreshed)} invite${refreshed === 1 ? '' : 's'} re-sent`
-          : `${String(refreshed)} invite${refreshed === 1 ? '' : 's'} extended by 7 days. No email was sent — the email provider is not configured yet.`
+          : `${String(refreshed)} invite${refreshed === 1 ? '' : 's'} extended by ${String(INVITE_TTL_DAYS)} days. No email was sent — the email provider is not configured yet.`
       );
     },
     onError: (error) => {

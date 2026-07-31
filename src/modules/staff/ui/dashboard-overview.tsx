@@ -1,28 +1,45 @@
 import Link from 'next/link';
+import { Users, ClipboardList, Tent, DollarSign } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 import { SHOW_STAGES } from '../constants';
 import { DashIcon } from '@/shared/ui/dash-icon';
+import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
+import { Card, Eyebrow, ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
+import { StatCard } from '@/shared/ui/organizer/stat-card';
+import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
+import { IconHorse } from '@/shared/ui/organizer/icons';
+import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
+
+/** Icon-badge tint pairs, one per stat card, in the order they render. Values are `fa` theme tokens rather than the earlier ad-hoc hexes, now that organizer-theme.ts is the shared source. */
+const STAT_TINTS = [
+  { bg: '#E3EDFB', fg: '#2E5FA8' }, // riders
+  { bg: '#EEE7FA', fg: '#6B4FA0' }, // entries
+  { bg: fa.goldTint, fg: fa.goldFg }, // horses
+  { bg: fa.greenTint, fg: fa.green }, // vendor spaces
+  { bg: fa.goldTint, fg: fa.gold }, // revenue
+] as const;
 
 /**
  * The organizer dashboard.
  *
- * Every figure here now comes from the database. It previously rendered fixed
- * numbers from modules/staff/constants.ts — 115 riders, 226 entries, $21,690 —
- * which looked like a working dashboard while reading nothing.
+ * Every figure here comes from the database — see the module's prior history
+ * for why that matters (it used to render fixed numbers from constants.ts).
+ * This pass swaps the hand-rolled markup for the shared organizer UI kit
+ * (src/shared/ui/organizer/) ported from the Admin Console design export, so
+ * this screen and Show Manager draw from the same components instead of two
+ * independently hand-matched copies of the same recipe. Every prop, query,
+ * and href is unchanged — only presentation moved.
  *
- * Two honesty changes came with the wiring:
+ * Two honesty points carried over unchanged:
  *
- *  - Revenue is split. The legacy dashboard showed one "Revenue (all-in)" figure
- *    that mixed collected money with estimates. Entry value (what the roster is
- *    worth at current class prices) and settled revenue (money actually taken)
- *    are different things, and conflating them on a billing screen is how an
- *    organizer ends up budgeting against money nobody has paid.
- *
- *  - The ring timers are gone. They were a hardcoded clock and three fixed
- *    delays. Live ring state comes from the scoring screen, which is not
- *    migrated, so the panel now lists the rings actually configured for the show
- *    and says timers arrive with live scoring, rather than animating fiction.
+ *  - Revenue is split. Entry value (what the roster is worth at current class
+ *    prices) and settled revenue (money actually taken) are different things,
+ *    and conflating them is how an organizer ends up budgeting against money
+ *    nobody has paid.
+ *  - The rings list says what rings are configured, not live timers — those
+ *    come from the scoring screen, which isn't migrated yet.
  */
 export function DashboardOverview({
   orgName,
@@ -47,66 +64,83 @@ export function DashboardOverview({
 
   if (!currentShow || !stats) {
     return (
-      <>
-        <div className="dash-head">
-          <div>
-            <h1>Dashboard</h1>
-            <p>Everything across your shows, in one place.</p>
-          </div>
-        </div>
-        <div className="dash-card">
-          <p className="show-detail-title">No shows yet</p>
-          <p className="show-detail-meta">
+      <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+        <ScreenTitle>Dashboard</ScreenTitle>
+        <ScreenLede>Everything across your shows, in one place.</ScreenLede>
+        <Card className="p-[18px]">
+          <p className="text-lg font-semibold text-forest">No shows yet</p>
+          <p className="mt-1 text-[13.5px] text-[#5A6B63]">
             {orgName} has no shows on the platform. Create one to see entries, staffing and revenue
             here.
           </p>
-        </div>
-      </>
+        </Card>
+      </div>
     );
   }
 
+  const incompleteCount = shows.filter((s) => !s.published).length;
+
+  const statCards = [
+    { icon: <Users className="size-[18px]" aria-hidden />, label: 'Total riders', value: stats.riders, note: 'this show' },
+    { icon: <ClipboardList className="size-[18px]" aria-hidden />, label: 'Entries sold', value: stats.entries, note: 'this show' },
+    { icon: <IconHorse size={18} />, label: 'Horses', value: stats.horses, note: 'this show' },
+    { icon: <Tent className="size-[18px]" aria-hidden />, label: 'Vendor spaces', value: stats.vendorSpaces, note: 'booths paid' },
+    ...(canViewMoney
+      ? [
+          {
+            icon: <DollarSign className="size-[18px]" aria-hidden />,
+            label: 'Revenue (settled)',
+            value: stats.settledRevenue,
+            note: stats.settledRevenue === 0 ? 'no paid orders yet' : 'collected through checkout',
+            money: true,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <>
-      <div className="dash-head">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Everything across your shows, in one place.</p>
-        </div>
-        <button type="button" className="dash-btn dash-btn-dark">
-          <DashIcon name="mobile" size={15} /> Mobile preview
-        </button>
+    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+      <div className="mb-5">
+        <ScreenTitle className="mb-1.5">Dashboard</ScreenTitle>
+        <p className="text-[13.5px] text-[#5A6B63]">Everything across your shows, in one place.</p>
       </div>
 
-      {/* Lifecycle stepper — derived from published, runner_state and published results */}
-      <div className="dash-card">
-        <div className="stepper">
-          {SHOW_STAGES.map((s, i) => (
-            <div key={s.key} style={{ display: 'contents' }}>
-              <div className={`stepper-step${i === currentIndex ? ' current' : ''}`}>
-                <span className="stepper-dot" />
-                {s.label}
-              </div>
-              {i < SHOW_STAGES.length - 1 && <span className="stepper-line" />}
-            </div>
-          ))}
-        </div>
-      </div>
+      <Eyebrow className="mb-2.5 block">Show lifecycle</Eyebrow>
+      <Card className="mb-[18px] flex flex-wrap items-center gap-2.5 p-[14px_18px]">
+        {SHOW_STAGES.map((s, i) => (
+          <span key={s.key} className="contents">
+            <span
+              className={`inline-flex items-center gap-2 whitespace-nowrap text-[13px] ${
+                i === currentIndex ? 'font-semibold text-forest' : 'text-[#5A6B63]'
+              }`}
+            >
+              <span
+                className={`size-2 rounded-full border ${
+                  i <= currentIndex
+                    ? 'border-[#3E8E5A] bg-[#3E8E5A]'
+                    : 'border-[#D9E1DD] bg-transparent'
+                }`}
+              />
+              {s.label}
+            </span>
+            {i < SHOW_STAGES.length - 1 && <span className="h-px min-w-6 flex-1 bg-[#E9EDEB]" />}
+          </span>
+        ))}
+      </Card>
 
-      <div className="dash-card">
-        <div className="showbar">
-          <span className="showbar-org">{orgName}</span>
+      <Card className="mb-[18px] p-[16px_18px_18px]">
+        <div className="mb-3.5 flex flex-wrap items-center gap-3">
+          <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-forest">
+            <span className="size-[7px] rounded-full" style={{ background: fa.green }} />
+            {orgName}
+          </span>
 
-          {/*
-            A plain form with a GET submit, so switching shows works without
-            JavaScript and keeps this a Server Component. The selected show lives
-            in the URL, which also makes a particular show's dashboard linkable.
-          */}
+          {/* GET form, no JS required — matches the rest of this workspace's show switcher. */}
           <form method="get" className="contents">
             <select
               name="show"
               defaultValue={currentShow.id}
-              className="dash-select"
-              style={{ maxWidth: 380 }}
+              className="min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm text-ink-deep"
               aria-label="Select show"
             >
               {shows.map((show) => (
@@ -116,114 +150,127 @@ export function DashboardOverview({
                 </option>
               ))}
             </select>
-            <button type="submit" className="dash-btn dash-btn-outline">
-              Switch
-            </button>
+            <GhostButton type="submit">Switch</GhostButton>
           </form>
 
-          <div className="showbar-actions">
-            <Link href="/dashboard/shows/new" className="dash-btn dash-btn-outline">
-              <DashIcon name="plus" size={14} /> New Show
-            </Link>
-            <Link href={`/dashboard/shows/${currentShow.id}/results`} className="dash-btn dash-btn-outline">
-              <DashIcon name="trophy" size={14} /> Results
-            </Link>
-          </div>
+          <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
+          {/* Design labels this "Awards" — no dedicated awards screen exists yet, so this keeps pointing at the same results route the pre-redesign button used rather than relabel it onto a link that goes nowhere. */}
+          <Link href={`/dashboard/shows/${currentShow.id}/results`} className={cn(ghostButtonClass, 'ml-auto')}>
+            <DashIcon name="trophy" size={14} /> Results
+          </Link>
         </div>
 
-        <div className="stat-grid">
-          <Stat label="Total riders" value={stats.riders} sub="this show" />
-          <Stat label="Entries sold" value={stats.entries} sub="this show" />
-          <Stat label="Horses" value={stats.horses} sub="this show" />
-          <Stat label="Vendor spaces" value={stats.vendorSpaces} sub="booths paid" />
-
-          {/*
-            Financial figures are gated on canViewMoney. The Organizer always sees
-            them; a Show Admin only when explicitly granted, since money
-            visibility defaults to false for every staff role including theirs.
-          */}
-          {canViewMoney && (
-            <div className="stat revenue">
-              <div className="stat-label">Revenue (settled)</div>
-              <div className="stat-value">{formatMoney(stats.settledRevenue)}</div>
-              <div className="stat-sub">
-                {stats.settledRevenue === 0
-                  ? 'no paid orders yet'
-                  : 'collected through checkout'}
-              </div>
-            </div>
-          )}
+        <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
+          {statCards.map((card, i) => {
+            const tint = STAT_TINTS[i % STAT_TINTS.length] ?? STAT_TINTS[0];
+            return (
+              <StatCard
+                key={card.label}
+                icon={card.icon}
+                value={'money' in card && card.money ? formatMoney(card.value) : String(card.value)}
+                label={card.label}
+                note={card.note}
+                tintBg={tint.bg}
+                tintFg={tint.fg}
+              />
+            );
+          })}
         </div>
 
         {canViewMoney && stats.entryValue > 0 && stats.settledRevenue === 0 && (
-          <p className="stat-sub" style={{ marginTop: 10 }}>
+          <p className="mb-4 text-[12.5px] text-[#7C8A84] text-pretty">
             The roster is worth {formatMoney(stats.entryValue)} at current class prices, but nothing
             has been collected — rider checkout is not migrated yet, so this is genuinely unpaid
             rather than missing.
           </p>
         )}
 
-        {/* Rings actually configured for this show. */}
-        {rings.length > 0 && (
-          <div className="dash-card" style={{ marginTop: 14, marginBottom: 0 }}>
-            <div className="stat-label">Competition rings</div>
-            <p className="show-detail-meta" style={{ margin: '6px 0 0' }}>
-              {rings.join(' · ')} — live timers arrive with the scoring screen.
-            </p>
+        {rings.length > 0 ? (
+          <div className="flex items-stretch overflow-hidden rounded-[10px] border border-[#E9EDEB]">
+            <span className="whitespace-nowrap bg-forest px-4 py-2.5 font-mono text-sm font-bold text-gold">
+              {rings.length} ring{rings.length === 1 ? '' : 's'}
+            </span>
+            {rings.map((ring) => (
+              <span
+                key={ring}
+                className="grid flex-1 place-items-center bg-[#F5F7F6] px-2.5 py-2.5 text-[12.5px] font-bold text-forest"
+              >
+                {ring}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[10px] border border-dashed border-[#E9EDEB] px-4 py-3 text-[12.5px] text-[#98A29D]">
+            No rings running for this show.
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className="dash-card" style={{ borderLeft: '4px solid #1f7a44' }}>
-        <h2 className="show-detail-title">{currentShow.name}</h2>
-        <p className="show-detail-meta">
-          {[currentShow.dateLabel, currentShow.venueName].filter(Boolean).join(' · ')}
-        </p>
+      {incompleteCount > 0 && (
+        <Card className="mb-[18px] flex flex-wrap items-center gap-4 border-l-[3px] border-l-[#B4432F] p-[16px_18px]">
+          <span className="text-[13.5px] text-[#48574F]">
+            {incompleteCount} show{incompleteCount === 1 ? '' : 's'} still{' '}
+            {incompleteCount === 1 ? 'needs' : 'need'} setup before they can open entries.
+          </span>
+          <Link href="/dashboard/shows/incomplete" className={cn(ghostButtonClass, 'ml-auto')}>
+            View incomplete shows →
+          </Link>
+        </Card>
+      )}
 
-        <div className="inv-head">
-          <span>Purchases &amp; inventory</span>
-          <span>Qty</span>
-          <span>{canViewMoney ? 'Value' : ''}</span>
-        </div>
-        {inventory.map((row) => (
-          <div key={row.name} className="inv-row">
-            <span className="inv-name">{row.name}</span>
-            <span className="inv-qty">{row.qty}</span>
-            <span className="inv-rev">
-              {canViewMoney ? (
-                <>
-                  {formatMoney(row.revenue)}
-                  {!row.settled && row.revenue > 0 && (
-                    <span className="stat-sub" style={{ display: 'block' }}>
-                      owed, not collected
-                    </span>
-                  )}
-                </>
-              ) : (
-                ''
-              )}
-            </span>
+      <div className="overflow-hidden rounded-[12px] border border-[#E9EDEB] border-l-[3px] border-l-[#1A5B3C]">
+        <div className="p-[16px_18px_14px]">
+          <div className="mb-[5px] font-[Newsreader,serif] text-[19px] font-semibold text-forest">
+            {currentShow.name}
           </div>
-        ))}
+          <div className="text-[12.5px] text-[#7A8781]">
+            {[currentShow.dateLabel, currentShow.venueName].filter(Boolean).join(' · ')}
+          </div>
+        </div>
 
-        <div className="show-detail-foot">
-          <span>
+        <div className="border-t border-[#E9EDEB] px-[18px] py-3.5">
+          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#6E7C76]">
+            <span>Purchases &amp; inventory</span>
+            <span className="text-right">Qty</span>
+            <span className="text-right">{canViewMoney ? 'Value' : ''}</span>
+          </div>
+          {inventory.map((row) => (
+            <div
+              key={row.name}
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3.5 border-t border-[#EFE9DB] py-2.5 text-[13.5px]"
+            >
+              <span className="font-semibold text-ink-deep">{row.name}</span>
+              <span className="text-right text-ink-deep">{row.qty}</span>
+              <span className="text-right text-ink-deep">
+                {canViewMoney && (
+                  <>
+                    {formatMoney(row.revenue)}
+                    {!row.settled && row.revenue > 0 && (
+                      <span className="block text-[11.5px] font-normal text-[#98A29D]">
+                        owed, not collected
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4 border-t border-[#E9EDEB] bg-[#F5F7F6] px-[18px] py-3.5">
+          <span className="text-[13px] text-[#5A6B63]">
             {currentShow.published
               ? 'This show is published and visible to riders.'
               : 'This show is not published — riders cannot see or enter it yet.'}
           </span>
+          <Link href={`/dashboard/shows/${currentShow.id}`} className={cn(primaryButtonClass, 'ml-auto')}>
+            Open Show Manager
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </Link>
         </div>
       </div>
-    </>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: number; sub: string }) {
-  return (
-    <div className="stat">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      <div className="stat-sub">{sub}</div>
     </div>
   );
 }

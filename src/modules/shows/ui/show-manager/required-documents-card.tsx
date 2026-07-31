@@ -1,0 +1,132 @@
+'use client';
+
+import { useState } from 'react';
+import { Card } from '@/shared/ui/organizer/card';
+import { PrimaryButton } from '@/shared/ui/organizer/buttons';
+import { useUpdateDocumentRequirements } from '../../hooks/use-show-mutations';
+import type { DocumentRequirement } from '../../data/setup-queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from './tokens';
+
+/**
+ * "Required Documents" — no "Needed"/skip toggle: showstaff.html's version
+ * of that switch reads a documentRequirementsSkipped column this schema
+ * doesn't have (see getShowCompleteness's own note on the same gap). An
+ * empty list here just means nothing has been added yet, same as it would
+ * read without the toggle in the source.
+ */
+export function RequiredDocumentsCard({
+  showId,
+  documentRequirements,
+}: {
+  showId: string;
+  documentRequirements: DocumentRequirement[];
+}) {
+  const [rows, setRows] = useState(documentRequirements);
+  const [newLabel, setNewLabel] = useState('');
+  const { mutate, isPending } = useUpdateDocumentRequirements();
+
+  function commit(next: DocumentRequirement[]) {
+    setRows(next);
+    mutate({ showId, requirements: next });
+  }
+
+  function add() {
+    const label = newLabel.trim();
+    if (!label) return;
+    commit([...rows, { id: crypto.randomUUID(), label, requiresExpiration: false, requiresApproval: false }]);
+    setNewLabel('');
+  }
+
+  return (
+    <Card className={SM_CARD_PAD}>
+      <h2 className={SM_SECTION_HEAD}>Required Documents</h2>
+      <p className={SM_NOTE}>
+        Documentation riders need on file for this show — Coggins, vaccination records, whatever
+        this show requires. This defines the list riders see when uploading.
+      </p>
+
+      {rows.length === 0 ? (
+        <p className="mb-4 text-[13px] italic text-[#98A29D]">
+          No requirements yet — add whatever this show needs on file
+        </p>
+      ) : (
+        <div className="mb-4 flex flex-col gap-2.5">
+          {rows.map((doc) => (
+            <div key={doc.id} className="flex flex-wrap items-center gap-3.5">
+              <input
+                value={doc.label}
+                className={`${SM_ROW_INPUT} flex-[0_1_210px]`}
+                onChange={(e) => {
+                  commit(rows.map((d) => (d.id === doc.id ? { ...d, label: e.target.value } : d)));
+                }}
+              />
+              <label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+                <input
+                  type="checkbox"
+                  checked={!!doc.requiresExpiration}
+                  className="size-3.5 accent-[#1A5B3C]"
+                  onChange={(e) => {
+                    commit(
+                      rows.map((d) =>
+                        d.id === doc.id ? { ...d, requiresExpiration: e.target.checked } : d
+                      )
+                    );
+                  }}
+                />
+                Requires expiration date
+              </label>
+              <label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+                <input
+                  type="checkbox"
+                  checked={!!doc.requiresApproval}
+                  className="size-3.5 accent-[#1A5B3C]"
+                  onChange={(e) => {
+                    commit(
+                      rows.map((d) =>
+                        d.id === doc.id ? { ...d, requiresApproval: e.target.checked } : d
+                      )
+                    );
+                  }}
+                />
+                Requires staff approval
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  commit(rows.filter((d) => d.id !== doc.id));
+                }}
+                className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <input
+          value={newLabel}
+          placeholder="e.g. Coggins, Vaccination record"
+          className={SM_INPUT}
+          onChange={(e) => {
+            setNewLabel(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              add();
+            }
+          }}
+        />
+        <PrimaryButton
+          className="whitespace-nowrap rounded-[9px]"
+          disabled={isPending || !newLabel.trim()}
+          onClick={add}
+        >
+          + Add requirement
+        </PrimaryButton>
+      </div>
+    </Card>
+  );
+}

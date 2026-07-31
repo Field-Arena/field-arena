@@ -108,7 +108,7 @@ export default async function DocumentsPage({
       {documents.length === 0 ? (
         <EmptyPanel
           title="No files published"
-          note="Storage buckets exist and are scoped by path, but nothing has been uploaded for this show. Upload is part of the file-management pass."
+          note="Nothing has been uploaded for this show yet — publish files from the Documents tab in Show Manager."
         />
       ) : (
         <div className="doc-list" style={{ marginTop: 10 }}>

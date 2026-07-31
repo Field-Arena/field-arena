@@ -27,11 +27,20 @@ const fraunces = Fraunces({
  * these, and a token that referenced a variable of its own name would be
  * circular and silently resolve to nothing.
  */
+/**
+ * Newsreader is loaded as the *variable* font — no `weight` array — because the
+ * design reference loads it that way (`ital,opsz,wght@0,6..72,300..700`) and the
+ * optical-size axis changes glyph widths at display sizes. Pinning static
+ * instances narrowed the italic: the hero's italic "one" measured 104px instead
+ * of 109px, which was enough to pull "modern" up a line and re-wrap the H1 away
+ * from the reference. `opsz` must be listed explicitly; next/font only carries
+ * `wght` automatically.
+ */
 const newsreader = Newsreader({
   variable: '--font-nr',
   subsets: ['latin'],
-  weight: ['300', '500', '600'],
   style: ['normal', 'italic'],
+  axes: ['opsz'],
 });
 
 const archivo = Archivo({
@@ -57,11 +66,19 @@ export default function RootLayout({
   // leaves it on during route transitions — a page change then animates a long
   // scroll instead of landing at the top.
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body
-        suppressHydrationWarning
-        className={`${inter.variable} ${fraunces.variable} ${newsreader.variable} ${archivo.variable} antialiased`}
-      >
+    // The four font variables sit on <html>, not <body>. globals.css declares
+    // --sans and --serif in :root as `var(--font-inter), …` / `var(--font-fraunces), …`,
+    // and a custom property substitutes at its declaration site — so with the
+    // variables on <body> those references resolved against :root, found
+    // nothing, and left `font-family` invalid. Every workspace page fell back to
+    // the browser default serif (Times New Roman) for anything without its own
+    // font utility.
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${inter.variable} ${fraunces.variable} ${newsreader.variable} ${archivo.variable}`}
+    >
+      <body suppressHydrationWarning className="antialiased">
         {/*
           Top navigation progress bar on every route change, in the brand forest
           green. Height and a subtle glow that reads on both the light dashboard

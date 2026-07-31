@@ -28,7 +28,7 @@ import {
   documentIdSchema,
   moveDocumentSchema,
 } from '../schemas';
-import { ONBOARDING_CHECKLIST_TEMPLATE } from '../constants';
+import { ONBOARDING_CHECKLIST_TEMPLATE, INVITE_TTL_DAYS } from '../constants';
 
 const CONSOLE_PATH = '/dashboard/superadmin';
 const USERS_PATH = '/dashboard/superadmin/users';
@@ -63,9 +63,6 @@ async function requireSuperAdmin() {
  * organizations_super_admin_all policy. Reaching for the admin client here would
  * silently remove that check.
  */
-
-/** Invites expire after seven days, matching the legacy invite flow. */
-const INVITE_TTL_DAYS = 7;
 
 export async function createOrganization(input: unknown) {
   const parsed = createOrganizationSchema.parse(input);

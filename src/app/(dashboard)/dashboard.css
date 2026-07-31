@@ -454,6 +454,79 @@
   font-size: 13.5px;
 }
 
+/* ── Mobile preview toggle ────────────────────────────────────────────────
+   A demo/QA aid, not real responsive design: it puts the workspace inside a
+   phone-frame and applies the exact same collapse the ≤900px breakpoint
+   below already gives a real narrow screen (nav hidden, single column) —
+   simulated on a desktop browser that has no real narrow viewport to trigger
+   it on its own. */
+.dash-mobile-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 2000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--hunter-deep);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 9px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(20, 30, 25, 0.28);
+  font-family: inherit;
+}
+.dash-mobile-toggle:hover {
+  filter: brightness(1.15);
+}
+@media (max-width: 480px) {
+  .dash-mobile-toggle {
+    display: none;
+  }
+}
+
+.dash-mobile-frame-bg {
+  background: #3a3a3a;
+  min-height: 100vh;
+  padding: 40px 0;
+}
+.dash.dash-mobile-frame {
+  width: 390px;
+  height: 844px;
+  min-height: 0;
+  margin: 0 auto;
+  border-radius: 36px;
+  border: 10px solid #111;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
+}
+.dash.dash-mobile-frame .dash-rail,
+.dash.dash-mobile-frame .dash-side {
+  display: none;
+}
+.dash.dash-mobile-frame .dash-main {
+  min-height: 0;
+}
+.dash.dash-mobile-frame .dash-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Same collapse the real ≤900px breakpoint below applies — repeated here
+   because that rule is keyed on the actual viewport width, which the frame
+   (390px wide, sitting inside a full desktop viewport) does not change. */
+.dash.dash-mobile-frame .dash-topbar-note {
+  display: none;
+}
+.dash.dash-mobile-frame .stat-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 @media (max-width: 1100px) {
   .stat-grid {
     grid-template-columns: repeat(3, 1fr);

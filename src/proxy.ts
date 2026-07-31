@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { GUEST_ONLY_ROUTES, PROTECTED_PREFIXES, ROUTES } from '@/shared/constants/routes';
 import { env } from '@/shared/lib/env';
+import {
+  SESSION_PERSISTENCE_COOKIE,
+  persistenceDisabled,
+  withoutPersistence,
+} from '@/shared/lib/supabase/session-persistence';
 
 /**
  * Refreshes the Supabase session on every request and redirects around the auth
@@ -25,6 +30,15 @@ import { env } from '@/shared/lib/env';
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  /**
+   * Read before the refresh below rewrites anything: the session-refresh cookies
+   * have to inherit the lifetime the visitor chose at sign-in, or the first
+   * navigation quietly turns a browser-session login into a persistent one.
+   */
+  const persistSession = !persistenceDisabled(
+    request.cookies.get(SESSION_PERSISTENCE_COOKIE)?.value
+  );
+
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -36,7 +50,7 @@ export async function proxy(request: NextRequest) {
         }
         response = NextResponse.next({ request });
         for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
+          response.cookies.set(name, value, persistSession ? options : withoutPersistence(options));
         }
       },
     },

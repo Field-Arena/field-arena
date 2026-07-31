@@ -1,4 +1,14 @@
 /**
+ * How long an organizer owner invite stays valid, matching the Admin Console
+ * design's own copy ("Invite expires in 14 days."). Shared by every place that
+ * states or sets this number — the create mutation (invites.expires_at), the
+ * Add Organizer dialog's footer, the Resend Invites button's tooltip, and its
+ * success toast — so none of them can drift out of sync with each other the
+ * way four separately hand-typed "14"s would.
+ */
+export const INVITE_TTL_DAYS = 14;
+
+/**
  * SuperAdmin console navigation, ported from the button bar in the legacy
  * public/views/superadmin.html (lines 392-400). Labels and tooltips are carried
  * over so the console is recognisable to anyone who used the old one.

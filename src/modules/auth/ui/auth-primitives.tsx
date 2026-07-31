@@ -1,35 +1,142 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { ArrowRightIcon, CircleAlertIcon, CheckIcon, Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Alert, AlertDescription } from '@/shared/ui/shadcn/alert';
 import { cn } from '@/shared/lib/utils';
 import { passwordStrength, passwordStrengthLabel } from '../utils';
 
-/** The gold primary action used by every auth screen. */
+/**
+ * The primary action on every auth screen, in the design's three treatments.
+ *
+ * They are not interchangeable. Sign-up's button carries the arrow and lifts on
+ * hover because it advances a flow; sign-in's is the end of one, so it only
+ * changes fill. The reset action is deliberately forest rather than gold — it
+ * sits above the "or sign in another way" alternative and must not out-shout it.
+ */
+const SUBMIT_VARIANTS = {
+  gold:
+    'bg-gold text-forest hover:-translate-y-0.5 hover:bg-gold-light ' +
+    'hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] disabled:translate-y-0 disabled:shadow-none',
+  'gold-flat': 'bg-gold text-forest hover:bg-gold-light',
+  forest: 'bg-ink-deep text-paper hover:bg-forest',
+} as const;
+
 export function AuthSubmit({
   children,
   pending,
   pendingLabel,
+  variant = 'gold',
+  showIcon = variant === 'gold',
+  type = 'submit',
+  onClick,
 }: {
   children: ReactNode;
   pending?: boolean;
   pendingLabel?: string;
+  variant?: keyof typeof SUBMIT_VARIANTS;
+  /** The trailing arrow. On by default only where the design draws one. */
+  showIcon?: boolean;
+  type?: 'submit' | 'button';
+  onClick?: () => void;
 }) {
   return (
     <Button
-      type="submit"
+      type={type}
+      onClick={onClick}
       disabled={pending}
-      className="h-auto w-full gap-2.5 rounded-[10px] bg-gold px-6 py-[17px] text-[15px] font-bold text-forest transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] disabled:translate-y-0 disabled:opacity-70 disabled:shadow-none"
+      className={cn(
+        'h-auto w-full gap-2.5 rounded-xl px-6 py-[17px] text-[15px] font-bold',
+        'transition-all duration-150 ease-out disabled:opacity-70',
+        SUBMIT_VARIANTS[variant]
+      )}
     >
       {pending ? (pendingLabel ?? 'Working…') : children}
       {pending ? (
         <Loader2Icon className="size-[15px] animate-spin" aria-hidden />
       ) : (
-        <ArrowRightIcon className="size-[15px]" aria-hidden />
+        showIcon && <ArrowRightIcon className="size-[15px]" aria-hidden />
       )}
     </Button>
+  );
+}
+
+/**
+ * The design's "Keep me signed in on this device" control.
+ *
+ * A real checkbox input rather than a styled button: the design draws a button,
+ * but a checkbox is what screen readers and password managers expect here, and
+ * the visual result is identical.
+ */
+export function AuthCheckbox({
+  checked,
+  onChange,
+  children,
+  id,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  children: ReactNode;
+  id?: string;
+}) {
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="relative grid size-[18px] flex-none place-items-center">
+        <input
+          id={fieldId}
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => {
+            onChange(event.target.checked);
+          }}
+          className={cn(
+            'peer size-[18px] cursor-pointer appearance-none rounded-[5px] border transition-colors',
+            checked ? 'border-gold bg-gold' : 'border-field bg-white'
+          )}
+        />
+        <CheckIcon
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute size-[11px] text-forest [stroke-width:3.4]',
+            checked ? 'opacity-100' : 'opacity-0'
+          )}
+        />
+      </span>
+      <label htmlFor={fieldId} className="cursor-pointer text-[13.5px] text-fa-muted">
+        {children}
+      </label>
+    </div>
+  );
+}
+
+/** The rule-flanked caption separating the reset action from its alternative. */
+export function AuthDivider({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex w-full items-center gap-3.5">
+      <span aria-hidden className="h-px flex-1 bg-line" />
+      <span className="whitespace-nowrap text-[13px] text-fa-muted-2">{children}</span>
+      <span aria-hidden className="h-px flex-1 bg-line" />
+    </div>
+  );
+}
+
+/**
+ * The gold-ruled eyebrow above each panel's heading. The reset panel is centred,
+ * so it is ruled on both sides; the sign-in panel is left-aligned and ruled once.
+ */
+export function AuthEyebrow({ children, centred }: { children: ReactNode; centred?: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
+      <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-forest">
+        {children}
+      </span>
+      {centred && <span aria-hidden className="h-[3px] w-[26px] bg-gold" />}
+    </div>
   );
 }
 
@@ -47,7 +154,7 @@ export function AuthAlert({ tone, children }: { tone: 'error' | 'success'; child
     <Alert
       role={isError ? 'alert' : 'status'}
       className={cn(
-        'grid-cols-[15px_1fr] items-start gap-x-[9px] rounded-[10px] px-3.5 py-3',
+        'grid-cols-[15px_1fr] items-start gap-x-[9px] rounded-xl px-3.5 py-3',
         isError ? 'border-alert-line bg-alert-bg' : 'border-line-mint-2 bg-mint'
       )}
     >

@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { LockIcon } from 'lucide-react';
 import { FOOTER, NAV_LINKS } from '../../landing-content';
 import { LoginTrigger } from '@/modules/auth/ui/login-trigger';
 import { DemoTrigger } from './demo-trigger';
@@ -22,7 +21,7 @@ export function LandingNav() {
           className="flex flex-none items-center gap-[11px] text-paper"
         >
           <span
-            className={`grid size-[34px] place-items-center rounded-lg bg-gold ${DISPLAY} text-[15px] font-semibold tracking-[-.02em] text-forest`}
+            className={`grid size-[34px] place-items-center rounded-[8px] bg-gold ${DISPLAY} text-[15px] font-semibold tracking-[-.02em] text-forest`}
           >
             F&amp;A
           </span>
@@ -47,7 +46,7 @@ export function LandingNav() {
           <LoginTrigger className="hidden text-[13.5px] font-medium text-[rgba(251,250,247,.72)] transition-colors duration-150 hover:text-gold lg:block">
             Log in
           </LoginTrigger>
-          <DemoTrigger className="hidden h-auto rounded-lg bg-gold px-5 py-[11px] text-[13.5px] font-bold tracking-[.01em] text-forest transition-all duration-150 hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] lg:inline-flex">
+          <DemoTrigger className="hidden h-auto rounded-[8px] bg-gold px-5 py-[11px] text-[13.5px] font-bold tracking-[.01em] text-forest transition-all duration-150 hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] lg:inline-flex">
             Book a demo
           </DemoTrigger>
           <LandingMobileNav />
@@ -65,7 +64,7 @@ export function LandingFooter() {
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/#top" className="mb-[18px] flex items-center gap-[11px] text-paper">
               <span
-                className={`grid size-8 place-items-center rounded-lg bg-gold ${DISPLAY} text-sm font-semibold text-forest`}
+                className={`grid size-8 place-items-center rounded-[8px] bg-gold ${DISPLAY} text-sm font-semibold text-forest`}
               >
                 F&amp;A
               </span>
@@ -94,12 +93,12 @@ export function LandingFooter() {
           ))}
         </div>
 
-        <div className="flex items-center justify-between gap-4 pt-[26px]">
+        {/* The reference's closing row is the copyright alone, spanning the
+            full 1240px. A "Secured by Supabase Auth" badge used to sit opposite
+            it, which squeezed the copyright into a 226px box; that trust signal
+            belongs on the auth screens, where it already appears. */}
+        <div className="pt-[26px]">
           <span className="text-[12.5px] text-[rgba(251,250,247,.4)]">{FOOTER.copyright}</span>
-          <span className="flex items-center gap-2 text-[11.5px] text-[rgba(251,250,247,.4)]">
-            <LockIcon className="size-3" aria-hidden />
-            Secured by Supabase Auth
-          </span>
         </div>
       </div>
     </footer>

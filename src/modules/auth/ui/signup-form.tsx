@@ -227,13 +227,21 @@ export function SignUpForm() {
           </AuthSubmit>
         </div>
 
+        {/* The design underlines these with a 1px GOLD border rather than a text
+            underline — see Signup Page.dc.html. */}
         <p className="mt-[18px] text-center text-[12.5px] leading-[1.6] text-fa-muted-2">
           By continuing you agree to the{' '}
-          <Link href="/terms-of-service" className="font-semibold text-forest">
+          <Link
+            href="/terms-of-service"
+            className="border-b border-gold font-semibold text-forest transition-colors hover:border-forest"
+          >
             Terms of Service
           </Link>{' '}
           and{' '}
-          <Link href="/privacy-policy" className="font-semibold text-forest">
+          <Link
+            href="/privacy-policy"
+            className="border-b border-gold font-semibold text-forest transition-colors hover:border-forest"
+          >
             Privacy Policy
           </Link>
           .
