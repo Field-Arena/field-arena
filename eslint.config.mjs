@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     // by hand — the prototype JS they ship with is not this project's code and
     // linting it only produces noise about files nobody will edit.
     'Field Arena Landing Redesign/**',
+    'Field Arena Landing Redesign_Batch2/**',
   ]),
 
   // Base Next.js configs (apply to all matched files)

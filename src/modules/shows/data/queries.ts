@@ -214,3 +214,127 @@ export async function getShowStage(showId: string): Promise<string> {
   if (show.published) return 'sales-open';
   return 'setup';
 }
+
+export interface RunShowData {
+  showId: string;
+  showName: string;
+  stage: string;
+  published: boolean;
+  waiverApproved: boolean;
+  runner: { ticketClosed: boolean; approved: boolean };
+  stats: ShowStats;
+  classResults: { total: number; resultsPublished: number; scoringOpen: number };
+}
+
+/**
+ * Run Show tab: the show's live-day status plus real class-results progress.
+ * Live scoring and an announcer view have no backing implementation yet
+ * (judging/scoring/announcements modules are data-layer only so far) — this
+ * intentionally stops at what's real: stats, stage, and the stage-advance
+ * actions the lifecycle already supports via runner_state.
+ */
+export async function getRunShowData(showId: string): Promise<RunShowData | null> {
+  const supabase = await createServerClient();
+
+  const showResult = await supabase
+    .from('shows')
+    .select('id, name, published, runner_state, waiver_text, waiver_approved_text')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showResult.error) throw showResult.error;
+  if (!showResult.data) return null;
+  const show = showResult.data;
+
+  const [stage, stats, classes] = await Promise.all([
+    getShowStage(showId),
+    getShowStats(showId),
+    supabase.from('classes').select('id, scoring_open, results_published').eq('show_id', showId),
+  ]);
+  if (classes.error) throw classes.error;
+
+  const runner = (show.runner_state ?? {}) as { approved?: boolean; ticketClosed?: boolean };
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    stage,
+    published: show.published ?? false,
+    waiverApproved: !!show.waiver_approved_text && show.waiver_approved_text === show.waiver_text,
+    runner: { ticketClosed: !!runner.ticketClosed, approved: !!runner.approved },
+    stats,
+    classResults: {
+      total: classes.data.length,
+      resultsPublished: classes.data.filter((c) => c.results_published).length,
+      scoringOpen: classes.data.filter((c) => c.scoring_open).length,
+    },
+  };
+}
+
+export interface IncompleteShowSummary {
+  id: string;
+  name: string;
+  dateLabel: string | null;
+  startDate: string | null;
+  venueName: string | null;
+}
+
+/**
+ * Shows still in Setup — unpublished, so by construction none of the later
+ * getShowStage() branches (complete/live/sales-closed/sales-open) apply.
+ * Matches the legacy `status === 'red'` → 'setup' rule from showstaff.html,
+ * but reads it off `published` directly rather than the `status`
+ * green/yellow/red column: nothing in this codebase's stage logic
+ * (getShowStage above) uses that column, and duplicating the same fact in
+ * two places is how they drift.
+ */
+export async function listIncompleteShowsForOrg(orgId: string): Promise<IncompleteShowSummary[]> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('shows')
+    .select('id, name, date_label, start_date, venue_name')
+    .eq('org_id', orgId)
+    .eq('published', false)
+    .order('start_date', { ascending: true, nullsFirst: false });
+  if (error) throw error;
+
+  return data.map((s) => ({
+    id: s.id,
+    name: s.name,
+    dateLabel: s.date_label,
+    startDate: s.start_date,
+    venueName: s.venue_name,
+  }));
+}
+
+export interface ShowPickerSummary extends IncompleteShowSummary {
+  published: boolean;
+}
+
+/**
+ * Every show for the org, for Show Manager's "Pick a show" list.
+ *
+ * Distinct from listIncompleteShowsForOrg, which filters to published = false
+ * because that screen is only about what still needs finishing. This one keeps
+ * published shows so a live show can be picked and shown as such — an organizer
+ * running a show today opens Show Manager to reach it, not to fix it.
+ */
+export async function listShowsForPicker(orgId: string): Promise<ShowPickerSummary[]> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('shows')
+    .select('id, name, date_label, start_date, venue_name, published')
+    .eq('org_id', orgId)
+    .order('start_date', { ascending: true, nullsFirst: false });
+  if (error) throw error;
+
+  return data.map((s) => ({
+    id: s.id,
+    name: s.name,
+    dateLabel: s.date_label,
+    startDate: s.start_date,
+    venueName: s.venue_name,
+    published: s.published ?? false,
+  }));
+}

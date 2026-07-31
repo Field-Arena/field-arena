@@ -90,6 +90,35 @@ export const createClassSchema = z.object({
 
 export type CreateClassInput = z.input<typeof createClassSchema>;
 
+/**
+ * Schedule / Review tab: per-class arena, judges and fee edits, matching the
+ * legacy Review table where these stayed editable after Select Events set the
+ * class up. Location is set from the show's rings during Select Events and is
+ * read-only here, same as the legacy view.
+ *
+ * All three fields are optional and each commits as its own request — the
+ * Review table has three separate inputs per row, each saving on its own
+ * blur. Sending only the field that actually changed (rather than the whole
+ * row every time) means two fields blurring in quick succession can't race
+ * and clobber each other's write.
+ */
+export const updateClassReviewSchema = z.object({
+  classId: z.uuid(),
+  showId: z.uuid(),
+  arena: z.string().trim().max(120).nullable().optional(),
+  judgesCount: z.coerce.number().int().min(1).max(9).optional(),
+  fee: z.coerce.number().min(0).max(100000).optional(),
+});
+
+export type UpdateClassReviewInput = z.input<typeof updateClassReviewSchema>;
+
+export const removeClassSchema = z.object({
+  classId: z.uuid(),
+  showId: z.uuid(),
+});
+
+export type RemoveClassInput = z.input<typeof removeClassSchema>;
+
 export const createDivisionSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(2, 'Division name is required').max(120),
@@ -113,3 +142,392 @@ export const createAddOnSchema = z.object({
 });
 
 export type CreateAddOnInput = z.input<typeof createAddOnSchema>;
+
+/* ── Show Manager — Setup tab ────────────────────────────────────────────
+   "Show Details", "Venue", and "Schedule preferences" — three of the eight
+   cards on Setup (see the module's ui/show-manager/ directory for why only
+   these three are built yet). Values and option lists below are ported
+   from field-and-arena-main/public/views/showstaff.html's TIMEZONE_OPTIONS,
+   RING_SIZES, and defaultRules(), the current real ShowManager — not from
+   showbuilder.html, whose own comments say Setup was moved out of it into
+   showstaff.html. */
+
+/** Ported verbatim from showstaff.html's TIMEZONE_OPTIONS (minus the empty first entry — "not set" is just an unset field here, not a real option to choose). */
+export const TIMEZONE_OPTIONS = [
+  { id: 'America/New_York', label: 'Eastern (America/New_York)' },
+  { id: 'America/Chicago', label: 'Central (America/Chicago)' },
+  { id: 'America/Denver', label: 'Mountain (America/Denver)' },
+  { id: 'America/Phoenix', label: 'Mountain, no DST (America/Phoenix)' },
+  { id: 'America/Los_Angeles', label: 'Pacific (America/Los_Angeles)' },
+  { id: 'America/Anchorage', label: 'Alaska (America/Anchorage)' },
+  { id: 'Pacific/Honolulu', label: 'Hawaii (Pacific/Honolulu)' },
+  { id: 'America/Toronto', label: 'Eastern — Canada (America/Toronto)' },
+  { id: 'Europe/London', label: 'UK (Europe/London)' },
+] as const;
+
+/** Ported verbatim from showstaff.html's RING_SIZES. */
+export const RING_SIZES = [
+  { id: 'standard', label: 'Standard (20m × 60m)' },
+  { id: 'small', label: 'Small (20m × 40m)' },
+] as const;
+
+export const updateShowDetailsSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(3, 'Show name is required').max(160),
+  /** Free text, matching shows.show_details.org. Distinct from org_id: this is the club/association name shown to riders, not the platform account. */
+  org: optionalText(160),
+  showType: z.enum(['rated', 'schooling']),
+  startDate: isoDate,
+  endDate: isoDate,
+  timezone: optionalText(60),
+  startingRiderNumber: z.coerce.number().int().min(1).max(99999),
+  governingBodies: z.array(z.enum(GOVERNING_BODIES)),
+});
+
+export type UpdateShowDetailsInput = z.input<typeof updateShowDetailsSchema>;
+
+const ringRowSchema = z.object({
+  name: z.string().trim().min(1, 'Ring name is required').max(80),
+  size: z.enum(['standard', 'small']),
+});
+
+/** Mirrors api/shows/[id].js's MAX_LOCATIONS. */
+export const MAX_RINGS = 30;
+
+export const updateShowLocationsSchema = z.object({
+  showId: z.uuid(),
+  locations: z
+    .array(ringRowSchema)
+    .max(MAX_RINGS, `A show can have at most ${String(MAX_RINGS)} rings.`),
+});
+
+export type UpdateShowLocationsInput = z.input<typeof updateShowLocationsSchema>;
+
+const clockTime = z
+  .string()
+  .trim()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a time in HH:MM (24-hour) form');
+
+export const updateSchedulePrefsSchema = z.object({
+  showId: z.uuid(),
+  perMin: z.coerce.number().int().min(3).max(30),
+  buffer: z.coerce.number().int().min(0).max(15),
+  upper: z.coerce.number().int().min(0).max(15),
+  end: clockTime,
+  order: z.enum(['low', 'high']),
+  warmup: z.enum(['yes', 'no']),
+  lunch: z.boolean(),
+  extraBreaks: z.coerce.number().int().min(0).max(6),
+  extraBreakMin: z.coerce.number().int().min(0).max(30),
+  /** One entry per show day, index 0 = first day. Empty string means "use the show-wide default above". */
+  dayStartTimes: z.array(z.union([clockTime, z.literal('')])),
+  dayEndTimes: z.array(z.union([clockTime, z.literal('')])),
+});
+
+export type UpdateSchedulePrefsInput = z.input<typeof updateSchedulePrefsSchema>;
+
+/* ── Show Manager — Setup tab, remaining cards ───────────────────────────
+   Contact, Prize list, Class divisions (rename/delete — createDivision
+   already existed), Required Documents, Merchandise Sales, and Waiver of
+   Liability. Same source pair as the rest of Setup: design markup for
+   layout, showstaff.html's renderSetupView for field shapes and limits. */
+
+export const updateContactSchema = z.object({
+  showId: z.uuid(),
+  website: optionalText(300),
+  phone: optionalText(40),
+  contactEmail: z.union([z.email(), z.literal('')]).optional(),
+});
+
+export type UpdateContactInput = z.input<typeof updateContactSchema>;
+
+export const updatePrizeListSchema = z.object({
+  showId: z.uuid(),
+  prizeListUrl: optionalText(500),
+});
+
+export type UpdatePrizeListInput = z.input<typeof updatePrizeListSchema>;
+
+export const renameDivisionSchema = z.object({
+  divisionId: z.uuid(),
+  name: z.string().trim().min(2, 'Division name is required').max(120),
+});
+
+export type RenameDivisionInput = z.input<typeof renameDivisionSchema>;
+
+const documentRequirementSchema = z.object({
+  id: z.string(),
+  label: z.string().trim().min(1).max(160),
+  requiresExpiration: z.boolean().optional(),
+  requiresApproval: z.boolean().optional(),
+});
+
+export const updateDocumentRequirementsSchema = z.object({
+  showId: z.uuid(),
+  requirements: z.array(documentRequirementSchema).max(50),
+});
+
+export type UpdateDocumentRequirementsInput = z.input<typeof updateDocumentRequirementsSchema>;
+
+const merchItemSchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1).max(160),
+  price: z.coerce.number().min(0).max(100000),
+});
+
+export const updateMerchandiseSchema = z.object({
+  showId: z.uuid(),
+  enabled: z.boolean(),
+  items: z.array(merchItemSchema).max(50),
+});
+
+export type UpdateMerchandiseInput = z.input<typeof updateMerchandiseSchema>;
+
+export const saveWaiverTextSchema = z.object({
+  showId: z.uuid(),
+  waiverText: z.string().trim().max(20000),
+});
+
+export type SaveWaiverTextInput = z.input<typeof saveWaiverTextSchema>;
+
+/**
+ * Ported verbatim from showstaff.html's WAIVER_TEXT_DEFAULT — a real,
+ * USDF-adapted draft, not placeholder lorem. {{SHOW_NAME}}/{{SHOW_DATES}}/
+ * {{ORGANIZER_NAME}} are filled in wherever this is actually shown to a
+ * rider; this module only stores and edits the template.
+ */
+export const WAIVER_TEXT_DEFAULT =
+  'ASSUMPTION OF RISK, WAIVER AND RELEASE OF LIABILITY\n\n' +
+  "[DEFAULT DRAFT — adapted from a real USDF-published waiver of liability (Revised form 10/2020), not a substitute for review by an attorney licensed in your state. The Equine Liability Act warning below is Georgia's exact required language as an example only — replace it with your own state's required warning language before relying on this.]\n\n" +
+  'I, the undersigned Participant (which term includes Participant\'s parent or legally-appointed guardian, if a minor), freely and voluntarily seek to participate in {{SHOW_NAME}} on {{SHOW_DATES}}, produced by {{ORGANIZER_NAME}} (the "Event"), and any related educational or training programs, youth programs, clinics, or competitions (collectively, "the Activities"). {{ORGANIZER_NAME}}, together with its sponsors, managers, property owners, officials, organizers, affiliates, and their respective directors, officers, members, employees, agents, volunteers, representatives, and designated officials, are collectively referred to as the "Event Sponsor."\n\n' +
+  'In consideration of the Event Sponsor allowing Participant to participate in the Activities, Participant agrees as follows:\n\n' +
+  '1. ACKNOWLEDGMENT OF INHERENT RISKS OF EQUINE ACTIVITIES/ASSUMPTION OF RISKS. Participant acknowledges that there are numerous inherent risks of equine activities, whether preparing for, entering, attending, participating in, or leaving the Event. The inherent risks include those dangers and conditions which are an integral part of equine activities, including, but not limited to: (a) the propensity of an equine or other animal to behave in ways that may result in injury, harm, or death to persons on or around them; (b) the unpredictability of the equine\'s reaction to such things as sounds, sudden movements and unfamiliar objects, persons, or other animals; (c) certain hazards such as surface or subsurface conditions; (d) collisions with other animals or objects; (e) the potential of a participant or other Participant to act in a negligent manner that may contribute to injury to the participant, Participant, or others, such as failing to maintain control over the equine or not acting within their ability; (f) the breakage or failure of tack or other equipment; (g) the potential that an equine or animal may cause injury or harm to the rider or other persons or animals in the vicinity; and (h) the potential transmission of communicable diseases to both humans and equines. Participant is not relying on Event Sponsor to list within this document all possible inherent risks or all risks of participating in any of the Activities at any location.\n\n' +
+  '2. WAIVER AND RELEASE OF LIABILITY. With full knowledge and appreciation of these and other inherent risks associated with equine activities and the Activities, Participant freely and voluntarily assumes the risks of the equine activities involved in any aspect of them. Participant also voluntarily agrees to waive any and all rights to sue and hereby releases the Event Sponsor from all liability, loss, claims, or actions for injury, death, expenses, or damage to person or property resulting from the inherent risks of the Event, or resulting from any action or inaction by the Event Sponsor. This waiver and release is effective even if the injury, death or damage to person or property is caused by, or contributed to by, actions or failure to act of the Event Sponsor and which actions or inactions constitute ordinary negligence or a violation of any applicable law pertaining to equine activity liabilities. Neither Participant nor Participant\'s representatives shall make any claim against, maintain an action against, or recover from the Event Sponsor or its sponsors, directors, officers, members, employees, agents, volunteers, representatives, designated officials, or others acting on their behalf for injury, loss, damage or death of the Participant, to the Participant\'s horse, or to the Participant\'s personal property (regardless of ordinary negligence by the Event Sponsor or regardless of an alleged violation of an applicable equine activity liability law).\n\n' +
+  '3. EQUINE LIABILITY ACT. Should the Activities take place in a state with an equine activity liability law, Participant acknowledges reading the applicable state warning below (example only — replace with your own state\'s required language).\n\nGEORGIA WARNING (example): Under Georgia law, an equine activity sponsor or equine professional is not liable for an injury to or the death of a participant in equine activities resulting from the inherent risks of equine activities, pursuant to Chapter 12 of Title 4 of the Official Code of Georgia Annotated.\n\n' +
+  '4. MEDICAL TREATMENT. In the event of injury to me during the Event, I authorize the Organizer and Event medical staff to arrange for necessary emergency medical treatment on my behalf, at my expense, if I am unable to consent at the time.\n\n' +
+  "5. MINORS. If Participant is under 18 years of age, this agreement is signed on Participant's behalf by Participant's parent or legally-appointed guardian, who represents that they have the legal authority to bind the minor to this agreement and agree to its terms on the minor's behalf as well as their own.\n\n" +
+  '6. MISCELLANEOUS. This document is intended to be as broad and inclusive as applicable state law permits. If any clause conflicts with applicable law, only that clause will be void, but the remainder shall stay in full force and effect.\n\n' +
+  'I HAVE READ THIS ASSUMPTION OF RISK, WAIVER AND RELEASE OF LIABILITY. I UNDERSTAND THAT IT IS A RELEASE OF CLAIMS AND THAT I AM ASSUMING RISKS INHERENT TO MY PARTICIPATION, AND I AGREE TO BE FULLY BOUND BY ITS TERMS.\n\n' +
+  "By typing my name and today's date below, I acknowledge that I have read and understood this release in its entirety, that I am signing it voluntarily, and that I agree to be bound by its terms.";
+
+/* ── Show Manager — Select Events tab ────────────────────────────────────
+   Ticket Sales Window, and the catalog picker that turns checked groups
+   into real classes. Ported from showstaff.html's ticket window fields and
+   smApplySelected(). */
+
+/**
+ * The ticket sales window.
+ *
+ * Stored as text on shows (ticket_open / ticket_close), matching every other
+ * date-as-text column in this schema. Close carries a time as well as a date —
+ * the design splits them into two inputs because an organizer thinks "closes
+ * Friday at 5", not in ISO — so they are recombined here into one value.
+ */
+export const updateTicketWindowSchema = z
+  .object({
+    showId: z.uuid(),
+    ticketOpen: z.union([isoDate, z.literal('')]).optional().transform((v) => v ?? ''),
+    ticketCloseDate: z.union([isoDate, z.literal('')]).optional().transform((v) => v ?? ''),
+    ticketCloseTime: z
+      .union([z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM'), z.literal('')])
+      .optional()
+      .transform((v) => v ?? ''),
+  })
+  .refine((d) => !d.ticketOpen || !d.ticketCloseDate || d.ticketCloseDate >= d.ticketOpen, {
+    message: 'Ticket sales cannot close before they open',
+    path: ['ticketCloseDate'],
+  });
+
+export type UpdateTicketWindowInput = z.input<typeof updateTicketWindowSchema>;
+
+/**
+ * Adds every test in a catalog group as a class.
+ *
+ * The group, not the test, is what the organizer checks — so one submit creates
+ * several classes. `division` carries the group name, which is what makes
+ * award_scope='division' pool a level's three tests together, the behaviour the
+ * legacy build got by writing the same string into every class it created here.
+ */
+export const addCatalogGroupSchema = z.object({
+  showId: z.uuid(),
+  category: z.string().trim().min(1).max(120),
+  group: z.string().trim().min(1).max(120),
+  tests: z.array(z.string().trim().min(1).max(160)).min(1).max(40),
+  fee: z.coerce.number().min(0).max(100000),
+  /** A ring name from shows.locations, or '' for "No location set". */
+  location: z.string().trim().max(80).optional().transform((v) => v ?? ''),
+});
+
+export type AddCatalogGroupInput = z.input<typeof addCatalogGroupSchema>;
+
+/**
+ * "Add Custom Class" — one class an organizer types themselves.
+ *
+ * Its own schema rather than a reuse of createClassSchema because the dialog
+ * asks for three fields, not seven: judges, ribbon places and award scope take
+ * the column defaults, which is what the design's three-field form implies.
+ */
+export const addCustomClassSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(2, 'Name this class').max(160),
+  division: optionalText(120),
+  fee: z.coerce.number().min(0).max(100000),
+});
+
+export type AddCustomClassInput = z.input<typeof addCustomClassSchema>;
+
+/**
+ * "Test of Choice" — one class where the rider, not the organizer, picks which
+ * test they ride from a shortlist.
+ *
+ * `label` stays the generic "Test of Choice" and the organizer's name goes to
+ * display_name, exactly as the legacy saveTocClass did: the label is the
+ * scoring identity, and every TOC class scores the same way regardless of what
+ * the organizer called this one.
+ */
+export const createTocClassSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(2, 'Name this Test of Choice event').max(160),
+  division: optionalText(120),
+  fee: z.coerce.number().min(0).max(100000),
+  testOptions: z.array(z.string().trim().min(1).max(200)).min(1, 'Pick at least one test').max(60),
+});
+
+export type CreateTocClassInput = z.input<typeof createTocClassSchema>;
+
+/** One of the priced governing-body buttons, added as a qualifying type. */
+export const addQualTypePresetSchema = z.object({
+  showId: z.uuid(),
+  body: z.string().trim().min(2).max(40),
+  price: z.coerce.number().min(0).max(100000),
+});
+
+export type AddQualTypePresetInput = z.input<typeof addQualTypePresetSchema>;
+
+/* ── Show Manager — Rider Entries tab ────────────────────────────────────
+   Branding, Add-Ons, Vendor Space Map, Vendor Spaces, Qualifications.
+   showbuilder.html's addCustomAddOn/addCustomQual/addCustomVendor are the
+   behavior source for the create/rename/price rules: a trimmed non-empty
+   name is required, price falls back to 0 rather than rejecting, and
+   neither source enforces a duplicate-name check (add_ons/qual_types/
+   vendor_items carry no unique index on name, unlike divisions/classes). */
+
+/** Renaming/re-pricing an existing add-on or qualification — same shape, no qty. */
+export const updateCatalogItemSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1, 'Name is required').max(160),
+  price: z.coerce.number().min(0).max(100000),
+});
+
+export type UpdateCatalogItemInput = z.input<typeof updateCatalogItemSchema>;
+
+const optionalQty = z
+  .union([z.coerce.number().int().min(0).max(100000), z.literal('')])
+  .optional()
+  .transform((value) => (value === '' || value === undefined ? null : value));
+
+export const createVendorItemSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'Name is required').max(160),
+  price: z.coerce.number().min(0).max(100000),
+  qty: optionalQty,
+});
+
+export type CreateVendorItemInput = z.input<typeof createVendorItemSchema>;
+
+export const updateVendorItemSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1, 'Name is required').max(160),
+  price: z.coerce.number().min(0).max(100000),
+  qty: optionalQty,
+});
+
+export type UpdateVendorItemInput = z.input<typeof updateVendorItemSchema>;
+
+export const createQualTypeSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'Name is required').max(160),
+  price: z.coerce.number().min(0).max(100000),
+});
+
+export type CreateQualTypeInput = z.input<typeof createQualTypeSchema>;
+
+/** Branding logo/banner upload: bytes arrive base64-encoded from the client, matching uploadDocumentSchema's pattern in the superadmin module. */
+export const uploadShowBrandingSchema = z.object({
+  showId: z.uuid(),
+  kind: z.enum(['logo', 'banner']),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  contentType: z.string().trim().max(200).optional(),
+  dataBase64: z.string().min(1, 'File data is required'),
+});
+
+export type UploadShowBrandingInput = z.input<typeof uploadShowBrandingSchema>;
+
+export const uploadVendorMapSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  contentType: z.string().trim().max(200).optional(),
+  dataBase64: z.string().min(1, 'File data is required'),
+});
+
+export type UploadVendorMapInput = z.input<typeof uploadVendorMapSchema>;
+
+/* ── Show Manager — Documents tab ────────────────────────────────────────
+   The document library organizers publish to competitors (prize lists,
+   maps, forms) — distinct from Setup's "Required Documents", which is what
+   riders must upload. Matches uploadDocumentSchema's pattern in the
+   superadmin module. */
+
+export const uploadShowDocumentSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  contentType: z.string().trim().max(200).optional(),
+  dataBase64: z.string().min(1, 'File data is required'),
+});
+
+export type UploadShowDocumentInput = z.input<typeof uploadShowDocumentSchema>;
+
+export const removeShowDocumentSchema = z.object({
+  id: z.uuid(),
+  showId: z.uuid(),
+});
+
+export type RemoveShowDocumentInput = z.input<typeof removeShowDocumentSchema>;
+
+export const updateDocumentEventsSchema = z.object({
+  id: z.uuid(),
+  showId: z.uuid(),
+  eventIds: z.array(z.uuid()).max(200),
+});
+
+export type UpdateDocumentEventsInput = z.input<typeof updateDocumentEventsSchema>;
+
+/* ── Show Manager — Test Builder tab ─────────────────────────────────────
+   Org-owned dressage test templates: movements + collective marks an
+   organizer authors once and reuses across shows. Distinct from
+   class_tests, which is the test actually assigned to one class. */
+
+const testMovementSchema = z.object({
+  num: z.coerce.number().int().min(1).max(60),
+  text: z.string().trim().max(300),
+  coef: z.coerce.number().min(1).max(10),
+});
+
+const testCollectiveSchema = z.object({
+  key: z.string().trim().min(1).max(60),
+  label: z.string().trim().min(1).max(160),
+  coef: z.coerce.number().min(1).max(10),
+});
+
+export const saveTestTemplateSchema = z.object({
+  /** Present when editing an existing template, absent when creating one. */
+  id: z.uuid().optional(),
+  orgId: z.uuid(),
+  name: z.string().trim().min(2, 'Name this test').max(160),
+  level: optionalText(80),
+  sourceLabel: optionalText(160),
+  movements: z.array(testMovementSchema).max(60).default([]),
+  collectives: z.array(testCollectiveSchema).max(20).default([]),
+});
+
+export type SaveTestTemplateInput = z.input<typeof saveTestTemplateSchema>;

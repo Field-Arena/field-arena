@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOutIcon } from 'lucide-react';
+import { LogOutIcon, SmartphoneIcon } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
@@ -31,6 +32,7 @@ export function OrganizerShell({
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
+  const [mobilePreview, setMobilePreview] = useState(false);
 
   /**
    * The role rail is a switcher only for SuperAdmin.
@@ -66,8 +68,8 @@ export function OrganizerShell({
   const role = impersonating ? 'Organizer' : (profile.platform_role ?? 'Organizer');
   const navItems = ROLE_NAV[role] ?? ORGANIZER_NAV;
 
-  return (
-    <div className="dash">
+  const shell = (
+    <div className={cn('dash', mobilePreview && 'dash-mobile-frame')}>
       <aside className="dash-rail">
         <div className="dash-rail-logo">
           F<b>&amp;</b>A
@@ -189,5 +191,21 @@ export function OrganizerShell({
         <main className="dash-content">{children}</main>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setMobilePreview((v) => !v);
+        }}
+        className="dash-mobile-toggle"
+      >
+        <SmartphoneIcon size={14} aria-hidden />
+        {mobilePreview ? 'Exit mobile preview' : 'Mobile preview'}
+      </button>
+      {mobilePreview ? <div className="dash-mobile-frame-bg">{shell}</div> : shell}
+    </>
   );
 }

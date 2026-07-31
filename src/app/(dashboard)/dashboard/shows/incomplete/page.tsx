@@ -1,0 +1,43 @@
+import type { Metadata } from 'next';
+import { getOrganizerContext } from '@/modules/staff/data/context';
+import {
+  listIncompleteShowsForOrg,
+  type IncompleteShowSummary,
+} from '@/modules/shows/data/queries';
+import { getShowCompleteness } from '@/modules/shows/data/setup-queries';
+import {
+  IncompleteShowsScreen,
+  type IncompleteShowRow,
+} from '@/modules/shows/ui/incomplete/incomplete-shows-screen';
+import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+
+export const metadata: Metadata = { title: 'Incomplete Shows — Field & Arena' };
+
+/**
+ * "View incomplete shows →" from the Dashboard — every unpublished show for
+ * the org, with a real per-section completeness breakdown behind each
+ * "INCOMPLETE" badge. See getShowCompleteness for why the breakdown only
+ * covers sections this app can actually check.
+ */
+export default async function IncompleteShowsPage() {
+  const context = await getOrganizerContext();
+
+  if (!context.orgId) {
+    return (
+      <EmptyPanel
+        title="No organization"
+        note="This account is not attached to an organization."
+      />
+    );
+  }
+
+  const shows: IncompleteShowSummary[] = await listIncompleteShowsForOrg(context.orgId);
+  const rows: IncompleteShowRow[] = await Promise.all(
+    shows.map(async (show) => ({
+      show,
+      completeness: await getShowCompleteness(show.id),
+    }))
+  );
+
+  return <IncompleteShowsScreen orgName={context.orgName} rows={rows} />;
+}
