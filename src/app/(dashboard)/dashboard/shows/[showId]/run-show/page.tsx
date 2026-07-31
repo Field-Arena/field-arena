@@ -4,6 +4,7 @@ import { getOrganizerContext } from '@/modules/staff/data/context';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { RunShowCard } from '@/modules/shows/ui/show-manager/run-show-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Run Show — Field & Arena' };
 
@@ -23,7 +24,10 @@ export default async function RunShowPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const [data, context] = await Promise.all([getRunShowData(showId), getOrganizerContext(showId)]);
+  const [data, context] = await Promise.all([
+    isUuid(showId) ? getRunShowData(showId) : Promise.resolve(null),
+    getOrganizerContext(showId),
+  ]);
 
   if (!data) {
     return (

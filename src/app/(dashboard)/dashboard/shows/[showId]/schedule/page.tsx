@@ -3,6 +3,7 @@ import { getScheduleReviewData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { ReviewCard } from '@/modules/shows/ui/show-manager/review-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Schedule / Review — Field & Arena' };
 
@@ -21,7 +22,7 @@ export default async function SchedulePage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = await getScheduleReviewData(showId);
+  const data = isUuid(showId) ? await getScheduleReviewData(showId) : null;
 
   if (!data) {
     return (

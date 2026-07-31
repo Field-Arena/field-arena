@@ -17,6 +17,7 @@ import { MerchandiseCard } from '@/modules/shows/ui/show-manager/merchandise-car
 import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
 import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
@@ -27,8 +28,7 @@ export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
  * all eight of the design's Setup cards, in the design's own order: Show
  * Details, Venue, Contact, Prize list, Class divisions, Required Documents
  * + Merchandise Sales (side by side), Waiver of Liability, Schedule
- * preferences. Documents and Test Builder are still unbuilt — see
- * ui/show-manager/'s own comments.
+ * preferences.
  *
  * getShowSetupDetail is called directly rather than through
  * getOrganizerContext(showId) — that helper falls back to the caller's
@@ -36,6 +36,11 @@ export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
  * picker pages it was built for, wrong here: silently landing on a
  * different show than the one in the URL would be confusing at best). A
  * missing/RLS-blocked id renders the not-found panel below instead.
+ *
+ * The isUuid check comes first because a malformed id (e.g. a stale
+ * "/shows/new" link, now shadowed by this dynamic segment since that route
+ * was replaced by an instant-create button) is not "not found" to Postgres —
+ * it is a raw invalid-input-syntax error, uncaught unless ruled out here.
  */
 export default async function ShowManagerPage({
   params,
@@ -43,7 +48,7 @@ export default async function ShowManagerPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const show = await getShowSetupDetail(showId);
+  const show = isUuid(showId) ? await getShowSetupDetail(showId) : null;
 
   if (!show) {
     return (

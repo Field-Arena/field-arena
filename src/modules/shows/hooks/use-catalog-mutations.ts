@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { readableError } from '@/shared/lib/error-message';
 import {
   createAddOn,
   createQualType,
@@ -35,9 +36,8 @@ import type {
  * fields — so their edit hooks differ only in which Server Action they call.
  */
 
-function message(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
+/** Re-exported so every hook in this module reports the same way. */
+const message = readableError;
 
 interface Options {
   onSuccess?: () => void;

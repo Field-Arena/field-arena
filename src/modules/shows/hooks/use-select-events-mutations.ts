@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { readableError } from '@/shared/lib/error-message';
 import {
   addCatalogGroup,
   addCustomClass,
@@ -19,9 +20,8 @@ import type {
   UpdateTicketWindowInput,
 } from '../schemas';
 
-function message(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
+/** Re-exported so every hook in this module reports the same way. */
+const message = readableError;
 
 export function useUpdateTicketWindow() {
   const router = useRouter();

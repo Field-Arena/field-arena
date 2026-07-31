@@ -5,6 +5,7 @@ import { TicketWindowCard } from '@/modules/shows/ui/show-manager/ticket-window-
 import { SelectEventsPicker } from '@/modules/shows/ui/show-manager/select-events-picker';
 import { SelectedClassesCard } from '@/modules/shows/ui/show-manager/selected-classes-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Select Events — Field & Arena' };
 
@@ -23,7 +24,7 @@ export default async function SelectEventsPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = await getSelectEventsData(showId);
+  const data = isUuid(showId) ? await getSelectEventsData(showId) : null;
 
   if (!data) {
     return (

@@ -387,8 +387,11 @@ export async function updateShowDetails(input: unknown): Promise<void> {
       name: parsed.name,
       show_details: showDetails,
       show_type: parsed.showType,
-      start_date: parsed.startDate,
-      end_date: parsed.endDate,
+      // Null, not '', for a date the organizer has not set yet — every read
+      // treats null as "no date" ("Dates TBD" in the picker), and an empty
+      // string would sort and compare as a real value.
+      start_date: parsed.startDate || null,
+      end_date: parsed.endDate || null,
       timezone: parsed.timezone ?? null,
       starting_rider_number: parsed.startingRiderNumber,
       governing_bodies: parsed.governingBodies,

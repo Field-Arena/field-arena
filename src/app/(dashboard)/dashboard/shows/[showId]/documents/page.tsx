@@ -3,6 +3,7 @@ import { getDocumentsPageData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { DocumentsCard } from '@/modules/shows/ui/show-manager/documents-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
@@ -18,7 +19,7 @@ export default async function ShowDocumentsPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = await getDocumentsPageData(showId);
+  const data = isUuid(showId) ? await getDocumentsPageData(showId) : null;
 
   if (!data) {
     return (

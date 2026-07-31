@@ -177,12 +177,32 @@ export const updateShowDetailsSchema = z.object({
   /** Free text, matching shows.show_details.org. Distinct from org_id: this is the club/association name shown to riders, not the platform account. */
   org: optionalText(160),
   showType: z.enum(['rated', 'schooling']),
-  startDate: isoDate,
-  endDate: isoDate,
+  /**
+   * Blank is allowed, unlike createShowSchema's required dates.
+   *
+   * "+ New Show" now creates the row before anything is filled in, so a show
+   * legitimately sits with no dates while its organizer works down the Setup
+   * card. This card also autosaves the whole card on every field change — so
+   * requiring dates here rejected an edit to the timezone or club name on a
+   * show that simply had not been dated yet.
+   */
+  startDate: z
+    .union([isoDate, z.literal('')])
+    .optional()
+    .transform((v) => v ?? ''),
+  endDate: z
+    .union([isoDate, z.literal('')])
+    .optional()
+    .transform((v) => v ?? ''),
   timezone: optionalText(60),
   startingRiderNumber: z.coerce.number().int().min(1).max(99999),
   governingBodies: z.array(z.enum(GOVERNING_BODIES)),
-});
+})
+  // Only once both are set — half-dated is a normal state mid-setup.
+  .refine((d) => !d.startDate || !d.endDate || d.endDate >= d.startDate, {
+    message: 'End date cannot be before the start date',
+    path: ['endDate'],
+  });
 
 export type UpdateShowDetailsInput = z.input<typeof updateShowDetailsSchema>;
 

@@ -3,6 +3,7 @@ import { getTestBuilderPageData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { TestBuilderCard } from '@/modules/shows/ui/show-manager/test-builder-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Test Builder — Field & Arena' };
 
@@ -20,7 +21,7 @@ export default async function TestBuilderPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = await getTestBuilderPageData(showId);
+  const data = isUuid(showId) ? await getTestBuilderPageData(showId) : null;
 
   if (!data) {
     return (

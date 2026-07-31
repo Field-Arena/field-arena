@@ -3,6 +3,7 @@ import { getRiderEntriesData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { RiderEntriesPanel } from '@/modules/shows/ui/show-manager/rider-entries-panel';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Rider Entries — Field & Arena' };
 
@@ -19,7 +20,7 @@ export default async function RiderEntriesPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = await getRiderEntriesData(showId);
+  const data = isUuid(showId) ? await getRiderEntriesData(showId) : null;
 
   if (!data) {
     return (
