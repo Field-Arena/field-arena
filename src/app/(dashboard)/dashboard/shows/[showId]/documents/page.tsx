@@ -4,6 +4,8 @@ import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-s
 import { DocumentsCard } from '@/modules/shows/ui/show-manager/documents-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
+import { getOrganizerContext } from '@/modules/staff/data/context';
+import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
@@ -30,8 +32,22 @@ export default async function ShowDocumentsPage({
     );
   }
 
+  const [context, vitals] = await Promise.all([
+    getOrganizerContext(data.showId),
+    getShowManagerVitals(data.showId),
+  ]);
+
   return (
-    <ShowManagerShell showId={data.showId} showName={data.showName} activeTab="Documents">
+    <ShowManagerShell
+      showId={data.showId}
+      showName={data.showName}
+      activeTab="Documents"
+      orgName={context.orgName}
+      shows={context.shows}
+      stats={vitals.stats}
+      stage={vitals.stage}
+      canViewMoney={context.canViewMoney}
+    >
       <DocumentsCard showId={data.showId} documents={data.documents} classes={data.classes} />
     </ShowManagerShell>
   );

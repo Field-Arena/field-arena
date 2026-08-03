@@ -1,0 +1,234 @@
+'use client';
+
+import { useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2Icon } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/shared/ui/shadcn/dialog';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
+import { primaryButtonClass } from '@/shared/ui/organizer/buttons';
+import { cn } from '@/shared/lib/utils';
+import { ADD_USER_ROLES } from '../constants';
+import { addStaffUserSchema, type AddStaffUserInput } from '../schemas';
+import { useAddStaffUser } from '../hooks/use-user-directory-mutations';
+import type { ShowListItem } from '@/modules/shows/data/queries';
+
+const SELECT_CLASS =
+  'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
+
+/**
+ * "+ Add User" — organizer-facing equivalent of the legacy `openAddUserModal`
+ * (showstaff.html ~line 8931), ported against `addStaffUser` (the
+ * organizer-scoped sibling of superadmin's `addOrgStaff`). Title, subtitle
+ * copy (dynamic per show, matching legacy's own string-built version),
+ * required split first/last name fields, the Email/User-type row, the
+ * "also a member of your organization" section, and the "Invite" button
+ * label are all ported from that function. Role choices are `ADD_USER_ROLES`
+ * — Rider and Vendor are deliberately absent; see that constant's doc
+ * comment for why.
+ *
+ * No "Show" field is rendered: legacy's modal never has one either — it
+ * opens already scoped to whatever show the organizer was looking at
+ * (`staffShowId`). Here that's the SHOW section's own picker, one level up
+ * (`defaultShowId`); the id still travels with the form as a hidden field
+ * so `addStaffUser` gets it, it's just not asked for twice.
+ *
+ * One legacy section is still not ported, and needs a real scope decision
+ * rather than a silent recreation here: the Judge-classes checklist (which
+ * tests/classes this judge is assigned to). In legacy this writes straight
+ * into the same in-memory staff record; in this schema, class-judge pairing
+ * is `class_assignments`/`class_panel` — separate tables the judging module
+ * owns and already has its own assignment UI for. Duplicating that write
+ * path here would cross a module boundary this codebase otherwise keeps
+ * clean (see architecture.md — a module must not import another module's
+ * internals).
+ */
+export function AddUserDialog({ shows, defaultShowId }: { shows: ShowListItem[]; defaultShowId: string }) {
+  const [open, setOpen] = useState(false);
+
+  const resetDefaults: AddStaffUserInput = {
+    showId: defaultShowId,
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: ADD_USER_ROLES[0],
+    isSteward: false,
+    canScratchSkipDq: false,
+    canViewMoney: false,
+    addToMemberDatabase: false,
+    membershipStatus: 'active',
+    membershipExpires: '',
+  };
+
+  const form = useForm<AddStaffUserInput>({
+    resolver: zodResolver(addStaffUserSchema),
+    defaultValues: resetDefaults,
+  });
+
+  const { mutate, isPending } = useAddStaffUser({
+    onSuccess: () => {
+      setOpen(false);
+      form.reset(resetDefaults);
+    },
+  });
+
+  const { errors } = form.formState;
+  const role = useWatch({ control: form.control, name: 'role' });
+  const isMember = useWatch({ control: form.control, name: 'addToMemberDatabase' });
+  const showName = shows.find((s) => s.id === defaultShowId)?.name ?? 'this show';
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) form.reset(resetDefaults);
+      }}
+    >
+      <DialogTrigger asChild>
+        <button type="button" className={primaryButtonClass}>
+          <span aria-hidden>+</span> Add User
+        </button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-xl text-hunter-deep">Add a User</DialogTitle>
+          <DialogDescription>
+            Invite someone to {showName}. They&apos;ll get a real email invite and fill in the rest —
+            role details, phone, whatever applies — themselves.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          onSubmit={(event) => {
+            void form.handleSubmit((values) => {
+              mutate(values);
+            })(event);
+          }}
+          className="space-y-4"
+          noValidate
+        >
+          <input type="hidden" {...form.register('showId')} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="au-first-name">First name</Label>
+              <Input id="au-first-name" placeholder="Jane" {...form.register('firstName')} />
+              {errors.firstName && (
+                <p role="alert" className="text-status-danger text-[13px]">
+                  {errors.firstName.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="au-last-name">Last name</Label>
+              <Input id="au-last-name" placeholder="Smith" {...form.register('lastName')} />
+              {errors.lastName && (
+                <p role="alert" className="text-status-danger text-[13px]">
+                  {errors.lastName.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="au-email">Email</Label>
+              <Input id="au-email" type="email" placeholder="jane@example.com" {...form.register('email')} />
+              {errors.email && (
+                <p role="alert" className="text-status-danger text-[13px]">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="au-role">User type</Label>
+              <select id="au-role" className={SELECT_CLASS} {...form.register('role')}>
+                {ADD_USER_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {role === 'Announcer' && (
+            <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-ink-deep">
+              <input type="checkbox" className="size-4 accent-hunter-deep" {...form.register('isSteward')} />
+              Also handles ring steward duties (gate, order of go)
+            </label>
+          )}
+
+          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-ink-deep">
+            <input type="checkbox" className="size-4 accent-hunter-deep" {...form.register('canScratchSkipDq')} />
+            Can scratch, skip, or eliminate riders on this show
+          </label>
+
+          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-ink-deep">
+            <input type="checkbox" className="size-4 accent-hunter-deep" {...form.register('canViewMoney')} />
+            Can view financial data ($) for this show
+          </label>
+
+          <div className="border-t border-[#E9EDEB] pt-4">
+            <label className="flex cursor-pointer items-center gap-2.5 text-[13px] font-semibold text-ink-deep">
+              <input
+                type="checkbox"
+                className="size-4 accent-hunter-deep"
+                {...form.register('addToMemberDatabase')}
+              />
+              Also a member of your organization
+            </label>
+
+            {isMember && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="au-membership-status">Membership</Label>
+                  <select
+                    id="au-membership-status"
+                    className={SELECT_CLASS}
+                    {...form.register('membershipStatus')}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="au-membership-expires">Renewal date</Label>
+                  <Input id="au-membership-expires" type="date" {...form.register('membershipExpires')} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending} className={cn(isPending && 'opacity-70')}>
+              {isPending && <Loader2Icon className="animate-spin" aria-hidden />}
+              {isPending ? 'Inviting…' : 'Invite'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

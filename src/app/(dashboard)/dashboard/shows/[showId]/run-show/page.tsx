@@ -39,7 +39,16 @@ export default async function RunShowPage({
   }
 
   return (
-    <ShowManagerShell showId={data.showId} showName={data.showName} activeTab="Run Show">
+    <ShowManagerShell
+      showId={data.showId}
+      showName={data.showName}
+      activeTab="Run Show"
+      orgName={context.orgName}
+      shows={context.shows}
+      stats={data.stats}
+      stage={data.stage}
+      canViewMoney={context.canViewMoney}
+    >
       <RunShowCard data={data} canViewMoney={context.canViewMoney} />
     </ShowManagerShell>
   );

@@ -1,25 +1,14 @@
 import Link from 'next/link';
-import { Users, ClipboardList, Tent, DollarSign } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { SHOW_STAGES } from '../constants';
-import { DashIcon } from '@/shared/ui/dash-icon';
+import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
+import { ResultsStubButton } from './results-stub-button';
 import { Card, Eyebrow, ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
-import { StatCard } from '@/shared/ui/organizer/stat-card';
+import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
 import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
-import { IconHorse } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
-
-/** Icon-badge tint pairs, one per stat card, in the order they render. Values are `fa` theme tokens rather than the earlier ad-hoc hexes, now that organizer-theme.ts is the shared source. */
-const STAT_TINTS = [
-  { bg: '#E3EDFB', fg: '#2E5FA8' }, // riders
-  { bg: '#EEE7FA', fg: '#6B4FA0' }, // entries
-  { bg: fa.goldTint, fg: fa.goldFg }, // horses
-  { bg: fa.greenTint, fg: fa.green }, // vendor spaces
-  { bg: fa.goldTint, fg: fa.gold }, // revenue
-] as const;
 
 /**
  * The organizer dashboard.
@@ -80,24 +69,6 @@ export function DashboardOverview({
 
   const incompleteCount = shows.filter((s) => !s.published).length;
 
-  const statCards = [
-    { icon: <Users className="size-[18px]" aria-hidden />, label: 'Total riders', value: stats.riders, note: 'this show' },
-    { icon: <ClipboardList className="size-[18px]" aria-hidden />, label: 'Entries sold', value: stats.entries, note: 'this show' },
-    { icon: <IconHorse size={18} />, label: 'Horses', value: stats.horses, note: 'this show' },
-    { icon: <Tent className="size-[18px]" aria-hidden />, label: 'Vendor spaces', value: stats.vendorSpaces, note: 'booths paid' },
-    ...(canViewMoney
-      ? [
-          {
-            icon: <DollarSign className="size-[18px]" aria-hidden />,
-            label: 'Revenue (settled)',
-            value: stats.settledRevenue,
-            note: stats.settledRevenue === 0 ? 'no paid orders yet' : 'collected through checkout',
-            money: true,
-          },
-        ]
-      : []),
-  ];
-
   return (
     <div className="font-[family-name:var(--font-ar)] text-ink-deep">
       <div className="mb-5">
@@ -154,27 +125,14 @@ export function DashboardOverview({
           </form>
 
           <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
-          {/* Design labels this "Awards" — no dedicated awards screen exists yet, so this keeps pointing at the same results route the pre-redesign button used rather than relabel it onto a link that goes nowhere. */}
-          <Link href={`/dashboard/shows/${currentShow.id}/results`} className={cn(ghostButtonClass, 'ml-auto')}>
-            <DashIcon name="trophy" size={14} /> Results
-          </Link>
+          {/* Design labels this "Awards" — no results/awards viewer has been built (no
+              "/shows/[showId]/results" route exists), so this is a toast stub rather
+              than a link that 404s. */}
+          <ResultsStubButton className="ml-auto" />
         </div>
 
-        <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-          {statCards.map((card, i) => {
-            const tint = STAT_TINTS[i % STAT_TINTS.length] ?? STAT_TINTS[0];
-            return (
-              <StatCard
-                key={card.label}
-                icon={card.icon}
-                value={'money' in card && card.money ? formatMoney(card.value) : String(card.value)}
-                label={card.label}
-                note={card.note}
-                tintBg={tint.bg}
-                tintFg={tint.fg}
-              />
-            );
-          })}
+        <div className="mb-4">
+          <ShowStatsRow stats={stats} canViewMoney={canViewMoney} />
         </div>
 
         {canViewMoney && stats.entryValue > 0 && stats.settledRevenue === 0 && (

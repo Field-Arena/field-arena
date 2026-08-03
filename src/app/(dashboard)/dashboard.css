@@ -547,3 +547,28 @@
     display: none;
   }
 }
+
+/* Printing the Financial tab prints the P&L, not the workspace.
+ *
+ * `visibility` rather than `display`, and set on everything before being
+ * unset on the report: the report sits deep inside the dashboard shell, and
+ * hiding its ancestors with `display:none` would take it with them. Made
+ * absolute so it starts at the top of page one instead of wherever the
+ * now-invisible chrome had pushed it. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  [data-print-report],
+  [data-print-report] * {
+    visibility: visible;
+  }
+
+  [data-print-report] {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+  }
+}

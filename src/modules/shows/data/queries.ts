@@ -29,6 +29,8 @@ export interface ShowStats {
   entries: number;
   horses: number;
   vendorSpaces: number;
+  /** Classes configured on the show — each one a distinct test riders can enter. */
+  testsOffered: number;
   /** Sum of paid orders. Genuinely zero until rider checkout is migrated. */
   settledRevenue: number;
   /**
@@ -133,6 +135,7 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
     entries: entries.length,
     horses: horses.size,
     vendorSpaces: vendorCount ?? 0,
+    testsOffered: classes.length,
     settledRevenue: paidOrders.reduce((sum, o) => sum + o.amount_total, 0),
     entryValue: entries.reduce((sum, e) => sum + (feeByClass.get(e.class_id) ?? 0), 0),
   };
@@ -213,6 +216,26 @@ export async function getShowStage(showId: string): Promise<string> {
   if (runner.ticketClosed) return 'sales-closed';
   if (show.published) return 'sales-open';
   return 'setup';
+}
+
+export interface ShowManagerVitals {
+  stats: ShowStats;
+  stage: string;
+}
+
+/**
+ * The lifecycle-bar-plus-stat-cards header the Admin Console design repeats
+ * above every Show Manager tab (Setup, Rider Entries, and the rest) — not
+ * only the Dashboard. Deliberately excludes the ring/clock strip: the
+ * legacy showstaff.html shows that only on Dashboard, ShowRunner, and Users
+ * ("the operational screens... where a live ring status makes sense"), and
+ * even there it falls back to illustrative numbers until a real live-scoring
+ * session has been seeded — no such data exists yet, so it stays off Show
+ * Manager's setup/admin tabs entirely rather than showing something fake.
+ */
+export async function getShowManagerVitals(showId: string): Promise<ShowManagerVitals> {
+  const [stats, stage] = await Promise.all([getShowStats(showId), getShowStage(showId)]);
+  return { stats, stage };
 }
 
 export interface RunShowData {
@@ -309,6 +332,8 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
 
 export interface ShowPickerSummary extends IncompleteShowSummary {
   published: boolean;
+  /** setup | sales-open | sales-closed | live | complete — see getShowStage. */
+  stage: string;
 }
 
 /**
@@ -318,23 +343,75 @@ export interface ShowPickerSummary extends IncompleteShowSummary {
  * because that screen is only about what still needs finishing. This one keeps
  * published shows so a live show can be picked and shown as such — an organizer
  * running a show today opens Show Manager to reach it, not to fix it.
+ *
+ * `stage` is computed inline rather than by calling getShowStage per row (which
+ * would be an N+1 — one classes count query per show): the same
+ * published/runner_state/results_published logic, but the results_published
+ * check is one batched query across every show in the org instead of one per
+ * show. Keeping this list's own "Live" pill accurate matters — `published`
+ * alone turns true the moment ticket sales open, several stages before the
+ * show is actually live, and this list used to show "Live" for all of them.
  */
 export async function listShowsForPicker(orgId: string): Promise<ShowPickerSummary[]> {
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, venue_name, published')
+    .select('id, name, date_label, start_date, venue_name, published, runner_state')
     .eq('org_id', orgId)
     .order('start_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
 
-  return data.map((s) => ({
-    id: s.id,
-    name: s.name,
-    dateLabel: s.date_label,
-    startDate: s.start_date,
-    venueName: s.venue_name,
-    published: s.published ?? false,
-  }));
+  const showIds = data.map((s) => s.id);
+  const completeShowIds = new Set<string>();
+  if (showIds.length > 0) {
+    const { data: publishedClasses, error: classError } = await supabase
+      .from('classes')
+      .select('show_id')
+      .in('show_id', showIds)
+      .eq('results_published', true);
+    if (classError) throw classError;
+    for (const row of publishedClasses) completeShowIds.add(row.show_id);
+  }
+
+  return data.map((s) => {
+    const runner = (s.runner_state ?? {}) as { approved?: boolean; ticketClosed?: boolean };
+    const stage = completeShowIds.has(s.id)
+      ? 'complete'
+      : runner.approved
+        ? 'live'
+        : runner.ticketClosed
+          ? 'sales-closed'
+          : s.published
+            ? 'sales-open'
+            : 'setup';
+
+    return {
+      id: s.id,
+      name: s.name,
+      dateLabel: s.date_label,
+      startDate: s.start_date,
+      venueName: s.venue_name,
+      published: s.published ?? false,
+      stage,
+    };
+  });
+}
+
+/**
+ * The organization's Stripe Connect account id, or null when it has not
+ * onboarded. Read here rather than passed through OrganizerContext because only
+ * the Financial tab has any use for it.
+ */
+export async function getOrgStripeAccountId(orgId: string): Promise<string | null> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('stripe_connect_account_id')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (error) throw error;
+
+  return data?.stripe_connect_account_id ?? null;
 }

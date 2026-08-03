@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_STABLES, MAX_STALLS_PER_STABLE } from './constants';
 
 /**
  * Field set drawn from the shows table and the legacy ShowManager Setup panel —
@@ -498,14 +499,6 @@ export type UploadVendorMapInput = z.input<typeof uploadVendorMapSchema>;
    riders must upload. Matches uploadDocumentSchema's pattern in the
    superadmin module. */
 
-export const uploadShowDocumentSchema = z.object({
-  showId: z.uuid(),
-  name: z.string().trim().min(1, 'A file name is required').max(300),
-  contentType: z.string().trim().max(200).optional(),
-  dataBase64: z.string().min(1, 'File data is required'),
-});
-
-export type UploadShowDocumentInput = z.input<typeof uploadShowDocumentSchema>;
 
 export const removeShowDocumentSchema = z.object({
   id: z.uuid(),
@@ -551,3 +544,164 @@ export const saveTestTemplateSchema = z.object({
 });
 
 export type SaveTestTemplateInput = z.input<typeof saveTestTemplateSchema>;
+
+/* ── Horses screen ────────────────────────────────────────────────────────
+   "+ Add Horse" (writes to shows.manual_horses), the per-document verify
+   checkbox, and the missing-documents reminder email. Ported from
+   showstaff.html's openManualHorseModal/submitManualHorse (~13596-13622) and
+   the Horses table's own verify checkbox / "✉ Remind" button
+   (~13505-13802). See modules/shows/data/horses-queries.ts and
+   horses-mutations.ts. */
+
+export const addManualHorseSchema = z.object({
+  showId: z.uuid(),
+  riderName: z.string().trim().min(1, 'A rider name is required').max(160),
+  horseName: z.string().trim().min(1, "A horse's name is required").max(160),
+  isStallion: z.boolean().default(false),
+});
+
+export type AddManualHorseInput = z.input<typeof addManualHorseSchema>;
+
+export const verifyHorseDocumentSchema = z.object({
+  showId: z.uuid(),
+  horseId: z.uuid(),
+  requirementId: z.string().trim().min(1),
+  verified: z.boolean(),
+});
+
+export type VerifyHorseDocumentInput = z.input<typeof verifyHorseDocumentSchema>;
+
+export const remindHorseDocumentsSchema = z.object({
+  showId: z.uuid(),
+  horseId: z.uuid(),
+});
+
+export type RemindHorseDocumentsInput = z.input<typeof remindHorseDocumentsSchema>;
+
+/* ── Stable Chart ─────────────────────────────────────────────────────────
+   shows.stable_chart: {status, stables:[{id, name, stallCount, rowCount,
+   stalls:[{id, number, label, horseId, horseName, riderName, shavings,
+   closed, isStallion}]}]}. Ported from showstaff.html's Stable Chart screen
+   (~13846-14184) — see modules/shows/data/stable-chart-queries.ts and
+   stable-chart-mutations.ts. Every write below is scoped by a stable/stall
+   *id* rather than an array index, unlike legacy's index-based
+   updateStableField/generateStableStalls/renameStall/toggleStallClosed — ids
+   survive a concurrent edit reordering or resizing the array out from under
+   a stale index the way legacy's own client-only single-tab model never had
+   to worry about. */
+
+export const setStableCountSchema = z.object({
+  showId: z.uuid(),
+  count: z.coerce.number().int().min(0).max(MAX_STABLES),
+});
+
+export type SetStableCountInput = z.input<typeof setStableCountSchema>;
+
+export const updateStableFieldSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  name: z.string().trim().min(1, 'Stable name is required').max(80).optional(),
+  stallCount: z.coerce.number().int().min(0).max(MAX_STALLS_PER_STABLE).optional(),
+  rowCount: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export type UpdateStableFieldInput = z.input<typeof updateStableFieldSchema>;
+
+export const generateStableStallsSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  /**
+   * The count to resize to, sent explicitly by the UI's own live input value
+   * rather than trusting the stable's last-*saved* stallCount — a name/blur
+   * commit and a "Generate stalls" click can race (see stable-config-row.tsx),
+   * and generating against a stale saved count would silently ignore whatever
+   * the organizer just typed. Falls back to the stable's saved stallCount
+   * when omitted.
+   */
+  stallCount: z.coerce.number().int().min(0).max(MAX_STALLS_PER_STABLE).optional(),
+});
+
+export type GenerateStableStallsInput = z.input<typeof generateStableStallsSchema>;
+
+export const renameStallSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  stallId: z.string().trim().min(1),
+  label: z.string().trim().min(1, 'Stall name is required').max(20),
+});
+
+export type RenameStallInput = z.input<typeof renameStallSchema>;
+
+export const toggleStallClosedSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  stallId: z.string().trim().min(1),
+});
+
+export type ToggleStallClosedInput = z.input<typeof toggleStallClosedSchema>;
+
+export const toggleStableChartStatusSchema = z.object({ showId: z.uuid() });
+
+export type ToggleStableChartStatusInput = z.input<typeof toggleStableChartStatusSchema>;
+
+export const autoAssignStableStallsSchema = z.object({ showId: z.uuid() });
+
+export type AutoAssignStableStallsInput = z.input<typeof autoAssignStableStallsSchema>;
+
+/** "Add stables from a saved location" — mirrors applySavedLocationStables (~14124). */
+export const applySavedLocationStablesSchema = z.object({
+  showId: z.uuid(),
+  venueId: z.uuid(),
+});
+
+export type ApplySavedLocationStablesInput = z.input<typeof applySavedLocationStablesSchema>;
+
+/* ── Financial (Billing) tab — expenses ──────────────────────────────────
+   shows.expenses is a jsonb array of {id,label,amount}. Every write sends
+   the whole list rather than patching one element: Postgres has no
+   array-element update through PostgREST, and the legacy editor's own
+   add/rename/re-price/remove handlers all rewrote show.expenses wholesale
+   too. */
+
+export const showExpenseSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  label: z.string().trim().max(160),
+  amount: z.coerce.number().min(0).max(10_000_000),
+});
+
+export type ShowExpenseInput = z.input<typeof showExpenseSchema>;
+
+export const saveShowExpensesSchema = z.object({
+  showId: z.uuid(),
+  expenses: z.array(showExpenseSchema).max(100, 'A show can carry at most 100 expense lines.'),
+});
+
+export type SaveShowExpensesInput = z.input<typeof saveShowExpensesSchema>;
+
+/**
+ * Direct-to-Storage document upload, in two steps.
+ *
+ * The single-step version sent the file base64-encoded in the Server Action's
+ * body. Next's own cap was raised to 8 MB for it, but Vercel enforces a 4.5 MB
+ * request-body limit on serverless functions that no framework setting can
+ * lift — and base64 adds about a third. So any PDF over roughly 3.3 MB uploaded
+ * fine locally and failed once deployed.
+ *
+ * The bytes now go straight from the browser to Supabase Storage against a
+ * signed URL, and never pass through a Server Action at all.
+ */
+export const createDocumentUploadUrlSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+});
+
+export type CreateDocumentUploadUrlInput = z.input<typeof createDocumentUploadUrlSchema>;
+
+/** Step two: record the object the browser just uploaded. */
+export const registerShowDocumentSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  path: z.string().trim().min(1).max(400),
+});
+
+export type RegisterShowDocumentInput = z.input<typeof registerShowDocumentSchema>;

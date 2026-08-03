@@ -31,29 +31,33 @@ export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
           </p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="w-full min-w-[520px] border-collapse text-[13.5px]">
               <caption className="sr-only">Classes selected for this show</caption>
               <thead>
-                <tr>
-                  <th scope="col">Division</th>
-                  <th scope="col">Location</th>
-                  <th scope="col" className="r">
+                <tr className="border-b border-[#E9EDEB]">
+                  <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    Division
+                  </th>
+                  <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    Location
+                  </th>
+                  <th scope="col" className="px-2.5 py-2 text-right text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
                     Fee
                   </th>
-                  <th scope="col" className="r">
+                  <th scope="col" className="px-2.5 py-2 text-right text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
                     Classes
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {[...groups].map(([division, info]) => (
-                  <tr key={division}>
-                    <td>
+                  <tr key={division} className="border-b border-[#EEF2F0]">
+                    <td className="px-2.5 py-2">
                       <strong>{division}</strong>
                     </td>
-                    <td>{info.location ?? 'No location set'}</td>
-                    <td className="r">{formatMoney(info.fee)}</td>
-                    <td className="r">
+                    <td className="px-2.5 py-2">{info.location ?? 'No location set'}</td>
+                    <td className="px-2.5 py-2 text-right">{formatMoney(info.fee)}</td>
+                    <td className="px-2.5 py-2 text-right">
                       <strong>{info.count}</strong>
                     </td>
                   </tr>

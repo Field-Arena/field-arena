@@ -6,6 +6,8 @@ import { SelectEventsPicker } from '@/modules/shows/ui/show-manager/select-event
 import { SelectedClassesCard } from '@/modules/shows/ui/show-manager/selected-classes-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
+import { getOrganizerContext } from '@/modules/staff/data/context';
+import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Select Events — Field & Arena' };
 
@@ -35,8 +37,22 @@ export default async function SelectEventsPage({
     );
   }
 
+  const [context, vitals] = await Promise.all([
+    getOrganizerContext(data.showId),
+    getShowManagerVitals(data.showId),
+  ]);
+
   return (
-    <ShowManagerShell showId={data.showId} showName={data.showName} activeTab="Select Events">
+    <ShowManagerShell
+      showId={data.showId}
+      showName={data.showName}
+      activeTab="Select Events"
+      orgName={context.orgName}
+      shows={context.shows}
+      stats={vitals.stats}
+      stage={vitals.stage}
+      canViewMoney={context.canViewMoney}
+    >
       <TicketWindowCard data={data} />
       <SelectEventsPicker data={data} />
       <SelectedClassesCard data={data} />

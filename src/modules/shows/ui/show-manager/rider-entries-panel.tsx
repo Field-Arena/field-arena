@@ -280,7 +280,7 @@ function VendorMapCard({ data }: { data: RiderEntriesData }) {
           ref={inputRef}
           type="file"
           accept="image/*,application/pdf"
-          className="text-[12.5px]"
+          className="cursor-pointer text-[12.5px] text-[#6E7C76] file:mr-3 file:cursor-pointer file:rounded-[9px] file:border file:border-[#D9E1DD] file:bg-white file:px-3.5 file:py-2 file:text-[12.5px] file:font-semibold file:text-forest hover:file:border-gold"
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
           }}

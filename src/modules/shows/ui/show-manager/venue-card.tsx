@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { RING_SIZES, MAX_RINGS } from '../../schemas';
 import type { RingRow, VenueOption } from '../../data/setup-queries';
 import { useUpdateShowLocations, useApplySavedVenue } from '../../hooks/use-show-mutations';
 import { Card } from '@/shared/ui/organizer/card';
-import { PrimaryButton } from '@/shared/ui/organizer/buttons';
+import { primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { IconBarn } from '@/shared/ui/organizer/icons';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_SELECT, SM_ROW_INPUT } from './tokens';
 
@@ -20,11 +21,11 @@ import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_SELECT, S
  * only copies its ring layout — see applySavedVenue and listVenuesForOrg in
  * data/*.ts for why that's a scope choice, not a data limitation.
  *
- * "Assign Judges" (per ring) and "Open Stable Chart" are both real,
- * separate features neither source has finished porting — the buttons stay
- * visible to match the design, but point at a toast rather than a route
- * that doesn't exist yet, the same way the design's own unbuilt tabs say
- * "send me the screen for this section."
+ * "Assign Judges" (per ring) is a separate feature neither source has
+ * finished porting — that button stays a toast stub, the same way the
+ * design's own unbuilt tabs say "send me the screen for this section."
+ * "Open Stable Chart" is real now (modules/shows/ui/stable-chart/) and links
+ * there directly.
  */
 export function VenueCard({
   showId,
@@ -177,15 +178,10 @@ export function VenueCard({
           Barns and stalls for this show — assign horses/riders, print stable signage, and pick up a
           saved venue&rsquo;s stable layout instead of building one from scratch.
         </p>
-        <PrimaryButton
-          className="rounded-[9px]"
-          onClick={() => {
-            toast('The stable chart isn’t built yet — coming in a later update.');
-          }}
-        >
+        <Link href={`/dashboard/horses/stable-chart?show=${showId}`} className={primaryButtonClass + ' rounded-[9px]'}>
           <IconBarn size={15} />
           Open Stable Chart →
-        </PrimaryButton>
+        </Link>
       </div>
     </Card>
   );

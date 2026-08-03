@@ -8,7 +8,7 @@ import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { IconHorse } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { SHOW_STAGES } from '@/modules/staff/constants';
+import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import {
   useOpenTicketSales,
   useCloseTicketSales,
@@ -30,7 +30,8 @@ const STAT_TINTS = [
  * stage actually has real data for. Live scoring and an announcer view have
  * no implementation yet (judging/scoring/announcements are data-layer only
  * so far), so those stay toast stubs rather than dead links, same pattern as
- * Venue's "Assign Judges" / "Stable Chart".
+ * Venue's "Assign Judges" (Stable Chart, the other stub that card used to
+ * carry, is real now — see modules/shows/ui/stable-chart/).
  */
 export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canViewMoney: boolean }) {
   const currentIndex = SHOW_STAGES.findIndex((s) => s.key === data.stage);

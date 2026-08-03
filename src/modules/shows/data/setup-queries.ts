@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { PNL_CATEGORY_ORDER } from '../constants';
 import { calcPlatformFee } from '@/shared/lib/fees';
 
 /**
@@ -979,4 +980,224 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   const templates = await listTestTemplates(show.data.org_id);
 
   return { showId: show.data.id, showName: show.data.name, orgId: show.data.org_id, templates };
+}
+
+/* ── Financial (Billing) tab ─────────────────────────────────────────────
+   Revenue broken down the way pnlRevenueBreakdown does it: category →
+   subcategory → line item, off the same catalog esProductCatalog builds
+   and the same paid-only rules esProductStats applies. Whole-show totals,
+   no day filter — the P&L calls esProductStats with an empty day
+   selection, so every `dayScoped` branch there is dead for this read. */
+
+export interface PnlLineItem {
+  label: string;
+  qty: number;
+  revenue: number;
+}
+
+export interface PnlSubcategory {
+  name: string;
+  subtotal: number;
+  items: PnlLineItem[];
+}
+
+export interface PnlCategory {
+  name: string;
+  subtotal: number;
+  subs: PnlSubcategory[];
+}
+
+export interface ShowExpense {
+  id: string;
+  label: string;
+  amount: number;
+}
+
+export interface ShowPnl {
+  showId: string;
+  showName: string;
+  categories: PnlCategory[];
+  /** Sum of the breakdown — what "Total revenue" reports. */
+  revenueTotal: number;
+  expenses: ShowExpense[];
+  expensesTotal: number;
+  net: number;
+}
+
+export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
+  const supabase = await createServerClient();
+
+  const [show, classes, entries, orders, addOns, vendorItems, bookings, merchSales] =
+    await Promise.all([
+      supabase.from('shows').select('id, name, expenses, merch_items').eq('id', showId).maybeSingle(),
+      supabase.from('classes').select('id, label, division, event, fee').eq('show_id', showId),
+      // class_entries has no show_id — it hangs off class_id, so this is scoped
+      // by the show's own class ids once they are known (see below).
+      supabase.from('classes').select('id').eq('show_id', showId),
+      supabase.from('orders').select('id, status, items').eq('show_id', showId),
+      supabase.from('add_ons').select('id, name').eq('show_id', showId),
+      supabase.from('vendor_items').select('id, name, price').eq('show_id', showId),
+      supabase
+        .from('vendor_bookings')
+        .select('id, status, paid_at, vendor_booking_items(vendor_item_id, qty)')
+        .eq('show_id', showId),
+      supabase.from('merch_sales').select('items').eq('show_id', showId),
+    ]);
+
+  if (show.error) throw show.error;
+  if (!show.data) return null;
+  // Checked one by one rather than in a loop: TypeScript only narrows `data`
+  // off a direct `.error` test, and a loop leaves every `.data` nullable.
+  if (classes.error) throw classes.error;
+  if (entries.error) throw entries.error;
+  if (orders.error) throw orders.error;
+  if (addOns.error) throw addOns.error;
+  if (vendorItems.error) throw vendorItems.error;
+  if (bookings.error) throw bookings.error;
+  if (merchSales.error) throw merchSales.error;
+
+  const categories = new Map<string, Map<string, PnlLineItem[]>>();
+  const push = (category: string, sub: string, item: PnlLineItem) => {
+    // Line items with neither a sale nor a unit are skipped entirely, matching
+    // pnlRevenueBreakdown — a catalog of everything on offer is not a P&L.
+    if (item.revenue === 0 && item.qty === 0) return;
+    const subs = categories.get(category) ?? new Map<string, PnlLineItem[]>();
+    categories.set(category, subs);
+    subs.set(sub, [...(subs.get(sub) ?? []), item]);
+  };
+
+  /**
+   * Entry fees.
+   *
+   * An entry counts only when it is not scratched AND carries an order id AND
+   * that order is paid. class_entries.order_id is nullable — an entry the
+   * organizer added by hand (roster import, a move, a comp) has no order behind
+   * it, and counting those as revenue disagreed with the paid-orders total the
+   * header shows. Revenue is qty × the class fee, not a per-entry amount.
+   */
+  const paidOrderIds = new Set(
+    orders.data.filter((o) => o.status === 'paid').map((o) => o.id)
+  );
+  const entryCounts = new Map<string, number>();
+  const classIds = entries.data.map((c) => c.id);
+  if (classIds.length > 0) {
+    const { data: rows, error: entryError } = await supabase
+      .from('class_entries')
+      .select('class_id, status, order_id')
+      .in('class_id', classIds);
+    if (entryError) throw entryError;
+
+    for (const entry of rows) {
+      if (entry.status === 'scratched') continue;
+      if (!entry.order_id || !paidOrderIds.has(entry.order_id)) continue;
+      entryCounts.set(entry.class_id, (entryCounts.get(entry.class_id) ?? 0) + 1);
+    }
+  }
+  for (const cls of classes.data) {
+    const qty = entryCounts.get(cls.id) ?? 0;
+    push('Entry Fees', cls.event ?? 'Other classes', {
+      label: cls.division ? `${cls.label} — ${cls.division}` : cls.label,
+      qty,
+      revenue: qty * (cls.fee ?? 0),
+    });
+  }
+
+  // Add-ons: summed off the paid orders' own line items, so the amount is what
+  // was actually charged rather than today's catalog price.
+  const addOnTotals = new Map<string, { qty: number; revenue: number }>();
+  for (const order of orders.data) {
+    if (order.status !== 'paid') continue;
+    const items = (order.items ?? []) as { kind?: string; refId?: string; qty?: number; amount?: number }[];
+    for (const item of items) {
+      if (item.kind !== 'addon' || !item.refId) continue;
+      const current = addOnTotals.get(item.refId) ?? { qty: 0, revenue: 0 };
+      addOnTotals.set(item.refId, {
+        qty: current.qty + (item.qty ?? 0),
+        revenue: current.revenue + (item.amount ?? 0),
+      });
+    }
+  }
+  for (const addOn of addOns.data) {
+    const totals = addOnTotals.get(addOn.id) ?? { qty: 0, revenue: 0 };
+    push('Add-ons & Stabling', 'Add-ons & stabling', {
+      label: addOn.name,
+      qty: totals.qty,
+      revenue: totals.revenue,
+    });
+  }
+
+  // Vendor items: only confirmed AND paid bookings count, and revenue is
+  // qty × the item's price — vendor_booking_items carries no amount.
+  const vendorQty = new Map<string, number>();
+  for (const booking of bookings.data) {
+    if (booking.status !== 'confirmed' || !booking.paid_at) continue;
+    for (const item of booking.vendor_booking_items) {
+      vendorQty.set(item.vendor_item_id, (vendorQty.get(item.vendor_item_id) ?? 0) + (item.qty ?? 0));
+    }
+  }
+  for (const item of vendorItems.data) {
+    const qty = vendorQty.get(item.id) ?? 0;
+    push('Vendor Items', 'Vendor items', {
+      label: item.name,
+      qty,
+      revenue: qty * (item.price ?? 0),
+    });
+  }
+
+  // Merchandise: walk-up sales, keyed to the show's own merch_items list.
+  const merchTotals = new Map<string, { qty: number; revenue: number }>();
+  for (const sale of merchSales.data) {
+    const items = (sale.items ?? []) as { merchItemId?: string; qty?: number; amount?: number }[];
+    for (const item of items) {
+      if (!item.merchItemId) continue;
+      const current = merchTotals.get(item.merchItemId) ?? { qty: 0, revenue: 0 };
+      merchTotals.set(item.merchItemId, {
+        qty: current.qty + (item.qty ?? 0),
+        revenue: current.revenue + (item.amount ?? 0),
+      });
+    }
+  }
+  const merchItems = (show.data.merch_items ?? []) as { id: string; name: string }[];
+  for (const item of merchItems) {
+    const totals = merchTotals.get(item.id) ?? { qty: 0, revenue: 0 };
+    push('Merchandise', 'Merchandise', {
+      label: item.name,
+      qty: totals.qty,
+      revenue: totals.revenue,
+    });
+  }
+
+  // Categories in the report's fixed order; subcategories and line items by
+  // value, largest first — the shape pnlRevenueBreakdownHtml renders.
+  const ordered: PnlCategory[] = PNL_CATEGORY_ORDER.filter((name) => categories.has(name)).map(
+    (name) => {
+      const subs = [...(categories.get(name) ?? new Map<string, PnlLineItem[]>())]
+        .map(([subName, items]) => ({
+          name: subName,
+          items: [...items].sort((a, b) => b.revenue - a.revenue),
+          subtotal: items.reduce((sum, i) => sum + i.revenue, 0),
+        }))
+        .sort((a, b) => b.subtotal - a.subtotal);
+
+      return {
+        name,
+        subs,
+        subtotal: subs.reduce((sum, s) => sum + s.subtotal, 0),
+      };
+    }
+  );
+
+  const revenueTotal = ordered.reduce((sum, c) => sum + c.subtotal, 0);
+  const expenses = (show.data.expenses ?? []) as unknown as ShowExpense[];
+  const expensesTotal = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  return {
+    showId: show.data.id,
+    showName: show.data.name,
+    categories: ordered,
+    revenueTotal,
+    expenses,
+    expensesTotal,
+    net: revenueTotal - expensesTotal,
+  };
 }

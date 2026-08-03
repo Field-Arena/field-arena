@@ -4,6 +4,8 @@ import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-s
 import { RiderEntriesPanel } from '@/modules/shows/ui/show-manager/rider-entries-panel';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
+import { getOrganizerContext } from '@/modules/staff/data/context';
+import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Rider Entries — Field & Arena' };
 
@@ -31,8 +33,22 @@ export default async function RiderEntriesPage({
     );
   }
 
+  const [context, vitals] = await Promise.all([
+    getOrganizerContext(data.showId),
+    getShowManagerVitals(data.showId),
+  ]);
+
   return (
-    <ShowManagerShell showId={data.showId} showName={data.showName} activeTab="Rider Entries">
+    <ShowManagerShell
+      showId={data.showId}
+      showName={data.showName}
+      activeTab="Rider Entries"
+      orgName={context.orgName}
+      shows={context.shows}
+      stats={vitals.stats}
+      stage={vitals.stage}
+      canViewMoney={context.canViewMoney}
+    >
       <RiderEntriesPanel data={data} />
     </ShowManagerShell>
   );

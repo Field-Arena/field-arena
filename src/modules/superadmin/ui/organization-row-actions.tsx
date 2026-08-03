@@ -31,6 +31,7 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { updateOrganizationSchema, type UpdateOrganizationInput } from '../schemas';
 import {
+  useResendOrganizerInvite,
   useSetOrganizationDeleted,
   useSetOrganizationSuspended,
   useUpdateOrganization,
@@ -55,6 +56,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const [entering, startEntering] = useTransition();
   const suspend = useSetOrganizationSuspended();
   const remove = useSetOrganizationDeleted();
+  const resendInvite = useResendOrganizerInvite();
   const update = useUpdateOrganization({
     onSuccess: () => {
       setEditOpen(false);
@@ -140,11 +142,13 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
 
           {pending && (
             <DropdownMenuItem
-              disabled
-              title="Send a fresh Organizer invite email — needs the email provider configured"
+              disabled={resendInvite.isPending}
+              onSelect={() => {
+                resendInvite.mutate(org.id);
+              }}
             >
               <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
-              Resend invite
+              {resendInvite.isPending ? 'Sending…' : 'Resend invite'}
             </DropdownMenuItem>
           )}
 

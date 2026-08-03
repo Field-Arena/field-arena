@@ -32,12 +32,14 @@ import {
   createQualTypeSchema,
   uploadShowBrandingSchema,
   uploadVendorMapSchema,
-  uploadShowDocumentSchema,
   removeShowDocumentSchema,
   updateDocumentEventsSchema,
   saveTestTemplateSchema,
+  saveShowExpensesSchema,
+  createDocumentUploadUrlSchema,
+  registerShowDocumentSchema,
 } from '../schemas';
-import { VENDOR_SPACE_TEMPLATE } from '../constants';
+import { VENDOR_SPACE_TEMPLATE, DEFAULT_SHOW_EXPENSES } from '../constants';
 import { formatDateShort } from '@/shared/lib/format/date';
 
 /**
@@ -1109,36 +1111,6 @@ export async function removeClass(input: unknown): Promise<void> {
 
 const SHOW_DOCS_BUCKET = 'documents';
 
-export async function uploadShowDocument(input: unknown): Promise<{ id: string }> {
-  const parsed = uploadShowDocumentSchema.parse(input);
-  const supabase = await createServerClient();
-
-  const bytes = Buffer.from(parsed.dataBase64, 'base64');
-  const safeName = parsed.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `${parsed.showId}/${crypto.randomUUID()}-${safeName}`;
-
-  const { error: uploadError } = await supabase.storage.from(SHOW_DOCS_BUCKET).upload(path, bytes, {
-    contentType: parsed.contentType ?? 'application/pdf',
-    upsert: false,
-  });
-  if (uploadError) throw new Error(uploadError.message);
-
-  const { data, error } = await supabase
-    .from('documents')
-    .insert({ show_id: parsed.showId, name: parsed.name, path })
-    .select('id')
-    .single();
-  if (error) {
-    // Don't leave an orphaned object if the row insert fails.
-    await supabase.storage.from(SHOW_DOCS_BUCKET).remove([path]);
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/dashboard/shows/${parsed.showId}/documents`);
-  revalidatePath('/dashboard/documents');
-  return { id: data.id };
-}
-
 export async function removeShowDocument(input: unknown): Promise<void> {
   const parsed = removeShowDocumentSchema.parse(input);
   const supabase = await createServerClient();
@@ -1221,4 +1193,109 @@ export async function deleteTestTemplate(id: string): Promise<void> {
   const supabase = await createServerClient();
   const { error } = await supabase.from('test_templates').delete().eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+/* ── Financial (Billing) tab ─────────────────────────────────────────────── */
+
+/**
+ * Replaces a show's expense list.
+ *
+ * The whole array, not one line: shows.expenses is jsonb, and PostgREST cannot
+ * update an element of it in place. The legacy editor rewrote the array on
+ * every add, rename, re-price and remove for the same reason.
+ */
+export async function saveShowExpenses(input: unknown): Promise<void> {
+  const parsed = saveShowExpensesSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('shows')
+    .update({ expenses: parsed.expenses })
+    .eq('id', parsed.showId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/billing');
+}
+
+/**
+ * Seeds the default cost lines onto a show that has none.
+ *
+ * The legacy build did this lazily inside ensureShowExtras, so an organizer who
+ * had never opened Billing still had the list waiting. Here it is explicit and
+ * only ever fills an empty list — re-running it never duplicates or resets what
+ * an organizer has already edited.
+ */
+export async function seedDefaultExpenses(showId: string): Promise<{ seeded: number }> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: readError } = await supabase
+    .from('shows')
+    .select('expenses')
+    .eq('id', showId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const current = (show.expenses ?? []) as unknown[];
+  if (current.length > 0) return { seeded: 0 };
+
+  const expenses = DEFAULT_SHOW_EXPENSES.map((label, index) => ({
+    id: `exp-${String(index)}`,
+    label,
+    amount: 0,
+  }));
+
+  const { error } = await supabase.from('shows').update({ expenses }).eq('id', showId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/billing');
+  return { seeded: expenses.length };
+}
+
+/**
+ * Step one of a document upload: a signed URL the browser can PUT to.
+ *
+ * The path is minted here rather than accepted from the client, so a caller
+ * cannot aim the upload at another show's folder — the storage policies are
+ * scoped by the leading show id.
+ */
+export async function createDocumentUploadUrl(
+  input: unknown
+): Promise<{ path: string; token: string }> {
+  const parsed = createDocumentUploadUrlSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const safeName = parsed.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${parsed.showId}/${crypto.randomUUID()}-${safeName}`;
+
+  const { data, error } = await supabase.storage
+    .from(SHOW_DOCS_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error) throw new Error(error.message);
+
+  return { path: data.path, token: data.token };
+}
+
+/**
+ * Step two: record the uploaded object.
+ *
+ * The object is removed again if the row cannot be written, so a failure here
+ * does not leave a file in the bucket that nothing references.
+ */
+export async function registerShowDocument(input: unknown): Promise<{ id: string }> {
+  const parsed = registerShowDocumentSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('documents')
+    .insert({ show_id: parsed.showId, name: parsed.name, path: parsed.path })
+    .select('id')
+    .single();
+  if (error) {
+    await supabase.storage.from(SHOW_DOCS_BUCKET).remove([parsed.path]);
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}/documents`);
+  revalidatePath('/dashboard/documents');
+  return { id: data.id };
 }

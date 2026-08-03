@@ -202,8 +202,8 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
 
       <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
         <p className="min-w-0 text-[13px] text-[#6E7C76]">
-          Ticket sales and going live are handled from Run Show — once this looks right, open
-          ticket sales and take the show live from there.
+          Ticket sales and going live are handled from the lifecycle steps above — once ready, use
+          &quot;Open ticket sales&quot; and &quot;Approve schedule &amp; go live&quot; on Run Show.
         </p>
         <Link href={`/dashboard/shows/${data.showId}/run-show`} className={`${SM_GREEN_BTN} ml-auto`}>
           Continue to Run Show →
