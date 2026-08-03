@@ -55,15 +55,18 @@ export function UsersDirectory({
   const targetShow = shows.find((s) => s.id === targetShowId) ?? shows[0] ?? null;
   const targetShowStaff = useMemo(
     () => rows.filter((r) => r.kind === 'staff' && r.showId === targetShowId),
-    [rows, targetShowId]
+    [rows, targetShowId],
   );
 
-  const roleTypes = useMemo(() => [...new Set(rows.map((r) => r.role))].sort((a, b) => a.localeCompare(b)), [rows]);
+  const roleTypes = useMemo(
+    () => [...new Set(rows.map((r) => r.role))].sort((a, b) => a.localeCompare(b)),
+    [rows],
+  );
   const showCoggins = roleFilter === 'Rider';
 
   const noncompliantCount = useMemo(
     () => rows.filter((r) => r.kind === 'rider' && r.coggins?.compliant === false).length,
-    [rows]
+    [rows],
   );
 
   const filteredRows = useMemo(() => {
@@ -74,7 +77,8 @@ export function UsersDirectory({
         if (showFilter && u.showId !== showFilter) return false;
         if (statusFilter && u.status !== statusFilter) return false;
         if (cogginsOnly && (u.role !== 'Rider' || u.coggins?.compliant !== false)) return false;
-        if (q && !u.name.toLowerCase().includes(q) && !(u.email ?? '').toLowerCase().includes(q)) return false;
+        if (q && !u.name.toLowerCase().includes(q) && !(u.email ?? '').toLowerCase().includes(q))
+          return false;
         return true;
       })
       .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
@@ -85,20 +89,28 @@ export function UsersDirectory({
     : 'minmax(160px,1.4fr) 120px 160px minmax(160px,1.2fr) 130px 110px';
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
-      <div className="mb-5">
-        <ScreenTitle className="mb-1.5">Users</ScreenTitle>
-        <ScreenLede>Invite and manage everyone with access — judges, scribes, staff, and more.</ScreenLede>
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Eyebrow className="mb-1.5 block">Access</Eyebrow>
+          <ScreenTitle className="mb-1.5">Users</ScreenTitle>
+          <ScreenLede className="mb-0">
+            Invite and manage everyone with access — judges, scribes, staff, and more.
+          </ScreenLede>
+        </div>
+        <span className="inline-flex flex-none items-center gap-1.5 rounded-full border border-[#E9EDEB] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#0D2C23]">
+          <span className="size-1.5 rounded-full bg-[#3E8E5A]" aria-hidden />
+          {rows.length} of {rows.length}
+        </span>
       </div>
 
-      <Eyebrow className="mb-2.5 block">Show</Eyebrow>
       <Card className="mb-5 flex flex-wrap items-center gap-3 p-[16px_18px]">
         <select
           value={targetShowId}
           onChange={(e) => {
             setTargetShowId(e.target.value);
           }}
-          className="min-w-[280px] flex-[0_1_360px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm text-ink-deep"
+          className="text-ink-deep min-w-[280px] flex-[0_1_360px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
           aria-label="Show to add or export staff for"
         >
           {shows.map((show) => (
@@ -113,13 +125,19 @@ export function UsersDirectory({
         {targetShow && <UploadStaffListDialog showId={targetShow.id} showName={targetShow.name} />}
         {targetShow && <ExportStaffListButton rows={targetShowStaff} showName={targetShow.name} />}
         {targetShow && (
-          <PermissionsListDialog staff={targetShowStaff} showName={targetShow.name} onEditStaff={setEditingRow} />
+          <PermissionsListDialog
+            staff={targetShowStaff}
+            showName={targetShow.name}
+            onEditStaff={setEditingRow}
+          />
         )}
       </Card>
 
       <Card className="p-[18px_20px_20px]">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="font-[Newsreader,serif] text-[20px] font-semibold text-forest">All Users</h2>
+          <h2 className="text-forest font-[Newsreader,serif] text-[20px] font-semibold">
+            All Users
+          </h2>
           <span className="text-[13px] font-semibold text-[#5A6B63]">
             {filteredRows.length} of {rows.length}
           </span>
@@ -222,18 +240,32 @@ export function UsersDirectory({
 
         <div className="overflow-x-auto rounded-[12px] border border-[#EDF0EE]">
           <div className="min-w-[900px]">
-            <div className="grid gap-3.5 border-b border-[#EEF2F0] bg-[#F8FAF9] px-4 py-2.5" style={{ gridTemplateColumns: columns }}>
-              {['Name', 'User Type', 'Show', 'Email', 'Phone', 'Status', ...(showCoggins ? ['Coggins'] : [])].map(
-                (label) => (
-                  <span key={label} className="text-[9.5px] font-bold uppercase tracking-[.14em] text-[#7A8781]">
-                    {label}
-                  </span>
-                )
-              )}
+            <div
+              className="grid gap-3.5 border-b border-[#EEF2F0] bg-[#F8FAF9] px-4 py-2.5"
+              style={{ gridTemplateColumns: columns }}
+            >
+              {[
+                'Name',
+                'User Type',
+                'Show',
+                'Email',
+                'Phone',
+                'Status',
+                ...(showCoggins ? ['Coggins'] : []),
+              ].map((label) => (
+                <span
+                  key={label}
+                  className="text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase"
+                >
+                  {label}
+                </span>
+              ))}
             </div>
 
             {filteredRows.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13.5px] text-[#7A8781]">No users match those filters.</div>
+              <div className="px-5 py-10 text-center text-[13.5px] text-[#7A8781]">
+                No users match those filters.
+              </div>
             ) : (
               filteredRows.map((row) => {
                 const clickable = row.kind === 'staff';
@@ -259,11 +291,11 @@ export function UsersDirectory({
                     }
                     className={cn(
                       'grid items-center gap-3.5 border-b border-[#F1F4F3] px-4 py-3 text-[13px] last:border-b-0',
-                      clickable && 'cursor-pointer transition-colors hover:bg-[#F8FAF9]'
+                      clickable && 'cursor-pointer transition-colors hover:bg-[#F8FAF9]',
                     )}
                     style={{ gridTemplateColumns: columns }}
                   >
-                    <span className="min-w-0 truncate font-semibold text-ink-deep">{row.name}</span>
+                    <span className="text-ink-deep min-w-0 truncate font-semibold">{row.name}</span>
                     <span className="min-w-0 truncate text-[#48574F]">{row.role}</span>
                     <span className="min-w-0 truncate text-[#48574F]">{row.showName}</span>
                     <span className="min-w-0 truncate text-[#48574F]">{row.email ?? '—'}</span>

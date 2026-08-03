@@ -3,22 +3,26 @@
 import { useState } from 'react';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
-import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
+import { IconX } from '@/shared/ui/organizer/icons';
+import {
+  ModalEyebrow,
+  modalBodyClass,
+  modalContentClass,
+  modalFooterClass,
+} from '@/shared/ui/organizer/modal-kit';
 import { MEMBER_TYPES } from '../constants';
 import type { MemberRow } from '../data/queries';
-import {
-  useCreateMember,
-  useDeleteMember,
-  useUpdateMember,
-} from '../hooks/use-member-mutations';
+import { useCreateMember, useDeleteMember, useUpdateMember } from '../hooks/use-member-mutations';
 
 const LABEL = 'mb-1.5 block text-[12.5px] font-semibold text-forest';
 const FIELD =
@@ -99,9 +103,13 @@ export function MemberEditDialog({
         if (!next) onClose();
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-xl text-hunter-deep">
+      <DialogContent
+        className={modalContentClass + ' flex max-h-[85vh] flex-col sm:max-w-[520px]'}
+        showCloseButton={false}
+      >
+        <DialogHeader className={modalBodyClass + ' flex-none gap-1.5 pb-0'}>
+          <ModalEyebrow>Member Database</ModalEyebrow>
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
             {member ? member.name : 'Add member'}
           </DialogTitle>
           <DialogDescription>
@@ -109,9 +117,13 @@ export function MemberEditDialog({
               ? "In your organization's database"
               : "Add someone to your organization's database. This doesn't put them on any show yet."}
           </DialogDescription>
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+            <IconX size={13} />
+            <span className="sr-only">Close</span>
+          </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className={modalBodyClass + ' min-h-0 flex-1 space-y-4 overflow-y-auto'}>
           <div>
             <label htmlFor="mem-role" className={LABEL}>
               Type
@@ -250,7 +262,7 @@ export function MemberEditDialog({
 
           {Object.keys(extra).length > 0 && (
             <div>
-              <div className="mb-1 text-[12px] font-bold tracking-wide text-forest uppercase">
+              <div className="text-forest mb-1 text-[12px] font-bold tracking-wide uppercase">
                 Additional fields
               </div>
               <p className="mb-2 text-[12px] text-[#7A8781]">
@@ -284,7 +296,7 @@ export function MemberEditDialog({
           )}
         </div>
 
-        <DialogFooter className="items-center sm:justify-between">
+        <DialogFooter className={modalFooterClass + ' items-center sm:justify-between'}>
           {member ? (
             <button
               type="button"
@@ -301,12 +313,13 @@ export function MemberEditDialog({
           )}
 
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+            <GhostButton type="button" onClick={onClose} disabled={pending}>
               Cancel
-            </Button>
-            <Button type="button" onClick={submit} disabled={pending}>
+            </GhostButton>
+            <GoldButton type="button" onClick={submit} disabled={pending}>
               {member ? 'Save changes' : 'Add member'}
-            </Button>
+              <span aria-hidden>✓</span>
+            </GoldButton>
           </div>
         </DialogFooter>
 

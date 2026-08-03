@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
+import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -72,7 +73,7 @@ export function MemberDatabaseScreen({
 
   const roles = useMemo(
     () => [...new Set(members.map((m) => m.role).filter((r): r is string => !!r))].sort(),
-    [members]
+    [members],
   );
 
   const filtered = useMemo(() => {
@@ -81,9 +82,7 @@ export function MemberDatabaseScreen({
       .filter((m) => {
         if (roleFilter && m.role !== roleFilter) return false;
         if (!q) return true;
-        return (
-          m.name.toLowerCase().includes(q) || (m.email ?? '').toLowerCase().includes(q)
-        );
+        return m.name.toLowerCase().includes(q) || (m.email ?? '').toLowerCase().includes(q);
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [members, search, roleFilter]);
@@ -113,7 +112,7 @@ export function MemberDatabaseScreen({
           ...extraKeys.map((k) => m.extraFields[k] ?? ''),
         ]
           .map(csvCell)
-          .join(',')
+          .join(','),
       );
     }
 
@@ -126,13 +125,12 @@ export function MemberDatabaseScreen({
   }
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <ScreenTitle className="mb-1.5">Member Database</ScreenTitle>
           <ScreenLede className="mb-0">
-            {members.length} {members.length === 1 ? 'person' : 'people'} in your
-            organization&apos;s database
+            {`${String(members.length)} of ${String(members.length)} ${members.length === 1 ? 'person' : 'people'} in your organization's database.`}
           </ScreenLede>
         </div>
 
@@ -149,18 +147,18 @@ export function MemberDatabaseScreen({
               setImporting(true);
             }}
           >
-            ⬆ Upload List
+            <IconUpload size={14} /> Upload List
           </GhostButton>
-          <GhostButton onClick={exportCsv}>⬇ Export List</GhostButton>
+          <GhostButton onClick={exportCsv}>
+            <IconFile size={14} /> Export List
+          </GhostButton>
         </div>
       </div>
 
       {/* Only appears once something is checked, matching the legacy add-bar. */}
       {checked.size > 0 && (
         <Card className="mb-4 flex flex-wrap items-center gap-2.5 p-4">
-          <b className="text-[13.5px]">
-            {checked.size} selected
-          </b>
+          <b className="text-[13.5px]">{checked.size} selected</b>
           <select
             value={targetShow}
             onChange={(e) => {
@@ -195,7 +193,7 @@ export function MemberDatabaseScreen({
 
       <Card className="p-5">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <span className="font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest">
+          <span className="text-forest font-[family-name:var(--font-nr)] text-[17px] font-semibold">
             Member Database
           </span>
           <span className="text-[12.5px] text-[#7A8781]">
@@ -203,8 +201,8 @@ export function MemberDatabaseScreen({
           </span>
         </div>
         <p className="mb-3 text-[12.5px] leading-[1.55] text-[#6E7C76]">
-          Your organization&apos;s full contact list. Check anyone and add them straight into a
-          show — it copies them in, it doesn&apos;t remove them from here.
+          Your organization&apos;s full contact list. Check anyone and add them straight into a show
+          — it copies them in, it doesn&apos;t remove them from here.
         </p>
 
         <div className="relative mb-3 flex flex-wrap gap-2">
@@ -215,7 +213,7 @@ export function MemberDatabaseScreen({
             onChange={(e) => {
               setSearch(e.target.value);
             }}
-            className="min-w-[180px] flex-1 rounded-[8px] border border-[#D9E1DD] px-3 py-2 text-[13.5px] outline-none focus-visible:border-gold"
+            className="focus-visible:border-gold min-w-[180px] flex-1 rounded-[8px] border border-[#D9E1DD] px-3 py-2 text-[13.5px] outline-none"
           />
           <select
             value={roleFilter}
@@ -239,7 +237,7 @@ export function MemberDatabaseScreen({
                 setColumnsOpen((v) => !v);
               }}
             >
-              ☰ Columns
+              <IconColumns size={14} /> Columns
             </GhostButton>
             {columnsOpen && (
               <div className="absolute top-full right-0 z-20 mt-1 w-[190px] rounded-[10px] border border-[#E9EDEB] bg-white p-2 shadow-lg">
@@ -276,7 +274,7 @@ export function MemberDatabaseScreen({
         )}
 
         {filtered.length === 0 ? (
-          <p className="py-4 text-[13px] italic text-[#98A29D]">
+          <p className="py-4 text-[13px] text-[#98A29D] italic">
             {members.length === 0
               ? 'Nobody in your database yet — add someone, or upload a list.'
               : 'No members match those filters.'}
@@ -322,8 +320,7 @@ export function MemberDatabaseScreen({
               </thead>
               <tbody>
                 {shown.map((member) => {
-                  const expired =
-                    !!member.membershipExpires && member.membershipExpires < today;
+                  const expired = !!member.membershipExpires && member.membershipExpires < today;
 
                   return (
                     <tr
@@ -364,7 +361,9 @@ export function MemberDatabaseScreen({
                             // smaller and muted, so the identifying columns stay
                             // the ones the eye lands on.
                             (col.key === 'notes' || col.extra) && 'text-[12px] text-[#7A8781]',
-                            col.key === 'membershipExpires' && expired && 'font-semibold text-[#B4432F]'
+                            col.key === 'membershipExpires' &&
+                              expired &&
+                              'font-semibold text-[#B4432F]',
                           )}
                         >
                           {col.key === 'membershipStatus' ? (
