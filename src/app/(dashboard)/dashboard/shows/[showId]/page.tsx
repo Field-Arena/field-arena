@@ -18,6 +18,8 @@ import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
 import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
+import { getOrganizerContext } from '@/modules/staff/data/context';
+import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
@@ -59,14 +61,24 @@ export default async function ShowManagerPage({
     );
   }
 
-  const [venues, divisions, completeness] = await Promise.all([
+  const [venues, divisions, completeness, context, vitals] = await Promise.all([
     listVenuesForOrg(show.orgId),
     listDivisions(show.id),
     getShowCompleteness(show.id),
+    getOrganizerContext(show.id),
+    getShowManagerVitals(show.id),
   ]);
 
   return (
-    <ShowManagerShell showId={show.id} showName={show.name}>
+    <ShowManagerShell
+      showId={show.id}
+      showName={show.name}
+      orgName={context.orgName}
+      shows={context.shows}
+      stats={vitals.stats}
+      stage={vitals.stage}
+      canViewMoney={context.canViewMoney}
+    >
       <ReadinessMeter completeness={completeness} />
       <ShowDetailsCard show={show} />
       <VenueCard

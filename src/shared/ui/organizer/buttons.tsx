@@ -20,12 +20,21 @@ export const primaryButtonClass =
   'inline-flex items-center gap-[9px] rounded-[10px] bg-[#1A5B3C] px-[17px] py-[11px] ' +
   'text-[13.5px] font-bold text-white transition-colors hover:bg-[#144A30]';
 
+/** The modal primary-action fill (Save/Add/Invite) — never used outside a dialog footer. */
+export const goldButtonClass =
+  'inline-flex items-center gap-[9px] rounded-[10px] bg-[#C9A227] px-[17px] py-[11px] ' +
+  'text-[13.5px] font-bold text-[#16261F] transition-colors hover:bg-[#E3C566]';
+
 export function GhostButton({ className, ...props }: Btn) {
   return <button type="button" className={cn(ghostButtonClass, className)} {...props} />;
 }
 
 export function PrimaryButton({ className, ...props }: Btn) {
   return <button type="button" className={cn(primaryButtonClass, className)} {...props} />;
+}
+
+export function GoldButton({ className, ...props }: Btn) {
+  return <button type="button" className={cn(goldButtonClass, className)} {...props} />;
 }
 
 export function DangerButton({ className, ...props }: Btn) {
@@ -35,7 +44,7 @@ export function DangerButton({ className, ...props }: Btn) {
       className={cn(
         'rounded-lg bg-[#B4432F] px-[17px] py-2.5 text-[13px] font-bold text-[#FBF7EE]',
         'whitespace-nowrap transition-colors hover:bg-[#98341F]',
-        className
+        className,
       )}
       {...props}
     />
@@ -50,7 +59,7 @@ export function BackButton({ className, ...props }: Btn) {
         'inline-flex items-center gap-2 rounded-[10px] border border-[#D9E1DD] bg-white',
         'px-3.5 py-[9px] text-[13px] font-semibold text-[#0D2C23]',
         'transition-colors hover:border-[#C9A227]',
-        className
+        className,
       )}
       {...props}
     >
@@ -71,11 +80,7 @@ export function BackButton({ className, ...props }: Btn) {
   );
 }
 
-export function FilterPill({
-  active,
-  className,
-  ...props
-}: Btn & { active?: boolean }) {
+export function FilterPill({ active, className, ...props }: Btn & { active?: boolean }) {
   return (
     <button
       type="button"
@@ -84,7 +89,7 @@ export function FilterPill({
         active
           ? 'border-[#0D2C23] bg-[#0D2C23] text-white'
           : 'border-[#D9E1DD] bg-white text-[#0D2C23] hover:border-[#C9A227]',
-        className
+        className,
       )}
       {...props}
     />

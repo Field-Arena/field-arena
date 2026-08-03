@@ -4,6 +4,8 @@ import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-s
 import { ReviewCard } from '@/modules/shows/ui/show-manager/review-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
+import { getOrganizerContext } from '@/modules/staff/data/context';
+import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Schedule / Review — Field & Arena' };
 
@@ -33,8 +35,22 @@ export default async function SchedulePage({
     );
   }
 
+  const [context, vitals] = await Promise.all([
+    getOrganizerContext(data.showId),
+    getShowManagerVitals(data.showId),
+  ]);
+
   return (
-    <ShowManagerShell showId={data.showId} showName={data.showName} activeTab="Schedule / Review">
+    <ShowManagerShell
+      showId={data.showId}
+      showName={data.showName}
+      activeTab="Schedule / Review"
+      orgName={context.orgName}
+      shows={context.shows}
+      stats={vitals.stats}
+      stage={vitals.stage}
+      canViewMoney={context.canViewMoney}
+    >
       <ReviewCard data={data} />
     </ShowManagerShell>
   );

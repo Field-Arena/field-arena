@@ -12,20 +12,6 @@ import {
 import type { ShowDocumentRow } from '../../data/setup-queries';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from './tokens';
 
-function readFile(file: File): Promise<{ dataBase64: string; contentType: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      resolve({ dataBase64: result.split(',')[1] ?? '', contentType: file.type || 'application/pdf' });
-    };
-    reader.onerror = () => {
-      reject(new Error('Could not read the file'));
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 /**
  * "Documents" — the file library an organizer publishes to competitors
  * (prize lists, maps, forms), ported from showstaff.html's renderDocuments /
@@ -48,10 +34,11 @@ export function DocumentsCard({
   const remove = useRemoveShowDocument();
   const assign = useUpdateDocumentEvents();
 
-  async function handleFiles(files: FileList) {
+  function handleFiles(files: FileList) {
+    // The file object goes to the hook whole — it uploads straight to Storage
+    // against a signed URL, so nothing needs reading into memory here.
     for (const file of Array.from(files)) {
-      const { dataBase64, contentType } = await readFile(file);
-      upload.mutate({ showId, name: file.name, dataBase64, contentType });
+      upload.mutate({ showId, file });
     }
   }
 
@@ -79,7 +66,7 @@ export function DocumentsCard({
           className="hidden"
           onChange={(e) => {
             const files = e.target.files;
-            if (files?.length) void handleFiles(files);
+            if (files?.length) handleFiles(files);
             e.target.value = '';
           }}
         />

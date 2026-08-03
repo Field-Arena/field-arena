@@ -3,14 +3,13 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOutIcon, MailIcon } from 'lucide-react';
+import { LogOutIcon } from 'lucide-react';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import { RoleRail } from '@/shared/ui/role-rail';
 import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
-import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS, INVITE_TTL_DAYS } from '../constants';
-import { useRefreshPendingInvites } from '../hooks/use-organization-mutations';
+import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '../constants';
 import { OrganizerSearch } from './organizer-search';
 import { AddOrganizerDialog } from './add-organizer-dialog';
 import { ConsoleIcon } from './console-icon';
@@ -39,7 +38,6 @@ export function SuperAdminShell({
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
-  const { mutate: refreshInvites, isPending: isRefreshingInvites } = useRefreshPendingInvites();
   const isOrganizerList = pathname === '/dashboard/superadmin';
 
   const initials =
@@ -157,19 +155,6 @@ export function SuperAdminShell({
           {isOrganizerList && <OrganizerSearch />}
 
           <div className="ml-auto flex flex-none items-center gap-2.5">
-            <button
-              type="button"
-              disabled={isRefreshingInvites}
-              title={`Extends every outstanding invite by ${String(INVITE_TTL_DAYS)} days. No email is sent — the email provider is not configured.`}
-              onClick={() => {
-                refreshInvites();
-              }}
-              className="flex items-center gap-2 whitespace-nowrap rounded-[9px] border border-field bg-transparent px-3.5 py-2.5 text-[13px] font-semibold text-forest transition-colors hover:border-gold hover:bg-white disabled:opacity-45"
-            >
-              <MailIcon className="size-[15px]" aria-hidden />
-              {isRefreshingInvites ? 'Refreshing…' : 'Resend invites'}
-            </button>
-
             <AddOrganizerDialog />
           </div>
         </header>

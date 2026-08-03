@@ -1,5 +1,11 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { PNL_CATEGORY_ORDER } from '../constants';
+import {
+  buildMasterSchedule,
+  type MasterSchedule,
+  type ScheduleEntry,
+} from '../schedule-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
 
 /**
@@ -321,6 +327,21 @@ export interface SchedulePrefs {
   lunch: boolean;
   extraBreaks: number;
   extraBreakMin: number;
+  /**
+   * The double-booking rule, editable from Master Schedule rather than Setup —
+   * it is a scheduling concern an organizer changes while looking at the
+   * schedule it produced. Off means the scheduler stops treating any gap as a
+   * conflict at all.
+   */
+  hardRuleEnabled: boolean;
+  hardRuleSameHorseMin: number;
+  hardRuleDiffHorseMin: number;
+  /**
+   * Whether ribbons are awarded per division within a class, or to the class as
+   * a whole. Lives here, not in Show Manager, for the same reason — it is an
+   * awards-day decision made in front of the schedule.
+   */
+  awardsByDivision: boolean;
 }
 
 /** Matches showstaff.html's defaultRules() — the state a show with no schedule_prefs row yet renders as. */
@@ -334,6 +355,10 @@ const DEFAULT_SCHEDULE_PREFS: SchedulePrefs = {
   lunch: true,
   extraBreaks: 0,
   extraBreakMin: 10,
+  hardRuleEnabled: true,
+  hardRuleSameHorseMin: 30,
+  hardRuleDiffHorseMin: 55,
+  awardsByDivision: false,
 };
 
 export interface MerchItem {
@@ -979,4 +1004,744 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   const templates = await listTestTemplates(show.data.org_id);
 
   return { showId: show.data.id, showName: show.data.name, orgId: show.data.org_id, templates };
+}
+
+/* ── Financial (Billing) tab ─────────────────────────────────────────────
+   Revenue broken down the way pnlRevenueBreakdown does it: category →
+   subcategory → line item, off the same catalog esProductCatalog builds
+   and the same paid-only rules esProductStats applies. Whole-show totals,
+   no day filter — the P&L calls esProductStats with an empty day
+   selection, so every `dayScoped` branch there is dead for this read. */
+
+export interface PnlLineItem {
+  label: string;
+  qty: number;
+  revenue: number;
+}
+
+export interface PnlSubcategory {
+  name: string;
+  subtotal: number;
+  items: PnlLineItem[];
+}
+
+export interface PnlCategory {
+  name: string;
+  subtotal: number;
+  subs: PnlSubcategory[];
+}
+
+export interface ShowExpense {
+  id: string;
+  label: string;
+  amount: number;
+}
+
+export interface ShowPnl {
+  showId: string;
+  showName: string;
+  categories: PnlCategory[];
+  /** Sum of the breakdown — what "Total revenue" reports. */
+  revenueTotal: number;
+  expenses: ShowExpense[];
+  expensesTotal: number;
+  net: number;
+}
+
+export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
+  const supabase = await createServerClient();
+
+  const [show, classes, entries, orders, addOns, vendorItems, bookings, merchSales] =
+    await Promise.all([
+      supabase.from('shows').select('id, name, expenses, merch_items').eq('id', showId).maybeSingle(),
+      supabase.from('classes').select('id, label, division, event, fee').eq('show_id', showId),
+      // class_entries has no show_id — it hangs off class_id, so this is scoped
+      // by the show's own class ids once they are known (see below).
+      supabase.from('classes').select('id').eq('show_id', showId),
+      supabase.from('orders').select('id, status, items').eq('show_id', showId),
+      supabase.from('add_ons').select('id, name').eq('show_id', showId),
+      supabase.from('vendor_items').select('id, name, price').eq('show_id', showId),
+      supabase
+        .from('vendor_bookings')
+        .select('id, status, paid_at, vendor_booking_items(vendor_item_id, qty)')
+        .eq('show_id', showId),
+      supabase.from('merch_sales').select('items').eq('show_id', showId),
+    ]);
+
+  if (show.error) throw show.error;
+  if (!show.data) return null;
+  // Checked one by one rather than in a loop: TypeScript only narrows `data`
+  // off a direct `.error` test, and a loop leaves every `.data` nullable.
+  if (classes.error) throw classes.error;
+  if (entries.error) throw entries.error;
+  if (orders.error) throw orders.error;
+  if (addOns.error) throw addOns.error;
+  if (vendorItems.error) throw vendorItems.error;
+  if (bookings.error) throw bookings.error;
+  if (merchSales.error) throw merchSales.error;
+
+  const categories = new Map<string, Map<string, PnlLineItem[]>>();
+  const push = (category: string, sub: string, item: PnlLineItem) => {
+    // Line items with neither a sale nor a unit are skipped entirely, matching
+    // pnlRevenueBreakdown — a catalog of everything on offer is not a P&L.
+    if (item.revenue === 0 && item.qty === 0) return;
+    const subs = categories.get(category) ?? new Map<string, PnlLineItem[]>();
+    categories.set(category, subs);
+    subs.set(sub, [...(subs.get(sub) ?? []), item]);
+  };
+
+  /**
+   * Entry fees.
+   *
+   * An entry counts only when it is not scratched AND carries an order id AND
+   * that order is paid. class_entries.order_id is nullable — an entry the
+   * organizer added by hand (roster import, a move, a comp) has no order behind
+   * it, and counting those as revenue disagreed with the paid-orders total the
+   * header shows. Revenue is qty × the class fee, not a per-entry amount.
+   */
+  const paidOrderIds = new Set(
+    orders.data.filter((o) => o.status === 'paid').map((o) => o.id)
+  );
+  const entryCounts = new Map<string, number>();
+  const classIds = entries.data.map((c) => c.id);
+  if (classIds.length > 0) {
+    const { data: rows, error: entryError } = await supabase
+      .from('class_entries')
+      .select('class_id, status, order_id')
+      .in('class_id', classIds);
+    if (entryError) throw entryError;
+
+    for (const entry of rows) {
+      if (entry.status === 'scratched') continue;
+      if (!entry.order_id || !paidOrderIds.has(entry.order_id)) continue;
+      entryCounts.set(entry.class_id, (entryCounts.get(entry.class_id) ?? 0) + 1);
+    }
+  }
+  for (const cls of classes.data) {
+    const qty = entryCounts.get(cls.id) ?? 0;
+    push('Entry Fees', cls.event ?? 'Other classes', {
+      label: cls.division ? `${cls.label} — ${cls.division}` : cls.label,
+      qty,
+      revenue: qty * (cls.fee ?? 0),
+    });
+  }
+
+  // Add-ons: summed off the paid orders' own line items, so the amount is what
+  // was actually charged rather than today's catalog price.
+  const addOnTotals = new Map<string, { qty: number; revenue: number }>();
+  for (const order of orders.data) {
+    if (order.status !== 'paid') continue;
+    const items = (order.items ?? []) as { kind?: string; refId?: string; qty?: number; amount?: number }[];
+    for (const item of items) {
+      if (item.kind !== 'addon' || !item.refId) continue;
+      const current = addOnTotals.get(item.refId) ?? { qty: 0, revenue: 0 };
+      addOnTotals.set(item.refId, {
+        qty: current.qty + (item.qty ?? 0),
+        revenue: current.revenue + (item.amount ?? 0),
+      });
+    }
+  }
+  for (const addOn of addOns.data) {
+    const totals = addOnTotals.get(addOn.id) ?? { qty: 0, revenue: 0 };
+    push('Add-ons & Stabling', 'Add-ons & stabling', {
+      label: addOn.name,
+      qty: totals.qty,
+      revenue: totals.revenue,
+    });
+  }
+
+  // Vendor items: only confirmed AND paid bookings count, and revenue is
+  // qty × the item's price — vendor_booking_items carries no amount.
+  const vendorQty = new Map<string, number>();
+  for (const booking of bookings.data) {
+    if (booking.status !== 'confirmed' || !booking.paid_at) continue;
+    for (const item of booking.vendor_booking_items) {
+      vendorQty.set(item.vendor_item_id, (vendorQty.get(item.vendor_item_id) ?? 0) + (item.qty ?? 0));
+    }
+  }
+  for (const item of vendorItems.data) {
+    const qty = vendorQty.get(item.id) ?? 0;
+    push('Vendor Items', 'Vendor items', {
+      label: item.name,
+      qty,
+      revenue: qty * (item.price ?? 0),
+    });
+  }
+
+  // Merchandise: walk-up sales, keyed to the show's own merch_items list.
+  const merchTotals = new Map<string, { qty: number; revenue: number }>();
+  for (const sale of merchSales.data) {
+    const items = (sale.items ?? []) as { merchItemId?: string; qty?: number; amount?: number }[];
+    for (const item of items) {
+      if (!item.merchItemId) continue;
+      const current = merchTotals.get(item.merchItemId) ?? { qty: 0, revenue: 0 };
+      merchTotals.set(item.merchItemId, {
+        qty: current.qty + (item.qty ?? 0),
+        revenue: current.revenue + (item.amount ?? 0),
+      });
+    }
+  }
+  const merchItems = (show.data.merch_items ?? []) as { id: string; name: string }[];
+  for (const item of merchItems) {
+    const totals = merchTotals.get(item.id) ?? { qty: 0, revenue: 0 };
+    push('Merchandise', 'Merchandise', {
+      label: item.name,
+      qty: totals.qty,
+      revenue: totals.revenue,
+    });
+  }
+
+  // Categories in the report's fixed order; subcategories and line items by
+  // value, largest first — the shape pnlRevenueBreakdownHtml renders.
+  const ordered: PnlCategory[] = PNL_CATEGORY_ORDER.filter((name) => categories.has(name)).map(
+    (name) => {
+      const subs = [...(categories.get(name) ?? new Map<string, PnlLineItem[]>())]
+        .map(([subName, items]) => ({
+          name: subName,
+          items: [...items].sort((a, b) => b.revenue - a.revenue),
+          subtotal: items.reduce((sum, i) => sum + i.revenue, 0),
+        }))
+        .sort((a, b) => b.subtotal - a.subtotal);
+
+      return {
+        name,
+        subs,
+        subtotal: subs.reduce((sum, s) => sum + s.subtotal, 0),
+      };
+    }
+  );
+
+  const revenueTotal = ordered.reduce((sum, c) => sum + c.subtotal, 0);
+  const expenses = (show.data.expenses ?? []) as unknown as ShowExpense[];
+  const expensesTotal = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  return {
+    showId: show.data.id,
+    showName: show.data.name,
+    categories: ordered,
+    revenueTotal,
+    expenses,
+    expensesTotal,
+    net: revenueTotal - expensesTotal,
+  };
+}
+
+/* ── Master Schedule ─────────────────────────────────────────────────────
+   Feeds schedule-engine.ts. The engine is pure — everything it needs is
+   assembled here and nothing about the scheduling rules lives in this
+   file. */
+
+export interface MasterScheduleData {
+  showId: string;
+  showName: string;
+  startDate: string | null;
+  timezone: string | null;
+  schedule: MasterSchedule;
+  /** Every ring on the show, including any reserved for warm-up. */
+  rings: string[];
+  judgesByClass: Record<string, string[]>;
+  finalPctByEntry: Record<string, string>;
+  rules: {
+    hardRuleEnabled: boolean;
+    hardRuleSameHorseMin: number;
+    hardRuleDiffHorseMin: number;
+    awardsByDivision: boolean;
+  };
+  rideMinutesByClass: Record<string, number>;
+}
+
+/** Mirrors the engine's own upper-level set — see stepMinutesForClass. */
+const UPPER_LEVELS = new Set(['Third Level', 'Fourth Level', 'FEI']);
+
+/**
+ * Builds the show's master schedule.
+ *
+ * Only classes with entries produce rides, so a show whose riders have not
+ * entered yet returns empty arenas — the caller renders the legacy's own "this
+ * show hasn't built a schedule yet" state rather than an empty grid.
+ *
+ * Ride order comes from class_entries.ride_order, which the organizer controls;
+ * scratched entries stay in the list because the schedule shows them struck
+ * through rather than silently closing the gap, and the legacy view relies on
+ * their status to decide what is still draggable.
+ */
+export async function getMasterSchedule(showId: string): Promise<MasterScheduleData | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, start_date, timezone, locations, schedule_prefs, day_start_times, day_end_times')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, event, location, date, min_per_ride')
+    .eq('show_id', showId)
+    .order('label');
+  if (classError) throw classError;
+
+  const classIds = classes.map((c) => c.id);
+  let entries: {
+    id: string;
+    class_id: string;
+    num: string;
+    rider: string | null;
+    horse: string | null;
+    horse_id: string | null;
+    status: string | null;
+    ride_order: number;
+  }[] = [];
+
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('id, class_id, num, rider, horse, horse_id, status, ride_order')
+      .in('class_id', classIds)
+      .order('ride_order');
+    if (error) throw error;
+    entries = data;
+  }
+
+  const byClass = new Map<string, ScheduleEntry[]>();
+  for (const entry of entries) {
+    const list = byClass.get(entry.class_id) ?? [];
+    list.push({
+      entryId: entry.id,
+      num: entry.num,
+      name: entry.rider ?? '',
+      horse: entry.horse ?? '',
+      horseId: entry.horse_id,
+      // The legacy carried a per-entry division for award grouping; class_entries
+      // has no such column, so every entry sits in the class's own group ('O',
+      // its default) rather than inventing a split the data cannot support.
+      division: 'O',
+      quals: [],
+      status: entry.status ?? 'scheduled',
+    });
+    byClass.set(entry.class_id, list);
+  }
+
+  // Judges per class and the final percentage per entry — the schedule shows
+  // both, and "riding now" is the first ride in a ring with no score yet.
+  const [panel, scored] = await Promise.all([
+    classIds.length > 0
+      ? supabase
+          .from('class_panel')
+          .select('class_id, position, staff_assignments!class_panel_judge_staff_id_fkey(name)')
+          .in('class_id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+    classIds.length > 0
+      ? supabase.from('class_entries').select('id, final_pct').in('class_id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (panel.error) throw panel.error;
+  if (scored.error) throw scored.error;
+
+  const judgesByClass = new Map<string, string[]>();
+  for (const seat of panel.data) {
+    const staff = seat.staff_assignments as { name?: string } | null;
+    if (!staff?.name) continue;
+    const list = judgesByClass.get(seat.class_id) ?? [];
+    list.push(seat.position ? `${staff.name} (${seat.position})` : staff.name);
+    judgesByClass.set(seat.class_id, list);
+  }
+
+  const finalPctByEntry = new Map<string, string>();
+  for (const row of scored.data) {
+    if (row.final_pct) finalPctByEntry.set(row.id, row.final_pct);
+  }
+
+  const rings = ((show.locations ?? []) as unknown as RingRow[]).map((ring) => ({
+    name: ring.name,
+    size: ring.size,
+    // Per-ring start times are not a column yet; every ring opens at the
+    // show-wide start until Schedule Criteria's per-ring editor is built.
+    start: '08:00',
+  }));
+
+  const prefs = { ...DEFAULT_SCHEDULE_PREFS, ...((show.schedule_prefs ?? {}) as Partial<SchedulePrefs>) };
+  const dayStartTimes = (show.day_start_times ?? []) as unknown as string[];
+  const dayEndTimes = (show.day_end_times ?? []) as unknown as string[];
+
+  const schedule = buildMasterSchedule(
+    classes
+      .filter((c) => (byClass.get(c.id) ?? []).length > 0)
+      .map((c) => ({
+        cls: c.id,
+        label: c.display_name ?? c.label,
+        // `event` is the catalog category a class came from — the same string
+        // the engine ranks levels by.
+        discipline: c.event ?? '',
+        ring: c.location,
+        pinnedDay: null,
+        minPerRide: c.min_per_ride,
+        order: byClass.get(c.id) ?? [],
+      })),
+    {
+      ...prefs,
+      // Lunch timing is not a column yet — the legacy defaults.
+      lunchAt: '12:00',
+      lunchDur: 60,
+      dayStartTimes,
+      dayEndTimes,
+    },
+    rings.length > 0 ? rings : [{ name: 'Ring 1', size: 'standard', start: '08:00' }]
+  );
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    startDate: show.start_date,
+    timezone: show.timezone,
+    schedule,
+    rings: rings.map((r) => r.name),
+    judgesByClass: Object.fromEntries(judgesByClass),
+    finalPctByEntry: Object.fromEntries(finalPctByEntry),
+    rules: {
+      hardRuleEnabled: prefs.hardRuleEnabled,
+      hardRuleSameHorseMin: prefs.hardRuleSameHorseMin,
+      hardRuleDiffHorseMin: prefs.hardRuleDiffHorseMin,
+      awardsByDivision: prefs.awardsByDivision,
+    },
+    /** Per-class ride time actually used, so the input shows the real number. */
+    rideMinutesByClass: Object.fromEntries(
+      classes.map((c) => [
+        c.id,
+        c.min_per_ride ?? prefs.perMin + prefs.buffer + (UPPER_LEVELS.has(c.event ?? '') ? prefs.upper : 0),
+      ])
+    ),
+  };
+}
+
+/* ── Awards ──────────────────────────────────────────────────────────────
+   Standings and ribbon placings. Ported from the design's Awards screen,
+   with real placings computed from scored entries rather than the mock
+   buildAwards() the export ships. */
+
+export interface AwardPlacing {
+  place: number;
+  rider: string;
+  horse: string;
+  num: string;
+  pct: string;
+}
+
+export interface AwardClass {
+  name: string;
+  placings: AwardPlacing[];
+  /** How many places this class awards, from classes.ribbon_places. */
+  ribbonPlaces: number;
+}
+
+export interface AwardGroup {
+  name: string;
+  classes: AwardClass[];
+}
+
+export interface ShowAwards {
+  showId: string;
+  showName: string;
+  groups: AwardGroup[];
+  /** Every discipline present, for the filter. */
+  disciplines: string[];
+  /** place index → how many ribbons of that placing the show needs. */
+  ribbonCounts: number[];
+  ribbonTotal: number;
+}
+
+/**
+ * Standings for a show.
+ *
+ * Placings come from class_entries.final_pct — the judged result — ranked
+ * highest first and cut at each class's own ribbon_places. Entries with no
+ * score are not placed: a class still being judged shows the places decided so
+ * far rather than inventing an order from entry numbers.
+ *
+ * `grouping` is the same choice Master Schedule's awards toggle writes: 'test'
+ * groups by the class's catalog category, 'division' by the division it was
+ * entered under, which is what splits Young Rider from Adult Amateur.
+ */
+export async function getShowAwards(
+  showId: string,
+  grouping: 'test' | 'division',
+  discipline: string
+): Promise<ShowAwards | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, event, division, ribbon_places')
+    .eq('show_id', showId)
+    .order('label');
+  if (classError) throw classError;
+
+  const classIds = classes.map((c) => c.id);
+  let entries: {
+    class_id: string;
+    num: string;
+    rider: string | null;
+    horse: string | null;
+    final_pct: string | null;
+    status: string | null;
+  }[] = [];
+
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse, final_pct, status')
+      .in('class_id', classIds);
+    if (error) throw error;
+    entries = data;
+  }
+
+  const byClass = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const list = byClass.get(entry.class_id) ?? [];
+    list.push(entry);
+    byClass.set(entry.class_id, list);
+  }
+
+  const disciplines = [
+    ...new Set(classes.map((c) => c.event).filter((e): e is string => !!e)),
+  ].sort();
+
+  const groups = new Map<string, AwardClass[]>();
+  const ribbonCounts: number[] = [];
+
+  for (const cls of classes) {
+    const groupName =
+      grouping === 'division' ? (cls.division ?? 'No division') : (cls.event ?? 'Other classes');
+
+    if (discipline !== 'All disciplines' && cls.event !== discipline) continue;
+
+    const ribbonPlaces = cls.ribbon_places ?? 6;
+    const placings = (byClass.get(cls.id) ?? [])
+      // Scratched rides never place, and an unscored ride has no standing yet.
+      .filter((e) => e.status !== 'scratched' && e.final_pct)
+      .sort((a, b) => Number(b.final_pct) - Number(a.final_pct))
+      .slice(0, ribbonPlaces)
+      .map((e, index) => ({
+        place: index + 1,
+        rider: e.rider ?? '',
+        horse: e.horse ?? '',
+        num: e.num,
+        pct: e.final_pct ?? '',
+      }));
+
+    for (const placing of placings) {
+      ribbonCounts[placing.place - 1] = (ribbonCounts[placing.place - 1] ?? 0) + 1;
+    }
+
+    const list = groups.get(groupName) ?? [];
+    list.push({
+      name: cls.display_name ?? cls.label,
+      placings,
+      ribbonPlaces,
+    });
+    groups.set(groupName, list);
+  }
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    groups: [...groups]
+      .map(([name, list]) => ({ name, classes: list }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    disciplines,
+    ribbonCounts,
+    ribbonTotal: ribbonCounts.reduce((sum, n) => sum + (n || 0), 0),
+  };
+}
+
+/* ── Riders and Entries lists ────────────────────────────────────────────
+   Ported from showstaff.html's showRidersList / showTicketsList — the two
+   screens the Dashboard's "Total riders" and "Entries sold" cards open. */
+
+export interface RiderListRow {
+  num: string;
+  name: string;
+  horse: string;
+  /** Class names this rider is entered in, in the order they were read. */
+  classes: string[];
+  /** Sum of the fees for those classes — what the entries are worth. */
+  total: number;
+}
+
+export interface ShowRiders {
+  showId: string;
+  showName: string;
+  startDate: string | null;
+  riders: RiderListRow[];
+  /** num → which day indices they are on site, from the built schedule. */
+  onSiteByDay: Record<number, string[]>;
+  totalDays: number;
+}
+
+/**
+ * Everyone registered for a show, one row each.
+ *
+ * A "rider" here is a bib number, not an account — the same thing showRiders()
+ * meant. One person entering two horses is two rows, because that is how they
+ * appear at the in-gate and on the roster an organizer prints.
+ *
+ * The day filter comes from the built schedule rather than any check-in record:
+ * who is on site on a given day is exactly who has a ride scheduled that day.
+ */
+export async function getShowRiders(showId: string): Promise<ShowRiders | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, start_date')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, fee')
+    .eq('show_id', showId);
+  if (classError) throw classError;
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const classIds = classes.map((c) => c.id);
+
+  let entries: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse')
+      .in('class_id', classIds);
+    if (error) throw error;
+    entries = data;
+  }
+
+  const byNum = new Map<string, RiderListRow>();
+  for (const entry of entries) {
+    const cls = classById.get(entry.class_id);
+    const row = byNum.get(entry.num) ?? {
+      num: entry.num,
+      name: entry.rider ?? '',
+      horse: entry.horse ?? '',
+      classes: [],
+      total: 0,
+    };
+    if (cls) {
+      row.classes.push(cls.display_name ?? cls.label);
+      row.total += cls.fee ?? 0;
+    }
+    byNum.set(entry.num, row);
+  }
+
+  const schedule = await getMasterSchedule(showId);
+  const onSiteByDay: Record<number, string[]> = {};
+  let totalDays = 0;
+
+  for (const arena of schedule?.schedule.arenas ?? []) {
+    for (const item of arena.items) {
+      if (item.type !== 'ride') continue;
+      totalDays = Math.max(totalDays, item.day + 1);
+      const list = onSiteByDay[item.day] ?? [];
+      if (!list.includes(item.num)) list.push(item.num);
+      onSiteByDay[item.day] = list;
+    }
+  }
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    startDate: show.start_date,
+    riders: [...byNum.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    onSiteByDay,
+    totalDays,
+  };
+}
+
+export interface EntryListRow {
+  cls: string;
+  fee: number;
+  rider: string;
+  num: string;
+  horse: string;
+}
+
+export interface ShowEntries {
+  showId: string;
+  showName: string;
+  entries: EntryListRow[];
+  classes: string[];
+}
+
+/**
+ * Every class entry sold, one item each.
+ *
+ * Grouped by class at render, because the question this screen is opened to
+ * answer is "how full is each class", not "list every entry" — a flat A–Z list
+ * technically showed the same rows but made the count something you had to
+ * work out by reading.
+ */
+export async function getShowEntries(showId: string): Promise<ShowEntries | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, fee')
+    .eq('show_id', showId);
+  if (classError) throw classError;
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const classIds = classes.map((c) => c.id);
+
+  let rows: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse')
+      .in('class_id', classIds);
+    if (error) throw error;
+    rows = data;
+  }
+
+  const entries: EntryListRow[] = [];
+  for (const row of rows) {
+    const cls = classById.get(row.class_id);
+    if (!cls) continue;
+    entries.push({
+      cls: cls.display_name ?? cls.label,
+      fee: cls.fee ?? 0,
+      rider: row.rider ?? '',
+      num: row.num,
+      horse: row.horse ?? '',
+    });
+  }
+
+  // Class A–Z, then rider A–Z within it — the order the printed class list uses.
+  entries.sort((a, b) => a.cls.localeCompare(b.cls) || a.rider.localeCompare(b.rider));
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    entries,
+    classes: [...new Set(entries.map((e) => e.cls))].sort((a, b) => a.localeCompare(b)),
+  };
 }

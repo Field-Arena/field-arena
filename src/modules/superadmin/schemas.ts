@@ -39,6 +39,12 @@ export const createOrganizationSchema = z.object({
 
 export type CreateOrganizationInput = z.input<typeof createOrganizationSchema>;
 
+export const resendOrganizerInviteSchema = z.object({
+  orgId: z.uuid(),
+});
+
+export type ResendOrganizerInviteInput = z.input<typeof resendOrganizerInviteSchema>;
+
 export const updateOrganizationSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(2, 'Organization name is required').max(160),

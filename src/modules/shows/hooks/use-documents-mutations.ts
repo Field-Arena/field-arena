@@ -3,18 +3,45 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { uploadShowDocument, removeShowDocument, updateDocumentEvents } from '../data/mutations';
-import type { UploadShowDocumentInput, RemoveShowDocumentInput, UpdateDocumentEventsInput } from '../schemas';
+import { createClient } from '@/shared/lib/supabase/client';
+import { readableError } from '@/shared/lib/error-message';
+import {
+  createDocumentUploadUrl,
+  registerShowDocument,
+  removeShowDocument,
+  updateDocumentEvents,
+} from '../data/mutations';
+import type { RemoveShowDocumentInput, UpdateDocumentEventsInput } from '../schemas';
 
-function message(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
+const message = readableError;
 
+/**
+ * Uploads a document straight from the browser to Supabase Storage.
+ *
+ * Three steps: ask the server for a signed URL, PUT the file to it, then tell
+ * the server to record the row. The file never travels through a Server
+ * Action — Vercel caps a serverless request body at 4.5 MB regardless of
+ * Next's own `bodySizeLimit`, and base64 encoding added a third on top, so the
+ * previous single-call version failed on any real PDF once deployed while
+ * working locally.
+ */
 export function useUploadShowDocument() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: UploadShowDocumentInput) => uploadShowDocument(input),
+    mutationFn: async ({ showId, file }: { showId: string; file: File }) => {
+      const { path, token } = await createDocumentUploadUrl({ showId, name: file.name });
+
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from('documents')
+        .uploadToSignedUrl(path, token, file, {
+          contentType: file.type || 'application/pdf',
+        });
+      if (error) throw new Error(error.message);
+
+      return registerShowDocument({ showId, name: file.name, path });
+    },
     onSuccess: () => {
       toast.success('File uploaded');
       router.refresh();

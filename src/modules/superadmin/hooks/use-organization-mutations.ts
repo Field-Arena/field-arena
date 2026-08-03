@@ -8,10 +8,9 @@ import {
   updateOrganization,
   setOrganizationSuspended,
   setOrganizationDeleted,
-  refreshPendingInvites,
+  resendOrganizerInvite,
 } from '../data/mutations';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../schemas';
-import { INVITE_TTL_DAYS } from '../constants';
 
 /**
  * Mutation hooks for the console.
@@ -88,24 +87,14 @@ export function useSetOrganizationDeleted() {
   });
 }
 
-export function useRefreshPendingInvites() {
+export function useResendOrganizerInvite() {
   return useMutation({
-    mutationFn: () => refreshPendingInvites(),
-    onSuccess: ({ refreshed, emailSent }) => {
-      if (refreshed === 0) {
-        toast.info('No invites are outstanding.');
-        return;
-      }
-      // Deliberately precise: the rows were refreshed, but nothing was emailed.
-      // Saying "invites sent" would be a lie while RESEND_API_KEY is unset.
-      toast.success(
-        emailSent
-          ? `${String(refreshed)} invite${refreshed === 1 ? '' : 's'} re-sent`
-          : `${String(refreshed)} invite${refreshed === 1 ? '' : 's'} extended by ${String(INVITE_TTL_DAYS)} days. No email was sent — the email provider is not configured yet.`
-      );
+    mutationFn: (orgId: string) => resendOrganizerInvite({ orgId }),
+    onSuccess: ({ email }) => {
+      toast.success(`Invite re-sent to ${email}`);
     },
     onError: (error) => {
-      toast.error(errorMessage(error, 'Could not refresh invites'));
+      toast.error(errorMessage(error, 'Could not resend the invite'));
     },
   });
 }

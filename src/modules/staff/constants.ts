@@ -120,15 +120,6 @@ export const ROLE_RAIL = [
   { key: 'staff', icon: 'briefcase', label: 'Show staff' },
 ] as const;
 
-export const SHOW_STAGES = [
-  { key: 'setup', label: 'Setup' },
-  { key: 'sales-open', label: 'Ticket sales open' },
-  { key: 'sales-closed', label: 'Ticket sales closed' },
-  { key: 'schedule', label: 'Schedule approved' },
-  { key: 'live', label: 'Live' },
-  { key: 'complete', label: 'Complete' },
-] as const;
-
 /* Mock data — stands in until the Supabase data layer is wired. */
 export const CURRENT_ORG = 'Peachtree Dressage Association';
 export const CURRENT_ORG_SHORT = 'Peachtree Dressage Assoc.';
@@ -160,3 +151,54 @@ export const SHOW_INVENTORY = [
   { name: 'Add-ons', qty: '109', revenue: '$2,600' },
   { name: 'Vendors', qty: '0', revenue: '$0' },
 ] as const;
+
+/**
+ * Roles offered in the "All Users" directory's "+ Add User" modal — ported
+ * from showstaff.html's `addableRoles()`, narrowed to what this rebuild
+ * actually provisions through staff_assignments. Two roles GRANTABLE_ROLES
+ * allows are deliberately absent here:
+ *
+ *  - Vendor: `allUsersAcrossShows()` explicitly excludes role='Vendor' staff
+ *    rows (vendors are sourced from vendor_bookings, their own booking flow —
+ *    see modules/vendors), so adding one through this same form would create
+ *    a row the directory's own composition then ignores.
+ *  - Rider: legacy's own add-user modal pushed a demo rider into an in-memory
+ *    array with an explicit "Riders aren't migrated yet" comment. This app
+ *    has a real entries pipeline; faking a rider row here would be a step
+ *    backward, not a port.
+ */
+export const ADD_USER_ROLES = ['Show Admin', 'Judge', 'Scribe', 'Announcer', 'ShowStaff'] as const;
+
+/**
+ * Sort rank for the "All Users" directory, ported verbatim from showstaff.html's
+ * `ROLE_ORDER` (line 9079) — Organizer/Rider sort lowest-priority-last on
+ * purpose, so operational staff surface before the (often much longer) rider
+ * list. A role not in this list (should not happen) sorts last.
+ */
+export const USER_ROLE_RANK = [
+  'SuperAdmin',
+  'Organizer',
+  'Show Admin',
+  'Judge',
+  'Scribe',
+  'Announcer',
+  'ShowStaff',
+  'Vendor',
+  'Rider',
+] as const;
+
+/**
+ * Status pill labels and colors for the "All Users" directory, exact values
+ * from showstaff.html's `statusBadge()` (line 10339): `[label, textColor,
+ * backgroundColor]`. Kept as the legacy's literal hex pairs rather than the
+ * `fa` theme tokens — those don't have an exact match for this specific pill
+ * recipe, and the point of this table is pixel parity with the source.
+ */
+export const USER_STATUS_META: Record<
+  'not_invited' | 'pending' | 'onboard',
+  { label: string; fg: string; bg: string }
+> = {
+  not_invited: { label: 'Not invited', fg: '#8A857A', bg: '#F1EEE7' },
+  pending: { label: 'Pending', fg: '#8A6D0B', bg: '#F7EFD3' },
+  onboard: { label: 'On board', fg: '#1F3A2E', bg: '#E4EFE6' },
+};

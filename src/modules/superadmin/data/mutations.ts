@@ -11,6 +11,7 @@ import {
   createOrganizationSchema,
   updateOrganizationSchema,
   organizationFlagSchema,
+  resendOrganizerInviteSchema,
   addSuperAdminSchema,
   superAdminIdSchema,
   addOrgStaffSchema,
@@ -28,7 +29,7 @@ import {
   documentIdSchema,
   moveDocumentSchema,
 } from '../schemas';
-import { ONBOARDING_CHECKLIST_TEMPLATE, INVITE_TTL_DAYS } from '../constants';
+import { ONBOARDING_CHECKLIST_TEMPLATE } from '../constants';
 
 const CONSOLE_PATH = '/dashboard/superadmin';
 const USERS_PATH = '/dashboard/superadmin/users';
@@ -66,8 +67,22 @@ async function requireSuperAdmin() {
 
 export async function createOrganization(input: unknown) {
   const parsed = createOrganizationSchema.parse(input);
-  const supabase = await createServerClient();
+  const name = [parsed.contactFirstName, parsed.contactLastName].filter(Boolean).join(' ');
+  const normalizedEmail = parsed.contactEmail.trim().toLowerCase();
 
+  const admin = createAdminClient();
+
+  // Same guard as addSuperAdmin/addOrgStaff: a pre-existing account with this
+  // address cannot be silently repurposed as this org's owner.
+  const [{ data: existingUser }, { data: existingRider }] = await Promise.all([
+    admin.from('users').select('id').eq('email', normalizedEmail).maybeSingle(),
+    admin.from('riders').select('id').eq('email', normalizedEmail).maybeSingle(),
+  ]);
+  if (existingUser || existingRider) {
+    throw new Error('A user with this email already exists.');
+  }
+
+  const supabase = await createServerClient();
   const { data: org, error } = await supabase
     .from('organizations')
     .insert({
@@ -86,42 +101,114 @@ export async function createOrganization(input: unknown) {
   if (error) throw new Error(error.message);
 
   /**
-   * The owner invite is created in the same action. An organization whose owner
-   * has never accepted cannot be administered by anyone except a SuperAdmin, so
-   * creating one without an invite produces a half-made account — which is the
-   * state the console's Pending badge and Resend invite button exist to handle.
+   * The owner is invited and provisioned in the same action, mirroring
+   * addSuperAdmin/addOrgStaff: this app has no accept-invite provisioning route,
+   * so inviteUserByEmail (which sends the real email) and the `users` insert
+   * both happen eagerly. Until the owner actually signs in they read as
+   * "Pending" in the console — driven by auth.users.last_sign_in_at in
+   * listOrganizations, not by any bookkeeping row — and Resend invite re-runs
+   * this same inviteUserByEmail call.
    *
-   * No token is stored. Supabase's own invite link carries the secret, so
-   * persisting a second one here would be an extra credential to leak. This row
-   * records what role is being granted and for which organization, which
-   * Supabase's invite has no concept of.
+   * Deliberately not rolled back on invite failure: the organization is a real
+   * row for a recoverable problem, and Resend invite fixes this in one click.
    */
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + INVITE_TTL_DAYS);
-
-  const { error: inviteError } = await supabase.from('invites').insert({
-    email: parsed.contactEmail,
-    role: 'Organizer',
-    org_id: org.id,
-    name: [parsed.contactFirstName, parsed.contactLastName].filter(Boolean).join(' '),
-    expires_at: expiresAt.toISOString(),
-  });
-
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    normalizedEmail,
+    {
+      data: { name },
+      redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(ROUTES.onboarding)}`,
+    }
+  );
   if (inviteError) {
-    /**
-     * The organization exists but has no invite. Reported rather than swallowed,
-     * and deliberately not rolled back: deleting the organization would discard a
-     * real row for a recoverable problem, and Resend invite fixes this in one
-     * click. PostgREST has no transaction across two statements, so an actual
-     * atomic version would need a database function.
-     */
     throw new Error(
-      `Organization "${org.name}" was created, but its owner invite could not be saved (${inviteError.message}). Use Resend invite to try again.`
+      `Organization "${org.name}" was created, but its owner invite could not be sent (${inviteError.message}). Use Resend invite to try again.`
+    );
+  }
+
+  const { error: profileError } = await admin.from('users').insert({
+    id: invited.user.id,
+    name,
+    email: normalizedEmail,
+    platform_role: 'Organizer',
+    org_id: org.id,
+  });
+  if (profileError) {
+    // Leave no orphaned auth user behind if the profile insert fails.
+    await admin.auth.admin.deleteUser(invited.user.id);
+    throw new Error(
+      `Organization "${org.name}" was created, but its owner account could not be provisioned (${profileError.message}).`
     );
   }
 
   revalidatePath(CONSOLE_PATH);
   return { id: org.id, name: org.name };
+}
+
+/**
+ * Re-sends the owner invite for an organization stuck Pending — either
+ * inviteUserByEmail failed the first time (no owner account exists at all yet)
+ * or it succeeded but the owner never opened it. Supabase's invite endpoint
+ * resends for an existing unconfirmed auth user rather than erroring, so this
+ * is the same call createOrganization makes, not a distinct "resend" API.
+ */
+export async function resendOrganizerInvite(input: unknown): Promise<{ email: string }> {
+  await requireSuperAdmin();
+  const { orgId } = resendOrganizerInviteSchema.parse(input);
+  const admin = createAdminClient();
+
+  const { data: org, error: orgError } = await admin
+    .from('organizations')
+    .select('id, name, email')
+    .eq('id', orgId)
+    .single();
+  if (orgError) throw new Error(orgError.message);
+
+  const { data: owner, error: ownerError } = await admin
+    .from('users')
+    .select('id, name, email')
+    .eq('org_id', orgId)
+    .eq('platform_role', 'Organizer')
+    .maybeSingle();
+  if (ownerError) throw new Error(ownerError.message);
+
+  // No owner account at all means the very first invite call in
+  // createOrganization failed outright. Provision it now, same as there.
+  const email = owner?.email ?? org.email;
+  if (!email) {
+    throw new Error('This organization has no contact email on file to invite.');
+  }
+  const name = owner?.name ?? org.name;
+
+  if (owner) {
+    const { data: authUser, error: authError } = await admin.auth.admin.getUserById(owner.id);
+    if (authError) throw new Error(authError.message);
+    if (authUser.user.last_sign_in_at) {
+      throw new Error('This organization’s owner has already signed in.');
+    }
+  }
+
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    data: { name },
+    redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(ROUTES.onboarding)}`,
+  });
+  if (inviteError) throw new Error(inviteError.message);
+
+  if (!owner) {
+    const { error: profileError } = await admin.from('users').insert({
+      id: invited.user.id,
+      name,
+      email,
+      platform_role: 'Organizer',
+      org_id: orgId,
+    });
+    if (profileError) {
+      await admin.auth.admin.deleteUser(invited.user.id);
+      throw new Error(profileError.message);
+    }
+  }
+
+  revalidatePath(CONSOLE_PATH);
+  return { email };
 }
 
 export async function updateOrganization(input: unknown) {
@@ -182,32 +269,6 @@ export async function setOrganizationDeleted(input: unknown) {
   if (error) throw new Error(error.message);
 
   revalidatePath(CONSOLE_PATH);
-}
-
-/**
- * Extends every outstanding invite's expiry.
- *
- * Honest about its limits: it refreshes the invite rows so they are valid again,
- * but it cannot send anything. Delivery needs an email provider, and RESEND_API_KEY
- * is unset. Reporting how many were refreshed — rather than claiming mail was
- * sent — keeps the difference visible.
- */
-export async function refreshPendingInvites(): Promise<{ refreshed: number; emailSent: boolean }> {
-  const supabase = await createServerClient();
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + INVITE_TTL_DAYS);
-
-  const { data, error } = await supabase
-    .from('invites')
-    .update({ expires_at: expiresAt.toISOString() })
-    .is('accepted_at', null)
-    .select('id');
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath(CONSOLE_PATH);
-  return { refreshed: data.length, emailSent: false };
 }
 
 /**

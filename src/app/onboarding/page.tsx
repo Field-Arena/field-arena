@@ -34,10 +34,22 @@ export default async function OnboardingPage() {
 
   if (!org) redirect('/dashboard');
 
-  // An email is what the SuperAdmin's "Add Organizer" flow cannot supply for the
-  // organization itself — it collects the owner's address, not the office one —
-  // so its absence is the signal that this has never been filled in.
-  if (org.email) redirect('/dashboard');
+  /**
+   * `website`/`phone` are what the SuperAdmin's "Add Organizer" flow cannot
+   * supply for the organization itself — createOrganizationSchema has no
+   * fields for either — so either one being set is the real signal that this
+   * form has already been submitted once.
+   *
+   * `email` used to be that signal, but createOrganization (superadmin/data/
+   * mutations.ts) writes the owner's own contact address into
+   * organizations.email at creation time now, so it can no longer distinguish
+   * "onboarding done" from "just invited" — it is always set by the time this
+   * page could possibly run. Gating on it made this page unreachable: every
+   * freshly invited organizer bounced straight to /dashboard, having never
+   * seen the form. website/phone were never touched by that flow and stay a
+   * reliable signal.
+   */
+  if (org.website || org.phone) redirect('/dashboard');
 
   return (
     <OnboardingForm

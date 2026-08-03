@@ -51,4 +51,19 @@ export const env = {
   get siteUrl(): string {
     return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
   },
+
+  /**
+   * Server only. Used for direct calls to Resend's REST API (transactional
+   * email outside of Supabase Auth's own SMTP-based flows — see
+   * modules/shows/data/horses-mutations.ts's reminder email for the first,
+   * and so far only, caller).
+   */
+  get resendApiKey(): string {
+    return required(process.env.RESEND_API_KEY, 'RESEND_API_KEY');
+  },
+
+  /** Server only. Refunds and off-session additional charges — see shared/lib/stripe.ts. */
+  get stripeSecretKey(): string {
+    return required(process.env.STRIPE_SECRET_KEY, 'STRIPE_SECRET_KEY');
+  },
 } as const;

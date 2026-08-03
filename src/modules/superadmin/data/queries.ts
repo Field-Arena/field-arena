@@ -97,7 +97,7 @@ export interface OrganizationSummary {
    */
   revenueEstimate: number;
   /**
-   * Whether an Organizer account has actually accepted for this organization.
+   * Whether the Organizer owner has actually signed in for this organization.
    * Drives the Onboard/Pending pill: an organization can exist with shows
    * configured while its owner has never signed in, which is precisely the state
    * the "Resend invite" action exists for.
@@ -123,29 +123,39 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
   if (error) throw error;
 
   /**
-   * Onboard vs pending, matching api/organizations.js line 461 exactly:
+   * Onboard vs pending, adapted from api/organizations.js line 461: that legacy
+   * version read an `invites.accepted_at` bookkeeping row, but nothing in this
+   * app ever writes that column (there is no separate accept-invite step —
+   * createOrganization/resendOrganizerInvite provision the `users` row eagerly,
+   * same as addSuperAdmin/addOrgStaff), so "an outstanding invite" is really
+   * "an owner account that has never signed in." last_sign_in_at lives on
+   * auth.users, unreachable through RLS, hence the one admin-client call here —
+   * same reasoning as listPlatformAccounts below.
    *
-   *   an accepted Organizer account   → onboard
-   *   otherwise an outstanding invite → pending
-   *   otherwise the org has shows     → onboard
-   *   otherwise                       → pending
+   *   a signed-in Organizer account       → onboard
+   *   an Organizer account, never signed in → pending
+   *   otherwise the org has shows         → onboard
+   *   otherwise                           → pending
    *
    * The third tier is load-bearing and easy to miss. Organizations that predate
-   * the invite flow have no account and no invite, but they have shows and are
-   * plainly in business — the legacy comment calls them out as "legacy seed orgs
-   * (no status field) count as onboard". Checking only for an account marks every
-   * one of them Pending and offers a Resend-invite button for an invite that was
-   * never sent.
+   * the invite flow have no account at all, but they have shows and are plainly
+   * in business — the legacy comment calls them out as "legacy seed orgs (no
+   * status field) count as onboard". Checking only for a signed-in account marks
+   * every one of them Pending and offers a Resend-invite button for an owner
+   * account that was never created.
    */
-  const [organizerAccounts, openInvites] = await Promise.all([
-    supabase.from('users').select('org_id').eq('platform_role', 'Organizer').not('org_id', 'is', null),
-    supabase.from('invites').select('org_id').is('accepted_at', null).not('org_id', 'is', null),
+  const [organizerAccounts, authList] = await Promise.all([
+    supabase.from('users').select('id, org_id').eq('platform_role', 'Organizer').not('org_id', 'is', null),
+    createAdminClient().auth.admin.listUsers({ page: 1, perPage: 200 }),
   ]);
   if (organizerAccounts.error) throw organizerAccounts.error;
-  if (openInvites.error) throw openInvites.error;
+  if (authList.error) throw authList.error;
 
+  const signedInById = new Map(authList.data.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]));
   const accountOrgs = new Set(organizerAccounts.data.map((row) => row.org_id));
-  const pendingInviteOrgs = new Set(openInvites.data.map((row) => row.org_id));
+  const signedInOrgs = new Set(
+    organizerAccounts.data.filter((row) => signedInById.get(row.id)).map((row) => row.org_id)
+  );
 
   // One round trip for every show, then counted in memory. With a handful of
   // organizations this beats a query per organization, which is the N+1 the
@@ -235,9 +245,9 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       entryCount,
       riderCount: ridersByOrg.get(org.id)?.size ?? 0,
       revenueEstimate: entryCount * (org.avg_entry_value ?? 0),
-      onboarded: accountOrgs.has(org.id)
+      onboarded: signedInOrgs.has(org.id)
         ? true
-        : pendingInviteOrgs.has(org.id)
+        : accountOrgs.has(org.id)
           ? false
           : orgShows.length > 0,
     };
@@ -338,17 +348,6 @@ export async function listPlatformUsers() {
     .select('id, name, email, platform_role, org_id, country, created_at')
     .order('platform_role')
     .order('name');
-  if (error) throw error;
-  return data;
-}
-
-export async function listPendingInvites() {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
-    .from('invites')
-    .select('id, email, role, name, org_id, show_id, created_at, expires_at')
-    .is('accepted_at', null)
-    .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
 }

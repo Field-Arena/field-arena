@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
-import { DangerButton, ghostButtonClass } from '@/shared/ui/organizer/buttons';
-import { useDeleteShow } from '../../hooks/use-show-mutations';
+import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { formatDateShort } from '@/shared/lib/format/date';
 import type { IncompleteShowSummary } from '../../data/queries';
 import type { ShowCompleteness } from '../../data/setup-queries';
 import { MissingSectionsDialog } from './missing-sections-dialog';
 import { NewShowButton } from '../show-manager/new-show-button';
+import { DeleteShowButton } from '../show-manager/delete-show-button';
 
 export interface IncompleteShowRow {
   show: IncompleteShowSummary;
@@ -126,21 +126,5 @@ export function IncompleteShowsScreen({
         />
       )}
     </div>
-  );
-}
-
-function DeleteShowButton({ showId, showName }: { showId: string; showName: string }) {
-  const { mutate, isPending } = useDeleteShow();
-
-  return (
-    <DangerButton
-      disabled={isPending}
-      onClick={() => {
-        if (!confirm(`Delete "${showName}"? This can't be undone.`)) return;
-        mutate(showId);
-      }}
-    >
-      {isPending ? 'Deleting…' : 'Delete'}
-    </DangerButton>
   );
 }

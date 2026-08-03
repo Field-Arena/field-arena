@@ -352,3 +352,155 @@ export const TB_STARTER_TESTS = [
     ],
   },
 ] as const;
+
+/* ── Horses screen ────────────────────────────────────────────────────────── */
+
+/**
+ * The one document requirement label horses-queries.ts's "Coggins expired"
+ * KPI specifically checks for, matching showstaff.html's own hardcoded
+ * `req.label==='Coggins'` comparison (~13749) rather than a generic
+ * "any expired document" count.
+ */
+export const COGGINS_LABEL = 'Coggins';
+
+/**
+ * KPI tile tints for the Horses screen's four counts (✓ Complete /
+ * ✗ Incomplete / Needs verification / Coggins expired) — the same
+ * success/warn/danger hex pairs as globals.css's status tokens, reused
+ * directly since StatCard takes raw color strings rather than Tailwind
+ * classes.
+ */
+export const HORSE_STAT_TINTS = {
+  complete: { bg: '#DCEFE1', fg: '#2E7D46' },
+  incomplete: { bg: '#F7E1E1', fg: '#B23A3A' },
+  needsVerification: { bg: '#FCEBD2', fg: '#9A6A12' },
+  cogginsExpired: { bg: '#F7E1E1', fg: '#B23A3A' },
+  /** The Horses screen's 5th tile, shown only once a stable chart has stalls — mirrors showstaff.html's stableStallsKpiHtml (~14033). */
+  stallsOccupied: { bg: '#E4F0E8', fg: '#1A5B3C' },
+} as const;
+
+/* ── Stable Chart ─────────────────────────────────────────────────────────
+   shows.stable_chart's stables/stalls caps. Deliberately local copies of
+   organizations/constants.ts's MAX_STABLES/MAX_STALLS_PER_STABLE — a module
+   must not reach into another module's internals (folder-structure.md) even
+   though both jsonb documents store a structurally similar stable/stall
+   shape. Neither cap is from legacy, which enforces none — sane engineering
+   guards generous enough that no real barn hits them. */
+export const MAX_STABLES = 40;
+export const MAX_STALLS_PER_STABLE = 300;
+
+/* ── Financial (Billing) tab ─────────────────────────────────────────────── */
+
+/**
+ * The expense lines every show starts with, ported verbatim from
+ * showstaff.html's DEFAULT_SHOW_EXPENSES.
+ *
+ * Pre-filled at zero rather than left blank: the legacy card's own note is
+ * "the most common horse-show cost lines, pre-filled — edit amounts, rename, or
+ * remove any that don't apply", and an organizer costing a show recognises the
+ * list faster than they would recall it from nothing.
+ */
+export const DEFAULT_SHOW_EXPENSES = [
+  'Venue / facility rental',
+  'Judges',
+  'Stewards / TDs',
+  'Announcer',
+  'Scoring / secretary staff',
+  'Footing / arena maintenance',
+  'EMT / on-site medical',
+  'Ribbons, prizes & awards',
+  'Insurance',
+  'Sanctioning / governing body fees',
+  'Stabling & bedding',
+  'Portable toilets',
+  'Trash removal',
+  'Marketing & advertising',
+  'Office / merchant processing fees',
+] as const;
+
+/**
+ * The confirmed payout architecture, verbatim from STRIPE_PAYOUT_DECISIONS.
+ *
+ * Kept as prose rather than turned into settings: these are decisions already
+ * taken about how money moves, and the one still open is marked as such rather
+ * than quietly dropped.
+ */
+export const STRIPE_PAYOUT_DECISIONS = [
+  'Payout timing: after the show ends.',
+  'Holdback: SuperAdmin-configurable per organizer (cadence + holdback %), not a fixed platform policy.',
+  'Onboarding: Stripe Connect Express.',
+  "Unfinished onboarding: revenue holds in Field & Arena's balance until the organizer completes onboarding — never blocks a show from going on sale.",
+  "Refund recovery: debited from the organizer's connected bank account directly.",
+  'Fee deduction: taken out before the transfer (organizer receives net).',
+  'Multi-show organizers: payouts calculated per-show, not batched.',
+  'Payout visibility: organizers see a live pending balance before the transfer happens.',
+  'Currency / geography: US-only at launch; international is a planned expansion (every org already carries a real currency code).',
+  'Still open — Tax reporting (1099-K issuance): not decided, flagged for accountant review before launch.',
+  "Dispute / chargeback liability: deducted from that specific organizer's balance.",
+] as const;
+
+/** P&L category order, from pnlGenerateReport's catOrder. */
+export const PNL_CATEGORY_ORDER = [
+  'Entry Fees',
+  'Add-ons & Stabling',
+  'Vendor Items',
+  'Merchandise',
+  'Other',
+] as const;
+
+/** The three money views above the P&L, from billingSectionCard's call sites. */
+export const BILLING_SECTIONS = [
+  {
+    kind: 'charges',
+    icon: '💳',
+    title: 'Charges',
+    sub: 'Payments collected from riders and vendors across every show.',
+  },
+  {
+    kind: 'payouts',
+    icon: '💰',
+    title: 'Payouts',
+    sub: 'What you actually receive — transfers to you after the platform fee is deducted.',
+  },
+  {
+    kind: 'deposits',
+    icon: '🧾',
+    title: 'Deposits',
+    sub: 'Money that has actually landed in the Field & Arena bank account.',
+  },
+] as const;
+
+/* ── Awards ──────────────────────────────────────────────────────────────
+   Ported from showstaff.html's RIBBONS / ribbon(). */
+
+/**
+ * Ribbon colours by placing, in order. Ported verbatim — these are the
+ * traditional colours, not a palette choice: blue is first, red second, and an
+ * organizer counting ribbons to bring recognises the list by sight.
+ *
+ * Eight, not the design export's six — the legacy list runs to Purple and
+ * Brown, and a class can award up to twenty places. Beyond eight, a placing
+ * shows a neutral chip rather than inventing a colour.
+ */
+export const RIBBONS = [
+  { place: '1st', name: 'Blue', bg: '#1E5AA8', fg: '#FFFFFF' },
+  { place: '2nd', name: 'Red', bg: '#C0392B', fg: '#FFFFFF' },
+  { place: '3rd', name: 'Yellow', bg: '#E4B21E', fg: '#3A2F00' },
+  { place: '4th', name: 'White', bg: '#FFFFFF', fg: '#22271F' },
+  { place: '5th', name: 'Pink', bg: '#E58FB0', fg: '#4A1F30' },
+  { place: '6th', name: 'Green', bg: '#2E7D46', fg: '#FFFFFF' },
+  { place: '7th', name: 'Purple', bg: '#6B4E9E', fg: '#FFFFFF' },
+  { place: '8th', name: 'Brown', bg: '#7A5230', fg: '#FFFFFF' },
+] as const;
+
+/** Mirrors legacy's `ribbon(i)` fallback for placings past the named colours. */
+export const RIBBON_FALLBACK = { place: '', name: '', bg: '#E7EEE9', fg: '#1F3A2E' } as const;
+
+export function ribbonFor(index: number): {
+  place: string;
+  name: string;
+  bg: string;
+  fg: string;
+} {
+  return RIBBONS[index] ?? { ...RIBBON_FALLBACK, place: `${String(index + 1)}th` };
+}
