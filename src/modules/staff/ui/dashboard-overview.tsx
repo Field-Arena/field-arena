@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
-import { ResultsStubButton } from './results-stub-button';
+
 import { Card, Eyebrow, ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
 import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
 import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
+import { DashIcon } from '@/shared/ui/dash-icon';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
@@ -125,10 +126,12 @@ export function DashboardOverview({
           </form>
 
           <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
-          {/* Design labels this "Awards" — no results/awards viewer has been built (no
-              "/shows/[showId]/results" route exists), so this is a toast stub rather
-              than a link that 404s. */}
-          <ResultsStubButton className="ml-auto" />
+          <Link
+            href={`/dashboard/awards?show=${currentShow.id}`}
+            className={cn(ghostButtonClass, 'ml-auto')}
+          >
+            <DashIcon name="trophy" size={14} /> Awards
+          </Link>
         </div>
 
         <div className="mb-4">

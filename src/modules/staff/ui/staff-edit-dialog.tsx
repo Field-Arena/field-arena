@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Label } from '@/shared/ui/shadcn/label';
 import { PERMISSION_KEYS, PERMISSION_LABELS, type PermissionKey } from '@/shared/constants/permissions';
 import { ADD_USER_ROLES } from '../constants';
@@ -69,6 +70,7 @@ function StaffEditForm({ row, onClose }: { row: UserDirectoryRow; onClose: () =>
   const changeRole = useChangeStaffRole();
   const updatePermissions = useUpdateStaffPermissions({ onSuccess: onClose });
   const remove = useRemoveStaffAssignment({ onSuccess: onClose });
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const roleOptions = [...new Set<string>([...ADD_USER_ROLES, row.role])];
   const pending = changeRole.isPending || updatePermissions.isPending || remove.isPending;
@@ -126,14 +128,25 @@ function StaffEditForm({ row, onClose }: { row: UserDirectoryRow; onClose: () =>
           type="button"
           disabled={pending}
           onClick={() => {
-            if (confirm(`Remove ${row.name} from ${row.showName}?`)) {
-              remove.mutate(row.id);
-            }
+            setConfirmRemove(true);
           }}
           className="text-[12.5px] font-semibold text-[#B4432F] hover:underline disabled:opacity-50"
         >
           Remove from this show
         </button>
+
+        <ConfirmDialog
+          open={confirmRemove}
+          onOpenChange={setConfirmRemove}
+          title={`Remove ${row.name} from ${row.showName}?`}
+          description="They keep their account and any other shows they are staffed on — only this assignment goes."
+          confirmLabel={remove.isPending ? 'Removing…' : 'Remove'}
+          destructive
+          pending={remove.isPending}
+          onConfirm={() => {
+            remove.mutate(row.id);
+          }}
+        />
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Close

@@ -6,11 +6,13 @@ import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { DashIcon } from '@/shared/ui/dash-icon';
 
 /**
- * "Results" on the Dashboard — no results/awards viewer exists yet (no
- * "/shows/[showId]/results" route was ever built), so this was a dead link.
- * Toast stub instead, matching the honesty pattern used everywhere else an
- * unbuilt feature has a design-mandated button (Venue's "Assign Judges",
- * Run Show's "Announcer view").
+ * "Results" — no results viewer exists yet, so this is a toast stub rather than
+ * a dead link, matching the honesty pattern used wherever a design-mandated
+ * button has nothing behind it yet.
+ *
+ * The Dashboard's own Awards button used to be this too; it now opens the real
+ * Awards screen. This one survives on Users, where the trailing slot for a live
+ * show still has nowhere to go.
  */
 export function ResultsStubButton({ className }: { className?: string }) {
   return (

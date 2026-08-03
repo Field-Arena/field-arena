@@ -1,6 +1,11 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { PNL_CATEGORY_ORDER } from '../constants';
+import {
+  buildMasterSchedule,
+  type MasterSchedule,
+  type ScheduleEntry,
+} from '../schedule-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
 
 /**
@@ -322,6 +327,21 @@ export interface SchedulePrefs {
   lunch: boolean;
   extraBreaks: number;
   extraBreakMin: number;
+  /**
+   * The double-booking rule, editable from Master Schedule rather than Setup —
+   * it is a scheduling concern an organizer changes while looking at the
+   * schedule it produced. Off means the scheduler stops treating any gap as a
+   * conflict at all.
+   */
+  hardRuleEnabled: boolean;
+  hardRuleSameHorseMin: number;
+  hardRuleDiffHorseMin: number;
+  /**
+   * Whether ribbons are awarded per division within a class, or to the class as
+   * a whole. Lives here, not in Show Manager, for the same reason — it is an
+   * awards-day decision made in front of the schedule.
+   */
+  awardsByDivision: boolean;
 }
 
 /** Matches showstaff.html's defaultRules() — the state a show with no schedule_prefs row yet renders as. */
@@ -335,6 +355,10 @@ const DEFAULT_SCHEDULE_PREFS: SchedulePrefs = {
   lunch: true,
   extraBreaks: 0,
   extraBreakMin: 10,
+  hardRuleEnabled: true,
+  hardRuleSameHorseMin: 30,
+  hardRuleDiffHorseMin: 55,
+  awardsByDivision: false,
 };
 
 export interface MerchItem {
@@ -1199,5 +1223,343 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
     expenses,
     expensesTotal,
     net: revenueTotal - expensesTotal,
+  };
+}
+
+/* ── Master Schedule ─────────────────────────────────────────────────────
+   Feeds schedule-engine.ts. The engine is pure — everything it needs is
+   assembled here and nothing about the scheduling rules lives in this
+   file. */
+
+export interface MasterScheduleData {
+  showId: string;
+  showName: string;
+  startDate: string | null;
+  timezone: string | null;
+  schedule: MasterSchedule;
+  /** Every ring on the show, including any reserved for warm-up. */
+  rings: string[];
+  judgesByClass: Record<string, string[]>;
+  finalPctByEntry: Record<string, string>;
+  rules: {
+    hardRuleEnabled: boolean;
+    hardRuleSameHorseMin: number;
+    hardRuleDiffHorseMin: number;
+    awardsByDivision: boolean;
+  };
+  rideMinutesByClass: Record<string, number>;
+}
+
+/** Mirrors the engine's own upper-level set — see stepMinutesForClass. */
+const UPPER_LEVELS = new Set(['Third Level', 'Fourth Level', 'FEI']);
+
+/**
+ * Builds the show's master schedule.
+ *
+ * Only classes with entries produce rides, so a show whose riders have not
+ * entered yet returns empty arenas — the caller renders the legacy's own "this
+ * show hasn't built a schedule yet" state rather than an empty grid.
+ *
+ * Ride order comes from class_entries.ride_order, which the organizer controls;
+ * scratched entries stay in the list because the schedule shows them struck
+ * through rather than silently closing the gap, and the legacy view relies on
+ * their status to decide what is still draggable.
+ */
+export async function getMasterSchedule(showId: string): Promise<MasterScheduleData | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, start_date, timezone, locations, schedule_prefs, day_start_times, day_end_times')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, event, location, date, min_per_ride')
+    .eq('show_id', showId)
+    .order('label');
+  if (classError) throw classError;
+
+  const classIds = classes.map((c) => c.id);
+  let entries: {
+    id: string;
+    class_id: string;
+    num: string;
+    rider: string | null;
+    horse: string | null;
+    horse_id: string | null;
+    status: string | null;
+    ride_order: number;
+  }[] = [];
+
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('id, class_id, num, rider, horse, horse_id, status, ride_order')
+      .in('class_id', classIds)
+      .order('ride_order');
+    if (error) throw error;
+    entries = data;
+  }
+
+  const byClass = new Map<string, ScheduleEntry[]>();
+  for (const entry of entries) {
+    const list = byClass.get(entry.class_id) ?? [];
+    list.push({
+      entryId: entry.id,
+      num: entry.num,
+      name: entry.rider ?? '',
+      horse: entry.horse ?? '',
+      horseId: entry.horse_id,
+      // The legacy carried a per-entry division for award grouping; class_entries
+      // has no such column, so every entry sits in the class's own group ('O',
+      // its default) rather than inventing a split the data cannot support.
+      division: 'O',
+      quals: [],
+      status: entry.status ?? 'scheduled',
+    });
+    byClass.set(entry.class_id, list);
+  }
+
+  // Judges per class and the final percentage per entry — the schedule shows
+  // both, and "riding now" is the first ride in a ring with no score yet.
+  const [panel, scored] = await Promise.all([
+    classIds.length > 0
+      ? supabase
+          .from('class_panel')
+          .select('class_id, position, staff_assignments!class_panel_judge_staff_id_fkey(name)')
+          .in('class_id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+    classIds.length > 0
+      ? supabase.from('class_entries').select('id, final_pct').in('class_id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (panel.error) throw panel.error;
+  if (scored.error) throw scored.error;
+
+  const judgesByClass = new Map<string, string[]>();
+  for (const seat of panel.data) {
+    const staff = seat.staff_assignments as { name?: string } | null;
+    if (!staff?.name) continue;
+    const list = judgesByClass.get(seat.class_id) ?? [];
+    list.push(seat.position ? `${staff.name} (${seat.position})` : staff.name);
+    judgesByClass.set(seat.class_id, list);
+  }
+
+  const finalPctByEntry = new Map<string, string>();
+  for (const row of scored.data) {
+    if (row.final_pct) finalPctByEntry.set(row.id, row.final_pct);
+  }
+
+  const rings = ((show.locations ?? []) as unknown as RingRow[]).map((ring) => ({
+    name: ring.name,
+    size: ring.size,
+    // Per-ring start times are not a column yet; every ring opens at the
+    // show-wide start until Schedule Criteria's per-ring editor is built.
+    start: '08:00',
+  }));
+
+  const prefs = { ...DEFAULT_SCHEDULE_PREFS, ...((show.schedule_prefs ?? {}) as Partial<SchedulePrefs>) };
+  const dayStartTimes = (show.day_start_times ?? []) as unknown as string[];
+  const dayEndTimes = (show.day_end_times ?? []) as unknown as string[];
+
+  const schedule = buildMasterSchedule(
+    classes
+      .filter((c) => (byClass.get(c.id) ?? []).length > 0)
+      .map((c) => ({
+        cls: c.id,
+        label: c.display_name ?? c.label,
+        // `event` is the catalog category a class came from — the same string
+        // the engine ranks levels by.
+        discipline: c.event ?? '',
+        ring: c.location,
+        pinnedDay: null,
+        minPerRide: c.min_per_ride,
+        order: byClass.get(c.id) ?? [],
+      })),
+    {
+      ...prefs,
+      // Lunch timing is not a column yet — the legacy defaults.
+      lunchAt: '12:00',
+      lunchDur: 60,
+      dayStartTimes,
+      dayEndTimes,
+    },
+    rings.length > 0 ? rings : [{ name: 'Ring 1', size: 'standard', start: '08:00' }]
+  );
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    startDate: show.start_date,
+    timezone: show.timezone,
+    schedule,
+    rings: rings.map((r) => r.name),
+    judgesByClass: Object.fromEntries(judgesByClass),
+    finalPctByEntry: Object.fromEntries(finalPctByEntry),
+    rules: {
+      hardRuleEnabled: prefs.hardRuleEnabled,
+      hardRuleSameHorseMin: prefs.hardRuleSameHorseMin,
+      hardRuleDiffHorseMin: prefs.hardRuleDiffHorseMin,
+      awardsByDivision: prefs.awardsByDivision,
+    },
+    /** Per-class ride time actually used, so the input shows the real number. */
+    rideMinutesByClass: Object.fromEntries(
+      classes.map((c) => [
+        c.id,
+        c.min_per_ride ?? prefs.perMin + prefs.buffer + (UPPER_LEVELS.has(c.event ?? '') ? prefs.upper : 0),
+      ])
+    ),
+  };
+}
+
+/* ── Awards ──────────────────────────────────────────────────────────────
+   Standings and ribbon placings. Ported from the design's Awards screen,
+   with real placings computed from scored entries rather than the mock
+   buildAwards() the export ships. */
+
+export interface AwardPlacing {
+  place: number;
+  rider: string;
+  horse: string;
+  num: string;
+  pct: string;
+}
+
+export interface AwardClass {
+  name: string;
+  placings: AwardPlacing[];
+  /** How many places this class awards, from classes.ribbon_places. */
+  ribbonPlaces: number;
+}
+
+export interface AwardGroup {
+  name: string;
+  classes: AwardClass[];
+}
+
+export interface ShowAwards {
+  showId: string;
+  showName: string;
+  groups: AwardGroup[];
+  /** Every discipline present, for the filter. */
+  disciplines: string[];
+  /** place index → how many ribbons of that placing the show needs. */
+  ribbonCounts: number[];
+  ribbonTotal: number;
+}
+
+/**
+ * Standings for a show.
+ *
+ * Placings come from class_entries.final_pct — the judged result — ranked
+ * highest first and cut at each class's own ribbon_places. Entries with no
+ * score are not placed: a class still being judged shows the places decided so
+ * far rather than inventing an order from entry numbers.
+ *
+ * `grouping` is the same choice Master Schedule's awards toggle writes: 'test'
+ * groups by the class's catalog category, 'division' by the division it was
+ * entered under, which is what splits Young Rider from Adult Amateur.
+ */
+export async function getShowAwards(
+  showId: string,
+  grouping: 'test' | 'division',
+  discipline: string
+): Promise<ShowAwards | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, event, division, ribbon_places')
+    .eq('show_id', showId)
+    .order('label');
+  if (classError) throw classError;
+
+  const classIds = classes.map((c) => c.id);
+  let entries: {
+    class_id: string;
+    num: string;
+    rider: string | null;
+    horse: string | null;
+    final_pct: string | null;
+    status: string | null;
+  }[] = [];
+
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse, final_pct, status')
+      .in('class_id', classIds);
+    if (error) throw error;
+    entries = data;
+  }
+
+  const byClass = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const list = byClass.get(entry.class_id) ?? [];
+    list.push(entry);
+    byClass.set(entry.class_id, list);
+  }
+
+  const disciplines = [
+    ...new Set(classes.map((c) => c.event).filter((e): e is string => !!e)),
+  ].sort();
+
+  const groups = new Map<string, AwardClass[]>();
+  const ribbonCounts: number[] = [];
+
+  for (const cls of classes) {
+    const groupName =
+      grouping === 'division' ? (cls.division ?? 'No division') : (cls.event ?? 'Other classes');
+
+    if (discipline !== 'All disciplines' && cls.event !== discipline) continue;
+
+    const ribbonPlaces = cls.ribbon_places ?? 6;
+    const placings = (byClass.get(cls.id) ?? [])
+      // Scratched rides never place, and an unscored ride has no standing yet.
+      .filter((e) => e.status !== 'scratched' && e.final_pct)
+      .sort((a, b) => Number(b.final_pct) - Number(a.final_pct))
+      .slice(0, ribbonPlaces)
+      .map((e, index) => ({
+        place: index + 1,
+        rider: e.rider ?? '',
+        horse: e.horse ?? '',
+        num: e.num,
+        pct: e.final_pct ?? '',
+      }));
+
+    for (const placing of placings) {
+      ribbonCounts[placing.place - 1] = (ribbonCounts[placing.place - 1] ?? 0) + 1;
+    }
+
+    const list = groups.get(groupName) ?? [];
+    list.push({
+      name: cls.display_name ?? cls.label,
+      placings,
+      ribbonPlaces,
+    });
+    groups.set(groupName, list);
+  }
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    groups: [...groups]
+      .map(([name, list]) => ({ name, classes: list }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    disciplines,
+    ribbonCounts,
+    ribbonTotal: ribbonCounts.reduce((sum, n) => sum + (n || 0), 0),
   };
 }

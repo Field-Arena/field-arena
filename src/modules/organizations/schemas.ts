@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MEMBER_TYPES } from './constants';
 import { MAX_RINGS, MAX_STABLES, MAX_STALLS_PER_STABLE } from './constants';
 
 const optionalText = (max: number) =>
@@ -113,3 +114,54 @@ export type UpdateVenueInput = z.input<typeof updateVenueSchema>;
 
 export const deleteVenueSchema = z.object({ id: z.uuid() });
 export type DeleteVenueInput = z.input<typeof deleteVenueSchema>;
+
+/* ── Member Database ─────────────────────────────────────────────────────
+   Ported from showstaff.html's openAddMemberModal / saveMemberEdit /
+   member upload / addSelectedMembersToShow. */
+
+const memberFields = {
+  /** Businesses (Vendor) carry one name; people carry two and the display name is derived. */
+  firstName: optionalText(120),
+  lastName: optionalText(120),
+  /** Sent for a business, or derived from first/last for a person. */
+  name: z.string().trim().min(1, 'A name is required').max(200),
+  role: z.enum(MEMBER_TYPES),
+  email: z.union([z.email('Enter a valid email address'), z.literal('')]).optional(),
+  phone: optionalText(60),
+  membershipStatus: z.enum(['active', 'inactive']),
+  /** ISO 'YYYY-MM-DD', matching the column. */
+  membershipExpires: z
+    .union([z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date in YYYY-MM-DD form'), z.literal('')])
+    .optional(),
+  notes: optionalText(1000),
+  /** Columns an import brought in beyond the fields above. */
+  extraFields: z.record(z.string().max(120), z.string().max(500)).optional(),
+};
+
+export const createMemberSchema = z.object(memberFields);
+export type CreateMemberInput = z.input<typeof createMemberSchema>;
+
+export const updateMemberSchema = z.object({ id: z.uuid(), ...memberFields });
+export type UpdateMemberInput = z.input<typeof updateMemberSchema>;
+
+export const memberIdSchema = z.object({ id: z.uuid() });
+
+/**
+ * A parsed CSV upload.
+ *
+ * Rows are validated here rather than on the client so a malformed file cannot
+ * reach the table, and capped because an import is a paste-in convenience, not
+ * a bulk migration path.
+ */
+export const importMembersSchema = z.object({
+  rows: z.array(z.object(memberFields)).min(1, 'That file had no rows').max(5000),
+});
+
+export type ImportMembersInput = z.input<typeof importMembersSchema>;
+
+export const addMembersToShowSchema = z.object({
+  showId: z.uuid(),
+  memberIds: z.array(z.uuid()).min(1, 'Pick at least one person').max(500),
+});
+
+export type AddMembersToShowInput = z.input<typeof addMembersToShowSchema>;

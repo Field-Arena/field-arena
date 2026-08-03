@@ -10,6 +10,11 @@ import {
   createVenueSchema,
   updateVenueSchema,
   deleteVenueSchema,
+  createMemberSchema,
+  updateMemberSchema,
+  memberIdSchema,
+  importMembersSchema,
+  addMembersToShowSchema,
 } from '../schemas';
 
 /**
@@ -199,4 +204,255 @@ export async function deleteVenue(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard/venues');
+}
+
+/* ── Member Database ─────────────────────────────────────────────────────── */
+
+const MEMBERS_PATH = '/dashboard/members';
+
+/**
+ * A message a person can act on, from a member write.
+ *
+ * member_database has a unique index on (org_id, email), so re-adding someone
+ * already in the database fails with Postgres's own
+ * "duplicate key value violates unique constraint" — accurate, and useless to
+ * an organizer who just wants to know they are already on the list.
+ */
+function memberError(error: { code?: string; message: string }, email?: string): string {
+  if (error.code === '23505') {
+    return email
+      ? `${email} is already in your organization's database. Search for them to edit that record instead.`
+      : "Someone in that list is already in your organization's database.";
+  }
+  return error.message;
+}
+
+/** The column set every member write shares, from the parsed input. */
+function memberRow(parsed: {
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  email?: string;
+  phone?: string;
+  membershipStatus: string;
+  membershipExpires?: string;
+  notes?: string;
+  extraFields?: Record<string, string>;
+}) {
+  return {
+    name: parsed.name,
+    first_name: parsed.firstName ?? null,
+    last_name: parsed.lastName ?? null,
+    role: parsed.role,
+    email: parsed.email === '' ? null : (parsed.email ?? null),
+    phone: parsed.phone ?? null,
+    membership_status: parsed.membershipStatus,
+    membership_expires: parsed.membershipExpires === '' ? null : (parsed.membershipExpires ?? null),
+    notes: parsed.notes ?? null,
+    extra_fields: parsed.extraFields ?? {},
+  };
+}
+
+export async function createMember(input: unknown): Promise<{ id: string }> {
+  const parsed = createMemberSchema.parse(input);
+  const orgId = await requireOrgId();
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('member_database')
+    .insert({ org_id: orgId, ...memberRow(parsed) })
+    .select('id')
+    .single();
+  if (error) throw new Error(memberError(error, parsed.email));
+
+  revalidatePath(MEMBERS_PATH);
+  return { id: data.id };
+}
+
+export async function updateMember(input: unknown): Promise<void> {
+  const parsed = updateMemberSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('member_database')
+    .update(memberRow(parsed))
+    .eq('id', parsed.id);
+  if (error) throw new Error(memberError(error, parsed.email));
+
+  revalidatePath(MEMBERS_PATH);
+}
+
+export async function deleteMember(input: unknown): Promise<void> {
+  const { id } = memberIdSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.from('member_database').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(MEMBERS_PATH);
+}
+
+/**
+ * Bulk import from an uploaded list.
+ *
+ * Rows whose email already exists in this organization are skipped rather than
+ * duplicated — re-uploading a slightly longer list is the normal way people use
+ * this, and it should add the new names, not a second copy of everyone.
+ */
+export async function importMembers(input: unknown): Promise<{ added: number; skipped: number }> {
+  const parsed = importMembersSchema.parse(input);
+  const orgId = await requireOrgId();
+  const supabase = await createServerClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from('member_database')
+    .select('email')
+    .eq('org_id', orgId);
+  if (readError) throw new Error(readError.message);
+
+  const seen = new Set(
+    existing.map((m) => m.email?.trim().toLowerCase()).filter((e): e is string => !!e)
+  );
+
+  const rows: ReturnType<typeof memberRow>[] = [];
+  let skipped = 0;
+  for (const row of parsed.rows) {
+    const email = row.email?.trim().toLowerCase();
+    if (email && seen.has(email)) {
+      skipped++;
+      continue;
+    }
+    if (email) seen.add(email);
+    rows.push(memberRow(row));
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase
+      .from('member_database')
+      .insert(rows.map((r) => ({ org_id: orgId, ...r })));
+    if (error) throw new Error(memberError(error));
+  }
+
+  revalidatePath(MEMBERS_PATH);
+  return { added: rows.length, skipped };
+}
+
+/**
+ * Copies selected members into a show.
+ *
+ * "Copies" is the word the legacy screen uses and it is accurate — the member
+ * stays in the database either way. Where they land depends on their type:
+ *
+ *  - Vendor → a vendor booking on that show
+ *  - Organizer → skipped; an organizer is not a per-show staffing row
+ *  - Rider → skipped, and this is a real departure from the legacy build. There,
+ *    a rider was a plain row anyone could create; here `riders` keys off
+ *    auth.users, so a rider cannot exist without an account. Inventing one would
+ *    mean an account nobody can sign into.
+ *  - everything else → a staff assignment, with the generic "Member" mapped to
+ *    ShowStaff, matching the legacy mapping
+ *
+ * Anyone already on the show by email is skipped, so running this twice does
+ * not double them up.
+ */
+export async function addMembersToShow(
+  input: unknown
+): Promise<{ added: number; skipped: number; ridersSkipped: number }> {
+  const parsed = addMembersToShowSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const [members, staff, vendors] = await Promise.all([
+    supabase
+      .from('member_database')
+      .select('id, name, first_name, last_name, email, phone, role')
+      .in('id', parsed.memberIds),
+    supabase.from('staff_assignments').select('email').eq('show_id', parsed.showId),
+    supabase.from('vendor_bookings').select('contact').eq('show_id', parsed.showId),
+  ]);
+  if (members.error) throw new Error(members.error.message);
+  if (staff.error) throw new Error(staff.error.message);
+  if (vendors.error) throw new Error(vendors.error.message);
+
+  const staffEmails = new Set(
+    staff.data.map((s) => s.email?.trim().toLowerCase()).filter((e): e is string => !!e)
+  );
+  const vendorEmails = new Set(
+    vendors.data.map((v) => v.contact?.trim().toLowerCase()).filter((e): e is string => !!e)
+  );
+
+  const staffRows: {
+    show_id: string;
+    name: string;
+    first_name: string | null;
+    last_name: string | null;
+    role: string;
+    email: string | null;
+    phone: string | null;
+  }[] = [];
+  const vendorRows: { show_id: string; name: string; contact: string | null; phone: string | null }[] =
+    [];
+
+  let skipped = 0;
+  let ridersSkipped = 0;
+
+  for (const member of members.data) {
+    const email = member.email?.trim().toLowerCase() ?? '';
+
+    if (member.role === 'Rider') {
+      ridersSkipped++;
+      continue;
+    }
+    if (member.role === 'Organizer') {
+      skipped++;
+      continue;
+    }
+
+    if (member.role === 'Vendor') {
+      if (email && vendorEmails.has(email)) {
+        skipped++;
+        continue;
+      }
+      if (email) vendorEmails.add(email);
+      vendorRows.push({
+        show_id: parsed.showId,
+        // member_database.name is NOT NULL, but the generated row type widens
+        // it — the fallback keeps vendor_bookings.name's own NOT NULL honest.
+        name: member.name || 'Vendor',
+        contact: member.email,
+        phone: member.phone,
+      });
+      continue;
+    }
+
+    if (email && staffEmails.has(email)) {
+      skipped++;
+      continue;
+    }
+    if (email) staffEmails.add(email);
+    staffRows.push({
+      show_id: parsed.showId,
+      name: member.name || 'Staff',
+      first_name: member.first_name,
+      last_name: member.last_name,
+      // ShowStaff both for the generic "Member" and for a member whose type was
+      // never set — staff_assignments.role is NOT NULL and needs a real seat.
+      role: !member.role || member.role === 'Member' ? 'ShowStaff' : member.role,
+      email: member.email,
+      phone: member.phone,
+    });
+  }
+
+  if (staffRows.length > 0) {
+    const { error } = await supabase.from('staff_assignments').insert(staffRows);
+    if (error) throw new Error(error.message);
+  }
+  if (vendorRows.length > 0) {
+    const { error } = await supabase.from('vendor_bookings').insert(vendorRows);
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(MEMBERS_PATH);
+  revalidatePath(`/dashboard/shows/${parsed.showId}`);
+  return { added: staffRows.length + vendorRows.length, skipped, ridersSkipped };
 }

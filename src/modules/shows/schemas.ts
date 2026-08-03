@@ -705,3 +705,59 @@ export const registerShowDocumentSchema = z.object({
 });
 
 export type RegisterShowDocumentInput = z.input<typeof registerShowDocumentSchema>;
+
+/* ── Master Schedule ─────────────────────────────────────────────────────
+   The double-booking rule, awards grouping, and the per-class and
+   per-entry edits the built schedule offers in place. Ported from
+   showstaff.html's saveHardRuleSetting / toggleAwardsByDivision /
+   setClassDurationOverride / moveClassToRingDay / scratchFromSchedule /
+   dragRiderDrop. */
+
+/**
+ * Every field is optional and only the ones sent are written — each control on
+ * the rules card commits on its own, and sending the whole set each time would
+ * let two controls changed in quick succession clobber each other.
+ */
+export const updateScheduleRulesSchema = z.object({
+  showId: z.uuid(),
+  hardRuleEnabled: z.boolean().optional(),
+  hardRuleSameHorseMin: z.coerce.number().int().min(0).max(240).optional(),
+  hardRuleDiffHorseMin: z.coerce.number().int().min(0).max(240).optional(),
+  awardsByDivision: z.boolean().optional(),
+});
+
+export type UpdateScheduleRulesInput = z.input<typeof updateScheduleRulesSchema>;
+
+export const setClassDurationSchema = z.object({
+  showId: z.uuid(),
+  classId: z.uuid(),
+  /** Null clears the override and the class falls back to the rules' ride time. */
+  minutes: z.coerce.number().int().min(1).max(60).nullable(),
+});
+
+export type SetClassDurationInput = z.input<typeof setClassDurationSchema>;
+
+export const moveClassToRingDaySchema = z.object({
+  showId: z.uuid(),
+  classId: z.uuid(),
+  ring: z.string().trim().min(1).max(80),
+  day: z.coerce.number().int().min(0).max(30),
+});
+
+export type MoveClassToRingDayInput = z.input<typeof moveClassToRingDaySchema>;
+
+export const scratchEntrySchema = z.object({
+  showId: z.uuid(),
+  entryId: z.uuid(),
+});
+
+export type ScratchEntryInput = z.input<typeof scratchEntrySchema>;
+
+export const reorderRideSchema = z.object({
+  showId: z.uuid(),
+  classId: z.uuid(),
+  entryId: z.uuid(),
+  toIndex: z.coerce.number().int().min(0).max(500),
+});
+
+export type ReorderRideInput = z.input<typeof reorderRideSchema>;

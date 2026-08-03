@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { PromptDialog } from '@/shared/ui/prompt-dialog';
+
 import {
   Dialog,
   DialogContent,
@@ -22,9 +25,9 @@ import type { VenueStable } from '../types';
  * horse/rider assignment, which stays a per-show runtime concern on
  * `shows.stable_chart`'s own Stable Chart.
  *
- * Native `prompt()`/right-click for rename/toggle-closed, matching legacy
+ * Rename opens this app's PromptDialog; toggle-closed is a direct click, matching legacy
  * exactly and the same native-dialog convention this codebase already uses
- * elsewhere (e.g. staff-edit-dialog.tsx's `confirm()` for "Remove from this
+ * elsewhere (e.g. staff-edit-dialog.tsx's ConfirmDialog for "Remove from this
  * show").
  *
  * Renders as its own top-level Dialog rather than nested inside
@@ -70,14 +73,13 @@ function StableConfigBody({
     onChange({ ...stable, stalls: resizeStalls(stalls, n) });
   }
 
+  // The stall being renamed, or null. This app's own PromptDialog rather than
+  // window.prompt(), which announces "localhost:3000 says" and cannot be styled.
+  const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
+  const renamingStall = renamingIndex == null ? null : stalls[renamingIndex];
+
   function rename(index: number) {
-    const stall = stalls[index];
-    if (!stall) return;
-    // Native prompt(), ported verbatim from legacy's locStallRename — matches this codebase's existing native-dialog convention (e.g. staff-edit-dialog.tsx's confirm()).
-    const next = window.prompt('Stall name (e.g. "C4"):', stall.label);
-    if (next == null) return;
-    const label = next.trim() || stall.label;
-    onChange({ ...stable, stalls: stalls.map((s, i) => (i === index ? { ...s, label } : s)) });
+    setRenamingIndex(index);
   }
 
   function toggleClosed(index: number) {
@@ -158,6 +160,26 @@ function StableConfigBody({
           Done
         </Button>
       </DialogFooter>
+
+      <PromptDialog
+        open={renamingStall != null}
+        onOpenChange={(next) => {
+          if (!next) setRenamingIndex(null);
+        }}
+        title="Rename stall"
+        label="Stall name"
+        placeholder='e.g. "C4"'
+        defaultValue={renamingStall?.label ?? ''}
+        onSubmit={(label) => {
+          const index = renamingIndex;
+          if (index == null) return;
+          onChange({
+            ...stable,
+            stalls: stalls.map((s, i) => (i === index ? { ...s, label } : s)),
+          });
+          setRenamingIndex(null);
+        }}
+      />
     </>
   );
 }

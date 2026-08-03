@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { Json } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
@@ -36,6 +37,11 @@ import {
   updateDocumentEventsSchema,
   saveTestTemplateSchema,
   saveShowExpensesSchema,
+  updateScheduleRulesSchema,
+  setClassDurationSchema,
+  moveClassToRingDaySchema,
+  scratchEntrySchema,
+  reorderRideSchema,
   createDocumentUploadUrlSchema,
   registerShowDocumentSchema,
 } from '../schemas';
@@ -75,10 +81,29 @@ async function resolveOrgId(): Promise<string> {
   );
 }
 
+/**
+ * `id` is generated here and inserted explicitly, and the insert is never
+ * chained with `.select()` — not a style choice, a required workaround.
+ * `shows_select_staff`'s `can_view_show()` calls `can_manage_show()`, which
+ * itself queries `public.shows` to check org ownership. Postgres evaluates
+ * that nested self-query while computing whether an `INSERT ... RETURNING`
+ * on `shows` may return the new row, and it cannot see the row being
+ * inserted from inside that same statement — so `Prefer: return=representation`
+ * (what `.select()` adds) always fails with "new row violates row-level
+ * security policy for table shows", even though the insert's own `WITH CHECK`
+ * (`can_access_org`, which never queries `shows`) already passed. Confirmed
+ * empirically: the identical insert succeeds at 201 with `return=minimal` and
+ * fails at 403 with `return=representation`, regardless of whether the row's
+ * id is server- or client-generated. Knowing the id upfront means never
+ * needing PostgREST to read the row back in the same statement — a plain,
+ * separate SELECT immediately after (a *different* statement, unaffected by
+ * this) works fine, which is exactly what the show picker does moments later.
+ */
 export async function createShow(input: unknown): Promise<{ id: string }> {
   const parsed = createShowSchema.parse(input);
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
+  const id = crypto.randomUUID();
 
   // Derived rather than required: the legacy views render date_label directly, so
   // a blank one shows as a gap in the show picker.
@@ -88,33 +113,30 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
       ? formatDateShort(parsed.startDate)
       : `${formatDateShort(parsed.startDate)} – ${formatDateShort(parsed.endDate)}`);
 
-  const { data, error } = await supabase
-    .from('shows')
-    .insert({
-      org_id: orgId,
-      name: parsed.name,
-      venue_name: parsed.venueName ?? null,
-      start_date: parsed.startDate,
-      end_date: parsed.endDate,
-      date_label: dateLabel,
-      disciplines: parsed.disciplines,
-      governing_bodies: parsed.governingBodies,
-      show_type: parsed.showType,
-      timezone: parsed.timezone ?? null,
-      starting_rider_number: parsed.startingRiderNumber,
-      // A new show is never published. Going live is a deliberate act that also
-      // requires the waiver to be approved.
-      published: false,
-      status: 'yellow',
-    })
-    .select('id')
-    .single();
+  const { error } = await supabase.from('shows').insert({
+    id,
+    org_id: orgId,
+    name: parsed.name,
+    venue_name: parsed.venueName ?? null,
+    start_date: parsed.startDate,
+    end_date: parsed.endDate,
+    date_label: dateLabel,
+    disciplines: parsed.disciplines,
+    governing_bodies: parsed.governingBodies,
+    show_type: parsed.showType,
+    timezone: parsed.timezone ?? null,
+    starting_rider_number: parsed.startingRiderNumber,
+    // A new show is never published. Going live is a deliberate act that also
+    // requires the waiver to be approved.
+    published: false,
+    status: 'yellow',
+  });
 
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/shows');
-  return { id: data.id };
+  return { id };
 }
 
 /**
@@ -128,27 +150,29 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
  * Setup is filled in.
  *
  * Only `name` is NOT NULL on shows, so nothing else needs inventing here.
+ *
+ * Client-generates its own id and never chains `.select()` — see createShow's
+ * doc comment just above for why `INSERT ... RETURNING` on `shows`
+ * specifically cannot work here regardless of who owns the row.
  */
 export async function createDraftShow(): Promise<{ id: string }> {
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
+  const id = crypto.randomUUID();
 
-  const { data, error } = await supabase
-    .from('shows')
-    .insert({
-      org_id: orgId,
-      name: 'New Show',
-      published: false,
-      status: 'yellow',
-    })
-    .select('id')
-    .single();
+  const { error } = await supabase.from('shows').insert({
+    id,
+    org_id: orgId,
+    name: 'New Show',
+    published: false,
+    status: 'yellow',
+  });
 
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/shows');
-  return { id: data.id };
+  return { id };
 }
 
 export async function createClass(input: unknown): Promise<void> {
@@ -457,10 +481,21 @@ export async function updateSchedulePrefs(input: unknown): Promise<void> {
   const parsed = updateSchedulePrefsSchema.parse(input);
   const supabase = await createServerClient();
 
+  // Merged, not replaced: schedule_prefs also carries the double-booking rule
+  // and the awards grouping, both edited from Master Schedule. Writing this
+  // card's nine fields as the whole object wiped them.
+  const { data: current, error: readError } = await supabase
+    .from('shows')
+    .select('schedule_prefs')
+    .eq('id', parsed.showId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
   const { error } = await supabase
     .from('shows')
     .update({
       schedule_prefs: {
+        ...((current.schedule_prefs ?? {}) as Record<string, unknown>),
         perMin: parsed.perMin,
         buffer: parsed.buffer,
         upper: parsed.upper,
@@ -1298,4 +1333,165 @@ export async function registerShowDocument(input: unknown): Promise<{ id: string
   revalidatePath(`/dashboard/shows/${parsed.showId}/documents`);
   revalidatePath('/dashboard/documents');
   return { id: data.id };
+}
+
+/* ── Master Schedule ─────────────────────────────────────────────────────── */
+
+function revalidateSchedule(showId: string): void {
+  revalidatePath('/dashboard/schedule');
+  revalidatePath(`/dashboard/shows/${showId}/schedule`);
+}
+
+/**
+ * The double-booking rule and awards grouping, edited from Master Schedule.
+ *
+ * Merged into schedule_prefs rather than written over it — the Setup card owns
+ * the other nine fields in the same object.
+ */
+export async function updateScheduleRules(input: unknown): Promise<void> {
+  const parsed = updateScheduleRulesSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: current, error: readError } = await supabase
+    .from('shows')
+    .select('schedule_prefs')
+    .eq('id', parsed.showId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  // Typed as Json rather than Record<string, unknown>: the generated Update
+  // type only accepts the former, and a plain record is not assignable to it.
+  const next: Record<string, Json> = {
+    ...((current.schedule_prefs ?? {}) as Record<string, Json>),
+  };
+  if (parsed.hardRuleEnabled !== undefined) next.hardRuleEnabled = parsed.hardRuleEnabled;
+  if (parsed.hardRuleSameHorseMin !== undefined) {
+    next.hardRuleSameHorseMin = parsed.hardRuleSameHorseMin;
+  }
+  if (parsed.hardRuleDiffHorseMin !== undefined) {
+    next.hardRuleDiffHorseMin = parsed.hardRuleDiffHorseMin;
+  }
+  if (parsed.awardsByDivision !== undefined) next.awardsByDivision = parsed.awardsByDivision;
+
+  const { error } = await supabase
+    .from('shows')
+    .update({ schedule_prefs: next })
+    .eq('id', parsed.showId);
+  if (error) throw new Error(error.message);
+
+  revalidateSchedule(parsed.showId);
+}
+
+/** Per-class ride-time override, in minutes. Null restores the rules' value. */
+export async function setClassDuration(input: unknown): Promise<void> {
+  const parsed = setClassDurationSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('classes')
+    .update({ min_per_ride: parsed.minutes })
+    .eq('id', parsed.classId);
+  if (error) throw new Error(error.message);
+
+  revalidateSchedule(parsed.showId);
+}
+
+/**
+ * Moves a class to a ring, a day, or both.
+ *
+ * The day is as hard a placement as the ring: the builder treats a pinned day
+ * as a real constraint, not a preference, so a class moved to Day 2 stays on
+ * Day 2 every time the schedule rebuilds.
+ */
+export async function moveClassToRingDay(input: unknown): Promise<void> {
+  const parsed = moveClassToRingDaySchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('start_date')
+    .eq('id', parsed.showId)
+    .single();
+  if (showError) throw new Error(showError.message);
+
+  // The pin is stored as the class's own date — the column that already means
+  // "this class runs on this day" everywhere else — rather than a day index
+  // that would silently point at the wrong date if the show's dates moved.
+  let date: string | null = null;
+  if (show.start_date) {
+    const start = new Date(`${show.start_date}T00:00:00Z`);
+    start.setUTCDate(start.getUTCDate() + parsed.day);
+    date = start.toISOString().slice(0, 10);
+  }
+
+  const { error } = await supabase
+    .from('classes')
+    .update({ location: parsed.ring, date })
+    .eq('id', parsed.classId);
+  if (error) throw new Error(error.message);
+
+  revalidateSchedule(parsed.showId);
+}
+
+/**
+ * Scratches an entry from the schedule.
+ *
+ * The row stays — the schedule shows it struck through rather than closing the
+ * gap, which is what an organizer reading the printed sheet needs to see.
+ */
+export async function scratchEntry(input: unknown): Promise<void> {
+  const parsed = scratchEntrySchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('class_entries')
+    .update({ status: 'scratched' })
+    .eq('id', parsed.entryId);
+  if (error) throw new Error(error.message);
+
+  revalidateSchedule(parsed.showId);
+}
+
+/**
+ * Reorders one entry within its class.
+ *
+ * ride_order is what the builder reads, so moving a rider here changes where
+ * they land the next time the schedule is built. Every entry in the class is
+ * renumbered from the reordered list, because ride_order is unique per class
+ * and shuffling one value would collide.
+ */
+export async function reorderRide(input: unknown): Promise<void> {
+  const parsed = reorderRideSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: entries, error: readError } = await supabase
+    .from('class_entries')
+    .select('id, ride_order')
+    .eq('class_id', parsed.classId)
+    .order('ride_order');
+  if (readError) throw new Error(readError.message);
+
+  const ids = entries.map((e) => e.id).filter((id) => id !== parsed.entryId);
+  const target = Math.max(0, Math.min(parsed.toIndex, ids.length));
+  ids.splice(target, 0, parsed.entryId);
+
+  // Two passes: ride_order is unique per class, so writing the final values
+  // directly would collide with a row that still holds the number being
+  // assigned. The first pass parks everything well clear of the real range.
+  for (const [index, id] of ids.entries()) {
+    const { error } = await supabase
+      .from('class_entries')
+      .update({ ride_order: 10_000 + index })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+  for (const [index, id] of ids.entries()) {
+    const { error } = await supabase
+      .from('class_entries')
+      .update({ ride_order: index + 1 })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  revalidateSchedule(parsed.showId);
 }

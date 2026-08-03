@@ -1,10 +1,12 @@
 'use client';
 
-import type { MouseEvent } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { fa } from '@/shared/lib/organizer-theme';
 import { cn } from '@/shared/lib/utils';
 import { truncateHorseName } from '../../utils';
 import { useRenameStall, useToggleStallClosed } from '../../hooks/use-stable-chart-mutations';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PromptDialog } from '@/shared/ui/prompt-dialog';
 import type { StableChartStall } from '../../data/stable-chart-queries';
 
 /**
@@ -12,14 +14,11 @@ import type { StableChartStall } from '../../data/stable-chart-queries';
  * rename (unless closed), a self-contained Open/Closed pill that toggles
  * without triggering the rename click (`stopPropagation`, same as legacy).
  *
- * Native `window.prompt()`/`window.confirm()`, matching this codebase's own
- * established convention for exactly this interaction —
- * organizations/ui/stable-config-dialog.tsx's `renameStall`/`toggleClosed`
- * (built this same session for the venue library's structure-only stable
- * editor) use the identical native dialogs, and venue-list.tsx's delete
- * confirmation is `window.confirm()` too. Not a raw shortcut taken here —
- * it is what "this app's established pattern" for a rename/confirm
- * currently is.
+ * Rename and the closing-an-occupied-stall warning both use this app's own
+ * dialogs (PromptDialog / ConfirmDialog) rather than `window.prompt()` and
+ * `window.confirm()`. The native ones announce "localhost:3000 says", cannot
+ * be styled, and block the tab — every confirm across this app was moved off
+ * them for the same reason.
  */
 export function StallBox({
   showId,
@@ -36,23 +35,21 @@ export function StallBox({
   const occupied = !!(stall.horseId ?? stall.horseName);
   const closed = stall.closed;
 
+  const [renaming, setRenaming] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+
   function handleRename() {
     if (closed) return;
-    const next = window.prompt('Stall name (e.g. "C4"):', stall.label);
-    if (next == null) return;
-    const label = next.trim() || stall.label;
-    if (label === stall.label) return;
-    rename.mutate({ showId, stableId, stallId: stall.id, label });
+    setRenaming(true);
   }
 
   function handleToggleClosed(event: MouseEvent) {
     event.stopPropagation();
-    const closing = !closed;
-    if (closing && occupied) {
-      const ok = window.confirm(
-        `This stall is occupied by ${stall.horseName ?? 'a horse'}. Closing it will clear that assignment. Continue?`
-      );
-      if (!ok) return;
+    // Only closing an occupied stall needs a warning — it clears the horse's
+    // assignment. Reopening one takes nothing away.
+    if (!closed && occupied) {
+      setConfirmClose(true);
+      return;
     }
     toggleClosed.mutate({ showId, stableId, stallId: stall.id });
   }
@@ -117,6 +114,42 @@ export function StallBox({
       >
         {closed ? 'Closed' : 'Open'}
       </button>
+
+      <PromptDialog
+        open={renaming}
+        onOpenChange={setRenaming}
+        title="Rename stall"
+        label="Stall name"
+        placeholder='e.g. "C4"'
+        defaultValue={stall.label}
+        pending={rename.isPending}
+        onSubmit={(label) => {
+          if (label !== stall.label) {
+            rename.mutate({ showId, stableId, stallId: stall.id, label });
+          }
+          setRenaming(false);
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        title="Close this stall?"
+        description={`It is occupied by ${stall.horseName ?? 'a horse'}. Closing it will clear that assignment.`}
+        confirmLabel={toggleClosed.isPending ? 'Closing…' : 'Close stall'}
+        destructive
+        pending={toggleClosed.isPending}
+        onConfirm={() => {
+          toggleClosed.mutate(
+            { showId, stableId, stallId: stall.id },
+            {
+              onSuccess: () => {
+                setConfirmClose(false);
+              },
+            }
+          );
+        }}
+      />
     </div>
   );
 }

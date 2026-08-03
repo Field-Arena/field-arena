@@ -32,3 +32,56 @@ export const VENUE_STAT_TINTS = [
   { bg: '#EEE7FA', fg: '#6B4FA0' },
   { bg: '#FCF3E4', fg: '#8A6D14' },
 ] as const;
+
+/* ── Member Database ─────────────────────────────────────────────────────
+   Ported from showstaff.html's MEMBER_TYPES / memberColumnDefs /
+   MEMBERDB_ROW_CAP. */
+
+/** Ported verbatim from MEMBER_TYPES. */
+export const MEMBER_TYPES = [
+  'Organizer',
+  'Show Admin',
+  'Judge',
+  'Scribe',
+  'Announcer',
+  'ShowStaff',
+  'Vendor',
+  'Rider',
+  'Member',
+] as const;
+
+export type MemberType = (typeof MEMBER_TYPES)[number];
+
+/**
+ * The toggleable columns, from memberColumnDefs. Name is not among them — it
+ * is the row's identity and always shows.
+ */
+export const MEMBER_COLUMNS = [
+  { key: 'role', label: 'Type' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'membershipStatus', label: 'Membership' },
+  { key: 'membershipExpires', label: 'Expires' },
+  { key: 'notes', label: 'Notes' },
+] as const;
+
+export type MemberColumnKey = (typeof MEMBER_COLUMNS)[number]['key'];
+
+/**
+ * How many rows render at once.
+ *
+ * The legacy comment is worth keeping: rendering four thousand rows at once is
+ * what was slow, not the filtering. Beyond this the table says so and asks the
+ * organizer to narrow the search rather than silently truncating.
+ */
+export const MEMBER_ROW_CAP = 200;
+
+/** Header order for the CSV export, from exportMembersCsv. */
+export const MEMBER_CSV_HEADERS = [
+  'First name',
+  'Last name',
+  'Type',
+  'Phone',
+  'Email',
+  'Notes',
+] as const;

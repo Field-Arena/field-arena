@@ -469,3 +469,38 @@ export const BILLING_SECTIONS = [
     sub: 'Money that has actually landed in the Field & Arena bank account.',
   },
 ] as const;
+
+/* ── Awards ──────────────────────────────────────────────────────────────
+   Ported from showstaff.html's RIBBONS / ribbon(). */
+
+/**
+ * Ribbon colours by placing, in order. Ported verbatim — these are the
+ * traditional colours, not a palette choice: blue is first, red second, and an
+ * organizer counting ribbons to bring recognises the list by sight.
+ *
+ * Eight, not the design export's six — the legacy list runs to Purple and
+ * Brown, and a class can award up to twenty places. Beyond eight, a placing
+ * shows a neutral chip rather than inventing a colour.
+ */
+export const RIBBONS = [
+  { place: '1st', name: 'Blue', bg: '#1E5AA8', fg: '#FFFFFF' },
+  { place: '2nd', name: 'Red', bg: '#C0392B', fg: '#FFFFFF' },
+  { place: '3rd', name: 'Yellow', bg: '#E4B21E', fg: '#3A2F00' },
+  { place: '4th', name: 'White', bg: '#FFFFFF', fg: '#22271F' },
+  { place: '5th', name: 'Pink', bg: '#E58FB0', fg: '#4A1F30' },
+  { place: '6th', name: 'Green', bg: '#2E7D46', fg: '#FFFFFF' },
+  { place: '7th', name: 'Purple', bg: '#6B4E9E', fg: '#FFFFFF' },
+  { place: '8th', name: 'Brown', bg: '#7A5230', fg: '#FFFFFF' },
+] as const;
+
+/** Mirrors legacy's `ribbon(i)` fallback for placings past the named colours. */
+export const RIBBON_FALLBACK = { place: '', name: '', bg: '#E7EEE9', fg: '#1F3A2E' } as const;
+
+export function ribbonFor(index: number): {
+  place: string;
+  name: string;
+  bg: string;
+  fg: string;
+} {
+  return RIBBONS[index] ?? { ...RIBBON_FALLBACK, place: `${String(index + 1)}th` };
+}

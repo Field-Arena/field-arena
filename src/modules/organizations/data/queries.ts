@@ -21,6 +21,8 @@ export interface MemberRow {
   membershipStatus: string;
   membershipExpires: string | null;
   notes: string | null;
+  /** Columns an imported list brought in beyond the fields above. */
+  extraFields: Record<string, string>;
 }
 
 export async function listMembers(orgId: string): Promise<MemberRow[]> {
@@ -29,7 +31,7 @@ export async function listMembers(orgId: string): Promise<MemberRow[]> {
   const { data, error } = await supabase
     .from('member_database')
     .select(
-      'id, name, first_name, last_name, email, phone, role, membership_status, membership_expires, notes'
+      'id, name, first_name, last_name, email, phone, role, membership_status, membership_expires, notes, extra_fields'
     )
     .eq('org_id', orgId)
     .order('name');
@@ -46,6 +48,7 @@ export async function listMembers(orgId: string): Promise<MemberRow[]> {
     membershipStatus: m.membership_status ?? 'active',
     membershipExpires: m.membership_expires,
     notes: m.notes,
+    extraFields: (m.extra_fields ?? {}) as Record<string, string>,
   }));
 }
 

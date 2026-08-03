@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { MapPin, CheckCircle2 } from 'lucide-react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatCard } from '@/shared/ui/organizer/stat-card';
@@ -8,6 +9,7 @@ import { IconBarn } from '@/shared/ui/organizer/icons';
 import { VENUE_STAT_TINTS } from '../constants';
 import { VenueFormDialog } from './venue-form-dialog';
 import { useDeleteVenue } from '../hooks/use-venue-mutations';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import type { VenueListItem } from '../types';
 
 /**
@@ -29,14 +31,10 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
   const inUseCount = venues.filter((v) => v.showCount > 0).length;
   const withRingsCount = venues.filter((v) => v.rings.length > 0).length;
 
+  const [pendingDelete, setPendingDelete] = useState<VenueListItem | null>(null);
+
   function handleDelete(venue: VenueListItem) {
-    const message =
-      venue.showCount > 0
-        ? `Delete "${venue.name}"? ${String(venue.showCount)} show${venue.showCount === 1 ? '' : 's'} at this venue currently use${venue.showCount === 1 ? 's' : ''} its saved ring layout — deleting it won't change what those shows already copied, they'll just lose the link back to this venue.`
-        : `Delete "${venue.name}"? This can't be undone.`;
-    if (window.confirm(message)) {
-      deleteVenue.mutate(venue.id);
-    }
+    setPendingDelete(venue);
   }
 
   return (
@@ -126,6 +124,29 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
           </div>
         )}
       </Card>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(next) => {
+          if (!next) setPendingDelete(null);
+        }}
+        title={pendingDelete ? `Delete "${pendingDelete.name}"?` : 'Delete venue?'}
+        description={
+          pendingDelete && pendingDelete.showCount > 0
+            ? `${String(pendingDelete.showCount)} show${pendingDelete.showCount === 1 ? '' : 's'} at this venue currently use${pendingDelete.showCount === 1 ? 's' : ''} its saved ring layout. Deleting it won't change what those shows already copied — they'll just lose the link back to this venue.`
+            : "This can't be undone."
+        }
+        confirmLabel={deleteVenue.isPending ? 'Deleting…' : 'Delete venue'}
+        destructive
+        pending={deleteVenue.isPending}
+        onConfirm={() => {
+          if (!pendingDelete) return;
+          deleteVenue.mutate(pendingDelete.id, {
+            onSuccess: () => {
+              setPendingDelete(null);
+            },
+          });
+        }}
+      />
     </div>
   );
 }
