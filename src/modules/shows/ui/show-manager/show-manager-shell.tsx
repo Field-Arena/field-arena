@@ -116,7 +116,7 @@ export function ShowManagerShell({
           <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
         </div>
 
-        <ShowStatsRow stats={stats} canViewMoney={canViewMoney} />
+        <ShowStatsRow stats={stats} canViewMoney={canViewMoney} showId={showId} />
       </Card>
 
       <div className="flex flex-col gap-4">{children}</div>

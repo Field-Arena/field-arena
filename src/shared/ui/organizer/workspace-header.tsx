@@ -125,7 +125,7 @@ export function WorkspaceHeader({
           {trailingSlot && <span className="ml-auto">{trailingSlot}</span>}
         </div>
 
-        <ShowStatsRow stats={stats} canViewMoney={canViewMoney} />
+        <ShowStatsRow stats={stats} canViewMoney={canViewMoney} showId={currentShow?.id} />
 
         {rings.length > 0 && (
           <div className="mt-4 flex items-stretch overflow-hidden rounded-[10px] border border-[#E9EDEB]">

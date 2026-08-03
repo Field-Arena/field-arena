@@ -135,7 +135,7 @@ export function DashboardOverview({
         </div>
 
         <div className="mb-4">
-          <ShowStatsRow stats={stats} canViewMoney={canViewMoney} />
+          <ShowStatsRow stats={stats} canViewMoney={canViewMoney} showId={currentShow.id} />
         </div>
 
         {canViewMoney && stats.entryValue > 0 && stats.settledRevenue === 0 && (

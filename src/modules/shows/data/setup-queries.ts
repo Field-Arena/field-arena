@@ -1563,3 +1563,185 @@ export async function getShowAwards(
     ribbonTotal: ribbonCounts.reduce((sum, n) => sum + (n || 0), 0),
   };
 }
+
+/* ── Riders and Entries lists ────────────────────────────────────────────
+   Ported from showstaff.html's showRidersList / showTicketsList — the two
+   screens the Dashboard's "Total riders" and "Entries sold" cards open. */
+
+export interface RiderListRow {
+  num: string;
+  name: string;
+  horse: string;
+  /** Class names this rider is entered in, in the order they were read. */
+  classes: string[];
+  /** Sum of the fees for those classes — what the entries are worth. */
+  total: number;
+}
+
+export interface ShowRiders {
+  showId: string;
+  showName: string;
+  startDate: string | null;
+  riders: RiderListRow[];
+  /** num → which day indices they are on site, from the built schedule. */
+  onSiteByDay: Record<number, string[]>;
+  totalDays: number;
+}
+
+/**
+ * Everyone registered for a show, one row each.
+ *
+ * A "rider" here is a bib number, not an account — the same thing showRiders()
+ * meant. One person entering two horses is two rows, because that is how they
+ * appear at the in-gate and on the roster an organizer prints.
+ *
+ * The day filter comes from the built schedule rather than any check-in record:
+ * who is on site on a given day is exactly who has a ride scheduled that day.
+ */
+export async function getShowRiders(showId: string): Promise<ShowRiders | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, start_date')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, fee')
+    .eq('show_id', showId);
+  if (classError) throw classError;
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const classIds = classes.map((c) => c.id);
+
+  let entries: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse')
+      .in('class_id', classIds);
+    if (error) throw error;
+    entries = data;
+  }
+
+  const byNum = new Map<string, RiderListRow>();
+  for (const entry of entries) {
+    const cls = classById.get(entry.class_id);
+    const row = byNum.get(entry.num) ?? {
+      num: entry.num,
+      name: entry.rider ?? '',
+      horse: entry.horse ?? '',
+      classes: [],
+      total: 0,
+    };
+    if (cls) {
+      row.classes.push(cls.display_name ?? cls.label);
+      row.total += cls.fee ?? 0;
+    }
+    byNum.set(entry.num, row);
+  }
+
+  const schedule = await getMasterSchedule(showId);
+  const onSiteByDay: Record<number, string[]> = {};
+  let totalDays = 0;
+
+  for (const arena of schedule?.schedule.arenas ?? []) {
+    for (const item of arena.items) {
+      if (item.type !== 'ride') continue;
+      totalDays = Math.max(totalDays, item.day + 1);
+      const list = onSiteByDay[item.day] ?? [];
+      if (!list.includes(item.num)) list.push(item.num);
+      onSiteByDay[item.day] = list;
+    }
+  }
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    startDate: show.start_date,
+    riders: [...byNum.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    onSiteByDay,
+    totalDays,
+  };
+}
+
+export interface EntryListRow {
+  cls: string;
+  fee: number;
+  rider: string;
+  num: string;
+  horse: string;
+}
+
+export interface ShowEntries {
+  showId: string;
+  showName: string;
+  entries: EntryListRow[];
+  classes: string[];
+}
+
+/**
+ * Every class entry sold, one item each.
+ *
+ * Grouped by class at render, because the question this screen is opened to
+ * answer is "how full is each class", not "list every entry" — a flat A–Z list
+ * technically showed the same rows but made the count something you had to
+ * work out by reading.
+ */
+export async function getShowEntries(showId: string): Promise<ShowEntries | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, fee')
+    .eq('show_id', showId);
+  if (classError) throw classError;
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const classIds = classes.map((c) => c.id);
+
+  let rows: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
+  if (classIds.length > 0) {
+    const { data, error } = await supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse')
+      .in('class_id', classIds);
+    if (error) throw error;
+    rows = data;
+  }
+
+  const entries: EntryListRow[] = [];
+  for (const row of rows) {
+    const cls = classById.get(row.class_id);
+    if (!cls) continue;
+    entries.push({
+      cls: cls.display_name ?? cls.label,
+      fee: cls.fee ?? 0,
+      rider: row.rider ?? '',
+      num: row.num,
+      horse: row.horse ?? '',
+    });
+  }
+
+  // Class A–Z, then rider A–Z within it — the order the printed class list uses.
+  entries.sort((a, b) => a.cls.localeCompare(b.cls) || a.rider.localeCompare(b.rider));
+
+  return {
+    showId: show.id,
+    showName: show.name,
+    entries,
+    classes: [...new Set(entries.map((e) => e.cls))].sort((a, b) => a.localeCompare(b)),
+  };
+}
