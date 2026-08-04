@@ -118,6 +118,7 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
               />
               <input
                 type="search"
+                autoComplete="off"
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);

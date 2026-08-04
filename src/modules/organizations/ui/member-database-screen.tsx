@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
+import { SearchInput } from '@/shared/ui/organizer/search-input';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -206,14 +207,15 @@ export function MemberDatabaseScreen({
         </p>
 
         <div className="relative mb-3 flex flex-wrap gap-2">
-          <input
+          <SearchInput
             type="text"
             placeholder="Search name or email…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
             }}
-            className="focus-visible:border-gold min-w-[180px] flex-1 rounded-[8px] border border-[#D9E1DD] px-3 py-2 text-[13.5px] outline-none"
+            containerClassName="min-w-[180px] basis-auto"
+            className="rounded-[8px] py-2 text-[13.5px]"
           />
           <select
             value={roleFilter}

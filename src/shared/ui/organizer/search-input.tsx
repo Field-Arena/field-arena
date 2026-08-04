@@ -6,7 +6,12 @@ export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputEle
   containerClassName?: string;
 }
 
-export function SearchInput({ containerClassName, className, ...props }: SearchInputProps) {
+export function SearchInput({
+  containerClassName,
+  className,
+  autoComplete = 'off',
+  ...props
+}: SearchInputProps) {
   return (
     <span
       className={cn(
@@ -29,6 +34,7 @@ export function SearchInput({ containerClassName, className, ...props }: SearchI
         <path d="M21 21l-4.3-4.3" />
       </svg>
       <input
+        autoComplete={autoComplete}
         className={cn(
           'w-full box-border rounded-[10px] border border-[#D9E1DD] bg-white',
           'py-[11px] pl-9 pr-3.5 text-[13.5px] text-[#16261F]',
