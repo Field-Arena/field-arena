@@ -606,3 +606,184 @@ async function listStripePayouts(orgId: string): Promise<OrgPayoutRow[]> {
     return [];
   }
 }
+
+/* ── Needs your attention ────────────────────────────────────────────────
+   Ported from showstaff.html's attentionItems(). Every item is computed from
+   data that is already real — nothing is invented just to have something to
+   show, which is what the legacy comment insists on and what makes the panel
+   worth reading at all. */
+
+export interface AttentionItem {
+  /** 'warn' blocks the show going live; 'info' wants a decision, not a fix. */
+  severity: 'warn' | 'info';
+  label: string;
+  detail: string;
+  actionLabel: string;
+  href: string;
+}
+
+/**
+ * Reads `shows.ticket_close`, which is stored as `YYYY-MM-DD · HH:MM`.
+ *
+ * Not an ISO timestamp and not parseable by `new Date()` directly — the legacy
+ * wrote this shape from two different screens and the column kept it. Anything
+ * that does not match is treated as unset rather than guessed at, because a
+ * misparsed close date would either hide a real deadline or invent one.
+ */
+function ticketCloseAt(value: string | null): number | null {
+  if (!value) return null;
+  const match = /^(\d{4}-\d{2}-\d{2})\s*·\s*(\d{2}:\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const time = new Date(`${match[1] ?? ''}T${match[2] ?? ''}:00`).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+/**
+ * Everything about this show that wants the organizer's attention right now.
+ *
+ * Sits above the stat cards because "is anything broken" is the first question
+ * on landing, and a grid of equally-weighted tiles answers it last. Warnings
+ * come before information: a show that cannot go live outranks a vendor
+ * application waiting on a decision.
+ */
+export async function getShowAttention(showId: string): Promise<AttentionItem[]> {
+  const supabase = await createServerClient();
+
+  const { data: show, error } = await supabase
+    .from('shows')
+    .select('id, name, published, ticket_close, runner_state, waiver_text, waiver_approved_text')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!show) return [];
+
+  const setupHref = `/dashboard/shows/${showId}`;
+  const items: AttentionItem[] = [];
+
+  // ── Lifecycle deadlines ──
+  //
+  // Gated on `published` alone. The legacy also excluded shows whose status was
+  // 'blue', its colour code for finished — our `status` column does not carry
+  // that vocabulary, so porting the comparison would have been a condition that
+  // silently never matched. An unpublished show needs publishing regardless.
+  if (!show.published) {
+    items.push({
+      severity: 'warn',
+      label: "Show isn't published yet",
+      detail: `Riders can't see or enter ${show.name} until it's published.`,
+      actionLabel: 'Go to Setup',
+      href: setupHref,
+    });
+  }
+
+  const closeAt = ticketCloseAt(show.ticket_close);
+  if (closeAt !== null) {
+    const days = Math.ceil((closeAt - Date.now()) / 86_400_000);
+    // Only the last week. A deadline three months out is not attention-worthy,
+    // and one already past is a different problem than an approaching one.
+    if (days >= 0 && days <= 7) {
+      items.push({
+        severity: 'warn',
+        label: `Ticket sales close in ${days === 0 ? 'less than a day' : `${String(days)} day${days === 1 ? '' : 's'}`}`,
+        detail: `Sales close ${show.ticket_close ?? ''}.`,
+        actionLabel: 'Review',
+        href: setupHref,
+      });
+    }
+  }
+
+  // ── Schedule ──
+  const runner = (show.runner_state ?? {}) as { approved?: boolean };
+  if (runner.approved !== true) {
+    items.push({
+      severity: 'warn',
+      label: "Schedule hasn't been approved",
+      detail: 'The built schedule is still pending your review.',
+      actionLabel: 'Review schedule',
+      href: `/dashboard/shows/${showId}/schedule`,
+    });
+  }
+
+  /**
+   * Go-live readiness, the same two checks Run Show itself makes.
+   *
+   * Surfaced here rather than only at the moment someone clicks Run Show,
+   * where it arrives as a surprise refusal.
+   */
+  const { count: classCount } = await supabase
+    .from('classes')
+    .select('id', { count: 'exact', head: true })
+    .eq('show_id', showId);
+
+  let entryCount = 0;
+  if ((classCount ?? 0) > 0) {
+    const { data: classes } = await supabase.from('classes').select('id').eq('show_id', showId);
+    const ids = (classes ?? []).map((c) => c.id);
+    if (ids.length > 0) {
+      const { count } = await supabase
+        .from('class_entries')
+        .select('id', { count: 'exact', head: true })
+        .in('class_id', ids);
+      entryCount = count ?? 0;
+    }
+  }
+
+  if (entryCount === 0) {
+    items.push({
+      severity: 'warn',
+      label: 'Not ready to go live',
+      detail: 'No classes have any real entries yet.',
+      actionLabel: 'Fix it',
+      href: `/dashboard/shows/${showId}/select-events`,
+    });
+  } else if (!show.waiver_approved_text || show.waiver_approved_text !== show.waiver_text) {
+    // Approved, and not silently edited since — riders are about to sign
+    // whatever is in that box, so an unreviewed draft is not good enough.
+    items.push({
+      severity: 'warn',
+      label: 'Not ready to go live',
+      detail:
+        'The waiver of liability hasn\'t been approved yet — go to Setup and click "Approve this waiver".',
+      actionLabel: 'Fix it',
+      href: setupHref,
+    });
+  }
+
+  // ── Waiting on a decision ──
+  const [{ count: pendingVendors }, { count: pendingStaff }] = await Promise.all([
+    supabase
+      .from('vendor_bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('show_id', showId)
+      .eq('status', 'pending'),
+    supabase
+      .from('staff_assignments')
+      .select('id', { count: 'exact', head: true })
+      .eq('show_id', showId)
+      .eq('status', 'pending'),
+  ]);
+
+  if ((pendingVendors ?? 0) > 0) {
+    const n = pendingVendors ?? 0;
+    items.push({
+      severity: 'info',
+      label: `${String(n)} vendor application${n === 1 ? '' : 's'} waiting on you`,
+      detail: 'New bookings need review before they\'re confirmed.',
+      actionLabel: 'Review vendors',
+      href: '/dashboard/vendor',
+    });
+  }
+
+  if ((pendingStaff ?? 0) > 0) {
+    const n = pendingStaff ?? 0;
+    items.push({
+      severity: 'info',
+      label: `${String(n)} staff invite${n === 1 ? '' : 's'} not yet accepted`,
+      detail: "They won't have access until they accept.",
+      actionLabel: 'Review staff',
+      href: '/dashboard/users',
+    });
+  }
+
+  return items;
+}
