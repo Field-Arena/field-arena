@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
+import { isStaleAccountError } from '@/shared/lib/stripe-errors';
+import { env } from '@/shared/lib/env';
 import {
   completeOrgProfileSchema,
   addOrgMemberSchema,
@@ -455,4 +458,93 @@ export async function addMembersToShow(
   revalidatePath(MEMBERS_PATH);
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
   return { added: staffRows.length + vendorRows.length, skipped, ridersSkipped };
+}
+
+/**
+ * Starts — or resumes — Stripe Connect Express onboarding, ported from
+ * POST /api/organizations/:id/connect.
+ *
+ * Returns the hosted Stripe URL for the caller to send the browser to. The
+ * organization is `requireOrgId()`'s, never one named in the request: creating
+ * a Connect account against someone else's organization would attach their
+ * payouts to a bank account the caller controls.
+ *
+ * The account is created once and its id stored; calling this again for an
+ * organization that abandoned onboarding half-way mints a fresh link onto the
+ * SAME account rather than a second one, because Stripe account links expire
+ * after a few minutes and a resumed onboarding must not start over.
+ */
+export async function startStripeConnect(): Promise<{ url: string }> {
+  if (!isStripeConfigured()) {
+    throw new Error('Stripe is not configured on this environment yet.');
+  }
+
+  const orgId = await requireOrgId();
+  const supabase = await createServerClient();
+
+  const { data: org, error: readError } = await supabase
+    .from('organizations')
+    .select('email, stripe_connect_account_id')
+    .eq('id', orgId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const stripe = getStripeClient();
+  let accountId = org.stripe_connect_account_id;
+
+  /**
+   * A stored account id is only good for the platform that created it.
+   *
+   * Swapping STRIPE_SECRET_KEY — a different client's account, or the eventual
+   * test-to-live cutover — leaves every stored `acct_...` pointing at another
+   * platform's account, and Stripe rejects both retrieving it and minting a
+   * link for it. Rather than dead-ending on "not connected to your platform",
+   * the id is dropped and a fresh account is created under the current keys.
+   *
+   * Only a 4xx from Stripe counts. A network failure or an outage must NOT
+   * discard a perfectly good account id and start the organizer's onboarding
+   * over — so anything else is rethrown.
+   */
+  if (accountId) {
+    try {
+      await stripe.accounts.retrieve(accountId);
+    } catch (error) {
+      if (!isStaleAccountError(error)) throw error;
+      accountId = null;
+    }
+  }
+
+  if (!accountId) {
+    // US-only at launch, and both capabilities requested up front: card_payments
+    // because Field & Arena is merchant of record, transfers because the payout
+    // is a separate transfer afterward.
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: 'US',
+      email: org.email ?? undefined,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+    accountId = account.id;
+
+    const { error } = await supabase
+      .from('organizations')
+      .update({ stripe_connect_account_id: accountId })
+      .eq('id', orgId);
+    if (error) throw new Error(error.message);
+  }
+
+  const link = await stripe.accountLinks.create({
+    account: accountId,
+    type: 'account_onboarding',
+    // Stripe sends the organizer back here either way: return_url when they
+    // finish, refresh_url when the link expired before they did.
+    return_url: `${env.siteUrl}/dashboard/billing?connect=done`,
+    refresh_url: `${env.siteUrl}/dashboard/billing?connect=refresh`,
+  });
+
+  revalidatePath('/dashboard/billing');
+  return { url: link.url };
 }

@@ -1,13 +1,25 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowPnl } from '@/modules/shows/data/setup-queries';
-import { getOrgStripeAccountId } from '@/modules/shows/data/queries';
+import type { StripeConnectStatus } from '@/modules/shows/data/queries';
+import { getOrgBilling, getStripeConnectStatus } from '@/modules/shows/data/queries';
 import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { BillingBlocks } from '@/modules/shows/ui/financial/billing-blocks';
 import { PnlPanel } from '@/modules/shows/ui/financial/pnl-panel';
 import { PnlPrintReport } from '@/modules/shows/ui/financial/pnl-print-report';
 
 export const metadata: Metadata = { title: 'Financial — Field & Arena' };
+
+/** A caller with no organization has nothing to connect — see getOrganizerContext. */
+const NO_ORG_CONNECT: StripeConnectStatus = {
+  configured: false,
+  connected: false,
+  accountId: null,
+  status: 'not_started',
+  chargesEnabled: false,
+  payoutsEnabled: false,
+  requirementsDue: [],
+};
 
 /**
  * The Financial tab, ported from showstaff.html's renderBilling.
@@ -32,7 +44,7 @@ export default async function FinancialPage({
     return (
       <WorkspacePage
         title="Financial"
-        description="Revenue, expenses and payouts for a show."
+        description="Invoices, payouts, and financial reporting."
         orgName={context.orgName}
         showPicker={false}
       >
@@ -45,7 +57,7 @@ export default async function FinancialPage({
     return (
       <WorkspacePage
         title="Financial"
-        description="Revenue, expenses and payouts for a show."
+        description="Invoices, payouts, and financial reporting."
         orgName={context.orgName}
         shows={context.shows}
         currentShow={context.currentShow}
@@ -58,15 +70,19 @@ export default async function FinancialPage({
     );
   }
 
-  const [pnl, stripeAccountId] = await Promise.all([
+  const [pnl, connect, billing] = await Promise.all([
     getShowPnl(context.currentShow.id),
-    context.orgId ? getOrgStripeAccountId(context.orgId) : Promise.resolve(null),
+    context.orgId ? getStripeConnectStatus(context.orgId) : Promise.resolve(NO_ORG_CONNECT),
+    // Charges and Deposits are organization-wide, not per-show — the legacy
+    // endpoint reads every show the org owns, and the cards say "across every
+    // show" on their face.
+    context.orgId ? getOrgBilling(context.orgId) : Promise.resolve({ charges: [], payouts: [] }),
   ]);
 
   return (
     <WorkspacePage
       title="Financial"
-      description="Revenue, expenses and payouts for a show."
+      description="Invoices, payouts, and financial reporting."
       orgName={context.orgName}
       shows={context.shows}
       currentShow={context.currentShow}
@@ -75,7 +91,7 @@ export default async function FinancialPage({
           @media print block in dashboard.css, which hides the workspace and
           leaves only [data-print-report] standing. */}
       <div className="flex flex-col gap-4">
-        <BillingBlocks stripeAccountId={stripeAccountId} />
+        <BillingBlocks connect={connect} billing={billing} />
         {pnl && <PnlPanel pnl={pnl} canViewMoney={context.canViewMoney} />}
       </div>
 

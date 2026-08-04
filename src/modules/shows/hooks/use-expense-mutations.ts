@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { saveShowExpenses, seedDefaultExpenses } from '../data/mutations';
+import { saveShowExpenses } from '../data/mutations';
 import type { SaveShowExpensesInput } from '../schemas';
 
 /**
@@ -28,21 +28,3 @@ export function useSaveShowExpenses() {
   });
 }
 
-export function useSeedDefaultExpenses() {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: (showId: string) => seedDefaultExpenses(showId),
-    onSuccess: ({ seeded }) => {
-      toast.success(
-        seeded === 0
-          ? 'This show already has expense lines'
-          : `${String(seeded)} common cost lines added — set the amounts that apply`
-      );
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not add the default expenses'));
-    },
-  });
-}

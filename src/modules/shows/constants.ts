@@ -496,11 +496,34 @@ export const RIBBONS = [
 /** Mirrors legacy's `ribbon(i)` fallback for placings past the named colours. */
 export const RIBBON_FALLBACK = { place: '', name: '', bg: '#E7EEE9', fg: '#1F3A2E' } as const;
 
-export function ribbonFor(index: number): {
+export interface RibbonColor {
+  name: string;
+  bg: string;
+  fg: string;
+}
+
+/** Placing label for a zero-based rank: 1st, 2nd, 3rd, then 4th onward. */
+function placeLabel(index: number): string {
+  return RIBBONS[index]?.place ?? `${String(index + 1)}th`;
+}
+
+/**
+ * The ribbon for a zero-based placing, ported from legacy `ribbon(i, override)`.
+ *
+ * A class carrying its own colours (a championship with sponsor ribbons, say)
+ * wins over the standard order; past the end of either list the placing gets a
+ * neutral chip rather than an invented colour.
+ */
+export function ribbonFor(
+  index: number,
+  override?: RibbonColor[] | null
+): {
   place: string;
   name: string;
   bg: string;
   fg: string;
 } {
-  return RIBBONS[index] ?? { ...RIBBON_FALLBACK, place: `${String(index + 1)}th` };
+  const custom = override?.[index];
+  if (custom) return { place: placeLabel(index), ...custom };
+  return RIBBONS[index] ?? { ...RIBBON_FALLBACK, place: placeLabel(index) };
 }

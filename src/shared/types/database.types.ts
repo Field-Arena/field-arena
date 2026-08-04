@@ -196,7 +196,9 @@ export type Database = {
         Row: {
           advanced_past: boolean | null
           class_id: string
+          collective_total: number | null
           correction: string | null
+          division: string
           draw: number | null
           final_pct: string | null
           finalized_at: string | null
@@ -217,7 +219,9 @@ export type Database = {
         Insert: {
           advanced_past?: boolean | null
           class_id: string
+          collective_total?: number | null
           correction?: string | null
+          division?: string
           draw?: number | null
           final_pct?: string | null
           finalized_at?: string | null
@@ -238,7 +242,9 @@ export type Database = {
         Update: {
           advanced_past?: boolean | null
           class_id?: string
+          collective_total?: number | null
           correction?: string | null
+          division?: string
           draw?: number | null
           final_pct?: string | null
           finalized_at?: string | null
