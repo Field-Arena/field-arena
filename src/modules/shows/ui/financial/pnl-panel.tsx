@@ -1,16 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Loader2Icon, PrinterIcon } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { PrinterIcon } from 'lucide-react';
 import { Card } from '@/shared/ui/organizer/card';
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import type { ShowExpense, ShowPnl } from '../../data/setup-queries';
-import {
-  useSaveShowExpenses,
-  useSeedDefaultExpenses,
-} from '../../hooks/use-expense-mutations';
-import { SM_CARD_PAD, SM_ROW_INPUT, SM_GREEN_BTN, SM_GHOST_BTN } from '../show-manager/tokens';
+import { useSaveShowExpenses } from '../../hooks/use-expense-mutations';
+import { SM_CARD_PAD, SM_ROW_INPUT, SM_GHOST_BTN } from '../show-manager/tokens';
 
 const TITLE = 'font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest';
 
@@ -181,8 +178,18 @@ function RevenueBreakdown({ pnl }: { pnl: ShowPnl }) {
 
       <div className="mt-4 flex items-center justify-between border-t border-[#E9EDEB] pt-2.5 text-[13.5px] font-bold text-forest">
         <span>Total revenue</span>
-        <span>{formatMoneyExact(pnl.revenueTotal)}</span>
+        <span>{formatMoneyExact(pnl.breakdownTotal)}</span>
       </div>
+
+      {/* The two numbers answer different questions and can legitimately
+          disagree — see ShowPnl.breakdownTotal. Saying so beats leaving an
+          organizer to spot the gap and doubt both. */}
+      {Math.round(pnl.breakdownTotal * 100) !== Math.round(pnl.revenueTotal * 100) && (
+        <p className="mt-1.5 text-[11.5px] text-[#98A29D]">
+          Collected {formatMoneyExact(pnl.revenueTotal)} — the difference is discounts, comps or
+          catalog prices that changed after the sale.
+        </p>
+      )}
     </>
   );
 }
@@ -199,42 +206,28 @@ function ExpenseEditor({ showId, expenses }: { showId: string; expenses: ShowExp
   const [draft, setDraft] = useState('');
 
   const save = useSaveShowExpenses();
-  const seed = useSeedDefaultExpenses();
+  // Ids only have to be unique within this list. The legacy expenseId() used a
+  // timestamp, which cannot be generated during render without breaking
+  // hydration, so a counter that starts past the seeded rows does the job.
+  const nextId = useRef(0);
 
   function commit(next: ShowExpense[]) {
     setRows(next);
     save.mutate({ showId, expenses: next });
   }
 
+  /**
+   * Adds the typed line, or an empty one to name in place.
+   *
+   * An empty add is deliberate, matching addSmExpense: pressing the button with
+   * nothing typed gives a blank row to fill in directly, which is how someone
+   * adding several lines in a row actually works.
+   */
   function add() {
-    const label = draft.trim();
-    if (!label) return;
-    // Time-free id: the legacy expenseId() used a timestamp, which cannot be
-    // generated during render here without breaking hydration.
-    const id = `exp-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}-${String(rows.length)}`;
-    commit([...rows, { id, label, amount: 0 }]);
+    nextId.current += 1;
+    const id = `exp-new-${String(nextId.current)}`;
+    commit([...rows, { id, label: draft.trim(), amount: 0 }]);
     setDraft('');
-  }
-
-  if (rows.length === 0) {
-    return (
-      <div>
-        <p className="mb-3 text-[13px] italic text-[#98A29D]">
-          No expenses recorded yet for this show.
-        </p>
-        <button
-          type="button"
-          className={SM_GREEN_BTN}
-          disabled={seed.isPending}
-          onClick={() => {
-            seed.mutate(showId);
-          }}
-        >
-          {seed.isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
-          Add the common cost lines
-        </button>
-      </div>
-    );
   }
 
   return (
@@ -257,7 +250,9 @@ function ExpenseEditor({ showId, expenses }: { showId: string; expenses: ShowExp
                 setRows(next);
               }}
               onBlur={() => {
-                commit(rows);
+                // Trimmed on save, as updateSmExpenseLabel does — a stray space
+                // is not a rename worth storing.
+                commit(rows.map((r) => ({ ...r, label: r.label.trim() })));
               }}
               aria-label={`${row.label} name`}
             />
@@ -306,7 +301,7 @@ function ExpenseEditor({ showId, expenses }: { showId: string; expenses: ShowExp
           }}
           aria-label="New expense name"
         />
-        <button type="button" className={SM_GHOST_BTN} onClick={add} disabled={!draft.trim()}>
+        <button type="button" className={SM_GHOST_BTN} onClick={add}>
           + Add expense
         </button>
       </div>

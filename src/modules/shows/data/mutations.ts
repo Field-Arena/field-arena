@@ -45,7 +45,7 @@ import {
   createDocumentUploadUrlSchema,
   registerShowDocumentSchema,
 } from '../schemas';
-import { VENDOR_SPACE_TEMPLATE, DEFAULT_SHOW_EXPENSES } from '../constants';
+import { VENDOR_SPACE_TEMPLATE } from '../constants';
 import { formatDateShort } from '@/shared/lib/format/date';
 
 /**
@@ -1250,40 +1250,6 @@ export async function saveShowExpenses(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard/billing');
-}
-
-/**
- * Seeds the default cost lines onto a show that has none.
- *
- * The legacy build did this lazily inside ensureShowExtras, so an organizer who
- * had never opened Billing still had the list waiting. Here it is explicit and
- * only ever fills an empty list — re-running it never duplicates or resets what
- * an organizer has already edited.
- */
-export async function seedDefaultExpenses(showId: string): Promise<{ seeded: number }> {
-  const supabase = await createServerClient();
-
-  const { data: show, error: readError } = await supabase
-    .from('shows')
-    .select('expenses')
-    .eq('id', showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const current = (show.expenses ?? []) as unknown[];
-  if (current.length > 0) return { seeded: 0 };
-
-  const expenses = DEFAULT_SHOW_EXPENSES.map((label, index) => ({
-    id: `exp-${String(index)}`,
-    label,
-    amount: 0,
-  }));
-
-  const { error } = await supabase.from('shows').update({ expenses }).eq('id', showId);
-  if (error) throw new Error(error.message);
-
-  revalidatePath('/dashboard/billing');
-  return { seeded: expenses.length };
 }
 
 /**

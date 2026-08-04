@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
-import { PrintDate } from './print-date';
+import { PrintDate } from '@/shared/ui/print-date';
 import type { ShowPnl } from '../../data/setup-queries';
 
 /**

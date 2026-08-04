@@ -1,5 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
+import { isStaleAccountError } from '@/shared/lib/stripe-errors';
 
 /**
  * Organizer-workspace reads.
@@ -414,4 +416,193 @@ export async function getOrgStripeAccountId(orgId: string): Promise<string | nul
   if (error) throw error;
 
   return data?.stripe_connect_account_id ?? null;
+}
+
+export interface StripeConnectStatus {
+  configured: boolean;
+  connected: boolean;
+  accountId: string | null;
+  /** 'not_started' until an account exists, then Stripe's own verdict. */
+  status: 'not_started' | 'onboarding' | 'restricted' | 'active' | 'error';
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  /** What Stripe is still waiting on, shown verbatim so it can be acted on. */
+  requirementsDue: string[];
+}
+
+/**
+ * The live Connect state, ported from GET /api/organizations/:id/connect.
+ *
+ * Read from Stripe on every render rather than cached in our own column,
+ * because the organization's standing changes on Stripe's side — a verification
+ * clearing, or a document expiring — with nothing to tell us about it. The only
+ * thing we store is the account id.
+ *
+ * A Stripe outage degrades to 'error' instead of throwing: the Financial tab is
+ * mostly revenue and expenses, and none of that should disappear because a
+ * status pill could not be drawn.
+ */
+export async function getStripeConnectStatus(orgId: string): Promise<StripeConnectStatus> {
+  const base = {
+    configured: isStripeConfigured(),
+    connected: false,
+    accountId: null,
+    chargesEnabled: false,
+    payoutsEnabled: false,
+    requirementsDue: [],
+  };
+
+  const accountId = await getOrgStripeAccountId(orgId);
+  if (!base.configured || !accountId) {
+    return { ...base, accountId, status: 'not_started' };
+  }
+
+  try {
+    const account = await getStripeClient().accounts.retrieve(accountId);
+    const { charges_enabled: chargesEnabled, payouts_enabled: payoutsEnabled } = account;
+
+    return {
+      ...base,
+      connected: true,
+      accountId,
+      // Legacy's own ladder: fully enabled is active; a disabled_reason means
+      // Stripe has stopped the account and wants something; anything else is
+      // still working through onboarding.
+      status: chargesEnabled && payoutsEnabled
+        ? 'active'
+        : account.requirements?.disabled_reason
+          ? 'restricted'
+          : 'onboarding',
+      chargesEnabled,
+      payoutsEnabled,
+      requirementsDue: account.requirements?.currently_due ?? [],
+    };
+  } catch (error) {
+    /**
+     * An account these keys cannot see is not an outage — it is an account
+     * belonging to a different Stripe platform, left behind by a key swap.
+     * Reporting it as "not started" is both true and actionable: the connect
+     * button then offers to create one, and startStripeConnect replaces the
+     * stale id. Calling it an error would leave the organizer looking at a
+     * dead account id with nothing to do about it.
+     */
+    if (isStaleAccountError(error)) {
+      return { ...base, accountId: null, status: 'not_started' };
+    }
+    return { ...base, connected: true, accountId, status: 'error' };
+  }
+}
+
+export interface OrgChargeRow {
+  id: string;
+  /** The show the money was collected for. */
+  show: string;
+  date: string;
+  amount: number;
+  /** The platform fee taken out of it. */
+  fee: number;
+}
+
+export interface OrgPayoutRow {
+  id: string;
+  date: string | null;
+  status: string;
+  amount: number;
+}
+
+export interface OrgBilling {
+  /** Every paid order across the organization, newest first. */
+  charges: OrgChargeRow[];
+  /**
+   * Transfers that have actually reached the organizer's bank, newest first.
+   *
+   * Empty until Stripe Connect is onboarded — the legacy endpoint returns an
+   * empty list rather than an error for an org with no connected account, and
+   * the panel reads that as "No payouts yet."
+   */
+  payouts: OrgPayoutRow[];
+}
+
+/**
+ * The Charges / Payouts / Deposits detail behind the Financial tab's three
+ * cards, ported from GET /api/organizations/:id/org-billing.
+ *
+ * Charges and Deposits are the same paid orders framed two ways — what riders
+ * and vendors paid in, and what has landed in Field & Arena's account before a
+ * payout goes out — exactly as the legacy endpoint served them.
+ */
+export async function getOrgBilling(orgId: string): Promise<OrgBilling> {
+  const supabase = await createServerClient();
+
+  const payouts = await listStripePayouts(orgId);
+
+  const { data: shows, error: showsError } = await supabase
+    .from('shows')
+    .select('id, name')
+    .eq('org_id', orgId);
+  if (showsError) throw showsError;
+
+  if (shows.length === 0) return { charges: [], payouts };
+
+  const showNames = new Map(shows.map((s) => [s.id, s.name]));
+
+  const { data: orders, error: ordersError } = await supabase
+    .from('orders')
+    .select('id, show_id, paid_at, created_at, amount_total, fee_total')
+    .in(
+      'show_id',
+      shows.map((s) => s.id)
+    )
+    .eq('status', 'paid');
+  if (ordersError) throw ordersError;
+
+  const charges = orders
+    .map((o) => ({
+      id: o.id,
+      show: showNames.get(o.show_id) ?? '—',
+      // paid_at is null on an order marked paid without a Stripe webhook;
+      // created_at is the only date left to sort and show it by.
+      date: o.paid_at ?? o.created_at,
+      amount: o.amount_total,
+      fee: o.fee_total ?? 0,
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  return { charges, payouts };
+}
+
+/**
+ * The connected account's own payouts — money that has left Stripe for the
+ * organizer's bank, ported from the legacy endpoint's `payouts` branch.
+ *
+ * Listed against the connected account, not the platform's: a platform-level
+ * list would be Field & Arena's own bank transfers, which is a different
+ * organization's money and never what this card means.
+ *
+ * An org with no account, or a Stripe error, yields an empty list rather than
+ * failing the page — same as the legacy, which returned `{ rows: [] }` for
+ * both.
+ */
+async function listStripePayouts(orgId: string): Promise<OrgPayoutRow[]> {
+  if (!isStripeConfigured()) return [];
+
+  const accountId = await getOrgStripeAccountId(orgId);
+  if (!accountId) return [];
+
+  try {
+    const list = await getStripeClient().payouts.list(
+      { limit: 50 },
+      { stripeAccount: accountId }
+    );
+
+    return list.data.map((p) => ({
+      id: p.id,
+      // Stripe deals in the smallest currency unit and in epoch seconds.
+      amount: p.amount / 100,
+      status: p.status,
+      date: p.arrival_date ? new Date(p.arrival_date * 1000).toISOString() : null,
+    }));
+  } catch {
+    return [];
+  }
 }

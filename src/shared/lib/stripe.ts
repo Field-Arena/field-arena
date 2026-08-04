@@ -28,3 +28,15 @@ export function getStripeClient(): Stripe {
 export function isStripeLive(): boolean {
   return (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_live_');
 }
+
+/**
+ * Whether a secret key is present at all.
+ *
+ * Screens that merely *describe* Stripe — the Financial tab's connection card —
+ * render for an organization whether or not the platform has keys configured,
+ * so they ask this instead of touching `env.stripeSecretKey`, which throws by
+ * design when the variable is missing.
+ */
+export function isStripeConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
