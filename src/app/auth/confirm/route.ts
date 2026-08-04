@@ -16,17 +16,29 @@ import { ROUTES } from '@/shared/constants/routes';
  * email templates instead link here directly with `token_hash`/`type`, and
  * `verifyOtp` exchanges that for a session server-side — no PKCE code, no
  * fragment, works the same for a first click as a copy-pasted link.
+ *
+ * Where an invite should land is read from the invited user's own
+ * `user_metadata.next`, set by whichever mutation sent the invite (see
+ * `createOrganization`/`addSuperAdmin` etc.) — not from a `?next=` query
+ * param on the link. GoTrue's own `{{ .RedirectTo }}` email-template variable
+ * was tried first and confirmed, empirically, to truncate down to the bare
+ * origin regardless of `uri_allow_list` — every invite landed on `/dashboard`
+ * no matter what path was requested. `user_metadata` survives untouched
+ * because it never round-trips through GoTrue's redirect-URL handling at all.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type');
-  const next = safeNext(searchParams.get('next'));
 
   if (tokenHash && type) {
     const supabase = await createServerClient();
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) {
+      // `user_metadata` is untyped by design, so the read is widened to unknown
+      // and narrowed below rather than trusted as a string.
+      const metaNext: unknown = data.user?.user_metadata.next;
+      const next = safeNext(typeof metaNext === 'string' ? metaNext : searchParams.get('next'));
       return NextResponse.redirect(`${origin}${next}`);
     }
     return NextResponse.redirect(

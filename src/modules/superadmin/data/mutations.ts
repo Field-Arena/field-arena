@@ -115,8 +115,27 @@ export async function createOrganization(input: unknown) {
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     normalizedEmail,
     {
-      data: { name },
-      redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(ROUTES.onboarding)}`,
+      data: { name, next: ROUTES.onboarding },
+      /**
+       * Where the link actually lands is carried in `data.next` above and
+       * read back from user_metadata by /auth/confirm — not from this.
+       *
+       * `redirectTo` only exists here to satisfy inviteUserByEmail's own
+       * allow-list check on the call itself; it does NOT drive the emailed
+       * link's domain, no matter what's passed. That link is always built
+       * from `{{ .SiteURL }}` in the Supabase dashboard's invite email
+       * template — a project-level setting, entirely separate from this
+       * app's own NEXT_PUBLIC_SITE_URL. `{{ .RedirectTo }}` looks like the
+       * fix (and even appeared to work once) but was proven, by swapping
+       * Supabase's site_url for a decoy value mid-test, to just re-emit
+       * site_url regardless of what's passed here — not a real per-call
+       * value. There is no template variable that reads this app's own env;
+       * keeping Supabase's site_url in sync with NEXT_PUBLIC_SITE_URL per
+       * environment is a deploy-time step, not something this code can
+       * enforce short of sending invite emails via Resend directly instead
+       * of Supabase's built-in template.
+       */
+      redirectTo: env.siteUrl,
     }
   );
   if (inviteError) {
@@ -188,8 +207,9 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
   }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { name },
-    redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(ROUTES.onboarding)}`,
+    data: { name, next: ROUTES.onboarding },
+    // See createOrganization's invite call for why this is the bare origin.
+    redirectTo: env.siteUrl,
   });
   if (inviteError) throw new Error(inviteError.message);
 
@@ -308,8 +328,9 @@ export async function addSuperAdmin(input: unknown): Promise<{ email: string }> 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     normalizedEmail,
     {
-      data: { name },
-      redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(USERS_PATH)}`,
+      data: { name, next: USERS_PATH },
+      // See createOrganization's invite call for why this is the bare origin.
+      redirectTo: env.siteUrl,
     }
   );
   if (inviteError) {
@@ -429,7 +450,8 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
   if (!existingStaffUser && !existingRider) {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { name },
-      redirectTo: `${env.siteUrl}${ROUTES.authCallback}`,
+      // See createOrganization's invite call for why this is the bare origin.
+      redirectTo: env.siteUrl,
     });
     // Best-effort: the assignment is the grant that matters. If the invite fails
     // (e.g. the address already has an auth account), the row still stands and
