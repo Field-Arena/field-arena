@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { saveTestTemplate, deleteTestTemplate } from '../data/mutations';
 import type { SaveTestTemplateInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useSaveTestTemplate(options?: { onSuccess?: (id: string) => void }) {

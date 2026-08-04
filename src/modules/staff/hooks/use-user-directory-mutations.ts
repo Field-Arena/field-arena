@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
+import { unwrap } from '@/shared/lib/unwrap-action';
 import {
   addStaffUser,
   changeStaffRole,
@@ -24,7 +25,7 @@ export function useAddStaffUser(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: AddStaffUserInput) => addStaffUser(input),
+    mutationFn: async (input: AddStaffUserInput) => unwrap(await addStaffUser(input)),
     onSuccess: ({ email }) => {
       toast.success(`${email} added.`);
       router.refresh();
@@ -40,7 +41,7 @@ export function useChangeStaffRole() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: ChangeStaffRoleInput) => changeStaffRole(input),
+    mutationFn: async (input: ChangeStaffRoleInput) => unwrap(await changeStaffRole(input)),
     onSuccess: () => {
       toast.success('Role updated');
       router.refresh();
@@ -55,7 +56,8 @@ export function useUpdateStaffPermissions(options?: { onSuccess?: () => void }) 
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: UpdateStaffPermissionsInput) => updateStaffPermissions(input),
+    mutationFn: async (input: UpdateStaffPermissionsInput) =>
+      unwrap(await updateStaffPermissions(input)),
     onSuccess: () => {
       toast.success('Permissions saved');
       router.refresh();
@@ -71,7 +73,7 @@ export function useRemoveStaffAssignment(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (staffId: string) => removeStaffAssignment({ staffId }),
+    mutationFn: async (staffId: string) => unwrap(await removeStaffAssignment({ staffId })),
     onSuccess: () => {
       toast.success('Removed');
       router.refresh();
@@ -83,11 +85,13 @@ export function useRemoveStaffAssignment(options?: { onSuccess?: () => void }) {
   });
 }
 
-export function useImportStaffList(options?: { onSuccess?: (result: { added: number; skipped: number; failed: number }) => void }) {
+export function useImportStaffList(options?: {
+  onSuccess?: (result: { added: number; skipped: number; failed: number }) => void;
+}) {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: ImportStaffListInput) => importStaffList(input),
+    mutationFn: async (input: ImportStaffListInput) => unwrap(await importStaffList(input)),
     onSuccess: (result) => {
       const parts = [`${String(result.added)} added`];
       if (result.skipped > 0) parts.push(`${String(result.skipped)} already on this show`);

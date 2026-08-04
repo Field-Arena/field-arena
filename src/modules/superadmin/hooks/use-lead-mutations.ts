@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { createLead, updateLead, sendLeadOnboarding } from '../data/mutations';
 import type { CreateLeadInput, UpdateLeadInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 /**
  * Sales-funnel mutation hooks. Toasts and refreshes live here per layers.md; each
@@ -13,7 +14,7 @@ import type { CreateLeadInput, UpdateLeadInput } from '../schemas';
  */
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useCreateLead(options?: { onSuccess?: (id: string) => void }) {

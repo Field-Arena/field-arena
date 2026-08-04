@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { addSuperAdmin, removeSuperAdmin } from '../data/mutations';
 import type { AddSuperAdminInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 /**
  * Mutation hooks for the Users page's Super Admins tab.
@@ -16,7 +17,7 @@ import type { AddSuperAdminInput } from '../schemas';
  */
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useAddSuperAdmin(options?: { onSuccess?: () => void }) {

@@ -9,6 +9,7 @@ import {
   deleteScoringSheet,
 } from '../data/mutations';
 import type { CreateSheetInput, UpdateSheetInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 /**
  * Scoring-catalog mutation hooks. Toasts and refreshes live here per layers.md;
@@ -17,7 +18,7 @@ import type { CreateSheetInput, UpdateSheetInput } from '../schemas';
  */
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useCreateScoringSheet(options?: { onSuccess?: (id: string) => void }) {

@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { readableError } from '@/shared/lib/error-message';
 import {
   signInWithPassword,
   signOut,
@@ -134,7 +135,7 @@ export function useSignOut() {
       router.push('/');
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Could not sign out');
+      toast.error(readableError(error, 'Could not sign out'));
     },
   });
 }
