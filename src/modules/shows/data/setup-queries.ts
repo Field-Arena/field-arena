@@ -1304,6 +1304,14 @@ export interface MasterScheduleData {
     hardRuleDiffHorseMin: number;
     awardsByDivision: boolean;
   };
+  /**
+   * Whether the schedule has been approved and pushed live.
+   *
+   * The same `runner_state.approved` flag the Run Show tab writes, read here so
+   * Master Schedule can publish from the screen the organizer is actually
+   * looking at when they decide the schedule is right.
+   */
+  published: boolean;
   rideMinutesByClass: Record<string, number>;
 }
 
@@ -1327,7 +1335,9 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
 
   const { data: show, error: showError } = await supabase
     .from('shows')
-    .select('id, name, start_date, timezone, locations, schedule_prefs, day_start_times, day_end_times')
+    .select(
+      'id, name, start_date, timezone, locations, schedule_prefs, day_start_times, day_end_times, runner_state'
+    )
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
@@ -1463,6 +1473,7 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
       hardRuleDiffHorseMin: prefs.hardRuleDiffHorseMin,
       awardsByDivision: prefs.awardsByDivision,
     },
+    published: ((show.runner_state ?? {}) as { approved?: boolean }).approved === true,
     /** Per-class ride time actually used, so the input shows the real number. */
     rideMinutesByClass: Object.fromEntries(
       classes.map((c) => [

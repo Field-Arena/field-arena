@@ -379,7 +379,13 @@ export async function advanceRunnerState(
     .eq('id', showId);
   if (error) throw new Error(error.message);
 
+  // Both stage flags are read well outside Run Show: the schedule screen
+  // publishes from here, and the dashboard's "Needs your attention" card asks
+  // whether the schedule has been approved.
   revalidatePath(`/dashboard/shows/${showId}/run-show`);
+  revalidatePath(`/dashboard/shows/${showId}/schedule`);
+  revalidatePath('/dashboard/schedule');
+  revalidatePath('/dashboard');
 }
 
 /* ── Show Manager — Setup tab writes ─────────────────────────────────────
