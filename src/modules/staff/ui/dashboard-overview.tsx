@@ -9,7 +9,13 @@ import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/o
 import { DashIcon } from '@/shared/ui/dash-icon';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
-import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
+import type {
+  AttentionItem,
+  InventoryRow,
+  ShowListItem,
+  ShowStats,
+} from '@/modules/shows/data/queries';
+import { AttentionCard } from './attention-card';
 
 /**
  * The organizer dashboard.
@@ -39,6 +45,7 @@ export function DashboardOverview({
   inventory,
   stage,
   rings,
+  attention = [],
   canViewMoney,
 }: {
   orgName: string;
@@ -48,6 +55,8 @@ export function DashboardOverview({
   inventory: InventoryRow[];
   stage: string;
   rings: string[];
+  /** What wants the organizer's attention on this show — see getShowAttention. */
+  attention?: AttentionItem[];
   canViewMoney: boolean;
 }) {
   const currentIndex = SHOW_STAGES.findIndex((s) => s.key === stage);
@@ -99,6 +108,11 @@ export function DashboardOverview({
           </span>
         ))}
       </Card>
+
+      {/* Above the stat cards on purpose: "is anything broken right now" is
+          the question an organizer lands with, and a grid of equally-weighted
+          tiles answers it last. */}
+      <AttentionCard items={attention} />
 
       <Card className="mb-[18px] p-[16px_18px_18px]">
         <div className="mb-3.5 flex flex-wrap items-center gap-3">

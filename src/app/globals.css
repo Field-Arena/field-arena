@@ -1114,4 +1114,21 @@ body {
   .fa-public a {
     text-decoration: none;
   }
+
+  /* Tailwind v4's preflight sets buttons to `cursor: default`, matching the
+     raw browser default. Every design file in the bundle assumes the v3
+     behaviour and never writes `cursor:pointer` on a button, so without this
+     nothing in the app reads as clickable on hover.
+
+     Restored in `base` so any component that genuinely wants a different
+     cursor — a drag handle, a disabled-looking control — still wins with a
+     utility class. Disabled controls are excluded rather than overridden
+     later: a pointer over a button that cannot be pressed is a lie. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary,
+  label:has(> input[type='checkbox']:not(:disabled)),
+  label:has(> input[type='radio']:not(:disabled)) {
+    cursor: pointer;
+  }
 }

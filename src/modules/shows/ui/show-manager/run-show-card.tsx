@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
+
 import { toast } from 'sonner';
 import { Users, ClipboardList, Tent, DollarSign } from 'lucide-react';
 import { Card, Eyebrow } from '@/shared/ui/organizer/card';
 import { StatCard } from '@/shared/ui/organizer/stat-card';
-import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
+import { PrimaryButton, GhostButton, ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { IconHorse } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
@@ -139,13 +141,11 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
               Approve schedule &amp; go live
             </PrimaryButton>
           )}
-          <GhostButton
-            onClick={() => {
-              toast('The announcer view isn’t built yet — coming in a later update.');
-            }}
-          >
+          {/* The announcer dashboard is real — ring status, running order and
+              published results. This used to be a fake door saying otherwise. */}
+          <Link href={`/dashboard/announcing?show=${data.showId}`} className={ghostButtonClass}>
             Announcer view
-          </GhostButton>
+          </Link>
           <GhostButton
             onClick={() => {
               toast('Live scoring isn’t built yet — coming in a later update.');

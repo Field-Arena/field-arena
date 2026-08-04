@@ -53,7 +53,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     supabase
       .from('staff_assignments')
       .select(
-        'id, show_id, name, role, email, phone, status, user_id, is_steward, can_scratch_skip_dq, can_view_money, permissions'
+        'id, show_id, name, role, email, phone, status, user_id, is_steward, can_scratch_skip_dq, can_view_money, permissions',
       )
       .in('show_id', showIds)
       .neq('role', 'Vendor'),
@@ -72,7 +72,13 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
   const classToShow = new Map(classesResult.data.map((c) => [c.id, c.show_id]));
   const classIds = [...classToShow.keys()];
 
-  let entries: { rider: string | null; rider_id: string | null; horse: string | null; horse_id: string | null; class_id: string }[] = [];
+  let entries: {
+    rider: string | null;
+    rider_id: string | null;
+    horse: string | null;
+    horse_id: string | null;
+    class_id: string;
+  }[] = [];
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
@@ -112,17 +118,34 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     ridersByShow.set(showId, groups);
 
     const key = entry.rider_id ?? `text:${entry.rider.trim().toLowerCase()}`;
-    const group = groups.get(key) ?? { name: entry.rider, riderId: entry.rider_id, horseIds: new Set<string>() };
+    const group = groups.get(key) ?? {
+      name: entry.rider,
+      riderId: entry.rider_id,
+      horseIds: new Set<string>(),
+    };
     if (entry.horse_id) group.horseIds.add(entry.horse_id);
     groups.set(key, group);
   }
 
-  const allRiderIds = [...new Set([...ridersByShow.values()].flatMap((g) => [...g.values()].map((v) => v.riderId).filter((id): id is string => id !== null)))];
-  const allHorseIds = [...new Set([...ridersByShow.values()].flatMap((g) => [...g.values()].flatMap((v) => [...v.horseIds])))];
+  const allRiderIds = [
+    ...new Set(
+      [...ridersByShow.values()].flatMap((g) =>
+        [...g.values()].map((v) => v.riderId).filter((id): id is string => id !== null),
+      ),
+    ),
+  ];
+  const allHorseIds = [
+    ...new Set(
+      [...ridersByShow.values()].flatMap((g) => [...g.values()].flatMap((v) => [...v.horseIds])),
+    ),
+  ];
 
   const [riderAccounts, horseRecords] = await Promise.all([
     allRiderIds.length > 0
-      ? supabase.from('riders').select('id, first_name, last_name, email, phone').in('id', allRiderIds)
+      ? supabase
+          .from('riders')
+          .select('id, first_name, last_name, email, phone')
+          .in('id', allRiderIds)
       : Promise.resolve({ data: [], error: null }),
     allHorseIds.length > 0
       ? supabase.from('horses').select('id, document_uploads').in('id', allHorseIds)
@@ -133,7 +156,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
 
   const riderAccountById = new Map(riderAccounts.data.map((r) => [r.id, r]));
   const horseUploadsById = new Map(
-    horseRecords.data.map((h) => [h.id, (h.document_uploads ?? []) as HorseUpload[]])
+    horseRecords.data.map((h) => [h.id, (h.document_uploads ?? []) as HorseUpload[]]),
   );
 
   // ── Staff status: `staff_assignments.status` is only ever 'pending' |
@@ -145,7 +168,11 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
   // by this same email. So status here mirrors listOrganizations'
   // Pending/Onboarded derivation — matched by email, not staff_assignments'
   // own (currently-unreliable) user_id/status columns.
-  const staffEmails = [...new Set(staffResult.data.map((s) => s.email?.trim().toLowerCase()).filter((e): e is string => !!e))];
+  const staffEmails = [
+    ...new Set(
+      staffResult.data.map((s) => s.email?.trim().toLowerCase()).filter((e): e is string => !!e),
+    ),
+  ];
 
   let statusByEmail = new Map<string, UserDirectoryStatus>();
   if (staffEmails.length > 0) {
@@ -156,9 +183,14 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     ]);
     if (usersResult.error) throw usersResult.error;
 
-    const signedInById = new Map(authList.data.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]));
+    const signedInById = new Map(
+      authList.data.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]),
+    );
     statusByEmail = new Map(
-      usersResult.data.map((u) => [u.email.toLowerCase(), signedInById.get(u.id) ? 'onboard' : 'pending'])
+      usersResult.data.map((u) => [
+        u.email.toLowerCase(),
+        signedInById.get(u.id) ? 'onboard' : 'pending',
+      ]),
     );
   }
 
@@ -170,7 +202,9 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     if (!show) continue;
 
     const email = s.email?.trim().toLowerCase() ?? null;
-    const status: UserDirectoryStatus = email ? (statusByEmail.get(email) ?? 'not_invited') : 'not_invited';
+    const status: UserDirectoryStatus = email
+      ? (statusByEmail.get(email) ?? 'not_invited')
+      : 'not_invited';
 
     rows.push({
       key: `staff:${s.id}`,
@@ -207,7 +241,9 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       const account = group.riderId ? riderAccountById.get(group.riderId) : undefined;
       const email = account?.email ?? null;
       const phone = account?.phone ?? null;
-      const name = account ? [account.first_name, account.last_name].filter(Boolean).join(' ') || group.name : group.name;
+      const name = account
+        ? [account.first_name, account.last_name].filter(Boolean).join(' ') || group.name
+        : group.name;
 
       rows.push({
         key: `rider:${showId}:${key}`,
@@ -255,7 +291,12 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       // a paid/approved booking reads as "On board", a pending one as
       // "Pending", anything else (rejected, or no status at all) as
       // "Not invited".
-      status: v.status === 'paid' || v.status === 'approved' ? 'onboard' : v.status === 'pending' ? 'pending' : 'not_invited',
+      status:
+        v.status === 'paid' || v.status === 'approved'
+          ? 'onboard'
+          : v.status === 'pending'
+            ? 'pending'
+            : 'not_invited',
       isSteward: false,
       canScratchSkipDq: false,
       canViewMoney: false,
@@ -280,7 +321,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
 function resolveCogginsStatus(
   horseIds: Set<string>,
   requirement: DocumentRequirement | null,
-  horseUploadsById: Map<string, HorseUpload[]>
+  horseUploadsById: Map<string, HorseUpload[]>,
 ): CogginsStatus {
   if (!requirement || horseIds.size === 0) {
     return { applicable: false, compliant: null, reason: 'not_applicable', expirationDate: null };
@@ -299,7 +340,10 @@ function resolveCogginsStatus(
       anyMissing = true;
       continue;
     }
-    if (requirement.requiresExpiration && (!upload.expirationDate || isPast(upload.expirationDate))) {
+    if (
+      requirement.requiresExpiration &&
+      (!upload.expirationDate || isPast(upload.expirationDate))
+    ) {
       anyExpired = true;
     }
     if (requirement.requiresApproval && !upload.verified) {
@@ -308,8 +352,31 @@ function resolveCogginsStatus(
     if (upload.expirationDate) latestExpiration = upload.expirationDate;
   }
 
-  if (anyMissing) return { applicable: true, compliant: false, reason: 'missing', expirationDate: latestExpiration };
-  if (anyExpired) return { applicable: true, compliant: false, reason: 'expired', expirationDate: latestExpiration };
-  if (anyUnverified) return { applicable: true, compliant: false, reason: 'unverified', expirationDate: latestExpiration };
-  return { applicable: true, compliant: true, reason: 'compliant', expirationDate: latestExpiration };
+  if (anyMissing)
+    return {
+      applicable: true,
+      compliant: false,
+      reason: 'missing',
+      expirationDate: latestExpiration,
+    };
+  if (anyExpired)
+    return {
+      applicable: true,
+      compliant: false,
+      reason: 'expired',
+      expirationDate: latestExpiration,
+    };
+  if (anyUnverified)
+    return {
+      applicable: true,
+      compliant: false,
+      reason: 'unverified',
+      expirationDate: latestExpiration,
+    };
+  return {
+    applicable: true,
+    compliant: true,
+    reason: 'compliant',
+    expirationDate: latestExpiration,
+  };
 }

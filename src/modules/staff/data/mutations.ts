@@ -1,13 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { run, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { addOrgMember } from '@/modules/organizations/data/mutations';
 import { env } from '@/shared/lib/env';
-import { ROUTES } from '@/shared/constants/routes';
 import {
   addStaffUserSchema,
   changeStaffRoleSchema,
@@ -36,12 +36,16 @@ const USERS_PATH = '/dashboard/users';
  */
 async function requireCanManageStaff(showId: string): Promise<string> {
   const profile = await getStaffProfile();
-  if (!profile) throw new Error('Not signed in.');
+  if (!profile) throw new UserFacingError('Not signed in.');
 
   const supabase = await createServerClient();
-  const { data: show, error } = await supabase.from('shows').select('org_id').eq('id', showId).maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!show) throw new Error('Show not found.');
+  const { data: show, error } = await supabase
+    .from('shows')
+    .select('org_id')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!show) throw new UserFacingError('Show not found.');
 
   if (profile.platform_role === 'Organizer' && profile.org_id === show.org_id) return show.org_id;
 
@@ -52,8 +56,9 @@ async function requireCanManageStaff(showId: string): Promise<string> {
     target_show_id: showId,
     permission_key: 'canManageStaff',
   });
-  if (rpcError) throw new Error(rpcError.message);
-  if (!allowed) throw new Error('You do not have permission to manage staff for this show.');
+  if (rpcError) throw rpcError;
+  if (!allowed)
+    throw new UserFacingError('You do not have permission to manage staff for this show.');
 
   return show.org_id;
 }
@@ -65,8 +70,8 @@ async function showIdForStaff(staffId: string): Promise<string> {
     .select('show_id')
     .eq('id', staffId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error('Staff member not found.');
+  if (error) throw error;
+  if (!data) throw new UserFacingError('Staff member not found.');
   return data.show_id;
 }
 
@@ -93,7 +98,12 @@ async function provisionIfNewAccount(email: string, name: string, role: string):
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { name },
-    redirectTo: `${env.siteUrl}${ROUTES.authCallback}`,
+    // Only satisfies inviteUserByEmail's own allow-list check — does not
+    // drive the emailed link's domain, which always comes from Supabase's
+    // own project-level site_url template setting regardless of what's
+    // passed here (see superadmin/data/mutations.ts's createOrganization for
+    // the full explanation, including why {{ .RedirectTo }} isn't a fix).
+    redirectTo: env.siteUrl,
   });
   if (inviteError) return;
 
@@ -114,63 +124,67 @@ async function provisionIfNewAccount(email: string, name: string, role: string):
  * depth even though requireCanManageStaff already checked it), then
  * best-effort login provisioning for a brand-new email.
  */
-export async function addStaffUser(input: unknown): Promise<{ email: string }> {
-  const parsed = addStaffUserSchema.parse(input);
-  const orgId = await requireCanManageStaff(parsed.showId);
+export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
+  return run('Could not invite this person', async () => {
+    const parsed = addStaffUserSchema.parse(input);
+    const orgId = await requireCanManageStaff(parsed.showId);
 
-  const email = parsed.email.trim().toLowerCase();
-  const firstName = parsed.firstName.trim();
-  const lastName = parsed.lastName.trim();
-  const name = `${firstName} ${lastName}`.trim();
+    const email = parsed.email.trim().toLowerCase();
+    const firstName = parsed.firstName.trim();
+    const lastName = parsed.lastName.trim();
+    const name = `${firstName} ${lastName}`.trim();
 
-  const supabase = await createServerClient();
-  const { error: assignError } = await supabase.from('staff_assignments').insert({
-    show_id: parsed.showId,
-    email,
-    name,
-    first_name: firstName,
-    last_name: lastName,
-    role: parsed.role,
-    status: 'pending',
-    is_steward: parsed.role === 'Announcer' ? parsed.isSteward : false,
-    can_scratch_skip_dq: parsed.canScratchSkipDq,
-    can_view_money: parsed.canViewMoney,
-  });
-  if (assignError) throw new Error(assignError.message);
-
-  await provisionIfNewAccount(email, name, parsed.role);
-
-  if (parsed.addToMemberDatabase) {
-    // Best-effort, matching legacy's own try/catch around this call: the
-    // staff assignment above already succeeded and is the grant that
-    // matters, so a member-database failure must not surface as this whole
-    // action having failed.
-    await addOrgMember({
-      orgId,
-      firstName,
-      lastName,
+    const supabase = await createServerClient();
+    const { error: assignError } = await supabase.from('staff_assignments').insert({
+      show_id: parsed.showId,
       email,
+      name,
+      first_name: firstName,
+      last_name: lastName,
       role: parsed.role,
-      membershipStatus: parsed.membershipStatus,
-      membershipExpires: parsed.membershipExpires,
-    }).catch(() => undefined);
-  }
+      status: 'pending',
+      is_steward: parsed.role === 'Announcer' ? parsed.isSteward : false,
+      can_scratch_skip_dq: parsed.canScratchSkipDq,
+      can_view_money: parsed.canViewMoney,
+    });
+    if (assignError) throw assignError;
 
-  revalidatePath(USERS_PATH);
-  return { email };
+    await provisionIfNewAccount(email, name, parsed.role);
+
+    if (parsed.addToMemberDatabase) {
+      // Best-effort, matching legacy's own try/catch around this call: the
+      // staff assignment above already succeeded and is the grant that
+      // matters, so a member-database failure must not surface as this whole
+      // action having failed.
+      await addOrgMember({
+        orgId,
+        firstName,
+        lastName,
+        email,
+        role: parsed.role,
+        membershipStatus: parsed.membershipStatus,
+        membershipExpires: parsed.membershipExpires,
+      }).catch(() => undefined);
+    }
+
+    revalidatePath(USERS_PATH);
+    return { email };
+  });
 }
 
 /** Changes one staff member's role. */
-export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
-  const { staffId, role } = changeStaffRoleSchema.parse(input);
-  await requireCanManageStaff(await showIdForStaff(staffId));
+export async function changeStaffRole(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not change that role', async () => {
+    const { staffId, role } = changeStaffRoleSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(staffId));
 
-  const supabase = await createServerClient();
-  const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
-  if (error) throw new Error(error.message);
+    const supabase = await createServerClient();
+    const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
+    if (error) throw error;
 
-  revalidatePath(USERS_PATH);
-  return { ok: true };
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
 }
 
 /**
@@ -179,29 +193,36 @@ export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
  * what is stored — matching superadmin's `updateStaffPermissions` and, before
  * it, the legacy `submitStaffPerm`.
  */
-export async function updateStaffPermissions(input: unknown): Promise<{ ok: true }> {
-  const { staffId, permissions } = updateStaffPermissionsSchema.parse(input);
-  await requireCanManageStaff(await showIdForStaff(staffId));
+export async function updateStaffPermissions(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not save those permissions', async () => {
+    const { staffId, permissions } = updateStaffPermissionsSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(staffId));
 
-  const supabase = await createServerClient();
-  const { error } = await supabase.from('staff_assignments').update({ permissions }).eq('id', staffId);
-  if (error) throw new Error(error.message);
+    const supabase = await createServerClient();
+    const { error } = await supabase
+      .from('staff_assignments')
+      .update({ permissions })
+      .eq('id', staffId);
+    if (error) throw error;
 
-  revalidatePath(USERS_PATH);
-  return { ok: true };
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
 }
 
 /** Removes a staff assignment. Hard delete, matching legacy and superadmin's identical action. */
-export async function removeStaffAssignment(input: unknown): Promise<{ ok: true }> {
-  const { staffId } = staffIdSchema.parse(input);
-  await requireCanManageStaff(await showIdForStaff(staffId));
+export async function removeStaffAssignment(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not remove this person', async () => {
+    const { staffId } = staffIdSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(staffId));
 
-  const supabase = await createServerClient();
-  const { error } = await supabase.from('staff_assignments').delete().eq('id', staffId);
-  if (error) throw new Error(error.message);
+    const supabase = await createServerClient();
+    const { error } = await supabase.from('staff_assignments').delete().eq('id', staffId);
+    if (error) throw error;
 
-  revalidatePath(USERS_PATH);
-  return { ok: true };
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
 }
 
 /**
@@ -219,52 +240,54 @@ export async function removeStaffAssignment(input: unknown): Promise<{ ok: true 
  * not race the existence check the next row's provisioning depends on.
  */
 export async function importStaffList(
-  input: unknown
-): Promise<{ added: number; skipped: number; failed: number }> {
-  const { showId, rows } = importStaffListSchema.parse(input);
-  await requireCanManageStaff(showId);
+  input: unknown,
+): Promise<ActionResult<{ added: number; skipped: number; failed: number }>> {
+  return run('Could not import that staff list', async () => {
+    const { showId, rows } = importStaffListSchema.parse(input);
+    await requireCanManageStaff(showId);
 
-  const supabase = await createServerClient();
-  const { data: existing, error: existingError } = await supabase
-    .from('staff_assignments')
-    .select('email')
-    .eq('show_id', showId);
-  if (existingError) throw new Error(existingError.message);
+    const supabase = await createServerClient();
+    const { data: existing, error: existingError } = await supabase
+      .from('staff_assignments')
+      .select('email')
+      .eq('show_id', showId);
+    if (existingError) throw existingError;
 
-  const existingEmails = new Set(
-    existing.map((r) => r.email?.trim().toLowerCase()).filter((e): e is string => !!e)
-  );
+    const existingEmails = new Set(
+      existing.map((r) => r.email?.trim().toLowerCase()).filter((e): e is string => !!e),
+    );
 
-  let added = 0;
-  let skipped = 0;
-  let failed = 0;
+    let added = 0;
+    let skipped = 0;
+    let failed = 0;
 
-  for (const row of rows) {
-    const email = row.email.trim().toLowerCase();
-    if (existingEmails.has(email)) {
-      skipped += 1;
-      continue;
+    for (const row of rows) {
+      const email = row.email.trim().toLowerCase();
+      if (existingEmails.has(email)) {
+        skipped += 1;
+        continue;
+      }
+
+      const name = [row.firstName, row.lastName].filter(Boolean).join(' ') || email;
+      const { error: assignError } = await supabase.from('staff_assignments').insert({
+        show_id: showId,
+        email,
+        name,
+        role: row.role,
+        phone: row.phone || null,
+        status: 'pending',
+      });
+      if (assignError) {
+        failed += 1;
+        continue;
+      }
+
+      existingEmails.add(email);
+      added += 1;
+      await provisionIfNewAccount(email, name, row.role);
     }
 
-    const name = [row.firstName, row.lastName].filter(Boolean).join(' ') || email;
-    const { error: assignError } = await supabase.from('staff_assignments').insert({
-      show_id: showId,
-      email,
-      name,
-      role: row.role,
-      phone: row.phone || null,
-      status: 'pending',
-    });
-    if (assignError) {
-      failed += 1;
-      continue;
-    }
-
-    existingEmails.add(email);
-    added += 1;
-    await provisionIfNewAccount(email, name, row.role);
-  }
-
-  revalidatePath(USERS_PATH);
-  return { added, skipped, failed };
+    revalidatePath(USERS_PATH);
+    return { added, skipped, failed };
+  });
 }

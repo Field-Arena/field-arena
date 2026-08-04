@@ -10,11 +10,33 @@
  * The issue objects carry a written `message` each; the first one is the useful
  * sentence. Anything that is not that JSON shape passes through untouched.
  */
+/**
+ * Next.js strips the message off any error a Server Action or Server Component
+ * throws in a production build, replacing it with this boilerplate and a
+ * `digest` for the server log. That is deliberate — a raw message could carry a
+ * connection string — but it means the text arriving here is about React, not
+ * about what the person just tried to do.
+ *
+ * Matched on the two stable phrases rather than the whole paragraph, which has
+ * been reworded between Next.js releases.
+ */
+function isRedactedServerError(text: string): boolean {
+  return (
+    text.includes('omitted in production builds') ||
+    (text.includes('digest property') && text.includes('server'))
+  );
+}
+
 export function readableError(error: unknown, fallback: string): string {
   if (!(error instanceof Error)) return fallback;
 
   const text = error.message.trim();
   if (!text) return fallback;
+
+  // The caller's fallback names the actual operation ("Could not invite this
+  // person"), which is far more use than a paragraph about Server Components.
+  if (isRedactedServerError(text)) return fallback;
+
   if (!text.startsWith('[')) return text;
 
   try {

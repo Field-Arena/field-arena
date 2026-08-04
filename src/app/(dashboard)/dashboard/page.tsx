@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { DashboardOverview } from '@/modules/staff/ui/dashboard-overview';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import {
+  getShowAttention,
   getShowInventory,
   getShowStage,
   getShowStats,
@@ -50,10 +51,11 @@ export default async function DashboardPage({
   }
 
   const supabase = await createServerClient();
-  const [stats, inventory, stage, { data: showRow }] = await Promise.all([
+  const [stats, inventory, stage, attention, { data: showRow }] = await Promise.all([
     getShowStats(context.currentShow.id),
     getShowInventory(context.currentShow.id),
     getShowStage(context.currentShow.id),
+    getShowAttention(context.currentShow.id),
     supabase.from('shows').select('locations').eq('id', context.currentShow.id).single(),
   ]);
 
@@ -70,6 +72,7 @@ export default async function DashboardPage({
       inventory={inventory}
       stage={stage}
       rings={rings}
+      attention={attention}
       canViewMoney={context.canViewMoney}
     />
   );

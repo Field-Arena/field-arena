@@ -1,4 +1,8 @@
-import { PERMISSION_KEYS, ROLE_PERMISSION_DEFAULTS, type PermissionKey } from '@/shared/constants/permissions';
+import {
+  PERMISSION_KEYS,
+  ROLE_PERMISSION_DEFAULTS,
+  type PermissionKey,
+} from '@/shared/constants/permissions';
 import { USER_ROLE_RANK } from './constants';
 
 /**
@@ -109,7 +113,14 @@ export function parseStaffCsv(text: string): ParsedStaffCsvRow[] {
   if (looksLikeHeader) {
     const cols = splitCsvLine(headerLine).map((c) => c.toLowerCase());
     const find = (k: string) => cols.findIndex((c) => c.includes(k));
-    idx = { first: find('first'), last: find('last'), name: find('name'), role: find('role'), phone: find('phone'), email: find('email') };
+    idx = {
+      first: find('first'),
+      last: find('last'),
+      name: find('name'),
+      role: find('role'),
+      phone: find('phone'),
+      email: find('email'),
+    };
     start = 1;
   }
 
@@ -157,10 +168,26 @@ function escapeCsvField(value: string | null | undefined): string {
  * showstaff.html's `exportStaffCsv`: same five columns as the upload
  * template, in the same order.
  */
-export function buildStaffCsv(rows: { firstName: string; lastName: string; role: string; phone: string | null; email: string | null }[]): string {
+export function buildStaffCsv(
+  rows: {
+    firstName: string;
+    lastName: string;
+    role: string;
+    phone: string | null;
+    email: string | null;
+  }[],
+): string {
   const header = 'First name,Last name,Role,Phone,Email\n';
   const body = rows
-    .map((r) => [escapeCsvField(r.firstName), escapeCsvField(r.lastName), escapeCsvField(r.role), escapeCsvField(r.phone), escapeCsvField(r.email)].join(','))
+    .map((r) =>
+      [
+        escapeCsvField(r.firstName),
+        escapeCsvField(r.lastName),
+        escapeCsvField(r.role),
+        escapeCsvField(r.phone),
+        escapeCsvField(r.email),
+      ].join(','),
+    )
     .join('\n');
   return header + body + (rows.length > 0 ? '\n' : '');
 }

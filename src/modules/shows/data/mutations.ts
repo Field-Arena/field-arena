@@ -379,7 +379,13 @@ export async function advanceRunnerState(
     .eq('id', showId);
   if (error) throw new Error(error.message);
 
+  // Both stage flags are read well outside Run Show: the schedule screen
+  // publishes from here, and the dashboard's "Needs your attention" card asks
+  // whether the schedule has been approved.
   revalidatePath(`/dashboard/shows/${showId}/run-show`);
+  revalidatePath(`/dashboard/shows/${showId}/schedule`);
+  revalidatePath('/dashboard/schedule');
+  revalidatePath('/dashboard');
 }
 
 /* ── Show Manager — Setup tab writes ─────────────────────────────────────
@@ -698,32 +704,50 @@ export async function updateTicketWindow(input: unknown): Promise<void> {
 }
 
 /**
- * Turns one checked catalog group into classes — one per test in it.
+ * Turns one checked (level, division) catalog combination into classes — one
+ * per test in the level, for that division.
  *
- * Inserted in a single statement so a group either lands whole or not at all;
- * a partial level would show the organizer three tests where the catalog says
- * six and give no clue which failed.
+ * Inserted in a single statement so a combination either lands whole or not
+ * at all; a partial level would show the organizer three tests where the
+ * catalog says six and give no clue which failed.
+ *
+ * The label carries the division too, not just the level and test — two
+ * divisions of the same test would otherwise share one label, and the
+ * unique index on (show_id, label) would silently drop the second division's
+ * classes as a "duplicate" of the first instead of creating both.
  *
  * Duplicate labels are ignored rather than rejected. The unique index on
- * (show_id, label) means re-checking a group an organizer already added would
- * otherwise fail outright, when the intent — "these tests should be on the
- * show" — is already satisfied.
+ * (show_id, label) means re-checking a combination an organizer already
+ * added would otherwise fail outright, when the intent — "these tests
+ * should be on the show" — is already satisfied.
  */
 export async function addCatalogGroup(input: unknown): Promise<{ added: number }> {
   const parsed = addCatalogGroupSchema.parse(input);
   const supabase = await createServerClient();
 
+  // No division passed (the plain catalog picker's call) keeps the original
+  // two-part label and division === group, unchanged from before this
+  // function grew division support.
+  const division = parsed.division ?? parsed.group;
+  const label = (test: string) =>
+    parsed.division ? `${parsed.group} — ${test} — ${parsed.division}` : `${parsed.group} — ${test}`;
+
   const rows = parsed.tests.map((test) => ({
     show_id: parsed.showId,
-    label: `${parsed.group} — ${test}`,
+    label: label(test),
     event: parsed.category,
     group_name: parsed.group,
-    division: parsed.group,
+    division,
     location: parsed.location || null,
     fee: parsed.fee,
-    // Pooled by division so a level's tests rank as one set of placings, which
-    // is what a "division" means to an organizer checking the box.
-    award_scope: 'division' as const,
+    // Pooled by *level* (group_name), not by division — disciplineOf()
+    // collapses every FEI level into one bucket before Awards pools by this
+    // scope, so pooling on the division text instead would wrongly merge
+    // e.g. "Prix St. Georges — Junior Rider" with "Intermediate A — Junior
+    // Rider" into one shared ribbon set. group_name already holds the level
+    // name, so this is what keeps a level's tests ranked together without
+    // reaching across levels.
+    award_scope: 'group' as const,
   }));
 
   const { data, error } = await supabase

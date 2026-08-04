@@ -294,7 +294,7 @@ export function useCreateDraftShow() {
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : 'Could not create the show'
+        readableError(error, 'Could not create the show')
       );
     },
   });

@@ -362,17 +362,28 @@ export const updateTicketWindowSchema = z
 export type UpdateTicketWindowInput = z.input<typeof updateTicketWindowSchema>;
 
 /**
- * Adds every test in a catalog group as a class.
+ * Adds every test in a catalog group, for one rider division, as a class.
  *
- * The group, not the test, is what the organizer checks — so one submit creates
- * several classes. `division` carries the group name, which is what makes
- * award_scope='division' pool a level's three tests together, the behaviour the
- * legacy build got by writing the same string into every class it created here.
+ * One call per (level, division) the organizer checked — e.g. Prix St.
+ * Georges for Junior Rider and Open, but not Adult Amateur, is two calls.
+ * `group` carries the level name and is what pools a level's several tests
+ * into one ribbon set (award_scope='group'); `division` is the rider
+ * division text itself (Junior Rider / Adult Amateur / Open), matching what
+ * legacy wrote into the same column — kept separate from `group` so pooling
+ * by level and labelling by division don't collide.
+ *
+ * `division` is optional and falls back to `group` — the show's own
+ * SM_HIERARCHY catalog (select-events-picker.tsx's GroupRow) calls this too,
+ * one group at a time with no division breakdown of its own, and reads
+ * `classes.division === group` back to know what it already added. Leaving
+ * that call site's classes at `division = group` keeps it working exactly as
+ * before.
  */
 export const addCatalogGroupSchema = z.object({
   showId: z.uuid(),
   category: z.string().trim().min(1).max(120),
   group: z.string().trim().min(1).max(120),
+  division: z.string().trim().min(1).max(80).optional(),
   tests: z.array(z.string().trim().min(1).max(160)).min(1).max(40),
   fee: z.coerce.number().min(0).max(100000),
   /** A ring name from shows.locations, or '' for "No location set". */

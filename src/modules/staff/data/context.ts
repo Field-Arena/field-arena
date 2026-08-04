@@ -32,9 +32,7 @@ export interface OrganizerContext {
  *    every staff role including Show Admin, and must be granted per person, so it
  *    is resolved through the database function rather than inferred.
  */
-export async function getOrganizerContext(
-  requestedShowId?: string
-): Promise<OrganizerContext> {
+export async function getOrganizerContext(requestedShowId?: string): Promise<OrganizerContext> {
   const profile = await getStaffProfile();
   if (!profile) redirect('/login?error=no_profile');
 

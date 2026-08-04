@@ -204,6 +204,14 @@ export const FM_SETS = {
 
 export type FmSetName = keyof typeof FM_SETS;
 
+/**
+ * The three rider divisions a "+ FEI"/"+ USEF/USDF"/"+ Independent" test can
+ * be added for, ported verbatim from showstaff.html's own fallback list
+ * (`buildSmBulkPanel`'s `divisions`) — the new app has no per-show override
+ * of this list either, same as legacy's fallback case.
+ */
+export const CATALOG_DIVISIONS = ['Junior Rider', 'Adult Amateur', 'Open'] as const;
+
 /** The buttons above the catalog, in the design's own order. */
 export const EVENT_SOURCE_BUTTONS = [
   '+ FEI',

@@ -11,6 +11,7 @@ import {
   resendOrganizerInvite,
 } from '../data/mutations';
 import type { CreateOrganizationInput, UpdateOrganizationInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 /**
  * Mutation hooks for the console.
@@ -23,7 +24,7 @@ import type { CreateOrganizationInput, UpdateOrganizationInput } from '../schema
  */
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useCreateOrganization(options?: { onSuccess?: () => void }) {

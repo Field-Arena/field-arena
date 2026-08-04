@@ -14,6 +14,8 @@ import {
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { SM_GHOST_BTN } from '../show-manager/tokens';
 import { AwardsGroupingToggle, ScheduleKeyCard, ScheduleRulesCard } from './schedule-rules-card';
+import { ScheduleClashesCard } from './schedule-clashes-card';
+import { PublishScheduleButton } from './publish-schedule-button';
 
 const RING_SIZE_LABEL: Record<string, string> = {
   standard: 'Standard (20m × 60m)',
@@ -95,14 +97,7 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
           Print schedule
         </button>
 
-        {(schedule.conflictsAvoided > 0 || schedule.conflictsWaited > 0) && (
-          <span className="text-[12px] text-[#7A8781]">
-            {schedule.conflictsAvoided} rider {schedule.conflictsAvoided === 1 ? 'clash' : 'clashes'}{' '}
-            avoided by reordering
-            {schedule.conflictsWaited > 0 &&
-              `, ${String(schedule.conflictsWaited)} resolved by waiting`}
-          </span>
-        )}
+        <PublishScheduleButton showId={data.showId} published={data.published} />
 
         <span className="ml-auto flex items-center gap-2 text-[12.5px] text-[#6E7C76]">
           Awards grouping
@@ -111,6 +106,10 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
       </div>
 
       <div className="print:hidden">
+        {/* The counts used to sit as bare text on the toolbar. They are the
+            headline of a real story — which riders clashed and what the
+            scheduler did — so they carry their own card now. */}
+        <ScheduleClashesCard schedule={schedule} />
         <ScheduleRulesCard data={data} />
         <ScheduleKeyCard />
       </div>

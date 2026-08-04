@@ -9,6 +9,7 @@ import {
   moveCatalogDocument,
 } from '../data/mutations';
 import type { UploadDocumentInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 /**
  * Document mutation hooks. Toasts and refreshes live here per layers.md; each
@@ -17,7 +18,7 @@ import type { UploadDocumentInput } from '../schemas';
  */
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useUploadDocument(options?: { onSuccess?: () => void }) {

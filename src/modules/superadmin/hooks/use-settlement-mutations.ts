@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { updateSettlement } from '../data/mutations';
 import type { UpdateSettlementInput } from '../schemas';
+import { readableError } from '@/shared/lib/error-message';
 
 export function useUpdateSettlement() {
   return useMutation({
@@ -12,7 +13,7 @@ export function useUpdateSettlement() {
       toast.success('Settlement settings saved.');
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Could not save settings');
+      toast.error(readableError(error, 'Could not save settings'));
     },
   });
 }

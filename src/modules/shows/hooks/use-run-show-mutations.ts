@@ -4,9 +4,10 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { setShowPublished, advanceRunnerState } from '../data/mutations';
+import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return readableError(error, fallback);
 }
 
 export function useOpenTicketSales() {
