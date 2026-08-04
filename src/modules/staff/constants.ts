@@ -85,29 +85,88 @@ export const ORGANIZER_NAV = [
 export const ROLE_NAV: Record<
   string,
   { key: string; label: string; icon: string; href: string; tip: string }[]
-> =
-  {
-    Judge: [
-      { key: 'assignments', label: 'My Assignments', icon: 'dashboard', href: '/dashboard/judging', tip: 'Every class you are on a panel for' },
-      { key: 'schedule', label: 'Ring Times', icon: 'schedule', href: '/dashboard/judging/schedule', tip: "Today's ring times for your assignments" },
-    ],
-    Scribe: [
-      { key: 'assignments', label: 'My Assignments', icon: 'dashboard', href: '/dashboard/judging', tip: 'Every class you are recording for' },
-      { key: 'schedule', label: 'Ring Times', icon: 'schedule', href: '/dashboard/judging/schedule', tip: "Today's ring times for your assignments" },
-    ],
-    Announcer: [
-      { key: 'live', label: 'Up Next', icon: 'dashboard', href: '/dashboard/announcing', tip: 'Ring status and who rides next' },
-      { key: 'results', label: 'Results — Live', icon: 'financial', href: '/dashboard/announcing/results', tip: 'Published standings, class by class' },
-    ],
-    ShowStaff: [
-      { key: 'ops', label: 'Show Operations', icon: 'dashboard', href: '/dashboard/operations', tip: 'Live board and on-the-ground operations' },
-      { key: 'directory', label: 'Directories', icon: 'users', href: '/dashboard/operations/directory', tip: 'Rider, horse and vendor directories' },
-    ],
-    Vendor: [
-      { key: 'bookings', label: 'My Bookings', icon: 'eventsales', href: '/dashboard/vendor', tip: 'Your booth space across every organizer' },
-      { key: 'discover', label: 'Reserve Space', icon: 'venues', href: '/dashboard/vendor/discover', tip: 'Shows with booth space still available' },
-    ],
-  };
+> = {
+  Judge: [
+    {
+      key: 'assignments',
+      label: 'My Assignments',
+      icon: 'dashboard',
+      href: '/dashboard/judging',
+      tip: 'Every class you are on a panel for',
+    },
+    {
+      key: 'schedule',
+      label: 'Ring Times',
+      icon: 'schedule',
+      href: '/dashboard/judging/schedule',
+      tip: "Today's ring times for your assignments",
+    },
+  ],
+  Scribe: [
+    {
+      key: 'assignments',
+      label: 'My Assignments',
+      icon: 'dashboard',
+      href: '/dashboard/judging',
+      tip: 'Every class you are recording for',
+    },
+    {
+      key: 'schedule',
+      label: 'Ring Times',
+      icon: 'schedule',
+      href: '/dashboard/judging/schedule',
+      tip: "Today's ring times for your assignments",
+    },
+  ],
+  Announcer: [
+    {
+      key: 'live',
+      label: 'Up Next',
+      icon: 'dashboard',
+      href: '/dashboard/announcing',
+      tip: 'Ring status and who rides next',
+    },
+    {
+      key: 'results',
+      label: 'Results — Live',
+      icon: 'financial',
+      href: '/dashboard/announcing/results',
+      tip: 'Published standings, class by class',
+    },
+  ],
+  ShowStaff: [
+    {
+      key: 'ops',
+      label: 'Show Operations',
+      icon: 'dashboard',
+      href: '/dashboard/operations',
+      tip: 'Live board and on-the-ground operations',
+    },
+    {
+      key: 'directory',
+      label: 'Directories',
+      icon: 'users',
+      href: '/dashboard/operations/directory',
+      tip: 'Rider, horse and vendor directories',
+    },
+  ],
+  Vendor: [
+    {
+      key: 'bookings',
+      label: 'My Bookings',
+      icon: 'eventsales',
+      href: '/dashboard/vendor',
+      tip: 'Your booth space across every organizer',
+    },
+    {
+      key: 'discover',
+      label: 'Reserve Space',
+      icon: 'venues',
+      href: '/dashboard/vendor/discover',
+      tip: 'Shows with booth space still available',
+    },
+  ],
+};
 
 export const ROLE_RAIL = [
   { key: 'superadmin', icon: 'shield', label: 'Super Admin' },
