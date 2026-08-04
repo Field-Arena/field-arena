@@ -1,11 +1,18 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { PNL_CATEGORY_ORDER } from '../constants';
+import { DEFAULT_SHOW_EXPENSES, PNL_CATEGORY_ORDER, type RibbonColor } from '../constants';
 import {
   buildMasterSchedule,
   type MasterSchedule,
   type ScheduleEntry,
 } from '../schedule-engine';
+import {
+  buildAwardsReport,
+  disciplineOf,
+  type AwardClassInput,
+  type AwardEntry,
+  type AwardsReport,
+} from '../awards-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
 
 /**
@@ -1041,8 +1048,22 @@ export interface ShowPnl {
   showId: string;
   showName: string;
   categories: PnlCategory[];
-  /** Sum of the breakdown — what "Total revenue" reports. */
+  /**
+   * What was actually collected: paid orders, paid vendor bookings and walk-up
+   * merchandise, at the amounts really charged. This is the Revenue headline
+   * and the number Net is taken from — smRevenueTotal's own definition.
+   */
   revenueTotal: number;
+  /**
+   * The breakdown's own sum — every line item's qty × price.
+   *
+   * Kept separate from revenueTotal on purpose, because the legacy view shows
+   * both and they are genuinely different questions. The breakdown re-prices
+   * off today's catalog, so a discount, a comp or a price change since the sale
+   * makes it disagree with what the bank received. Collapsing them into one
+   * number would hide exactly the discrepancy an organizer needs to see.
+   */
+  breakdownTotal: number;
   expenses: ShowExpense[];
   expensesTotal: number;
   net: number;
@@ -1058,14 +1079,14 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
       // class_entries has no show_id — it hangs off class_id, so this is scoped
       // by the show's own class ids once they are known (see below).
       supabase.from('classes').select('id').eq('show_id', showId),
-      supabase.from('orders').select('id, status, items').eq('show_id', showId),
+      supabase.from('orders').select('id, status, items, amount_total').eq('show_id', showId),
       supabase.from('add_ons').select('id, name').eq('show_id', showId),
       supabase.from('vendor_items').select('id, name, price').eq('show_id', showId),
       supabase
         .from('vendor_bookings')
-        .select('id, status, paid_at, vendor_booking_items(vendor_item_id, qty)')
+        .select('id, status, paid_at, amount_total, vendor_booking_items(vendor_item_id, qty)')
         .eq('show_id', showId),
-      supabase.from('merch_sales').select('items').eq('show_id', showId),
+      supabase.from('merch_sales').select('items, total').eq('show_id', showId),
     ]);
 
   if (show.error) throw show.error;
@@ -1211,8 +1232,43 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
     }
   );
 
-  const revenueTotal = ordered.reduce((sum, c) => sum + c.subtotal, 0);
-  const expenses = (show.data.expenses ?? []) as unknown as ShowExpense[];
+  const breakdownTotal = ordered.reduce((sum, c) => sum + c.subtotal, 0);
+
+  /**
+   * What was really collected, ported from smRevenueTotal: every paid rider
+   * order, every confirmed-and-paid vendor booking, and every walk-up
+   * merchandise sale, at the amount actually charged.
+   *
+   * A vendor booking that is only submitted is not revenue — approval and
+   * payment both have to have happened.
+   */
+  const revenueTotal =
+    orders.data.reduce((sum, o) => (o.status === 'paid' ? sum + o.amount_total : sum), 0) +
+    bookings.data.reduce(
+      (sum, b) =>
+        b.status === 'confirmed' && b.paid_at ? sum + (b.amount_total ?? 0) : sum,
+      0
+    ) +
+    merchSales.data.reduce((sum, m) => sum + m.total, 0);
+
+  /**
+   * A show that has never had its expenses touched opens with the common cost
+   * lines already listed at zero, matching ensureShowExtras — the legacy seeded
+   * them the moment the show was read.
+   *
+   * Seeded on read rather than written on read: nothing is stored until the
+   * organizer actually edits a line, and the first save persists the whole list
+   * as it stands. An organizer who deletes every line keeps an empty list,
+   * because `[]` is a real stored value and only a missing one seeds.
+   */
+  const stored = show.data.expenses as unknown as ShowExpense[] | null;
+  const expenses =
+    stored ??
+    DEFAULT_SHOW_EXPENSES.map((label, index) => ({
+      id: `default-${String(index)}`,
+      label,
+      amount: 0,
+    }));
   const expensesTotal = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
   return {
@@ -1220,6 +1276,7 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
     showName: show.data.name,
     categories: ordered,
     revenueTotal,
+    breakdownTotal,
     expenses,
     expensesTotal,
     net: revenueTotal - expensesTotal,
@@ -1421,67 +1478,71 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
    with real placings computed from scored entries rather than the mock
    buildAwards() the export ships. */
 
-export interface AwardPlacing {
-  place: number;
-  rider: string;
-  horse: string;
-  num: string;
-  pct: string;
-}
-
-export interface AwardClass {
-  name: string;
-  placings: AwardPlacing[];
-  /** How many places this class awards, from classes.ribbon_places. */
-  ribbonPlaces: number;
-}
-
-export interface AwardGroup {
-  name: string;
-  classes: AwardClass[];
-}
-
 export interface ShowAwards {
   showId: string;
   showName: string;
-  groups: AwardGroup[];
-  /** Every discipline present, for the filter. */
+  /** Show dates and venue, for the printed sheet's header. */
+  dates: string;
+  venue: string;
+  /** Every level present across the show's classes, for the discipline filter. */
   disciplines: string[];
-  /** place index → how many ribbons of that placing the show needs. */
-  ribbonCounts: number[];
+  /** False when the filter matched no classes — "No classes to show yet." */
+  hasClasses: boolean;
+  report: AwardsReport;
+  /**
+   * The same report with the discipline filter ignored — every level the show
+   * runs, which is what actually prints.
+   *
+   * printAllAwards() builds its sheet from the unfiltered class list even when
+   * the screen is narrowed to one level. That is the right behaviour for what
+   * this document is: a list of every ribbon to physically bring to the show.
+   * Printing the filtered view would hand someone a sheet that silently omits
+   * levels they still have to award.
+   *
+   * Identical to `report` when nothing is filtered, and the same object then —
+   * no second pass over the data.
+   */
+  printReport: AwardsReport;
+  /** Ribbons across the whole show — the printed sheet's own total. */
+  printRibbonTotal: number;
+  /** The persisted By Test / By Division toggle, shared with Master Schedule. */
+  awardsByDivision: boolean;
+  /** Total ribbons to pull, across every colour. */
   ribbonTotal: number;
 }
 
 /**
- * Standings for a show.
+ * The ribbon-gathering list for a show.
  *
- * Placings come from class_entries.final_pct — the judged result — ranked
- * highest first and cut at each class's own ribbon_places. Entries with no
- * score are not placed: a class still being judged shows the places decided so
- * far rather than inventing an order from entry numbers.
+ * Reads the rows; awards-engine.ts decides the placings. Ported from
+ * renderResults + buildAwardsReportHtml, including the two things that make it
+ * a real awards list rather than a per-class sort: classes pooled by
+ * division/group award ONE combined ribbon set, and the By Division toggle
+ * splits each unit by the rider's own division.
  *
- * `grouping` is the same choice Master Schedule's awards toggle writes: 'test'
- * groups by the class's catalog category, 'division' by the division it was
- * entered under, which is what splits Young Rider from Adult Amateur.
+ * `discipline` is 'all' or one of `disciplines` — matched on the level derived
+ * from the class name (disciplineOf), the same value the report groups by, not
+ * on the class's catalog event.
  */
-export async function getShowAwards(
-  showId: string,
-  grouping: 'test' | 'division',
-  discipline: string
-): Promise<ShowAwards | null> {
+export async function getShowAwards(showId: string, discipline: string): Promise<ShowAwards | null> {
   const supabase = await createServerClient();
 
   const { data: show, error: showError } = await supabase
     .from('shows')
-    .select('id, name')
+    .select('id, name, start_date, end_date, venue_name, schedule_prefs')
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
   if (!show) return null;
 
+  const prefs = {
+    ...DEFAULT_SCHEDULE_PREFS,
+    ...((show.schedule_prefs ?? {}) as Partial<SchedulePrefs>),
+  };
+
   const { data: classes, error: classError } = await supabase
     .from('classes')
-    .select('id, label, display_name, event, division, ribbon_places')
+    .select('id, label, award_scope, division, group_name, ribbon_places, ribbon_colors')
     .eq('show_id', showId)
     .order('label');
   if (classError) throw classError;
@@ -1493,74 +1554,69 @@ export async function getShowAwards(
     rider: string | null;
     horse: string | null;
     final_pct: string | null;
-    status: string | null;
+    collective_total: number | null;
+    division: string;
   }[] = [];
 
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
-      .select('class_id, num, rider, horse, final_pct, status')
+      .select('class_id, num, rider, horse, final_pct, collective_total, division')
       .in('class_id', classIds);
     if (error) throw error;
     entries = data;
   }
 
-  const byClass = new Map<string, typeof entries>();
+  const byClass = new Map<string, AwardEntry[]>();
   for (const entry of entries) {
     const list = byClass.get(entry.class_id) ?? [];
-    list.push(entry);
+    list.push({
+      num: entry.num,
+      name: entry.rider ?? '',
+      horse: entry.horse ?? '',
+      // Null stays null — an unscored ride is not placed, and a missing
+      // collective total cannot break a tie.
+      pct: entry.final_pct == null ? null : Number(entry.final_pct),
+      ctot: entry.collective_total,
+      division: entry.division,
+    });
     byClass.set(entry.class_id, list);
   }
 
-  const disciplines = [
-    ...new Set(classes.map((c) => c.event).filter((e): e is string => !!e)),
-  ].sort();
+  const shaped: AwardClassInput[] = classes.map((c) => ({
+    id: c.id,
+    label: c.label,
+    awardScope: c.award_scope,
+    division: c.division,
+    groupName: c.group_name,
+    // Legacy ribbonPlacesFor: a class that never set a count awards six.
+    ribbonPlaces: c.ribbon_places ?? 6,
+    ribbonColors: (c.ribbon_colors as RibbonColor[] | null) ?? null,
+    entries: byClass.get(c.id) ?? [],
+  }));
 
-  const groups = new Map<string, AwardClass[]>();
-  const ribbonCounts: number[] = [];
+  const disciplines = [...new Set(shaped.map((c) => disciplineOf(c.label)))];
+  const filtered =
+    discipline === 'all' ? shaped : shaped.filter((c) => disciplineOf(c.label) === discipline);
 
-  for (const cls of classes) {
-    const groupName =
-      grouping === 'division' ? (cls.division ?? 'No division') : (cls.event ?? 'Other classes');
+  const report = buildAwardsReport(filtered, prefs.awardsByDivision);
+  const printReport =
+    filtered === shaped ? report : buildAwardsReport(shaped, prefs.awardsByDivision);
 
-    if (discipline !== 'All disciplines' && cls.event !== discipline) continue;
-
-    const ribbonPlaces = cls.ribbon_places ?? 6;
-    const placings = (byClass.get(cls.id) ?? [])
-      // Scratched rides never place, and an unscored ride has no standing yet.
-      .filter((e) => e.status !== 'scratched' && e.final_pct)
-      .sort((a, b) => Number(b.final_pct) - Number(a.final_pct))
-      .slice(0, ribbonPlaces)
-      .map((e, index) => ({
-        place: index + 1,
-        rider: e.rider ?? '',
-        horse: e.horse ?? '',
-        num: e.num,
-        pct: e.final_pct ?? '',
-      }));
-
-    for (const placing of placings) {
-      ribbonCounts[placing.place - 1] = (ribbonCounts[placing.place - 1] ?? 0) + 1;
-    }
-
-    const list = groups.get(groupName) ?? [];
-    list.push({
-      name: cls.display_name ?? cls.label,
-      placings,
-      ribbonPlaces,
-    });
-    groups.set(groupName, list);
-  }
+  const totalOf = (r: AwardsReport) => Object.values(r.tally).reduce((sum, n) => sum + n, 0);
 
   return {
     showId: show.id,
     showName: show.name,
-    groups: [...groups]
-      .map(([name, list]) => ({ name, classes: list }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
+    dates: [show.start_date, show.end_date].filter(Boolean).join(' – '),
+    venue: show.venue_name ?? '',
     disciplines,
-    ribbonCounts,
-    ribbonTotal: ribbonCounts.reduce((sum, n) => sum + (n || 0), 0),
+    hasClasses: filtered.length > 0,
+    report,
+    printReport,
+    awardsByDivision: prefs.awardsByDivision,
+    ribbonTotal: totalOf(report),
+    printRibbonTotal: printReport === report ? totalOf(report) : totalOf(printReport),
   };
 }
 
