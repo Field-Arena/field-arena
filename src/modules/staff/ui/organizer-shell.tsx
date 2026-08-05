@@ -68,6 +68,12 @@ export function OrganizerShell({
   const role = impersonating ? 'Organizer' : (profile.platform_role ?? 'Organizer');
   const navItems = ROLE_NAV[role] ?? ORGANIZER_NAV;
 
+  // An exact href match always wins over a prefix match — needed now that some
+  // roles (Judge/Scribe) nest sibling routes under their landing tab's own path
+  // (`/dashboard/judging` vs. `/dashboard/judging/documents`), which would
+  // otherwise light up both at once under plain prefix matching.
+  const activeNavItem = navItems.find((n) => n.href === pathname);
+
   const shell = (
     <div className={cn('dash', mobilePreview && 'dash-mobile-frame')}>
       <aside className="dash-rail">
@@ -142,10 +148,9 @@ export function OrganizerShell({
         */}
         <nav className="dash-nav" aria-label={`${workspace.title} navigation`}>
           {navItems.map((item) => {
-            const active =
-              item.href === '/dashboard'
-                ? pathname === '/dashboard'
-                : pathname.startsWith(item.href);
+            const active = activeNavItem
+              ? item.key === activeNavItem.key
+              : pathname.startsWith(`${item.href}/`);
             return (
               <Tip key={item.key} text={item.tip} className="block w-full">
                 <Link href={item.href} className={`dash-nav-item${active ? ' active' : ''}`}>

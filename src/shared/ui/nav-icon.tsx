@@ -94,6 +94,20 @@ const PATHS: Record<string, React.ReactNode> = {
       />
     </>
   ),
+
+  documents: (
+    <>
+      <path {...S} d="M6 2h9l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1z" />
+      <path {...S} d="M14 2v6h6" />
+    </>
+  ),
+
+  history: (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={1.75} fill="none" />
+      <path {...S} d="M12 6v6l4 2" />
+    </>
+  ),
 };
 
 export function NavIcon({ name, size = 22 }: { name: string; size?: number }) {

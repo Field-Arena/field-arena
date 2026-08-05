@@ -33,6 +33,12 @@ import type { ShowListItem } from '@/modules/shows/data/queries';
 const SELECT_CLASS =
   'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
 
+/** A show's class, for the Judge-classes checklist — id+label only. */
+export interface ClassOption {
+  id: string;
+  label: string;
+}
+
 /**
  * "+ Add User" — organizer-facing equivalent of the legacy `openAddUserModal`
  * (showstaff.html ~line 8931), ported against `addStaffUser` (the
@@ -41,8 +47,7 @@ const SELECT_CLASS =
  * required split first/last name fields, the Email/User-type row, the
  * "also a member of your organization" section, and the "Invite" button
  * label are all ported from that function. Role choices are `ADD_USER_ROLES`
- * — Rider and Vendor are deliberately absent; see that constant's doc
- * comment for why.
+ * — Rider is deliberately absent; see that constant's doc comment for why.
  *
  * No "Show" field is rendered: legacy's modal never has one either — it
  * opens already scoped to whatever show the organizer was looking at
@@ -50,22 +55,22 @@ const SELECT_CLASS =
  * (`defaultShowId`); the id still travels with the form as a hidden field
  * so `addStaffUser` gets it, it's just not asked for twice.
  *
- * One legacy section is still not ported, and needs a real scope decision
- * rather than a silent recreation here: the Judge-classes checklist (which
- * tests/classes this judge is assigned to). In legacy this writes straight
- * into the same in-memory staff record; in this schema, class-judge pairing
- * is `class_assignments`/`class_panel` — separate tables the judging module
- * owns and already has its own assignment UI for. Duplicating that write
- * path here would cross a module boundary this codebase otherwise keeps
- * clean (see architecture.md — a module must not import another module's
- * internals).
+ * Two roles change the form's shape, both matching legacy exactly:
+ *  - Vendor swaps the split name fields for a single "Business name" input
+ *    (legacy's `nameFieldsHtml('as', true)`) and hides the scratch/money
+ *    checkboxes, which only ever meant something for real show staff.
+ *  - Judge reveals a checklist of the target show's classes (legacy's
+ *    `judgeClassChecklistHtml`) — `addStaffUser` seats the judge on every
+ *    checked class via `assignJudgeToClasses` once the invite succeeds.
  */
 export function AddUserDialog({
   shows,
   defaultShowId,
+  classes,
 }: {
   shows: ShowListItem[];
   defaultShowId: string;
+  classes: ClassOption[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -73,6 +78,7 @@ export function AddUserDialog({
     showId: defaultShowId,
     firstName: '',
     lastName: '',
+    businessName: '',
     email: '',
     role: ADD_USER_ROLES[0],
     isSteward: false,
@@ -81,6 +87,7 @@ export function AddUserDialog({
     addToMemberDatabase: false,
     membershipStatus: 'active',
     membershipExpires: '',
+    classIds: [],
   };
 
   const form = useForm<AddStaffUserInput>({
@@ -98,6 +105,8 @@ export function AddUserDialog({
   const { errors } = form.formState;
   const role = useWatch({ control: form.control, name: 'role' });
   const isMember = useWatch({ control: form.control, name: 'addToMemberDatabase' });
+  const classIds = useWatch({ control: form.control, name: 'classIds' }) ?? [];
+  const isVendor = role === 'Vendor';
   const showName = shows.find((s) => s.id === defaultShowId)?.name ?? 'this show';
 
   return (
@@ -141,26 +150,42 @@ export function AddUserDialog({
           <div className={modalBodyClass}>
             <input type="hidden" {...form.register('showId')} />
 
-            <div className="grid grid-cols-2 gap-3">
+            {isVendor ? (
               <div className="space-y-1.5">
-                <Label htmlFor="au-first-name">First name</Label>
-                <Input id="au-first-name" placeholder="Jane" {...form.register('firstName')} />
-                {errors.firstName && (
+                <Label htmlFor="au-business-name">Business name</Label>
+                <Input
+                  id="au-business-name"
+                  placeholder="Trailside Tack Co."
+                  {...form.register('businessName')}
+                />
+                {errors.businessName && (
                   <p role="alert" className="text-status-danger text-[13px]">
-                    {errors.firstName.message}
+                    {errors.businessName.message}
                   </p>
                 )}
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="au-last-name">Last name</Label>
-                <Input id="au-last-name" placeholder="Smith" {...form.register('lastName')} />
-                {errors.lastName && (
-                  <p role="alert" className="text-status-danger text-[13px]">
-                    {errors.lastName.message}
-                  </p>
-                )}
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="au-first-name">First name</Label>
+                  <Input id="au-first-name" placeholder="Jane" {...form.register('firstName')} />
+                  {errors.firstName && (
+                    <p role="alert" className="text-status-danger text-[13px]">
+                      {errors.firstName.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="au-last-name">Last name</Label>
+                  <Input id="au-last-name" placeholder="Smith" {...form.register('lastName')} />
+                  {errors.lastName && (
+                    <p role="alert" className="text-status-danger text-[13px]">
+                      {errors.lastName.message}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -189,6 +214,42 @@ export function AddUserDialog({
               </div>
             </div>
 
+            {role === 'Judge' && (
+              <div>
+                <Label className="mb-1.5 block">Which tests/classes are they judging?</Label>
+                {classes.length === 0 ? (
+                  <p className="text-[12.5px] text-[#7A8781]">
+                    No classes with entries yet for this show — you can assign tests after adding
+                    classes.
+                  </p>
+                ) : (
+                  <div className="max-h-[180px] overflow-y-auto rounded-lg border border-[#D9E1DD] px-2.5 py-2">
+                    {classes.map((cls) => (
+                      <label
+                        key={cls.id}
+                        className="text-ink-deep flex cursor-pointer items-center gap-1.5 py-1 text-[12.5px]"
+                      >
+                        <input
+                          type="checkbox"
+                          className="accent-hunter-deep size-4"
+                          checked={classIds.includes(cls.id)}
+                          onChange={(e) => {
+                            form.setValue(
+                              'classIds',
+                              e.target.checked
+                                ? [...classIds, cls.id]
+                                : classIds.filter((id) => id !== cls.id)
+                            );
+                          }}
+                        />
+                        {cls.label}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {role === 'Announcer' && (
               <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
                 <input
@@ -200,23 +261,27 @@ export function AddUserDialog({
               </label>
             )}
 
-            <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
-              <input
-                type="checkbox"
-                className="accent-hunter-deep size-4"
-                {...form.register('canScratchSkipDq')}
-              />
-              Can scratch, skip, or eliminate riders on this show
-            </label>
+            {!isVendor && (
+              <>
+                <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
+                  <input
+                    type="checkbox"
+                    className="accent-hunter-deep size-4"
+                    {...form.register('canScratchSkipDq')}
+                  />
+                  Can scratch, skip, or eliminate riders on this show
+                </label>
 
-            <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
-              <input
-                type="checkbox"
-                className="accent-hunter-deep size-4"
-                {...form.register('canViewMoney')}
-              />
-              Can view financial data ($) for this show
-            </label>
+                <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
+                  <input
+                    type="checkbox"
+                    className="accent-hunter-deep size-4"
+                    {...form.register('canViewMoney')}
+                  />
+                  Can view financial data ($) for this show
+                </label>
+              </>
+            )}
 
             <div className="border-t border-[#E9EDEB] pt-4">
               <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px] font-semibold">
