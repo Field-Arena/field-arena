@@ -16,6 +16,8 @@ import {
   updateStaffPermissionsSchema,
   staffIdSchema,
   importStaffListSchema,
+  reassignStaffShowSchema,
+  updateStaffDetailsSchema,
 } from '../schemas';
 
 const USERS_PATH = '/dashboard/users';
@@ -101,6 +103,13 @@ async function sendStaffInviteNotification(params: {
   role: string;
   showName: string;
 }): Promise<void> {
+  // First name only for the greeting, and the raw URL shown as the link text
+  // rather than a styled button — matches the wording/shape of legacy's own
+  // staff invite email ("Hi {first}, You've been added as {role} for {show}.
+  // Click below to confirm and get set up: {link}").
+  const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
+  const link = `${env.siteUrl}${ROUTES.login}`;
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -110,11 +119,12 @@ async function sendStaffInviteNotification(params: {
     body: JSON.stringify({
       from: 'Field & Arena <notifications@field-arena.com>',
       to: params.to,
-      subject: `You're invited as ${params.role} for ${params.showName}`,
+      subject: `You've been added as ${params.role} for ${params.showName}`,
       html:
-        `<p>Hi ${params.name},</p>` +
-        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>.</p>` +
-        `<p><a href="${env.siteUrl}${ROUTES.login}">Log in to Field &amp; Arena</a> to view it.</p>`,
+        `<p>Hi ${firstName},</p>` +
+        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>. ` +
+        `Click below to log in and get set up:</p>` +
+        `<p><a href="${link}">${link}</a></p>`,
     }),
   });
   if (!res.ok) return;
@@ -148,7 +158,12 @@ async function provisionIfNewAccount(
   }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { name },
+    // firstName/role/showName feed the hosted invite email template's
+    // {{ .Data.* }} placeholders (see supabase's mailer_templates_invite_content,
+    // set via the Management API) — a staff invite renders "You've been added
+    // as {role} for {show}"; an organizer/superadmin invite (which never
+    // passes these) falls back to its existing generic copy.
+    data: { name, firstName: name.trim().split(/\s+/)[0] ?? name, role, showName },
     // Only satisfies inviteUserByEmail's own allow-list check — does not
     // drive the emailed link's domain, which always comes from Supabase's
     // own project-level site_url template setting regardless of what's
@@ -281,6 +296,74 @@ export async function changeStaffRole(input: unknown): Promise<ActionResult<{ ok
 
     const supabase = await createServerClient();
     const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
+    if (error) throw error;
+
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
+}
+
+/**
+ * Moves a staff_assignments row to a different show — same person, same
+ * role/permissions, just a new show_id. Ported from legacy's PATCH
+ * /api/staff/:id (api/staff/[id].js:37-54): when its optional `showId` field
+ * differs from the row's current show, it re-runs `requireShowManager`
+ * against the *destination* show too, not just the source one — otherwise a
+ * manager of show A could move someone's assignment onto show B without
+ * having any authority there. Both checks go through the same
+ * `requireCanManageStaff` gate the rest of this file already uses.
+ */
+export async function reassignStaffShow(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not move this person to that show', async () => {
+    const { staffId, showId } = reassignStaffShowSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(staffId));
+    await requireCanManageStaff(showId);
+
+    const supabase = await createServerClient();
+    const { error } = await supabase
+      .from('staff_assignments')
+      .update({ show_id: showId })
+      .eq('id', staffId);
+    if (error) throw error;
+
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
+}
+
+/**
+ * Saves name/email/phone/isSteward for an existing staff_assignments row —
+ * the rest of legacy's PATCH /api/staff/:id (api/staff/[id].js:24,56-65)
+ * beyond role/permissions/showId, which already have their own actions above.
+ *
+ * `status` is deliberately not part of this: legacy's own edit-existing-user
+ * modal sends it (showstaff.html's um-status select), but in this schema
+ * `staff_assignments.status` is never read for display — the directory's
+ * status pill is derived entirely from whether a `public.users` row for this
+ * email has actually signed in (see queries.ts's listAllUsersAcrossShows, "──
+ * Staff status" comment). Writing to that column would change nothing an
+ * operator could see, so exposing an editable control for it here would be
+ * decorative rather than a real capability.
+ */
+export async function updateStaffDetails(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not save these details', async () => {
+    const parsed = updateStaffDetailsSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(parsed.staffId));
+
+    const firstName = parsed.firstName.trim();
+    const lastName = parsed.lastName.trim();
+    const supabase = await createServerClient();
+    const { error } = await supabase
+      .from('staff_assignments')
+      .update({
+        name: `${firstName} ${lastName}`.trim(),
+        first_name: firstName,
+        last_name: lastName,
+        email: parsed.email.trim().toLowerCase(),
+        phone: parsed.phone || null,
+        is_steward: parsed.isSteward,
+      })
+      .eq('id', parsed.staffId);
     if (error) throw error;
 
     revalidatePath(USERS_PATH);

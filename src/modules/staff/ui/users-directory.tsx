@@ -327,6 +327,7 @@ export function UsersDirectory({
 
       <StaffEditDialog
         row={editingRow}
+        shows={shows}
         onClose={() => {
           setEditingRow(null);
         }}

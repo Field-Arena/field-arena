@@ -425,6 +425,13 @@ async function sendStaffInviteNotification(params: {
   role: string;
   showName: string;
 }): Promise<void> {
+  // First name only for the greeting, and the raw URL shown as the link text
+  // rather than a styled button — matches the wording/shape of legacy's own
+  // staff invite email ("Hi {first}, You've been added as {role} for {show}.
+  // Click below to confirm and get set up: {link}").
+  const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
+  const link = `${env.siteUrl}${ROUTES.login}`;
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -434,11 +441,12 @@ async function sendStaffInviteNotification(params: {
     body: JSON.stringify({
       from: 'Field & Arena <notifications@field-arena.com>',
       to: params.to,
-      subject: `You're invited as ${params.role} for ${params.showName}`,
+      subject: `You've been added as ${params.role} for ${params.showName}`,
       html:
-        `<p>Hi ${params.name},</p>` +
-        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>.</p>` +
-        `<p><a href="${env.siteUrl}${ROUTES.login}">Log in to Field &amp; Arena</a> to view it.</p>`,
+        `<p>Hi ${firstName},</p>` +
+        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>. ` +
+        `Click below to log in and get set up:</p>` +
+        `<p><a href="${link}">${link}</a></p>`,
     }),
   });
   if (!res.ok) return;
@@ -497,7 +505,9 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
     }).catch(() => undefined);
   } else {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { name },
+      // See staff/data/mutations.ts's provisionIfNewAccount for what these
+      // feed in the hosted invite email template.
+      data: { name, firstName: name.trim().split(/\s+/)[0] ?? name, role: parsed.role, showName: show.name },
       // See createOrganization's invite call for why this is the bare origin.
       redirectTo: env.siteUrl,
     });
