@@ -1,127 +1,103 @@
 import type { Metadata } from 'next';
-import { listMyAssignments } from '@/modules/judging/data/queries';
+import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { StatusBadge } from '@/shared/ui/status-badge';
+import {
+  buildDemoAssignments,
+  buildDemoPanelContacts,
+  buildTodaySnapshot,
+  classifyAssignment,
+} from '@/modules/judging/utils';
+import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
+import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
+import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
+import { StatusPill } from '@/shared/ui/organizer/status-pill';
+import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
 
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
 /**
- * The Judge and Scribe workspace, ported from judge-scribe.html's
- * "My Assignments" panel.
- *
- * Not scoped to one show, unlike the organizer pages. An official works across
- * organizations and needs one list of everything they are booked on, which is
- * what that panel gave them.
+ * The Judge and Scribe workspace's "My Assignments" tab, rebuilt to match
+ * Judge Workspace.dc.html — today's ring times, then everything upcoming.
+ * Not scoped to one show, unlike the organizer pages: an official works
+ * across organizations and needs one list of everything they are booked on.
  */
 export default async function JudgingPage() {
-  const [profile, assignments] = await Promise.all([getStaffProfile(), listMyAssignments()]);
-  const roleLabel = profile?.platform_role ?? 'Official';
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [profile, realAssignments, realPanelContacts] = await Promise.all([
+    getStaffProfile(),
+    listMyAssignments(),
+    listPanelContacts(),
+  ]);
+  const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
+  const assignments = isSuperAdminPreview ? buildDemoAssignments(todayIso) : realAssignments;
+  const panelContacts = isSuperAdminPreview ? buildDemoPanelContacts() : realPanelContacts;
+  const roleLabel = profile?.platform_role === 'Scribe' ? 'Scribe' : 'Judge';
+  const { rings, contacts } = buildTodaySnapshot(assignments, panelContacts, todayIso);
 
-  const open = assignments.filter((a) => a.scoringOpen).length;
-  const done = assignments.filter((a) => a.resultsPublished).length;
+  const today = assignments.filter((a) => classifyAssignment(a, todayIso) === 'today');
+  const upcoming = assignments.filter((a) => classifyAssignment(a, todayIso) === 'upcoming');
+  const upcomingCount = today.length + upcoming.length;
 
   return (
     <>
-      <div className="dash-head">
+      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1>My Assignments</h1>
-          <p>Every class you are on a panel for, across all shows.</p>
+          <ScreenTitle>My Assignments</ScreenTitle>
+          <ScreenLede className="mb-0">
+            Today&apos;s ring times and every show you&apos;re on the panel for.
+          </ScreenLede>
         </div>
+        <StatusPill bg="#FFFFFF" border="#E9EDEB" fg="#16261F" icon={<GoldDot />}>
+          {roleLabel} · {upcomingCount} upcoming assignment{upcomingCount === 1 ? '' : 's'}
+        </StatusPill>
       </div>
 
-      <div className="dash-card">
-        <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-          <div className="stat">
-            <div className="stat-label">Classes</div>
-            <div className="stat-value">{assignments.length}</div>
-            <div className="stat-sub">you are panelled on</div>
-          </div>
-          <div className="stat">
-            <div className="stat-label">Scoring open</div>
-            <div className="stat-value">{open}</div>
-            <div className="stat-sub">accepting marks now</div>
-          </div>
-          <div className="stat">
-            <div className="stat-label">Published</div>
-            <div className="stat-value">{done}</div>
-            <div className="stat-sub">results final</div>
-          </div>
-        </div>
+      {isSuperAdminPreview && <SuperAdminPreviewNotice />}
 
-        {assignments.length === 0 ? (
-          <EmptyPanel
-            title="No assignments yet"
-            note={`You are not on any class panel. An organizer assigns a ${roleLabel.toLowerCase()} to a class from ShowManager, and it appears here once they do.`}
-          />
-        ) : (
-          <div style={{ overflowX: 'auto', marginTop: 14 }}>
-            <table>
-              <caption className="sr-only">Classes you are on a panel for</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Class</th>
-                  <th scope="col">Show</th>
-                  <th scope="col">Seat</th>
-                  <th scope="col">Your role</th>
-                  <th scope="col" className="r">
-                    Rides
-                  </th>
-                  <th scope="col">State</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assignments.map((a) => (
-                  <tr key={`${a.classId}-${a.seatId}`}>
-                    <td>
-                      <strong>{a.classLabel}</strong>
-                    </td>
-                    <td>
-                      {a.showName}
-                      {a.showDate && (
-                        <span style={{ display: 'block', fontSize: 12, color: 'var(--fa-muted)' }}>
-                          {a.showDate}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {a.seatId}
-                      {a.position && ` · ${a.position}`}
-                    </td>
-                    <td>
-                      <StatusBadge tone={a.seatRole === 'judge' ? 'info' : 'neutral'}>
-                        {a.seatRole === 'judge' ? 'Judge' : 'Scribe'}
-                      </StatusBadge>
-                    </td>
-                    <td className="r">
-                      <strong>{a.entryCount}</strong>
-                      {a.scoredCount > 0 && (
-                        <span style={{ display: 'block', fontSize: 12, color: 'var(--fa-muted)' }}>
-                          {a.scoredCount} scored
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {a.resultsPublished ? (
-                        <StatusBadge tone="success">Published</StatusBadge>
-                      ) : a.scoringOpen ? (
-                        <StatusBadge tone="warn">Scoring open</StatusBadge>
-                      ) : (
-                        <StatusBadge tone="neutral">Not started</StatusBadge>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <JudgingStatusCard rings={rings} contacts={contacts} />
 
-        <p className="doc-note">
-          Entering marks needs the live scoring screen, which is not migrated yet. This page shows
-          what you are booked on and how far each class has got.
-        </p>
-      </div>
+      {assignments.length === 0 ? (
+        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
+          You are not on any class panel. An organizer assigns a {roleLabel.toLowerCase()} to a
+          class from ShowManager, and it appears here once they do.
+        </Card>
+      ) : (
+        <>
+          <h3 className="mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold text-ink-deep">
+            Today&apos;s Ring Times
+          </h3>
+          <div className="mb-8 flex flex-col gap-3">
+            {today.length === 0 ? (
+              <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
+                Nothing on the panel for you today.
+              </Card>
+            ) : (
+              today.map((a) => (
+                <AssignmentCard key={`${a.classId}-${a.seatId}`} assignment={a} variant="today" />
+              ))
+            )}
+          </div>
+
+          <h3 className="mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold text-ink-deep">
+            Upcoming
+          </h3>
+          <div className="flex flex-col gap-3">
+            {upcoming.length === 0 ? (
+              <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
+                Nothing else scheduled yet.
+              </Card>
+            ) : (
+              upcoming.map((a) => (
+                <AssignmentCard key={`${a.classId}-${a.seatId}`} assignment={a} variant="upcoming" />
+              ))
+            )}
+          </div>
+        </>
+      )}
     </>
   );
+}
+
+function GoldDot() {
+  return <span className="size-2 rounded-full bg-gold" />;
 }

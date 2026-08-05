@@ -12,6 +12,7 @@ import { ROUTES } from '@/shared/constants/routes';
 import {
   loginSchema,
   requestPasswordResetSchema,
+  setPasswordSchema,
   signUpSchema,
   verifyEmailSchema,
   verifySignInCodeSchema,
@@ -237,6 +238,49 @@ export async function signUpWithPassword(input: unknown): Promise<SignUpOutcome>
   // un-provisioned, so it is signed out and sent to the login screen's notice —
   // sign-up itself does not error.
   return landAfterSignup(supabase, data.user.id);
+}
+
+/**
+ * Sets the password on the account the invite link just verified.
+ *
+ * `/auth/confirm` sends every invite through `/set-password` before it ever
+ * reaches a dashboard — `verifyOtp` establishes a real session but the
+ * account it belongs to has no password hash at all, and the login form's
+ * default path is email + password. Without this step, that first session
+ * would be the last time the account could sign in until someone noticed
+ * the small "email me a code instead" fallback. Matches legacy, where
+ * Clerk's own sign-up UI required a password at this same point.
+ *
+ * Requires the session `/auth/confirm` just established — there is no
+ * separate token to verify here, `updateUser` acts on whoever the caller's
+ * client is currently signed in as.
+ */
+export async function setPassword(input: unknown): Promise<VerifyOutcome> {
+  const { password } = setPasswordSchema.parse(input);
+
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      status: 'error',
+      message: 'Your session has expired. Open the invite link again to continue.',
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { status: 'error', message: readableAuthError(error.message) };
+
+  // Where the invite itself was headed — set on the user by whichever
+  // mutation sent it (createOrganization/addSuperAdmin/addStaffUser etc.),
+  // read back the same way /auth/confirm does. `user_metadata` is untyped by
+  // design, so the read is widened to unknown and narrowed rather than trusted.
+  const metaNext: unknown = user.user_metadata.next;
+  const next = typeof metaNext === 'string' ? metaNext : ROUTES.dashboard;
+
+  revalidatePath('/', 'layout');
+  return { status: 'done', redirectTo: next };
 }
 
 /** Exchanges the six-digit email code for a session. */

@@ -7,6 +7,7 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { addOrgMember } from '@/modules/organizations/data/mutations';
+import { assignJudgeToClasses } from '@/modules/judging/data/mutations';
 import { env } from '@/shared/lib/env';
 import {
   addStaffUserSchema,
@@ -118,11 +119,26 @@ async function provisionIfNewAccount(email: string, name: string, role: string):
 /**
  * "+ Add User" — the organizer-scoped equivalent of superadmin's
  * `addOrgStaff`, callable by the organizer/show manager themselves rather
- * than gated behind SuperAdmin. Same two-part shape: a real
+ * than gated behind SuperAdmin.
+ *
+ * Vendor branches away entirely: legacy's own modal posts a Vendor to
+ * `/api/shows/:id/vendors`, never `/staff` (showstaff.html:9005-9020) — a
+ * `vendor_bookings` row, no staff_assignments row, no invite email (vendors
+ * self-serve their own account through the vendor portal's own booking
+ * flow, not a staff invite). Every other role keeps the real shape: a
  * staff_assignments grant (through the caller's own client, so
  * staff_assignments_write / canManageStaff still applies as defense in
  * depth even though requireCanManageStaff already checked it), then
- * best-effort login provisioning for a brand-new email.
+ * best-effort login provisioning for a brand-new email, then — Judge only —
+ * seating them on whichever classes were checked (see assignJudgeToClasses).
+ *
+ * The staff_assignments id is generated here rather than read back with
+ * `.select()`: `staff_assignments_select`'s RLS policy resolves through
+ * `can_view_show` → `has_staff_assignment`, which queries staff_assignments
+ * itself — the same self-referential `INSERT ... RETURNING` failure already
+ * worked around in shows/data/mutations.ts's createShow. Knowing the id
+ * upfront is also what lets the Judge branch below seat the new row without
+ * a second round trip to look it up.
  */
 export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
   return run('Could not invite this person', async () => {
@@ -130,12 +146,40 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
     const orgId = await requireCanManageStaff(parsed.showId);
 
     const email = parsed.email.trim().toLowerCase();
+    const supabase = await createServerClient();
+
+    if (parsed.role === 'Vendor') {
+      const businessName = parsed.businessName.trim();
+      const { error: vendorError } = await supabase.from('vendor_bookings').insert({
+        show_id: parsed.showId,
+        name: businessName,
+        contact: email,
+      });
+      if (vendorError) throw vendorError;
+
+      if (parsed.addToMemberDatabase) {
+        await addOrgMember({
+          orgId,
+          firstName: businessName,
+          lastName: '',
+          email,
+          role: parsed.role,
+          membershipStatus: parsed.membershipStatus,
+          membershipExpires: parsed.membershipExpires,
+        }).catch(() => undefined);
+      }
+
+      revalidatePath(USERS_PATH);
+      return { email };
+    }
+
     const firstName = parsed.firstName.trim();
     const lastName = parsed.lastName.trim();
     const name = `${firstName} ${lastName}`.trim();
+    const staffId = crypto.randomUUID();
 
-    const supabase = await createServerClient();
     const { error: assignError } = await supabase.from('staff_assignments').insert({
+      id: staffId,
       show_id: parsed.showId,
       email,
       name,
@@ -150,6 +194,13 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
     if (assignError) throw assignError;
 
     await provisionIfNewAccount(email, name, parsed.role);
+
+    // Which tests/classes this judge is on the panel for, filled in now
+    // instead of the organizer opening their panel afterward and adding
+    // classes one at a time — see assignJudgeToClasses's own doc comment.
+    if (parsed.role === 'Judge' && parsed.classIds.length > 0) {
+      await assignJudgeToClasses({ staffId, classIds: parsed.classIds });
+    }
 
     if (parsed.addToMemberDatabase) {
       // Best-effort, matching legacy's own try/catch around this call: the

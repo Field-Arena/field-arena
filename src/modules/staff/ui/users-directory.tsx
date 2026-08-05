@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/utils';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { USER_STATUS_META } from '../constants';
 import { roleRank } from '../utils';
-import { AddUserDialog } from './add-user-dialog';
+import { AddUserDialog, type ClassOption } from './add-user-dialog';
 import { UploadStaffListDialog } from './upload-staff-list-dialog';
 import { ExportStaffListButton } from './export-staff-list-button';
 import { PermissionsListDialog } from './permissions-list-dialog';
@@ -39,10 +39,13 @@ export function UsersDirectory({
   rows,
   shows,
   initialShowId,
+  classesByShow,
 }: {
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
   initialShowId: string;
+  /** This show's classes, for Add User's Judge-classes checklist. */
+  classesByShow: Record<string, ClassOption[]>;
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
   const [search, setSearch] = useState('');
@@ -121,7 +124,11 @@ export function UsersDirectory({
           ))}
         </select>
 
-        <AddUserDialog shows={shows} defaultShowId={targetShowId} />
+        <AddUserDialog
+          shows={shows}
+          defaultShowId={targetShowId}
+          classes={classesByShow[targetShowId] ?? []}
+        />
         {targetShow && <UploadStaffListDialog showId={targetShow.id} showName={targetShow.name} />}
         {targetShow && <ExportStaffListButton rows={targetShowStaff} showName={targetShow.name} />}
         {targetShow && (

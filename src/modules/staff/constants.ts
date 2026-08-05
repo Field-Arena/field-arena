@@ -95,11 +95,25 @@ export const ROLE_NAV: Record<
       tip: 'Every class you are on a panel for',
     },
     {
-      key: 'schedule',
-      label: 'Ring Times',
-      icon: 'schedule',
-      href: '/dashboard/judging/schedule',
-      tip: "Today's ring times for your assignments",
+      key: 'panel',
+      label: 'Panel & Contacts',
+      icon: 'members',
+      href: '/dashboard/judging/panel',
+      tip: 'Who else is on the panel with you',
+    },
+    {
+      key: 'documents',
+      label: 'Documents',
+      icon: 'documents',
+      href: '/dashboard/judging/documents',
+      tip: 'Test sheets and rule references',
+    },
+    {
+      key: 'history',
+      label: 'History',
+      icon: 'history',
+      href: '/dashboard/judging/history',
+      tip: "Classes you've completed",
     },
   ],
   Scribe: [
@@ -111,11 +125,25 @@ export const ROLE_NAV: Record<
       tip: 'Every class you are recording for',
     },
     {
-      key: 'schedule',
-      label: 'Ring Times',
-      icon: 'schedule',
-      href: '/dashboard/judging/schedule',
-      tip: "Today's ring times for your assignments",
+      key: 'panel',
+      label: 'Panel & Contacts',
+      icon: 'members',
+      href: '/dashboard/judging/panel',
+      tip: 'Who else is on the panel with you',
+    },
+    {
+      key: 'documents',
+      label: 'Documents',
+      icon: 'documents',
+      href: '/dashboard/judging/documents',
+      tip: 'Test sheets and rule references',
+    },
+    {
+      key: 'history',
+      label: 'History',
+      icon: 'history',
+      href: '/dashboard/judging/history',
+      tip: "Classes you've completed",
     },
   ],
   Announcer: [
@@ -213,20 +241,27 @@ export const SHOW_INVENTORY = [
 
 /**
  * Roles offered in the "All Users" directory's "+ Add User" modal — ported
- * from showstaff.html's `addableRoles()`, narrowed to what this rebuild
- * actually provisions through staff_assignments. Two roles GRANTABLE_ROLES
- * allows are deliberately absent here:
+ * from showstaff.html's `addableRoles().concat(['Rider'])`, minus Rider:
  *
- *  - Vendor: `allUsersAcrossShows()` explicitly excludes role='Vendor' staff
- *    rows (vendors are sourced from vendor_bookings, their own booking flow —
- *    see modules/vendors), so adding one through this same form would create
- *    a row the directory's own composition then ignores.
  *  - Rider: legacy's own add-user modal pushed a demo rider into an in-memory
  *    array with an explicit "Riders aren't migrated yet" comment. This app
  *    has a real entries pipeline; faking a rider row here would be a step
  *    backward, not a port.
+ *
+ * Vendor IS included, unlike the five staff roles above it in the dropdown —
+ * `addStaffUser` branches on it and never touches staff_assignments at all,
+ * writing to vendor_bookings instead (see that function's own doc comment).
+ * `allUsersAcrossShows()` composing vendors from vendor_bookings rather than
+ * staff rows is exactly why that branch exists.
  */
-export const ADD_USER_ROLES = ['Show Admin', 'Judge', 'Scribe', 'Announcer', 'ShowStaff'] as const;
+export const ADD_USER_ROLES = [
+  'Show Admin',
+  'Judge',
+  'Scribe',
+  'Announcer',
+  'ShowStaff',
+  'Vendor',
+] as const;
 
 /**
  * Sort rank for the "All Users" directory, ported verbatim from showstaff.html's
