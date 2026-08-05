@@ -9,6 +9,7 @@ import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { addOrgMember } from '@/modules/organizations/data/mutations';
 import { assignJudgeToClasses } from '@/modules/judging/data/mutations';
 import { env } from '@/shared/lib/env';
+import { ROUTES } from '@/shared/constants/routes';
 import {
   addStaffUserSchema,
   changeStaffRoleSchema,
@@ -35,23 +36,25 @@ const USERS_PATH = '/dashboard/users';
  * admin client (to provision a login), which bypasses RLS — so unlike an
  * ordinary show mutation, the policy alone can no longer be the gate.
  */
-async function requireCanManageStaff(showId: string): Promise<string> {
+async function requireCanManageStaff(showId: string): Promise<{ orgId: string; showName: string }> {
   const profile = await getStaffProfile();
   if (!profile) throw new UserFacingError('Not signed in.');
 
   const supabase = await createServerClient();
   const { data: show, error } = await supabase
     .from('shows')
-    .select('org_id')
+    .select('org_id, name')
     .eq('id', showId)
     .maybeSingle();
   if (error) throw error;
   if (!show) throw new UserFacingError('Show not found.');
 
-  if (profile.platform_role === 'Organizer' && profile.org_id === show.org_id) return show.org_id;
+  const result = { orgId: show.org_id, showName: show.name };
+
+  if (profile.platform_role === 'Organizer' && profile.org_id === show.org_id) return result;
 
   const impersonatedOrgId = await getImpersonatedOrgId();
-  if (impersonatedOrgId && impersonatedOrgId === show.org_id) return show.org_id;
+  if (impersonatedOrgId && impersonatedOrgId === show.org_id) return result;
 
   const { data: allowed, error: rpcError } = await supabase.rpc('has_show_permission', {
     target_show_id: showId,
@@ -61,7 +64,7 @@ async function requireCanManageStaff(showId: string): Promise<string> {
   if (!allowed)
     throw new UserFacingError('You do not have permission to manage staff for this show.');
 
-  return show.org_id;
+  return result;
 }
 
 async function showIdForStaff(staffId: string): Promise<string> {
@@ -82,20 +85,67 @@ function platformRoleForStaff(role: string): string {
 }
 
 /**
- * Best-effort account provisioning: invites the address if — and only if —
- * it has no account at all yet (staff or rider), same reasoning as
- * `addOrgStaff` in modules/superadmin/data/mutations.ts. Never throws: the
- * staff_assignments row is the grant that matters, and an invite failure
- * (e.g. the address already has an unlinked auth account) shouldn't roll
- * back a real, successful assignment.
+ * Notifies an email that already has an account about a new assignment.
+ * `inviteUserByEmail` below only applies to a brand-new address — resending
+ * it to an existing account would just re-send a signup confirmation, not
+ * tell them about this show. Legacy's staff POST handler sends this same
+ * "You're invited as {role} for {show}" email unconditionally, regardless of
+ * whether the address already has an account (api/shows/[id]/[resource].js),
+ * so this closes that gap rather than leaving the person to find out on
+ * their own. Best-effort, matching provisionIfNewAccount below: the
+ * staff_assignments row is the grant that matters, not this notification.
  */
-async function provisionIfNewAccount(email: string, name: string, role: string): Promise<void> {
+async function sendStaffInviteNotification(params: {
+  to: string;
+  name: string;
+  role: string;
+  showName: string;
+}): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Field & Arena <notifications@field-arena.com>',
+      to: params.to,
+      subject: `You're invited as ${params.role} for ${params.showName}`,
+      html:
+        `<p>Hi ${params.name},</p>` +
+        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>.</p>` +
+        `<p><a href="${env.siteUrl}${ROUTES.login}">Log in to Field &amp; Arena</a> to view it.</p>`,
+    }),
+  });
+  if (!res.ok) return;
+}
+
+/**
+ * Best-effort account provisioning: invites the address if it has no account
+ * at all yet (staff or rider), same reasoning as `addOrgStaff` in
+ * modules/superadmin/data/mutations.ts. An address that already has an
+ * account is notified instead of re-invited (see sendStaffInviteNotification
+ * above) — legacy sends its invite email either way, so this is the one path
+ * that reaches every case. Never throws: the staff_assignments row is the
+ * grant that matters, and an invite/notify failure (e.g. the address already
+ * has an unlinked auth account) shouldn't roll back a real, successful
+ * assignment.
+ */
+async function provisionIfNewAccount(
+  email: string,
+  name: string,
+  role: string,
+  showName: string
+): Promise<void> {
   const admin = createAdminClient();
   const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
     admin.from('users').select('id').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
-  if (existingStaffUser || existingRider) return;
+  if (existingStaffUser || existingRider) {
+    await sendStaffInviteNotification({ to: email, name, role, showName }).catch(() => undefined);
+    return;
+  }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { name },
@@ -143,7 +193,7 @@ async function provisionIfNewAccount(email: string, name: string, role: string):
 export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
   return run('Could not invite this person', async () => {
     const parsed = addStaffUserSchema.parse(input);
-    const orgId = await requireCanManageStaff(parsed.showId);
+    const { orgId, showName } = await requireCanManageStaff(parsed.showId);
 
     const email = parsed.email.trim().toLowerCase();
     const supabase = await createServerClient();
@@ -193,7 +243,7 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
     });
     if (assignError) throw assignError;
 
-    await provisionIfNewAccount(email, name, parsed.role);
+    await provisionIfNewAccount(email, name, parsed.role, showName);
 
     // Which tests/classes this judge is on the panel for, filled in now
     // instead of the organizer opening their panel afterward and adding
@@ -295,7 +345,7 @@ export async function importStaffList(
 ): Promise<ActionResult<{ added: number; skipped: number; failed: number }>> {
   return run('Could not import that staff list', async () => {
     const { showId, rows } = importStaffListSchema.parse(input);
-    await requireCanManageStaff(showId);
+    const { showName } = await requireCanManageStaff(showId);
 
     const supabase = await createServerClient();
     const { data: existing, error: existingError } = await supabase
@@ -335,7 +385,7 @@ export async function importStaffList(
 
       existingEmails.add(email);
       added += 1;
-      await provisionIfNewAccount(email, name, row.role);
+      await provisionIfNewAccount(email, name, row.role, showName);
     }
 
     revalidatePath(USERS_PATH);
