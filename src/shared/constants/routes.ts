@@ -4,6 +4,7 @@ export const ROUTES = {
   login: '/login',
   signup: '/signup',
   authCallback: '/auth/callback',
+  setPassword: '/set-password',
 
   onboarding: '/onboarding',
 

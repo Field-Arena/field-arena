@@ -62,6 +62,25 @@ export const signUpSchema = z.object({
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
+/**
+ * Set-a-password, reached right after an invite link is verified.
+ *
+ * `password` reuses signUpSchema's exact rule rather than duplicating it —
+ * one strength policy for the one thing "choosing a password" ever means in
+ * this app, whether that's self-service sign-up or finishing an invite.
+ */
+export const setPasswordSchema = z
+  .object({
+    password: signUpSchema.shape.password,
+    confirmPassword: z.string(),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
+
 /** The 6-digit code emailed by Supabase after sign-up. */
 export const verifyEmailSchema = z.object({
   email: z.email('Enter a valid email address'),

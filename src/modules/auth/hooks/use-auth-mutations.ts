@@ -8,6 +8,7 @@ import {
   signInWithPassword,
   signOut,
   requestPasswordReset,
+  setPassword,
   signUpWithPassword,
   verifyEmailCode,
   resendEmailCode,
@@ -17,6 +18,7 @@ import {
 import type {
   LoginInput,
   RequestPasswordResetInput,
+  SetPasswordInput,
   SignUpInput,
   VerifyEmailInput,
   VerifySignInCodeInput,
@@ -91,6 +93,24 @@ export function useSignUp(options?: {
           router.refresh();
           router.push(outcome.redirectTo);
       }
+    },
+  });
+}
+
+/** Finishes an invite by setting the account's password. See setPassword. */
+export function useSetPassword() {
+  const router = useRouter();
+
+  return useMutation<VerifyOutcome, Error, SetPasswordInput>({
+    mutationFn: (input) => setPassword(input),
+    onSuccess: (outcome) => {
+      if (outcome.status === 'error') {
+        toast.error(outcome.message);
+        return;
+      }
+      toast.success('Password set.');
+      router.refresh();
+      router.push(outcome.redirectTo);
     },
   });
 }

@@ -17,14 +17,23 @@ import { ROUTES } from '@/shared/constants/routes';
  * `verifyOtp` exchanges that for a session server-side — no PKCE code, no
  * fragment, works the same for a first click as a copy-pasted link.
  *
- * Where an invite should land is read from the invited user's own
- * `user_metadata.next`, set by whichever mutation sent the invite (see
- * `createOrganization`/`addSuperAdmin` etc.) — not from a `?next=` query
- * param on the link. GoTrue's own `{{ .RedirectTo }}` email-template variable
- * was tried first and confirmed, empirically, to truncate down to the bare
- * origin regardless of `uri_allow_list` — every invite landed on `/dashboard`
- * no matter what path was requested. `user_metadata` survives untouched
- * because it never round-trips through GoTrue's redirect-URL handling at all.
+ * Where an invite should land — AFTER `/set-password` — is read from the
+ * invited user's own `user_metadata.next`, set by whichever mutation sent
+ * the invite (see `createOrganization`/`addSuperAdmin` etc.) — not from a
+ * `?next=` query param on the link. GoTrue's own `{{ .RedirectTo }}`
+ * email-template variable was tried first and confirmed, empirically, to
+ * truncate down to the bare origin regardless of `uri_allow_list` — every
+ * invite landed on `/dashboard` no matter what path was requested.
+ * `user_metadata` survives untouched because it never round-trips through
+ * GoTrue's redirect-URL handling at all.
+ *
+ * `type === 'invite'` always goes to `/set-password` first rather than
+ * straight to `next`, regardless of what `next` is — `verifyOtp` hands back
+ * a session but the account behind it has no password yet, and the login
+ * form's default path is email + password. `/set-password` reads the same
+ * `user_metadata.next` once a password is actually set. Every other type
+ * (recovery, magic link, signup confirmation) already implies a password
+ * exists or doesn't matter here, so those go straight to `next` as before.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -35,6 +44,9 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerClient();
     const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) {
+      if (type === 'invite') {
+        return NextResponse.redirect(`${origin}${ROUTES.setPassword}`);
+      }
       // `user_metadata` is untyped by design, so the read is widened to unknown
       // and narrowed below rather than trusted as a string.
       const metaNext: unknown = data.user?.user_metadata.next;

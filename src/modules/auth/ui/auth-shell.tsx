@@ -17,9 +17,14 @@ export function AuthShell({
   children: ReactNode;
   /** The two-step progress marker. Omitted by sign-in, which is one step. */
   step?: 1 | 2;
-  /** The "already have an account" style link in the top-right. `dialog` opens
-   *  the sign-in overlay instead of navigating, which is how the design has it. */
-  alternate: { label: string; href: string; dialog?: boolean };
+  /**
+   * The "already have an account" style link in the top-right. `dialog` opens
+   * the sign-in overlay instead of navigating, which is how the design has it.
+   * Omitted by screens with no sensible alternate action — set-password,
+   * reached mid-invite with a session already open, has nowhere else to send
+   * someone.
+   */
+  alternate?: { label: string; href: string; dialog?: boolean };
 }) {
   return (
     <div className="fa-public grid min-h-dvh font-[family-name:var(--font-ar)] text-ink-deep lg:grid-cols-[minmax(0,1.02fr)_minmax(0,1fr)]">
@@ -28,18 +33,19 @@ export function AuthShell({
       <main className="flex flex-col items-center bg-paper px-6 py-12 md:px-10">
         <div className="mb-auto flex w-full max-w-[424px] items-center justify-between gap-5">
           {step ? <StepMarker current={step} /> : <MobileBrand />}
-          {alternate.dialog ? (
-            <LoginTrigger className="text-[13px] font-semibold text-fa-muted transition-colors hover:text-gold">
-              {alternate.label}
-            </LoginTrigger>
-          ) : (
-            <Link
-              href={alternate.href}
-              className="text-[13px] font-semibold text-fa-muted transition-colors hover:text-gold"
-            >
-              {alternate.label}
-            </Link>
-          )}
+          {alternate &&
+            (alternate.dialog ? (
+              <LoginTrigger className="text-[13px] font-semibold text-fa-muted transition-colors hover:text-gold">
+                {alternate.label}
+              </LoginTrigger>
+            ) : (
+              <Link
+                href={alternate.href}
+                className="text-[13px] font-semibold text-fa-muted transition-colors hover:text-gold"
+              >
+                {alternate.label}
+              </Link>
+            ))}
         </div>
 
         <div className="my-10 w-full max-w-[424px]">{children}</div>
