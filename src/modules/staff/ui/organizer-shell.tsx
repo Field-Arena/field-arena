@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOutIcon, SmartphoneIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
+import { setPreviewRole } from '../data/preview-role';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
 import { Tip } from '@/shared/ui/tip';
@@ -24,15 +25,24 @@ export function OrganizerShell({
   profile,
   workspace,
   impersonating = false,
+  previewingAsShowAdmin = false,
 }: {
   children: ReactNode;
   profile: StaffProfile;
   workspace: RoleWorkspace;
   impersonating?: boolean;
+  /** An Organizer (or impersonating SuperAdmin) previewing their own workspace as Show Admin — see data/preview-role.ts. */
+  previewingAsShowAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
   const [mobilePreview, setMobilePreview] = useState(false);
+  // Matches organization-row-actions.tsx's own reasoning for enterAsOrganizer:
+  // setPreviewRole ends in a redirect(), so there is no result to cache and no
+  // success state to react to — only a pending flag while the navigation
+  // happens. A mutation hook would risk its own try/catch intercepting the
+  // redirect's thrown signal before Next's router ever sees it.
+  const [isPreviewPending, startPreviewTransition] = useTransition();
 
   /**
    * The role rail is a switcher only for SuperAdmin.
@@ -66,7 +76,14 @@ export function OrganizerShell({
   // A SuperAdmin impersonating an organizer needs the organizer nav, not their
   // own — impersonating is about seeing what the organizer sees.
   const role = impersonating ? 'Organizer' : (profile.platform_role ?? 'Organizer');
-  const navItems = ROLE_NAV[role] ?? ORGANIZER_NAV;
+  const baseNavItems = ROLE_NAV[role] ?? ORGANIZER_NAV;
+
+  // Mirrors applyRoleVisibility's billingNav.classList.toggle('hidden-role',
+  // moneyHidden()) — the one nav destination the legacy preview actually
+  // hid, rather than a blanket re-filter of the whole shared nav.
+  const navItems = previewingAsShowAdmin
+    ? baseNavItems.filter((item) => item.key !== 'billing')
+    : baseNavItems;
 
   // An exact href match always wins over a prefix match — needed now that some
   // roles (Judge/Scribe) nest sibling routes under their landing tab's own path
@@ -126,13 +143,26 @@ export function OrganizerShell({
           meaningful for someone who can actually be both, so it is not rendered
           for a real Show Admin — offering them an "Organizer" option would imply
           they can grant themselves financial visibility, which the permission
-          model deliberately withholds.
+          model deliberately withholds. A SuperAdmin impersonating an organizer
+          gets it too, same as legacy's moneyHidden() covered both platform
+          roles — impersonating already grants everything an Organizer sees.
         */}
-        {profile.platform_role === 'Organizer' && (
+        {(profile.platform_role === 'Organizer' || impersonating) && (
           <>
             <div className="dash-side-heading">VIEWING AS</div>
             <Tip text="Preview as Organizer (full access) or ShowAdmin (financials hidden)" className="block w-full">
-              <select className="dash-select" defaultValue="organizer" aria-label="Viewing as role">
+              <select
+                className="dash-select"
+                value={previewingAsShowAdmin ? 'showadmin' : 'organizer'}
+                disabled={isPreviewPending}
+                onChange={(e) => {
+                  const next = e.target.value === 'showadmin' ? 'showadmin' : 'organizer';
+                  startPreviewTransition(async () => {
+                    await setPreviewRole(next, pathname);
+                  });
+                }}
+                aria-label="Viewing as role"
+              >
                 <option value="organizer">Organizer</option>
                 <option value="showadmin">Show Admin</option>
               </select>
@@ -190,7 +220,9 @@ export function OrganizerShell({
 
         <header className="dash-topbar">
           <span className="dash-topbar-title">{workspace.title}</span>
-          <span className="dash-badge">{profile.platform_role ?? 'Staff'}</span>
+          <span className="dash-badge">
+            {previewingAsShowAdmin ? 'Show Admin' : (profile.platform_role ?? 'Staff')}
+          </span>
           <span className="dash-topbar-note">{workspace.hint}</span>
         </header>
         <main className="dash-content">{children}</main>

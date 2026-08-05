@@ -5,6 +5,7 @@ import { SuperAdminShell } from '@/modules/superadmin/ui/superadmin-shell';
 import { PendingWorkspace } from '@/shared/ui/pending-workspace';
 import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getPreviewingAsShowAdmin } from '@/modules/staff/data/preview-role';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -84,12 +85,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // While impersonating, the shell should read as the Organizer workspace rather
   // than "SuperAdmin Console" — the whole point is to see what they see.
   const shellWorkspace = impersonating ? (ROLE_WORKSPACES.Organizer ?? workspace) : workspace;
+  const previewingAsShowAdmin = await getPreviewingAsShowAdmin();
 
   return (
     <OrganizerShell
       profile={profile}
       workspace={shellWorkspace}
       impersonating={impersonating !== null}
+      previewingAsShowAdmin={previewingAsShowAdmin}
     >
       {children}
     </OrganizerShell>
