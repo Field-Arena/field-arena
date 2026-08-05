@@ -13,6 +13,11 @@ export const metadata: Metadata = { title: 'Venues — Field & Arena' };
  * (`modules/organizations`) and picked up by any show at that venue.
  * Per-show stall *assignments* deliberately do not live here — those are
  * inherently per-show and belong on shows.stable_chart.
+ *
+ * Organizer/SuperAdmin only, matching legacy's ORG_MANAGER_ONLY_RESOURCES
+ * (api/organizations/[id]/[resource].js) — see members/page.tsx's doc
+ * comment for the full reasoning; the venue library carries the same
+ * org-wide-not-per-show restriction.
  */
 export default async function VenuesPage() {
   const context = await getOrganizerContext();
@@ -23,6 +28,19 @@ export default async function VenuesPage() {
         <EmptyPanel
           title="No organization"
           note="This account is not attached to an organization."
+        />
+      </div>
+    );
+  }
+
+  const isOrganizerOrImpersonating =
+    context.profile.platform_role === 'Organizer' || context.impersonating;
+  if (!isOrganizerOrImpersonating) {
+    return (
+      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+        <EmptyPanel
+          title="Not available for your role"
+          note="Venues are managed by your organization's Organizer — a Show Admin's access is always scoped to the show(s) they're staffed on."
         />
       </div>
     );

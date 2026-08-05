@@ -412,13 +412,54 @@ function platformRoleForStaff(role: string): string {
 }
 
 /**
+ * Notifies an already-registered email about a new assignment — same
+ * reasoning and shape as staff/data/mutations.ts's identical helper. An
+ * existing account never goes through inviteUserByEmail below (that would
+ * just re-send a signup confirmation), so this is the only way they hear
+ * about the new show; legacy sends this "you're invited" email unconditionally
+ * regardless of whether the address already has an account.
+ */
+async function sendStaffInviteNotification(params: {
+  to: string;
+  name: string;
+  role: string;
+  showName: string;
+}): Promise<void> {
+  // First name only for the greeting, and the raw URL shown as the link text
+  // rather than a styled button — matches the wording/shape of legacy's own
+  // staff invite email ("Hi {first}, You've been added as {role} for {show}.
+  // Click below to confirm and get set up: {link}").
+  const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
+  const link = `${env.siteUrl}${ROUTES.login}`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Field & Arena <notifications@field-arena.com>',
+      to: params.to,
+      subject: `You've been added as ${params.role} for ${params.showName}`,
+      html:
+        `<p>Hi ${firstName},</p>` +
+        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>. ` +
+        `Click below to log in and get set up:</p>` +
+        `<p><a href="${link}">${link}</a></p>`,
+    }),
+  });
+  if (!res.ok) return;
+}
+
+/**
  * Adds a staff member to one of an organizer's shows.
  *
  * Two things happen: the per-show grant (a staff_assignments row, which is what
- * the directory shows and what RLS resolves permissions from) and, if this email
- * has no account yet, an invite + provisioned users row so they can actually sign
- * in — the same reason addSuperAdmin provisions eagerly. Someone already holding
- * an account keeps it; they just gain the new assignment.
+ * the directory shows and what RLS resolves permissions from) and login
+ * provisioning — an invite for a brand-new email, or a notification email for
+ * one that already has an account (see sendStaffInviteNotification above), so
+ * they learn about the new assignment either way, matching legacy.
  *
  * requireSuperAdmin gates it because the provisioning half uses the service-role
  * client. The assignment insert itself still goes through the caller's client, so
@@ -431,6 +472,13 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
   const name = parsed.name ?? email;
 
   const supabase = await createServerClient();
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('name')
+    .eq('id', parsed.showId)
+    .single();
+  if (showError) throw new Error(showError.message);
+
   const { error: assignError } = await supabase.from('staff_assignments').insert({
     show_id: parsed.showId,
     email,
@@ -440,16 +488,26 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
   });
   if (assignError) throw new Error(assignError.message);
 
-  // Provision a login only if this person has no account at all yet.
+  // Provision a login only if this person has no account at all yet;
+  // notify them instead if they already do.
   const admin = createAdminClient();
   const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
     admin.from('users').select('id').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
 
-  if (!existingStaffUser && !existingRider) {
+  if (existingStaffUser || existingRider) {
+    await sendStaffInviteNotification({
+      to: email,
+      name,
+      role: parsed.role,
+      showName: show.name,
+    }).catch(() => undefined);
+  } else {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { name },
+      // See staff/data/mutations.ts's provisionIfNewAccount for what these
+      // feed in the hosted invite email template.
+      data: { name, firstName: name.trim().split(/\s+/)[0] ?? name, role: parsed.role, showName: show.name },
       // See createOrganization's invite call for why this is the bare origin.
       redirectTo: env.siteUrl,
     });

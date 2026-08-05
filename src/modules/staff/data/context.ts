@@ -4,6 +4,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile, type StaffProfile } from '@/modules/auth/data/queries';
 import { listShowsForOrg, type ShowListItem } from '@/modules/shows/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getPreviewingAsShowAdmin } from './preview-role';
 
 export interface OrganizerContext {
   profile: StaffProfile;
@@ -14,6 +15,8 @@ export interface OrganizerContext {
   canViewMoney: boolean;
   /** True when a SuperAdmin is viewing this workspace as an organizer. */
   impersonating: boolean;
+  /** True when an Organizer (or an impersonating SuperAdmin) is previewing as Show Admin — see data/preview-role.ts. */
+  previewingAsShowAdmin: boolean;
 }
 
 /**
@@ -79,6 +82,7 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
       currentShow: null,
       canViewMoney: false,
       impersonating: false,
+      previewingAsShowAdmin: false,
     };
   }
 
@@ -100,6 +104,13 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     canViewMoney = allowed === true;
   }
 
+  // The "Viewing as Show Admin" preview only ever narrows what this same
+  // inherently-full-access person sees — never a real permission change, see
+  // preview-role.ts's doc comment. A real Show Admin's own canViewMoney above
+  // is untouched by this: it already came from their per-person grant.
+  const previewingAsShowAdmin = await getPreviewingAsShowAdmin();
+  if (previewingAsShowAdmin) canViewMoney = false;
+
   return {
     profile,
     orgId,
@@ -108,5 +119,6 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     currentShow,
     canViewMoney,
     impersonating: impersonatedOrgId !== null,
+    previewingAsShowAdmin,
   };
 }

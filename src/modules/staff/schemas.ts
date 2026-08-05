@@ -66,6 +66,32 @@ export type UpdateStaffPermissionsInput = z.input<typeof updateStaffPermissionsS
 export const staffIdSchema = z.object({ staffId: z.uuid() });
 export type StaffIdInput = z.input<typeof staffIdSchema>;
 
+/** Moves a staff_assignments row to a different show — legacy's PATCH /api/staff/:id showId field. */
+export const reassignStaffShowSchema = z.object({
+  staffId: z.uuid(),
+  showId: z.uuid(),
+});
+export type ReassignStaffShowInput = z.input<typeof reassignStaffShowSchema>;
+
+/**
+ * The name/contact/steward fields of legacy's PATCH /api/staff/:id — every
+ * field that handler accepts except role/permissions/showId/status, which
+ * already have their own dedicated actions (status has none: see
+ * updateStaffDetails's doc comment in data/mutations.ts for why).
+ */
+export const updateStaffDetailsSchema = z.object({
+  staffId: z.uuid(),
+  firstName: z.string().trim().min(1, 'First name is required').max(80),
+  lastName: z.string().trim().min(1, 'Last name is required').max(80),
+  email: z.email('Enter a valid email address'),
+  phone: z.string().trim().max(40).optional().default(''),
+  // Only meaningful for role='Announcer', matching legacy's conditional
+  // um-is-steward checkbox — the UI only renders this control for that role,
+  // but the field itself is unconditional here like every other one above.
+  isSteward: z.boolean().optional().default(false),
+});
+export type UpdateStaffDetailsInput = z.input<typeof updateStaffDetailsSchema>;
+
 /** One parsed row from an uploaded staff CSV — see modules/staff/utils.ts's `parseStaffCsv`. */
 const importStaffRowSchema = z.object({
   firstName: z.string().trim().max(80),

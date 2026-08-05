@@ -9,12 +9,15 @@ import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { addOrgMember } from '@/modules/organizations/data/mutations';
 import { assignJudgeToClasses } from '@/modules/judging/data/mutations';
 import { env } from '@/shared/lib/env';
+import { ROUTES } from '@/shared/constants/routes';
 import {
   addStaffUserSchema,
   changeStaffRoleSchema,
   updateStaffPermissionsSchema,
   staffIdSchema,
   importStaffListSchema,
+  reassignStaffShowSchema,
+  updateStaffDetailsSchema,
 } from '../schemas';
 
 const USERS_PATH = '/dashboard/users';
@@ -35,23 +38,25 @@ const USERS_PATH = '/dashboard/users';
  * admin client (to provision a login), which bypasses RLS — so unlike an
  * ordinary show mutation, the policy alone can no longer be the gate.
  */
-async function requireCanManageStaff(showId: string): Promise<string> {
+async function requireCanManageStaff(showId: string): Promise<{ orgId: string; showName: string }> {
   const profile = await getStaffProfile();
   if (!profile) throw new UserFacingError('Not signed in.');
 
   const supabase = await createServerClient();
   const { data: show, error } = await supabase
     .from('shows')
-    .select('org_id')
+    .select('org_id, name')
     .eq('id', showId)
     .maybeSingle();
   if (error) throw error;
   if (!show) throw new UserFacingError('Show not found.');
 
-  if (profile.platform_role === 'Organizer' && profile.org_id === show.org_id) return show.org_id;
+  const result = { orgId: show.org_id, showName: show.name };
+
+  if (profile.platform_role === 'Organizer' && profile.org_id === show.org_id) return result;
 
   const impersonatedOrgId = await getImpersonatedOrgId();
-  if (impersonatedOrgId && impersonatedOrgId === show.org_id) return show.org_id;
+  if (impersonatedOrgId && impersonatedOrgId === show.org_id) return result;
 
   const { data: allowed, error: rpcError } = await supabase.rpc('has_show_permission', {
     target_show_id: showId,
@@ -61,7 +66,7 @@ async function requireCanManageStaff(showId: string): Promise<string> {
   if (!allowed)
     throw new UserFacingError('You do not have permission to manage staff for this show.');
 
-  return show.org_id;
+  return result;
 }
 
 async function showIdForStaff(staffId: string): Promise<string> {
@@ -82,23 +87,83 @@ function platformRoleForStaff(role: string): string {
 }
 
 /**
- * Best-effort account provisioning: invites the address if — and only if —
- * it has no account at all yet (staff or rider), same reasoning as
- * `addOrgStaff` in modules/superadmin/data/mutations.ts. Never throws: the
- * staff_assignments row is the grant that matters, and an invite failure
- * (e.g. the address already has an unlinked auth account) shouldn't roll
- * back a real, successful assignment.
+ * Notifies an email that already has an account about a new assignment.
+ * `inviteUserByEmail` below only applies to a brand-new address — resending
+ * it to an existing account would just re-send a signup confirmation, not
+ * tell them about this show. Legacy's staff POST handler sends this same
+ * "You're invited as {role} for {show}" email unconditionally, regardless of
+ * whether the address already has an account (api/shows/[id]/[resource].js),
+ * so this closes that gap rather than leaving the person to find out on
+ * their own. Best-effort, matching provisionIfNewAccount below: the
+ * staff_assignments row is the grant that matters, not this notification.
  */
-async function provisionIfNewAccount(email: string, name: string, role: string): Promise<void> {
+async function sendStaffInviteNotification(params: {
+  to: string;
+  name: string;
+  role: string;
+  showName: string;
+}): Promise<void> {
+  // First name only for the greeting, and the raw URL shown as the link text
+  // rather than a styled button — matches the wording/shape of legacy's own
+  // staff invite email ("Hi {first}, You've been added as {role} for {show}.
+  // Click below to confirm and get set up: {link}").
+  const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
+  const link = `${env.siteUrl}${ROUTES.login}`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Field & Arena <notifications@field-arena.com>',
+      to: params.to,
+      subject: `You've been added as ${params.role} for ${params.showName}`,
+      html:
+        `<p>Hi ${firstName},</p>` +
+        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>. ` +
+        `Click below to log in and get set up:</p>` +
+        `<p><a href="${link}">${link}</a></p>`,
+    }),
+  });
+  if (!res.ok) return;
+}
+
+/**
+ * Best-effort account provisioning: invites the address if it has no account
+ * at all yet (staff or rider), same reasoning as `addOrgStaff` in
+ * modules/superadmin/data/mutations.ts. An address that already has an
+ * account is notified instead of re-invited (see sendStaffInviteNotification
+ * above) — legacy sends its invite email either way, so this is the one path
+ * that reaches every case. Never throws: the staff_assignments row is the
+ * grant that matters, and an invite/notify failure (e.g. the address already
+ * has an unlinked auth account) shouldn't roll back a real, successful
+ * assignment.
+ */
+async function provisionIfNewAccount(
+  email: string,
+  name: string,
+  role: string,
+  showName: string
+): Promise<void> {
   const admin = createAdminClient();
   const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
     admin.from('users').select('id').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
-  if (existingStaffUser || existingRider) return;
+  if (existingStaffUser || existingRider) {
+    await sendStaffInviteNotification({ to: email, name, role, showName }).catch(() => undefined);
+    return;
+  }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { name },
+    // firstName/role/showName feed the hosted invite email template's
+    // {{ .Data.* }} placeholders (see supabase's mailer_templates_invite_content,
+    // set via the Management API) — a staff invite renders "You've been added
+    // as {role} for {show}"; an organizer/superadmin invite (which never
+    // passes these) falls back to its existing generic copy.
+    data: { name, firstName: name.trim().split(/\s+/)[0] ?? name, role, showName },
     // Only satisfies inviteUserByEmail's own allow-list check — does not
     // drive the emailed link's domain, which always comes from Supabase's
     // own project-level site_url template setting regardless of what's
@@ -143,7 +208,7 @@ async function provisionIfNewAccount(email: string, name: string, role: string):
 export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
   return run('Could not invite this person', async () => {
     const parsed = addStaffUserSchema.parse(input);
-    const orgId = await requireCanManageStaff(parsed.showId);
+    const { orgId, showName } = await requireCanManageStaff(parsed.showId);
 
     const email = parsed.email.trim().toLowerCase();
     const supabase = await createServerClient();
@@ -193,7 +258,7 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
     });
     if (assignError) throw assignError;
 
-    await provisionIfNewAccount(email, name, parsed.role);
+    await provisionIfNewAccount(email, name, parsed.role, showName);
 
     // Which tests/classes this judge is on the panel for, filled in now
     // instead of the organizer opening their panel afterward and adding
@@ -231,6 +296,74 @@ export async function changeStaffRole(input: unknown): Promise<ActionResult<{ ok
 
     const supabase = await createServerClient();
     const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
+    if (error) throw error;
+
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
+}
+
+/**
+ * Moves a staff_assignments row to a different show — same person, same
+ * role/permissions, just a new show_id. Ported from legacy's PATCH
+ * /api/staff/:id (api/staff/[id].js:37-54): when its optional `showId` field
+ * differs from the row's current show, it re-runs `requireShowManager`
+ * against the *destination* show too, not just the source one — otherwise a
+ * manager of show A could move someone's assignment onto show B without
+ * having any authority there. Both checks go through the same
+ * `requireCanManageStaff` gate the rest of this file already uses.
+ */
+export async function reassignStaffShow(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not move this person to that show', async () => {
+    const { staffId, showId } = reassignStaffShowSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(staffId));
+    await requireCanManageStaff(showId);
+
+    const supabase = await createServerClient();
+    const { error } = await supabase
+      .from('staff_assignments')
+      .update({ show_id: showId })
+      .eq('id', staffId);
+    if (error) throw error;
+
+    revalidatePath(USERS_PATH);
+    return { ok: true };
+  });
+}
+
+/**
+ * Saves name/email/phone/isSteward for an existing staff_assignments row —
+ * the rest of legacy's PATCH /api/staff/:id (api/staff/[id].js:24,56-65)
+ * beyond role/permissions/showId, which already have their own actions above.
+ *
+ * `status` is deliberately not part of this: legacy's own edit-existing-user
+ * modal sends it (showstaff.html's um-status select), but in this schema
+ * `staff_assignments.status` is never read for display — the directory's
+ * status pill is derived entirely from whether a `public.users` row for this
+ * email has actually signed in (see queries.ts's listAllUsersAcrossShows, "──
+ * Staff status" comment). Writing to that column would change nothing an
+ * operator could see, so exposing an editable control for it here would be
+ * decorative rather than a real capability.
+ */
+export async function updateStaffDetails(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not save these details', async () => {
+    const parsed = updateStaffDetailsSchema.parse(input);
+    await requireCanManageStaff(await showIdForStaff(parsed.staffId));
+
+    const firstName = parsed.firstName.trim();
+    const lastName = parsed.lastName.trim();
+    const supabase = await createServerClient();
+    const { error } = await supabase
+      .from('staff_assignments')
+      .update({
+        name: `${firstName} ${lastName}`.trim(),
+        first_name: firstName,
+        last_name: lastName,
+        email: parsed.email.trim().toLowerCase(),
+        phone: parsed.phone || null,
+        is_steward: parsed.isSteward,
+      })
+      .eq('id', parsed.staffId);
     if (error) throw error;
 
     revalidatePath(USERS_PATH);
@@ -295,7 +428,7 @@ export async function importStaffList(
 ): Promise<ActionResult<{ added: number; skipped: number; failed: number }>> {
   return run('Could not import that staff list', async () => {
     const { showId, rows } = importStaffListSchema.parse(input);
-    await requireCanManageStaff(showId);
+    const { showName } = await requireCanManageStaff(showId);
 
     const supabase = await createServerClient();
     const { data: existing, error: existingError } = await supabase
@@ -335,7 +468,7 @@ export async function importStaffList(
 
       existingEmails.add(email);
       added += 1;
-      await provisionIfNewAccount(email, name, row.role);
+      await provisionIfNewAccount(email, name, row.role, showName);
     }
 
     revalidatePath(USERS_PATH);

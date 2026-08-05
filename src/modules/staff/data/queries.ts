@@ -53,7 +53,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     supabase
       .from('staff_assignments')
       .select(
-        'id, show_id, name, role, email, phone, status, user_id, is_steward, can_scratch_skip_dq, can_view_money, permissions',
+        'id, show_id, name, first_name, last_name, role, email, phone, status, user_id, is_steward, can_scratch_skip_dq, can_view_money, permissions',
       )
       .in('show_id', showIds)
       .neq('role', 'Vendor'),
@@ -211,6 +211,8 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       kind: 'staff',
       id: s.id,
       name: s.name,
+      firstName: s.first_name,
+      lastName: s.last_name,
       role: s.role,
       email: s.email,
       phone: s.phone,
@@ -250,6 +252,8 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
         kind: 'rider',
         id: group.riderId ?? key,
         name,
+        firstName: null,
+        lastName: null,
         role: 'Rider',
         email,
         phone,
@@ -281,6 +285,8 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       kind: 'vendor',
       id: v.id,
       name: v.name,
+      firstName: null,
+      lastName: null,
       role: 'Vendor',
       email: v.contact,
       phone: v.phone,

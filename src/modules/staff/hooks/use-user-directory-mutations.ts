@@ -11,12 +11,16 @@ import {
   updateStaffPermissions,
   removeStaffAssignment,
   importStaffList,
+  reassignStaffShow,
+  updateStaffDetails,
 } from '../data/mutations';
 import type {
   AddStaffUserInput,
   ChangeStaffRoleInput,
   UpdateStaffPermissionsInput,
   ImportStaffListInput,
+  ReassignStaffShowInput,
+  UpdateStaffDetailsInput,
 } from '../schemas';
 
 /** Mutation hooks for the "All Users" directory. Every action revalidates server-side; router.refresh() pulls the re-rendered directory back into this view. */
@@ -65,6 +69,37 @@ export function useUpdateStaffPermissions(options?: { onSuccess?: () => void }) 
     },
     onError: (error) => {
       toast.error(readableError(error, 'Could not save permissions'));
+    },
+  });
+}
+
+export function useReassignStaffShow() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (input: ReassignStaffShowInput) => unwrap(await reassignStaffShow(input)),
+    onSuccess: () => {
+      toast.success('Moved to the new show');
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, 'Could not move this person to that show'));
+    },
+  });
+}
+
+export function useUpdateStaffDetails(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (input: UpdateStaffDetailsInput) => unwrap(await updateStaffDetails(input)),
+    onSuccess: () => {
+      toast.success('Details saved');
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, 'Could not save these details'));
     },
   });
 }

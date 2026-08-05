@@ -33,6 +33,9 @@ export interface UserDirectoryRow {
   /** The underlying row id — staff_assignments.id, riders.id (or a synthetic key for a roster-only rider), or vendor_bookings.id. */
   id: string;
   name: string;
+  /** staff kind only — null for rider/vendor rows, whose name has no first/last split in this directory. */
+  firstName: string | null;
+  lastName: string | null;
   /** Human role label: a staff_assignments.role value, 'Rider', or 'Vendor'. */
   role: string;
   email: string | null;
