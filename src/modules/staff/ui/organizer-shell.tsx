@@ -101,21 +101,52 @@ export function OrganizerShell({
         {railRoles.map((role) => {
           const target = workspaceFor(role);
           if (!target) return null;
-          const active = role === profile.platform_role;
           const label = target.status === 'pending' ? `${target.title} (not migrated)` : target.title;
 
           // Non-SuperAdmin sees only their own role, so there is nowhere to
           // navigate — render it as a static indicator rather than a dead link.
           if (!isSuperAdmin) {
+            const active = role === profile.platform_role;
             return (
               <Tip key={role} text={target.title} className="grid place-items-center">
-                <span className="dash-rail-btn active" aria-label={target.title}>
+                <span className={`dash-rail-btn${active ? ' active' : ''}`} aria-label={target.title}>
                   <RoleIcon role={role} size={20} />
                 </span>
               </Tip>
             );
           }
 
+          // Organizer and Show Admin share one href ('/dashboard') — the same
+          // distinction the "Viewing as" dropdown makes, not a different route.
+          // While impersonating, clicking either rail icon toggles that same
+          // preview cookie instead of navigating to an identical URL, so the
+          // rail is a real switch here (matching legacy's platform.html rail,
+          // where Show Admin was its own reachable tab) rather than two links
+          // that both land on the same page with no visible difference.
+          if (impersonating && (role === 'Organizer' || role === 'ShowAdmin')) {
+            const active = previewingAsShowAdmin === (role === 'ShowAdmin');
+            return (
+              <Tip key={role} text={label} className="grid place-items-center">
+                <button
+                  type="button"
+                  disabled={isPreviewPending}
+                  aria-label={label}
+                  aria-current={active ? 'page' : undefined}
+                  className={`dash-rail-btn${active ? ' active' : ''}`}
+                  onClick={() => {
+                    if (active) return;
+                    startPreviewTransition(async () => {
+                      await setPreviewRole(role === 'ShowAdmin' ? 'showadmin' : 'organizer', pathname);
+                    });
+                  }}
+                >
+                  <RoleIcon role={role} size={20} />
+                </button>
+              </Tip>
+            );
+          }
+
+          const active = role === profile.platform_role;
           return (
             <Tip key={role} text={label} className="grid place-items-center">
               <Link

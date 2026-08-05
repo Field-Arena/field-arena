@@ -83,9 +83,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   // While impersonating, the shell should read as the Organizer workspace rather
-  // than "SuperAdmin Console" — the whole point is to see what they see.
-  const shellWorkspace = impersonating ? (ROLE_WORKSPACES.Organizer ?? workspace) : workspace;
+  // than "SuperAdmin Console" — the whole point is to see what they see. And
+  // whichever way this person reached the Show Admin preview — the rail (a
+  // SuperAdmin, already impersonating) or the "Viewing as" dropdown (a real
+  // Organizer, in their own workspace) — the topbar's title/hint should read
+  // "Show Admin Workspace" while it's on, not silently stay "Organizer
+  // Workspace" while everything else in the shell changed underneath it.
   const previewingAsShowAdmin = await getPreviewingAsShowAdmin();
+  const shellRole = previewingAsShowAdmin ? 'ShowAdmin' : impersonating ? 'Organizer' : role;
+  const shellWorkspace = ROLE_WORKSPACES[shellRole] ?? workspace;
 
   return (
     <OrganizerShell
