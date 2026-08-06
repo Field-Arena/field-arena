@@ -1,10 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { useTransition } from 'react';
 import { RIDER_WORKSPACE, ROLE_RAIL_ORDER, ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 import { RoleIcon } from '@/shared/ui/role-icon';
 import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
+import { setRailRole } from '@/shared/lib/rail-role';
 
 /**
  * The dark role rail down the left edge, used by the SuperAdmin console.
@@ -22,9 +23,20 @@ import { cn } from '@/shared/lib/utils';
  */
 export function RoleRail({
   currentRole,
+  activeRole,
   variant = 'default',
 }: {
   currentRole: string | null;
+  /**
+   * Which icon is highlighted — defaults to `currentRole` when omitted (the
+   * organizer workspace's own single-icon rail, where there is only ever one
+   * role to show). SuperAdmin's console passes its own tracked selection
+   * (`shared/lib/rail-role.ts`) instead: two pairs of roles here share one
+   * workspace href — Organizer/Show Admin both `/dashboard`, Judge/Scribe
+   * both `/dashboard/judging` — so the current URL alone can't say which
+   * icon should light up.
+   */
+  activeRole?: string | null;
   /**
    * 'console' matches the Admin Console design: wider, darker, larger targets,
    * and no F&A mark — the console's own sidebar carries the brand right beside
@@ -35,6 +47,8 @@ export function RoleRail({
 }) {
   const isSuperAdmin = currentRole === 'SuperAdmin';
   const isConsole = variant === 'console';
+  const [isPending, startTransition] = useTransition();
+  const highlighted = activeRole ?? currentRole;
 
   const workspaceFor = (role: string) =>
     role === 'Rider' ? RIDER_WORKSPACE : ROLE_WORKSPACES[role];
@@ -70,7 +84,7 @@ export function RoleRail({
       {roles.map((role) => {
         const target = workspaceFor(role);
         if (!target) return null;
-        const active = role === currentRole;
+        const active = role === highlighted;
         const label =
           target.status === 'pending' ? `${target.title} — not migrated yet` : target.title;
 
@@ -83,7 +97,8 @@ export function RoleRail({
               : 'bg-gold text-hunter-deep'
             : isConsole
               ? 'border-transparent text-[rgba(251,250,247,.5)] hover:bg-[#17402F] hover:text-gold-light'
-              : 'text-[#8ba093] hover:bg-white/10 hover:text-[#d7e2da]'
+              : 'text-[#8ba093] hover:bg-white/10 hover:text-[#d7e2da]',
+          isPending && 'opacity-70'
         );
 
         /*
@@ -103,14 +118,21 @@ export function RoleRail({
 
         return (
           <Tip key={role} text={label} className="grid place-items-center">
-            <Link
-              href={target.href}
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                if (active) return;
+                startTransition(async () => {
+                  await setRailRole(role);
+                });
+              }}
               className={classes}
               aria-label={label}
               aria-current={active ? 'page' : undefined}
             >
               <RoleIcon role={role} size={20} />
-            </Link>
+            </button>
           </Tip>
         );
       })}
