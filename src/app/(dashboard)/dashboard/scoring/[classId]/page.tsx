@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
-import { getScoringState, getMySeat, getMyScoringPermissions } from '@/modules/scoring/data/queries';
+import {
+  getScoringState,
+  getMySeat,
+  getMyScoringPermissions,
+  listPanelCandidates,
+} from '@/modules/scoring/data/queries';
 import { ScoringScreen } from '@/modules/scoring/ui/scoring-screen';
 
 export const metadata: Metadata = { title: 'Scoring — Field & Arena' };
@@ -18,11 +23,20 @@ export default async function ScoringPage({
 }) {
   const { classId } = await params;
 
-  const [state, mySeat, permissions] = await Promise.all([
+  const [state, mySeat, permissions, panelCandidates] = await Promise.all([
     getScoringState(classId),
     getMySeat(classId),
     getMyScoringPermissions(classId),
+    listPanelCandidates(classId),
   ]);
 
-  return <ScoringScreen classId={classId} initialState={state} mySeat={mySeat} permissions={permissions} />;
+  return (
+    <ScoringScreen
+      classId={classId}
+      initialState={state}
+      mySeat={mySeat}
+      permissions={permissions}
+      panelCandidates={panelCandidates}
+    />
+  );
 }

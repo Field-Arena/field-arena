@@ -23,6 +23,7 @@ import {
   useToggleErrorAt,
   useToggleScoringOpen,
   useUnfinishRide,
+  useUnskipRide,
   usePublishResults,
   useUnpublishResults,
 } from '../hooks/use-scoring-mutations';
@@ -33,6 +34,9 @@ import { SignatureModal } from './signature-modal';
 import { ReasonModal } from './reason-modal';
 import { RideActionsBar } from './ride-actions-bar';
 import { HoldingQueuePanel } from './holding-queue-panel';
+import { LiveProgressPanel } from './live-progress-panel';
+import { PanelAssignmentCard } from './panel-assignment-card';
+import type { PanelCandidate } from '../data/queries';
 import { StandingsPanel } from './standings-panel';
 import { ScoringToolbar } from './scoring-toolbar';
 import { NotARealTestBanner } from './not-a-real-test-banner';
@@ -44,11 +48,13 @@ export function ScoringScreen({
   initialState,
   mySeat,
   permissions,
+  panelCandidates,
 }: {
   classId: string;
   initialState: ClassScoringState;
   mySeat: MySeat | null;
   permissions: Record<PermissionKey, boolean>;
+  panelCandidates: PanelCandidate[];
 }) {
   const { state, refetch, applyOptimistic } = useScoringState(classId, initialState);
 
@@ -70,8 +76,10 @@ export function ScoringScreen({
 
   const sheetHandleRef = useRef<TestSheetHandle>(null);
   const [signatureOpen, setSignatureOpen] = useState(false);
-  const [reasonModal, setReasonModal] = useState<'scratch' | 'disqualify' | null>(null);
-  const [lastUndo, setLastUndo] = useState<{ entryId: string } | null>(null);
+  const [reasonModal, setReasonModal] = useState<'disqualify' | null>(null);
+  const [lastUndo, setLastUndo] = useState<{ entryId: string; kind: 'skip' | 'terminal' } | null>(
+    null
+  );
   const [autoAdvanceCancelled, setAutoAdvanceCancelled] = useState(false);
 
   // Reset the auto-advance cancel flag whenever the current ride changes —
@@ -92,6 +100,7 @@ export function ScoringScreen({
   const scratch = useScratchRide();
   const disqualify = useDisqualifyRide();
   const skip = useSkipRide();
+  const unskip = useUnskipRide();
   const unfinish = useUnfinishRide();
   const toggleOpen = useToggleScoringOpen();
   const publish = usePublishResults();
@@ -140,6 +149,19 @@ export function ScoringScreen({
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
           Every ride in this class has been scored, scratched, or disqualified.
         </Card>
+        {permissions.canEditShow && (
+          <div className="mt-6 flex flex-col gap-4">
+            <LiveProgressPanel
+              classId={classId}
+              entries={state.entries}
+              panel={state.panel}
+              scores={state.scores}
+              test={state.test}
+              currentEntryId={null}
+            />
+            <PanelAssignmentCard classId={classId} panel={state.panel} candidates={panelCandidates} />
+          </div>
+        )}
         <div className="mt-6">
           <StandingsPanel entries={state.entries} />
         </div>
@@ -288,28 +310,41 @@ export function ScoringScreen({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <RideActionsBar
               permissions={permissions}
-              disabled={skip.isPending || scratch.isPending || disqualify.isPending}
+              disabled={skip.isPending || unskip.isPending || scratch.isPending || disqualify.isPending}
               canUndo={lastUndo !== null}
               onSkip={() => {
                 skip.mutate(
                   { classId, entryId: currentEntry.id },
                   {
                     onSuccess: () => {
-                      setLastUndo({ entryId: currentEntry.id });
+                      setLastUndo({ entryId: currentEntry.id, kind: 'skip' });
                       afterAction();
                     },
                   }
                 );
               }}
               onScratch={() => {
-                setReasonModal('scratch');
+                if (!window.confirm(`Scratch #${currentEntry.num}? They'll stay on the running order, marked as scratched.`)) return;
+                scratch.mutate(
+                  { classId, entryId: currentEntry.id },
+                  {
+                    onSuccess: () => {
+                      setLastUndo({ entryId: currentEntry.id, kind: 'terminal' });
+                      afterAction();
+                    },
+                  }
+                );
               }}
               onDisqualify={() => {
                 setReasonModal('disqualify');
               }}
               onUndo={() => {
                 if (!lastUndo) return;
-                unfinish.mutate({ classId, entryId: lastUndo.entryId }, { onSuccess: afterAction });
+                if (lastUndo.kind === 'skip') {
+                  unskip.mutate({ classId, entryId: lastUndo.entryId }, { onSuccess: afterAction });
+                } else {
+                  unfinish.mutate({ classId, entryId: lastUndo.entryId }, { onSuccess: afterAction });
+                }
                 setLastUndo(null);
               }}
             />
@@ -348,7 +383,29 @@ export function ScoringScreen({
             </div>
           )}
 
-          <PrintScoresheet className={state.className} entry={currentEntry} test={test} score={myScore} />
+          <PrintScoresheet
+            showName={state.showName}
+            className={state.className}
+            entry={currentEntry}
+            test={test}
+            score={myScore}
+            judgeName={mySeat?.name ?? ''}
+            judgePosition={state.panel.find((p) => p.seatId === mySeat?.seatId)?.position ?? null}
+          />
+        </div>
+      )}
+
+      {permissions.canEditShow && (
+        <div className="mt-8 flex flex-col gap-4">
+          <LiveProgressPanel
+            classId={classId}
+            entries={state.entries}
+            panel={state.panel}
+            scores={state.scores}
+            test={state.test}
+            currentEntryId={currentEntry.id}
+          />
+          <PanelAssignmentCard classId={classId} panel={state.panel} candidates={panelCandidates} />
         </div>
       )}
 
@@ -381,29 +438,6 @@ export function ScoringScreen({
       />
 
       <ReasonModal
-        open={reasonModal === 'scratch'}
-        onOpenChange={(open) => {
-          if (!open) setReasonModal(null);
-        }}
-        title="Scratch this ride"
-        description="The rider stays in the schedule, shown as scratched."
-        required={false}
-        isPending={scratch.isPending}
-        onConfirm={() => {
-          scratch.mutate(
-            { classId, entryId: currentEntry.id },
-            {
-              onSuccess: () => {
-                setReasonModal(null);
-                setLastUndo({ entryId: currentEntry.id });
-                afterAction();
-              },
-            }
-          );
-        }}
-      />
-
-      <ReasonModal
         open={reasonModal === 'disqualify'}
         onOpenChange={(open) => {
           if (!open) setReasonModal(null);
@@ -418,7 +452,7 @@ export function ScoringScreen({
             {
               onSuccess: () => {
                 setReasonModal(null);
-                setLastUndo({ entryId: currentEntry.id });
+                setLastUndo({ entryId: currentEntry.id, kind: 'terminal' });
                 afterAction();
               },
             }

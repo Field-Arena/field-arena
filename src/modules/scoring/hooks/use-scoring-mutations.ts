@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import {
   addHoldingEntry,
   advanceRide,
+  correctEntry,
   disqualifyRide,
   publishResults,
   removeHoldingEntry,
+  removePanelSeat,
   reopenScoresheet,
   scratchRide,
   setCollective,
@@ -20,6 +22,8 @@ import {
   toggleScoringOpen,
   unfinishRide,
   unpublishResults,
+  unskipRide,
+  upsertPanelSeat,
   workInEntry,
 } from '../data/mutations';
 import { enqueueScoringWrite } from './use-mutation-queue';
@@ -97,6 +101,14 @@ export function useReopenScoresheet() {
   });
 }
 
+export function useCorrectEntry() {
+  return useMutation({
+    mutationFn: queued(correctEntry),
+    ...toastedMutationOptions('Could not save the correction'),
+    onSuccess: () => toast.success('Note saved'),
+  });
+}
+
 export function useAdvanceRide() {
   return useMutation({ mutationFn: queued(advanceRide), ...toastedMutationOptions('Could not advance') });
 }
@@ -121,7 +133,15 @@ export function useSkipRide() {
   return useMutation({
     mutationFn: queued(skipRide),
     ...toastedMutationOptions('Could not skip'),
-    onSuccess: () => toast.success('Moved to the back of the order'),
+    onSuccess: () => toast.success('Skipped'),
+  });
+}
+
+export function useUnskipRide() {
+  return useMutation({
+    mutationFn: queued(unskipRide),
+    ...toastedMutationOptions('Could not undo'),
+    onSuccess: () => toast.success('Undone'),
   });
 }
 
@@ -143,6 +163,14 @@ export function useAddHoldingEntry() {
 
 export function useRemoveHoldingEntry() {
   return useMutation({ mutationFn: queued(removeHoldingEntry), ...toastedMutationOptions('Could not remove') });
+}
+
+export function useUpsertPanelSeat() {
+  return useMutation({ mutationFn: queued(upsertPanelSeat), ...toastedMutationOptions('Could not update the panel') });
+}
+
+export function useRemovePanelSeat() {
+  return useMutation({ mutationFn: queued(removePanelSeat), ...toastedMutationOptions('Could not remove that seat') });
 }
 
 export function useWorkInEntry() {

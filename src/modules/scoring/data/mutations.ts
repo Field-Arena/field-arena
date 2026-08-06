@@ -25,11 +25,15 @@ import type { Json } from '@/shared/types/database.types';
 import {
   addHoldingEntrySchema,
   advanceRideSchema,
+  correctEntrySchema,
   disqualifyRideSchema,
   publishResultsSchema,
   removeHoldingEntrySchema,
+  removePanelSeatSchema,
   reopenScoresheetSchema,
   scratchRideSchema,
+  setClassEntriesSchema,
+  setClassTestSchema,
   setCollectiveSchema,
   setFinalRemarksSchema,
   setMarkSchema,
@@ -40,6 +44,8 @@ import {
   toggleScoringOpenSchema,
   unfinishRideSchema,
   unpublishResultsSchema,
+  unskipRideSchema,
+  upsertPanelSeatSchema,
   workInEntrySchema,
 } from '../schemas';
 
@@ -291,6 +297,20 @@ export async function reopenScoresheet(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
+/** Admin free-text note on an already-confirmed ride — a plain overwrite, unlike reopen's append-with-timestamp. */
+export async function correctEntry(input: unknown) {
+  const parsed = correctEntrySchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('class_entries')
+    .update({ correction: parsed.note })
+    .eq('id', parsed.entryId);
+  if (error) throw error;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
 /**
  * Every panel seat has submitted for this ride: compute the final numbers
  * and move on. For a holding-queue ride this only clears workingInEntryId —
@@ -398,17 +418,25 @@ async function setTerminalStatus(
   revalidatePath(`/dashboard/scoring/${classId}`);
 }
 
-/** Reverses the last scratch/disqualify/skip — the single-level, 20s-window undo. */
+/**
+ * Reverses the last scratch/disqualify — the single-level, 20s-window undo.
+ * Blocked unless the entry is currently scratched/disqualified, matching
+ * legacy: skip has its own dedicated reversal, `unskipRide` below.
+ */
 export async function unfinishRide(input: unknown) {
   const parsed = unfinishRideSchema.parse(input);
   const supabase = await createServerClient();
 
   const { data: entry, error: entryError } = await supabase
     .from('class_entries')
-    .select('ride_order')
+    .select('ride_order, status, holding')
     .eq('id', parsed.entryId)
     .single();
   if (entryError) throw entryError;
+
+  if (entry.status !== 'scratched' && entry.status !== 'disqualified') {
+    throw new Error("This rider isn't currently scratched or disqualified.");
+  }
 
   const { error } = await supabase
     .from('class_entries')
@@ -422,17 +450,10 @@ export async function unfinishRide(input: unknown) {
     .eq('id', parsed.entryId);
   if (error) throw error;
 
-  const { data: cls, error: classError } = await supabase
-    .from('classes')
-    .select('scoring_pos')
-    .eq('id', parsed.classId)
-    .single();
-  if (classError) throw classError;
-
-  if ((cls.scoring_pos ?? 0) > entry.ride_order - 1) {
+  if (!entry.holding) {
     const { error: rewindError } = await supabase
       .from('classes')
-      .update({ scoring_pos: Math.max(0, entry.ride_order - 1) })
+      .update({ scoring_pos: entry.ride_order })
       .eq('id', parsed.classId);
     if (rewindError) throw rewindError;
   }
@@ -440,38 +461,50 @@ export async function unfinishRide(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/** Moves a rider to the back of the running order — not one slot back. */
+/** Swaps this rider with whoever's immediately next in the running order. */
 export async function skipRide(input: unknown) {
   const parsed = skipRideSchema.parse(input);
+  await swapRideOrder(parsed.classId, parsed.entryId, 1);
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+/** Reverses a skip — swaps with whoever's immediately before, the exact mirror. */
+export async function unskipRide(input: unknown) {
+  const parsed = unskipRideSchema.parse(input);
+  await swapRideOrder(parsed.classId, parsed.entryId, -1);
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+async function swapRideOrder(classId: string, entryId: string, direction: 1 | -1) {
   const supabase = await createServerClient();
 
   const { data: entries, error } = await supabase
     .from('class_entries')
     .select('id, ride_order')
-    .eq('class_id', parsed.classId)
+    .eq('class_id', classId)
     .eq('holding', false)
     .order('ride_order');
   if (error) throw error;
 
-  const ids = entries.map((e) => e.id).filter((id) => id !== parsed.entryId);
-  ids.push(parsed.entryId);
+  const idx = entries.findIndex((e) => e.id === entryId);
+  const neighborIdx = idx + direction;
+  if (idx === -1 || neighborIdx < 0 || neighborIdx >= entries.length) return;
 
-  for (const [index, id] of ids.entries()) {
-    const { error: parkError } = await supabase
-      .from('class_entries')
-      .update({ ride_order: 10_000 + index })
-      .eq('id', id);
-    if (parkError) throw parkError;
-  }
-  for (const [index, id] of ids.entries()) {
-    const { error: settleError } = await supabase
-      .from('class_entries')
-      .update({ ride_order: index + 1 })
-      .eq('id', id);
-    if (settleError) throw settleError;
-  }
+  const current = entries[idx];
+  const neighbor = entries[neighborIdx];
+  if (!current || !neighbor) return;
 
-  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+  const { error: e1 } = await supabase
+    .from('class_entries')
+    .update({ ride_order: neighbor.ride_order })
+    .eq('id', current.id);
+  if (e1) throw e1;
+
+  const { error: e2 } = await supabase
+    .from('class_entries')
+    .update({ ride_order: current.ride_order })
+    .eq('id', neighbor.id);
+  if (e2) throw e2;
 }
 
 export async function addHoldingEntry(input: unknown) {
@@ -525,6 +558,106 @@ export async function workInEntry(input: unknown) {
     .update({ working_in_entry_id: parsed.entryId })
     .eq('id', parsed.classId);
   if (error) throw error;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+/**
+ * Live in-scoring-screen panel edit — upserts one seat's judge/scribe/
+ * position, distinct from `judging/data/mutations.ts`'s
+ * assignJudgeToClasses/assignScribeToClasses (the pre-show "+ Add User"
+ * bulk checklist writers, which stay as they are). Only the fields present
+ * in the input are written — omitted fields keep their existing value.
+ */
+export async function upsertPanelSeat(input: unknown) {
+  const parsed = upsertPanelSeatSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const row: { class_id: string; seat_id: string; position?: string | null; judge_staff_id?: string | null; scribe_staff_id?: string | null } = {
+    class_id: parsed.classId,
+    seat_id: parsed.seatId,
+  };
+  if (parsed.position !== undefined) row.position = parsed.position;
+  if (parsed.judgeStaffId !== undefined) row.judge_staff_id = parsed.judgeStaffId;
+  if (parsed.scribeStaffId !== undefined) row.scribe_staff_id = parsed.scribeStaffId;
+
+  const { error } = await supabase.from('class_panel').upsert(row, { onConflict: 'class_id,seat_id' });
+  if (error) throw error;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+export async function removePanelSeat(input: unknown) {
+  const parsed = removePanelSeatSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('class_panel')
+    .delete()
+    .eq('class_id', parsed.classId)
+    .eq('seat_id', parsed.seatId);
+  if (error) throw error;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+/**
+ * No UI reaches this in legacy either — see the doc comment on
+ * `setClassTestSchema`. Kept callable for code-level parity only.
+ */
+export async function setClassTest(input: unknown) {
+  const parsed = setClassTestSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.from('class_tests').upsert(
+    {
+      class_id: parsed.classId,
+      name: parsed.name,
+      edition: parsed.edition ?? null,
+      movements: parsed.movements,
+      collectives: parsed.collectives,
+    },
+    { onConflict: 'class_id' }
+  );
+  if (error) throw error;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+/**
+ * Wipes and replaces the whole roster (and every score tied to it) — exactly
+ * as destructive as legacy's own `setEntries` action. No UI reaches this in
+ * legacy either — see the doc comment on `setClassEntriesSchema`. Kept
+ * callable for code-level parity only.
+ */
+export async function setClassEntries(input: unknown) {
+  const parsed = setClassEntriesSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error: deleteScoresError } = await supabase.from('scores').delete().eq('class_id', parsed.classId);
+  if (deleteScoresError) throw deleteScoresError;
+
+  const { error: deleteEntriesError } = await supabase
+    .from('class_entries')
+    .delete()
+    .eq('class_id', parsed.classId);
+  if (deleteEntriesError) throw deleteEntriesError;
+
+  if (parsed.entries.length > 0) {
+    const { error: insertError } = await supabase.from('class_entries').insert(
+      parsed.entries.map((e, i) => ({
+        class_id: parsed.classId,
+        draw: e.draw ?? null,
+        num: e.num,
+        rider: e.rider ?? null,
+        horse: e.horse ?? null,
+        ride_order: i + 1,
+        status: 'scheduled',
+        holding: false,
+      }))
+    );
+    if (insertError) throw insertError;
+  }
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }

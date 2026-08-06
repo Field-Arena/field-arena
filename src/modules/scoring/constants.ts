@@ -23,5 +23,8 @@ export const POLL_INTERVAL_MS = 4000;
 /** Per-field write debounce, so a scroll/tap burst isn't one request each. */
 export const MARK_DEBOUNCE_MS = 400;
 
+/** Remarks/final remarks debounce on its own, slower timer — legacy's separate `_remarkDebounce`. */
+export const REMARK_DEBOUNCE_MS = 500;
+
 /** Retry interval for a write that failed to reach the server. */
 export const WRITE_RETRY_MS = 3000;

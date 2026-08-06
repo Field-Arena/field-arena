@@ -2,6 +2,7 @@
 
 import { useImperativeHandle, useState, type Ref } from 'react';
 import { useDebouncedWrite } from '../hooks/use-debounced-write';
+import { REMARK_DEBOUNCE_MS } from '../constants';
 import { MarkStepper } from './mark-stepper';
 import type { ScoreRow, TestDefinition } from '../types';
 
@@ -46,10 +47,10 @@ export function TestSheet({
   });
   const remarkWrite = useDebouncedWrite<string>((key, value) => {
     onSetRemark(Number(key), value);
-  });
+  }, REMARK_DEBOUNCE_MS);
   const finalRemarksWrite = useDebouncedWrite<string>((_key, value) => {
     onSetFinalRemarks(value);
-  });
+  }, REMARK_DEBOUNCE_MS);
 
   useImperativeHandle(handleRef, () => ({
     flushPendingWrites: () => {

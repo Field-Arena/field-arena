@@ -1,5 +1,14 @@
 import { formatTimestamp } from '@/shared/lib/format/date';
+import { errorDeduction, scoreLabel, sheetPct } from '../scoring-engine';
+import { toSheet } from '../utils';
 import type { RideEntry, ScoreRow, TestDefinition } from '../types';
+
+/** "2 pts" / "0.5%" / "Elimination" / "0 pts" — matches legacy's `dedText`. */
+function deductionText(errors: number, test: TestDefinition): string {
+  const ded = errorDeduction(errors, test);
+  if (ded === 'ELIM') return 'Elimination';
+  return ded.amount ? `${String(ded.amount)}${ded.mode === 'pct' ? '%' : ' pts'}` : '0 pts';
+}
 
 /**
  * The printable paper test sheet, ported from showrunner-scoring.html's
@@ -10,21 +19,40 @@ import type { RideEntry, ScoreRow, TestDefinition } from '../types';
  * than duplicating that stylesheet rule.
  */
 export function PrintScoresheet({
+  showName,
   className,
   entry,
   test,
   score,
+  judgeName,
+  judgePosition,
 }: {
+  showName: string;
   className: string;
   entry: RideEntry;
   test: TestDefinition;
   score: ScoreRow | undefined;
+  judgeName: string;
+  judgePosition: string | null;
 }) {
+  const errors = score?.errors ?? 0;
+  const pct = score ? sheetPct(toSheet(score), test) : null;
+
   return (
     <div data-print-report className="hidden print:block">
-      <h1 className="mb-1 text-xl font-semibold">{className}</h1>
+      <h1 className="mb-1 text-xl font-semibold">Field &amp; Arena</h1>
+      {showName && <p className="text-sm font-semibold">{showName}</p>}
       <p className="mb-4 text-sm">
-        {test.name} · #{entry.num} {entry.rider ?? ''} {entry.horse ? `· ${entry.horse}` : ''}
+        {test.name}
+        {className ? ` · ${className}` : ''}
+      </p>
+      <p className="mb-1 text-sm">
+        <strong>Judge:</strong> {judgeName} at {judgePosition ?? '—'}
+      </p>
+      <p className="mb-4 text-sm">
+        <strong>Rider:</strong> #{entry.num} {entry.rider ?? ''}
+        <br />
+        <strong>Horse:</strong> {entry.horse ?? ''}
       </p>
 
       <table className="w-full border-collapse text-sm">
@@ -67,7 +95,10 @@ export function PrintScoresheet({
         </table>
       )}
 
-      <p className="mt-4 text-sm">Errors of course: {score?.errors ?? 0}</p>
+      <p className="mt-4 text-sm">
+        Errors of course: {errors} ({deductionText(errors, test)}) · Final score:{' '}
+        {pct !== null ? scoreLabel(pct) : '—'}
+      </p>
       <p className="mt-2 text-sm whitespace-pre-wrap">Final remarks: {score?.finalRemarks ?? ''}</p>
 
       <p className="mt-8 text-sm">

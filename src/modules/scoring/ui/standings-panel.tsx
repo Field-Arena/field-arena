@@ -14,14 +14,14 @@ export function StandingsPanel({ entries }: { entries: RideEntry[] }) {
         finalPct: parseFinalPct(e.finalPct),
         ctot: e.collectiveTotal,
       }))
-  );
+  ).slice(0, 6);
 
   if (rows.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
       <span className="mb-3 block text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
-        Standings
+        Standings — Top 6
       </span>
       <div className="flex flex-col gap-1.5">
         {rows.map((row) => (

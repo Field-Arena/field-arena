@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
 import {
@@ -11,6 +12,7 @@ import {
   resolveScoringPermissions,
 } from '../utils';
 import type { ClassScoringState, MySeat, PanelSeat, RideEntry, ScoreRow } from '../types';
+import type { Json } from '@/shared/types/database.types';
 
 /**
  * Everything the live-scoring screen needs for one class, in one read —
@@ -18,12 +20,14 @@ import type { ClassScoringState, MySeat, PanelSeat, RideEntry, ScoreRow } from '
  *
  * Test resolution: `class_tests` first; if that class has never been
  * scored against a real test yet, falls back to `classes.catalog_id` →
- * `scoring_catalog.def`. Legacy persisted that fallback into a row on first
- * read; this computes it fresh every time instead — same visible result
- * (a resolved test appears immediately), without a query function also
- * performing a write, and without a race between two concurrent first-reads.
- * Returns null (never a fabricated definition) if neither resolves — the UI
- * shows an honest "no test defined" state, matching legacy's own banner.
+ * `scoring_catalog.def`, and persists that fallback into `class_tests` so
+ * subsequent reads hit the seeded row directly — matching legacy's own
+ * write-in-a-GET behavior. Uses `upsert` rather than legacy's plain
+ * `insert` (`class_tests.class_id` is unique) so two concurrent first-reads
+ * can't race into a duplicate-key error; same persisted end state, same
+ * user-visible behavior, just crash-safe under concurrency. Returns null
+ * (never a fabricated definition) if neither resolves — the UI shows an
+ * honest "no test defined" state, matching legacy's own banner.
  */
 export async function getScoringState(classId: string): Promise<ClassScoringState> {
   const supabase = await createServerClient();
@@ -78,6 +82,25 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
       .maybeSingle();
     if (catalogError) throw catalogError;
     test = catalog?.def ? parseTestDefinition(catalog.title, catalog.def) : null;
+
+    if (test) {
+      // Test resolution is infrastructure, not a user-authorized write —
+      // legacy's own version ran with no permission gate at all. Seeded
+      // with the admin client so a plain Judge/Scribe (no canEditShow)
+      // isn't blocked by `class_tests_write`'s RLS on their own first
+      // load of an under-configured class.
+      const admin = createAdminClient();
+      const { error: seedError } = await admin.from('class_tests').upsert(
+        {
+          class_id: classId,
+          name: test.name,
+          movements: test.movements as unknown as Json,
+          collectives: test.collectives as unknown as Json,
+        },
+        { onConflict: 'class_id' }
+      );
+      if (seedError) throw seedError;
+    }
   }
 
   const staffIds = [
@@ -190,6 +213,35 @@ export async function getTestForClass(classId: string) {
     .maybeSingle();
   if (catalogError) throw catalogError;
   return catalog?.def ? parseTestDefinition(catalog.title, catalog.def) : null;
+}
+
+export interface PanelCandidate {
+  staffId: string;
+  name: string;
+  role: 'Judge' | 'Scribe';
+}
+
+/** Every Judge/Scribe staffed on this class's show — populates the live Panel Assignment editor's selects. */
+export async function listPanelCandidates(classId: string): Promise<PanelCandidate[]> {
+  const supabase = await createServerClient();
+
+  const { data: cls, error: classError } = await supabase
+    .from('classes')
+    .select('show_id')
+    .eq('id', classId)
+    .single();
+  if (classError) throw classError;
+
+  const { data, error } = await supabase
+    .from('staff_assignments')
+    .select('id, name, role')
+    .eq('show_id', cls.show_id)
+    .in('role', ['Judge', 'Scribe']);
+  if (error) throw error;
+
+  return data
+    .filter((s): s is typeof s & { role: 'Judge' | 'Scribe' } => s.role === 'Judge' || s.role === 'Scribe')
+    .map((s) => ({ staffId: s.id, name: s.name, role: s.role }));
 }
 
 /** Which seat, if any, the signed-in caller holds on this class's panel. */
