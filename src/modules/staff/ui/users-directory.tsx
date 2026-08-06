@@ -44,7 +44,7 @@ export function UsersDirectory({
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
   initialShowId: string;
-  /** This show's classes, for Add User's Judge-classes checklist. */
+  /** This show's classes, for Add User's Judge/Scribe-classes checklist. */
   classesByShow: Record<string, ClassOption[]>;
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);

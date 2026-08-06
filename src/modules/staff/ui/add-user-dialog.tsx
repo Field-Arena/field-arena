@@ -33,7 +33,7 @@ import type { ShowListItem } from '@/modules/shows/data/queries';
 const SELECT_CLASS =
   'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
 
-/** A show's class, for the Judge-classes checklist — id+label only. */
+/** A show's class, for the Judge/Scribe-classes checklist — id+label only. */
 export interface ClassOption {
   id: string;
   label: string;
@@ -55,13 +55,15 @@ export interface ClassOption {
  * (`defaultShowId`); the id still travels with the form as a hidden field
  * so `addStaffUser` gets it, it's just not asked for twice.
  *
- * Two roles change the form's shape, both matching legacy exactly:
+ * Three roles change the form's shape, all matching legacy exactly:
  *  - Vendor swaps the split name fields for a single "Business name" input
  *    (legacy's `nameFieldsHtml('as', true)`) and hides the scratch/money
  *    checkboxes, which only ever meant something for real show staff.
- *  - Judge reveals a checklist of the target show's classes (legacy's
- *    `judgeClassChecklistHtml`) — `addStaffUser` seats the judge on every
- *    checked class via `assignJudgeToClasses` once the invite succeeds.
+ *  - Judge and Scribe each reveal a checklist of the target show's classes
+ *    (legacy's `judgeClassChecklistHtml` — shared between the two roles the
+ *    same way judge-scribe.html itself was) — `addStaffUser` seats the
+ *    person on every checked class via `assignJudgeToClasses`/
+ *    `assignScribeToClasses` once the invite succeeds.
  */
 export function AddUserDialog({
   shows,
@@ -214,9 +216,11 @@ export function AddUserDialog({
               </div>
             </div>
 
-            {role === 'Judge' && (
+            {(role === 'Judge' || role === 'Scribe') && (
               <div>
-                <Label className="mb-1.5 block">Which tests/classes are they judging?</Label>
+                <Label className="mb-1.5 block">
+                  Which tests/classes are they {role === 'Judge' ? 'judging' : 'recording for'}?
+                </Label>
                 {classes.length === 0 ? (
                   <p className="text-[12.5px] text-[#7A8781]">
                     No classes with entries yet for this show — you can assign tests after adding

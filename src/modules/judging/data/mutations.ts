@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { assignJudgeToClassesSchema } from '../schemas';
+import { assignJudgeToClassesSchema, assignScribeToClassesSchema } from '../schemas';
 
 /**
  * Seats a judge on a class's panel — the write side of what
@@ -63,6 +63,67 @@ export async function assignJudgeToClasses(input: unknown): Promise<void> {
       // panel screen to set.
       position: n === 1 ? 'C' : null,
       judge_staff_id: staffId,
+    };
+  });
+
+  const { error } = await supabase
+    .from('class_panel')
+    .upsert(rows, { onConflict: 'class_id,seat_id' });
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/judging');
+}
+
+/**
+ * Seats a scribe on a class's panel — the scribe-side counterpart of
+ * `assignJudgeToClasses` above, called from the same "+ Add User" modal's
+ * class checklist when the invited role is Scribe instead of Judge.
+ *
+ * A scribe records for a specific judge's seat, so this prefers an existing
+ * seat that already has a judge but no scribe yet (the real pairing case)
+ * over opening a brand-new seat — but falls back to opening one if every
+ * seat on this class already has a scribe, same "good enough for check some
+ * classes while inviting" scope as the judge version; a seat with neither a
+ * judge nor a scribe yet is filled in either order, whichever gets assigned
+ * first.
+ */
+export async function assignScribeToClasses(input: unknown): Promise<void> {
+  const { staffId, classIds } = assignScribeToClassesSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: existingSeats, error: readError } = await supabase
+    .from('class_panel')
+    .select('class_id, seat_id, position, scribe_staff_id')
+    .in('class_id', classIds);
+  if (readError) throw new Error(readError.message);
+
+  const seatsByClass = new Map<string, typeof existingSeats>();
+  for (const seat of existingSeats) {
+    const list = seatsByClass.get(seat.class_id) ?? [];
+    list.push(seat);
+    seatsByClass.set(seat.class_id, list);
+  }
+
+  const rows = classIds.map((classId) => {
+    const seats = seatsByClass.get(classId) ?? [];
+    const open = seats.find((s) => s.scribe_staff_id === null);
+    if (open) {
+      return {
+        class_id: classId,
+        seat_id: open.seat_id,
+        position: open.position,
+        scribe_staff_id: staffId,
+      };
+    }
+
+    const taken = new Set(seats.map((s) => s.seat_id));
+    let n = 1;
+    while (taken.has(`J${String(n)}`)) n += 1;
+    return {
+      class_id: classId,
+      seat_id: `J${String(n)}`,
+      position: n === 1 ? 'C' : null,
+      scribe_staff_id: staffId,
     };
   });
 

@@ -38,7 +38,7 @@ export default async function UsersPage({
     );
   }
 
-  // One id+label list per show, for the Judge-classes checklist in Add User —
+  // One id+label list per show, for the Judge/Scribe-classes checklist in Add User —
   // that dialog's target show is client-side state (no page reload when
   // switched, see UsersDirectory's targetShowId), so this fetches every
   // show's classes up front rather than adding a second data-fetch path.
