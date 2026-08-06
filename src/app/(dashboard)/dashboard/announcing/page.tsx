@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
-import { getLiveResults, getRingStatus, listMyShows } from '@/modules/announcements/data/queries';
+import { getRingStatus, listMyShows } from '@/modules/announcements/data/queries';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 
 export const metadata: Metadata = { title: 'Up Next — Field & Arena' };
 
 /**
- * The announcer dashboard, ported from announcer.html: active rings, who rides
- * next, and published results.
+ * The announcer dashboard, ported from announcer.html: active rings, who's
+ * actually in the ring right now, and who rides next. Live results (every
+ * score as it's confirmed) live on their own page — see
+ * `/dashboard/announcing/results`.
  *
  * Read-only throughout, matching the permission model — an Announcer's defaults
  * are empty, because they call what is happening rather than change it.
@@ -40,10 +42,7 @@ export default async function AnnouncingPage({
     );
   }
 
-  const [rings, results] = await Promise.all([
-    getRingStatus(currentShow.id),
-    getLiveResults(currentShow.id),
-  ]);
+  const rings = await getRingStatus(currentShow.id);
 
   const liveRings = rings.filter((r) => r.scoringOpen);
 
@@ -92,23 +91,37 @@ export default async function AnnouncingPage({
         ) : (
           <div className="cards" style={{ marginTop: 10 }}>
             {liveRings.map((ring) => (
-              <div key={ring.classId} className="card-row today">
-                <div className="card-main">
-                  <div className="card-title">{ring.className}</div>
-                  <div className="card-meta">
-                    {ring.ring ?? 'Ring not set'} · ride {ring.position + 1} of {ring.entryCount}
-                  </div>
-                </div>
-                {ring.nextUp ? (
-                  <div style={{ textAlign: 'right' }}>
-                    <div className="now-eyebrow">Up next</div>
-                    <div style={{ fontWeight: 700 }}>
-                      #{ring.nextUp.num} {ring.nextUp.rider ?? '—'}
+              <div key={ring.classId} className="card-row today" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <div className="card-main">
+                    <div className="card-title">{ring.className}</div>
+                    <div className="card-meta">
+                      {ring.ring ?? 'Ring not set'} · ride {ring.position + 1} of {ring.entryCount}
                     </div>
-                    <div className="card-meta">{ring.nextUp.horse ?? '—'}</div>
                   </div>
-                ) : (
-                  <StatusBadge tone="success">Ring complete</StatusBadge>
+                  {ring.current ? (
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="now-eyebrow">Now in ring</div>
+                      <div style={{ fontWeight: 700 }}>
+                        #{ring.current.num} {ring.current.rider ?? '—'}
+                      </div>
+                      <div className="card-meta">{ring.current.horse ?? '—'}</div>
+                    </div>
+                  ) : (
+                    <StatusBadge tone="success">Ring complete</StatusBadge>
+                  )}
+                </div>
+                {ring.upNext.length > 0 && (
+                  <div style={{ borderTop: '1px solid #E9EDEB', paddingTop: 8 }}>
+                    <div className="now-eyebrow">Up next</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 18px', marginTop: 4 }}>
+                      {ring.upNext.map((entry) => (
+                        <span key={entry.num} className="card-meta">
+                          #{entry.num} {entry.rider ?? '—'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
@@ -152,51 +165,11 @@ export default async function AnnouncingPage({
           </table>
         </div>
 
-        <h2 className="show-detail-title" style={{ marginTop: 26 }}>
-          Results — live
-        </h2>
-        {results.length === 0 ? (
-          <EmptyPanel
-            title="No published results"
-            note="Only published classes appear here. A class still being scored has no standings, and announcing a placing that later changes is worse than saying nothing."
-          />
-        ) : (
-          <div style={{ overflowX: 'auto', marginTop: 10 }}>
-            <table>
-              <caption className="sr-only">Published results</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Class</th>
-                  <th scope="col" className="r">
-                    Place
-                  </th>
-                  <th scope="col">Rider</th>
-                  <th scope="col">Horse</th>
-                  <th scope="col" className="r">
-                    Score
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((row) => (
-                  <tr key={`${row.classLabel}-${row.num}`}>
-                    <td>{row.classLabel}</td>
-                    <td className="r">
-                      <strong>{row.place}</strong>
-                    </td>
-                    <td>
-                      #{row.num} {row.rider ?? '—'}
-                    </td>
-                    <td>{row.horse ?? '—'}</td>
-                    <td className="r">
-                      <span className="pct">{row.finalPct ?? '—'}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <p style={{ marginTop: 26 }}>
+          <a href={`/dashboard/announcing/results?show=${currentShow.id}`} className="dash-btn dash-btn-outline">
+            View results — live →
+          </a>
+        </p>
       </div>
     </>
   );

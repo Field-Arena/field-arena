@@ -5,6 +5,7 @@ import { getStaffProfile, type StaffProfile } from '@/modules/auth/data/queries'
 import { listShowsForOrg, type ShowListItem } from '@/modules/shows/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { getPreviewingAsShowAdmin } from './preview-role';
+import { getSelectedOrg, type MemberOrg } from './org-selection';
 
 export interface OrganizerContext {
   profile: StaffProfile;
@@ -17,6 +18,8 @@ export interface OrganizerContext {
   impersonating: boolean;
   /** True when an Organizer (or an impersonating SuperAdmin) is previewing as Show Admin — see data/preview-role.ts. */
   previewingAsShowAdmin: boolean;
+  /** Every org this person has real access to — see data/org-selection.ts. Empty while impersonating (that cookie already picks the org). */
+  memberOrgs: MemberOrg[];
 }
 
 /**
@@ -62,15 +65,14 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     redirect('/dashboard/superadmin');
   }
 
-  let orgId = impersonatedOrgId ?? profile.org_id;
-  if (!orgId) {
-    const { data: assignment } = await supabase
-      .from('staff_assignments')
-      .select('shows(org_id)')
-      .eq('user_id', profile.id)
-      .limit(1)
-      .maybeSingle();
-    orgId = (assignment as { shows?: { org_id: string } | null } | null)?.shows?.org_id ?? null;
+  let orgId: string | null;
+  let memberOrgs: MemberOrg[] = [];
+  if (impersonatedOrgId) {
+    orgId = impersonatedOrgId;
+  } else {
+    const selection = await getSelectedOrg(profile);
+    orgId = selection.orgId;
+    memberOrgs = selection.memberOrgs;
   }
 
   if (!orgId) {
@@ -83,6 +85,7 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
       canViewMoney: false,
       impersonating: false,
       previewingAsShowAdmin: false,
+      memberOrgs: [],
     };
   }
 
@@ -120,5 +123,6 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     canViewMoney,
     impersonating: impersonatedOrgId !== null,
     previewingAsShowAdmin,
+    memberOrgs,
   };
 }

@@ -6,6 +6,8 @@ import { PendingWorkspace } from '@/shared/ui/pending-workspace';
 import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { getPreviewingAsShowAdmin } from '@/modules/staff/data/preview-role';
+import { getSelectedOrg } from '@/modules/staff/data/org-selection';
+import { getRailRole } from '@/shared/lib/rail-role';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -79,7 +81,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const impersonating = role === 'SuperAdmin' ? await getImpersonatedOrgId() : null;
 
   if (role === 'SuperAdmin' && !impersonating) {
-    return <SuperAdminShell profile={profile}>{children}</SuperAdminShell>;
+    const activeRailRole = (await getRailRole()) ?? role;
+    return (
+      <SuperAdminShell profile={profile} activeRailRole={activeRailRole}>
+        {children}
+      </SuperAdminShell>
+    );
   }
 
   // While impersonating, the shell should read as the Organizer workspace rather
@@ -90,8 +97,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // "Show Admin Workspace" while it's on, not silently stay "Organizer
   // Workspace" while everything else in the shell changed underneath it.
   const previewingAsShowAdmin = await getPreviewingAsShowAdmin();
+  // Which rail icon was last clicked (Judge vs Scribe, chiefly — see
+  // shared/lib/rail-role.ts for why pathname alone can't say). OrganizerShell
+  // itself resolves the header/rail/nav from this plus the current pathname;
+  // this fallback only matters for the very first render before any icon has
+  // been clicked.
+  const railRoleCookie = impersonating ? await getRailRole() : null;
   const shellRole = previewingAsShowAdmin ? 'ShowAdmin' : impersonating ? 'Organizer' : role;
   const shellWorkspace = ROLE_WORKSPACES[shellRole] ?? workspace;
+
+  // Irrelevant while impersonating — the impersonation cookie already picks
+  // the org, and a SuperAdmin isn't staffed anywhere under their own account.
+  // See org-selection.ts for what "member org" means and why this can't just
+  // read `profile.org_id`.
+  const { orgId: selectedOrgId, memberOrgs } = impersonating
+    ? { orgId: null, memberOrgs: [] }
+    : await getSelectedOrg(profile);
 
   return (
     <OrganizerShell
@@ -99,6 +120,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       workspace={shellWorkspace}
       impersonating={impersonating !== null}
       previewingAsShowAdmin={previewingAsShowAdmin}
+      railRoleCookie={railRoleCookie}
+      selectedOrgId={selectedOrgId}
+      memberOrgs={memberOrgs}
     >
       {children}
     </OrganizerShell>

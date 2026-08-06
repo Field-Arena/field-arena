@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       add_ons: {
@@ -1850,6 +1825,16 @@ export type Database = {
       }
       is_rider: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      merge_score_json: {
+        Args: {
+          p_class_id: string
+          p_entry_id: string
+          p_field: string
+          p_patch: Json
+          p_seat_id: string
+        }
+        Returns: undefined
+      }
       org_is_public: { Args: { target_org_id: string }; Returns: boolean }
       rename_division: {
         Args: { division_id: string; new_name: string }
@@ -1994,9 +1979,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

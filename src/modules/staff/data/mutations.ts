@@ -7,7 +7,7 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { addOrgMember } from '@/modules/organizations/data/mutations';
-import { assignJudgeToClasses } from '@/modules/judging/data/mutations';
+import { assignJudgeToClasses, assignScribeToClasses } from '@/modules/judging/data/mutations';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import {
@@ -194,8 +194,9 @@ async function provisionIfNewAccount(
  * staff_assignments grant (through the caller's own client, so
  * staff_assignments_write / canManageStaff still applies as defense in
  * depth even though requireCanManageStaff already checked it), then
- * best-effort login provisioning for a brand-new email, then — Judge only —
- * seating them on whichever classes were checked (see assignJudgeToClasses).
+ * best-effort login provisioning for a brand-new email, then — Judge or
+ * Scribe only — seating them on whichever classes were checked (see
+ * assignJudgeToClasses/assignScribeToClasses).
  *
  * The staff_assignments id is generated here rather than read back with
  * `.select()`: `staff_assignments_select`'s RLS policy resolves through
@@ -260,11 +261,16 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
 
     await provisionIfNewAccount(email, name, parsed.role, showName);
 
-    // Which tests/classes this judge is on the panel for, filled in now
-    // instead of the organizer opening their panel afterward and adding
-    // classes one at a time — see assignJudgeToClasses's own doc comment.
-    if (parsed.role === 'Judge' && parsed.classIds.length > 0) {
-      await assignJudgeToClasses({ staffId, classIds: parsed.classIds });
+    // Which tests/classes this judge or scribe is on the panel for, filled in
+    // now instead of the organizer opening their panel afterward and adding
+    // classes one at a time — see assignJudgeToClasses/assignScribeToClasses's
+    // own doc comments.
+    if (parsed.classIds.length > 0) {
+      if (parsed.role === 'Judge') {
+        await assignJudgeToClasses({ staffId, classIds: parsed.classIds });
+      } else if (parsed.role === 'Scribe') {
+        await assignScribeToClasses({ staffId, classIds: parsed.classIds });
+      }
     }
 
     if (parsed.addToMemberDatabase) {

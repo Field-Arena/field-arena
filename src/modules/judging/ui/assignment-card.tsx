@@ -74,7 +74,9 @@ export function AssignmentCard({
         {when.label}
       </StatusPill>
 
-      {variant !== 'history' && <LaunchScoringButton active={variant === 'today'} />}
+      {variant !== 'history' && (
+        <LaunchScoringButton active={variant === 'today'} classId={assignment.classId} />
+      )}
     </div>
   );
 }

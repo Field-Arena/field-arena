@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import {
@@ -52,7 +53,13 @@ export default async function JudgingHistoryPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {history.map((a) => (
-            <AssignmentCard key={`${a.classId}-${a.seatId}`} assignment={a} variant="history" />
+            <Link
+              key={`${a.classId}-${a.seatId}`}
+              href={`/dashboard/judging/history/${a.classId}`}
+              className="block"
+            >
+              <AssignmentCard assignment={a} variant="history" />
+            </Link>
           ))}
         </div>
       )}

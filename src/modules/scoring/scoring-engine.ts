@@ -71,18 +71,10 @@ export type DeductionSchedule = 'standard' | 'fei-senior' | 'young-horse';
  * earlier build did — under-penalises FEI rides and over-penalises young-horse
  * ones. Matched on the test's own name because that is the only thing the sheet
  * carries; the schedules are set by USEF/FEI rule, not by us.
- *
- * The age is matched as a digit OR spelled out. The legacy pattern accepted
- * only `[4-8]`, which silently missed "Four-Year-Old Dressage Test" — the exact
- * name in this app's own catalog — and put those rides on the standard
- * schedule. A young horse with one error would have lost 2 raw points instead
- * of 0.5%, which on a 150-point test is roughly triple the intended penalty.
- * The catalog also carries "4-Year-Old Dressage Test", so both spellings are
- * genuinely in use and both have to match.
  */
 export function deductionSchedule(test: TestDefinition): DeductionSchedule {
   const name = test.name || '';
-  const age = /\b([4-8]|four|five|six|seven|eight)[\s-]?year[\s-]?old\b/i;
+  const age = /\b[4-8][\s-]?year[\s-]?old\b/i;
   if (/young horse/i.test(name) || age.test(name)) return 'young-horse';
   if (/\bFEI\b|Prix St|Grand Prix|\bIntermediate\b|\bPSG\b/i.test(name)) return 'fei-senior';
   return 'standard';

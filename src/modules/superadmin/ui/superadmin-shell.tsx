@@ -32,9 +32,12 @@ const DISPLAY = 'font-[family-name:var(--font-nr)]';
 export function SuperAdminShell({
   children,
   profile,
+  activeRailRole,
 }: {
   children: ReactNode;
   profile: StaffProfile;
+  /** Which ROLES rail icon is highlighted — see shared/lib/rail-role.ts. */
+  activeRailRole: string;
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
@@ -50,7 +53,7 @@ export function SuperAdminShell({
   return (
     <div className="grid min-h-dvh bg-paper font-[family-name:var(--font-ar)] text-ink-deep lg:grid-cols-[74px_248px_minmax(0,1fr)]">
       <div className="hidden lg:block">
-        <RoleRail currentRole={profile.platform_role} variant="console" />
+        <RoleRail currentRole={profile.platform_role} activeRole={activeRailRole} variant="console" />
       </div>
 
       <aside className="sticky top-0 hidden h-dvh flex-col bg-forest px-4 pb-[18px] pt-[22px] lg:flex">

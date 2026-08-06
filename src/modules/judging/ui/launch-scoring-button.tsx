@@ -1,16 +1,13 @@
-'use client';
-
-import { toast } from 'sonner';
-import { cn } from '@/shared/lib/utils';
+import Link from 'next/link';
 
 /**
  * "Launch Scoring →", ported from Judge Workspace.dc.html's today-vs-upcoming
  * button treatment (green/live for today's classes, greyed and inert for
- * later ones). The live scoring screen itself isn't migrated yet — matching
- * the note already on the old judging page — so the active click surfaces
- * that honestly instead of navigating to a page that doesn't exist.
+ * later ones). Today's classes link straight into the live-scoring screen
+ * (`modules/scoring`) — a route link, not an import, so this module never
+ * reaches into scoring's internals.
  */
-export function LaunchScoringButton({ active }: { active: boolean }) {
+export function LaunchScoringButton({ active, classId }: { active: boolean; classId: string }) {
   if (!active) {
     return (
       <span
@@ -23,17 +20,11 @@ export function LaunchScoringButton({ active }: { active: boolean }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        toast.info('Entering marks needs the live scoring screen, which is not migrated yet.');
-      }}
-      className={cn(
-        'flex-none whitespace-nowrap rounded-[9px] bg-[#1D4A38] px-5 py-[13px]',
-        'text-[13.5px] font-bold text-[#F5F7F6] transition-colors hover:bg-gold hover:text-[#0D2C23]'
-      )}
+    <Link
+      href={`/dashboard/scoring/${classId}`}
+      className="flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold text-[#F5F7F6] whitespace-nowrap transition-colors hover:bg-gold hover:text-[#0D2C23]"
     >
       Launch Scoring →
-    </button>
+    </Link>
   );
 }
