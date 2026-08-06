@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import {
@@ -55,6 +56,15 @@ export default async function JudgingPage() {
       {isSuperAdminPreview && <SuperAdminPreviewNotice />}
 
       <JudgingStatusCard rings={rings} contacts={contacts} />
+
+      {today.length > 0 && (
+        <Link
+          href="/dashboard/judging/results"
+          className="mb-3.5 inline-block text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+        >
+          🏆 View Results
+        </Link>
+      )}
 
       {assignments.length === 0 ? (
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
