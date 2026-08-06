@@ -130,11 +130,11 @@ export default async function OperationsPage({
                 {ring.scoringOpen ? (
                   <>
                     <StatusBadge tone="warn">Live</StatusBadge>
-                    {ring.nextUp && (
+                    {ring.current && (
                       <div style={{ textAlign: 'right', minWidth: 160 }}>
-                        <div className="now-eyebrow">Up next</div>
+                        <div className="now-eyebrow">Now in ring</div>
                         <div style={{ fontWeight: 700 }}>
-                          #{ring.nextUp.num} {ring.nextUp.rider ?? '—'}
+                          #{ring.current.num} {ring.current.rider ?? '—'}
                         </div>
                       </div>
                     )}

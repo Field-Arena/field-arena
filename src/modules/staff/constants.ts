@@ -159,7 +159,21 @@ export const ROLE_NAV: Record<
       label: 'Results — Live',
       icon: 'financial',
       href: '/dashboard/announcing/results',
-      tip: 'Published standings, class by class',
+      tip: "Every rider's score as it's confirmed, class by class",
+    },
+    {
+      key: 'contacts',
+      label: 'Contacts',
+      icon: 'members',
+      href: '/dashboard/announcing/contacts',
+      tip: 'Judges, scribes, and show staff for this assignment',
+    },
+    {
+      key: 'documents',
+      label: 'Documents',
+      icon: 'documents',
+      href: '/dashboard/announcing/documents',
+      tip: 'Rider pronunciation guides, sponsor copy, and rule references',
     },
   ],
   ShowStaff: [
