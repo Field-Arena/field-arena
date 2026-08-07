@@ -66,4 +66,15 @@ export const env = {
   get stripeSecretKey(): string {
     return required(process.env.STRIPE_SECRET_KEY, 'STRIPE_SECRET_KEY');
   },
+
+  /**
+   * Server only. Verifies that a POST to app/api/webhooks/stripe genuinely
+   * came from Stripe (stripe.webhooks.constructEvent) rather than trusting an
+   * unsigned request body claiming an order was paid. Distinct per endpoint in
+   * the Stripe Dashboard, so this is its own variable rather than reusing
+   * STRIPE_SECRET_KEY.
+   */
+  get stripeWebhookSecret(): string {
+    return required(process.env.STRIPE_WEBHOOK_SECRET, 'STRIPE_WEBHOOK_SECRET');
+  },
 } as const;
