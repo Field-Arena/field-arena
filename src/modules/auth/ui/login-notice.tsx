@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/shared/ui/shadcn/button';
-import { AuthAlert } from './auth-primitives';
+import { AuthAlert } from '@/shared/ui/auth/auth-primitives';
 import { useSignOut } from '../hooks/use-auth-mutations';
 
 /**

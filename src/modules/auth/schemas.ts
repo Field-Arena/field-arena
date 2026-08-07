@@ -44,8 +44,8 @@ export type VerifySignInCodeInput = z.infer<typeof verifySignInCodeSchema>;
  * Unlike loginSchema, strength rules DO belong here: this is where the password
  * is chosen, so rejecting a weak one costs the user a retype rather than locking
  * them out of an account they already own. The two rules mirror the design's
- * strength meter — see passwordStrength() in utils.ts, which scores the same
- * three signals the meter draws.
+ * strength meter — see passwordStrength() in shared/lib/password-strength.ts,
+ * which scores the same three signals the meter draws.
  */
 export const signUpSchema = z.object({
   email: z.email('Enter a valid email address so we can send your code').min(1, 'Email is required'),
