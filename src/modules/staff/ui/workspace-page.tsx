@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
 import type { ShowListItem } from '@/modules/shows/data/queries';
+import { ShowPickerCombobox } from './show-picker-combobox';
 
 /**
  * Shared chrome for the organizer workspace's sub-pages: a title, a description,
  * and — for show-scoped pages — the show picker.
  *
- * The picker is a plain GET form so switching shows needs no JavaScript and the
- * page stays a Server Component. The selected show lives in the URL, which also
- * makes a particular show's page linkable and back-button-friendly.
+ * The picker itself (`ShowPickerCombobox`) is the one client-side piece in an
+ * otherwise plain Server Component — see that file for why a real listbox
+ * replaced the previous native `<select>` + GET-form pair. The selected show
+ * still lives in the `?show=` URL param either way, so a particular show's
+ * page stays linkable and back-button-friendly.
  */
 export function WorkspacePage({
   title,
@@ -43,25 +46,7 @@ export function WorkspacePage({
           <span className="showbar-org">{orgName}</span>
 
           {showPicker && shows && shows.length > 0 && currentShow && (
-            <form method="get" className="contents">
-              <select
-                name="show"
-                defaultValue={currentShow.id}
-                className="dash-select"
-                style={{ maxWidth: 380 }}
-                aria-label="Select show"
-              >
-                {shows.map((show) => (
-                  <option key={show.id} value={show.id}>
-                    {show.name}
-                    {show.dateLabel ? ` (${show.dateLabel})` : ''}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="dash-btn dash-btn-outline">
-                Switch
-              </button>
-            </form>
+            <ShowPickerCombobox shows={shows} currentShow={currentShow} />
           )}
         </div>
 

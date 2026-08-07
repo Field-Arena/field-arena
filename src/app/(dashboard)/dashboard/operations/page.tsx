@@ -1,23 +1,31 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getRingStatus, listMyShows } from '@/modules/announcements/data/queries';
+import { getRingStatus } from '@/modules/announcements/data/queries';
 import { listStaff } from '@/modules/shows/data/setup-queries';
 import { getShowStats } from '@/modules/shows/data/queries';
+import { getMyPermissions, listMyShows, listStabling, listVendors } from '@/modules/operations/data/queries';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 
 export const metadata: Metadata = { title: 'Show Operations — Field & Arena' };
 
+/** `.stat` is styled for a `div`; the dashboard has no global anchor reset, so a `.stat` rendered as a Link needs its own color/underline override. */
+const statLinkStyle: React.CSSProperties = { color: 'inherit', textDecoration: 'none', display: 'block' };
+
 /**
  * The show-staff operations board, ported from showstaff-ops.html: ring status,
  * directories and stabling.
  *
- * Reuses the announcer's ring queries rather than duplicating them — both roles
- * need the same "what is happening in each ring" view, and the legacy views built
- * it twice.
+ * `getRingStatus` is reused from the announcer module rather than duplicated —
+ * both roles need the same "what is happening in each ring" view, and the
+ * legacy views built it twice. `listMyShows` is this module's own copy,
+ * though (see `data/queries.ts`'s doc comment on why this module doesn't
+ * reach into another module's internals) — it was pointed at the announcer's
+ * copy by mistake even though an identical one already existed here.
  *
- * No money anywhere on this page. ShowStaff permission defaults are empty, so
- * financial panels would be hidden for every one of them; showing the shape of
- * something they can never see would only invite support questions.
+ * The Vendors KPI is fetched only when `canViewMoney` is granted — legacy
+ * 403s the entire vendors resource without it, so this mirrors the same gate
+ * `dashboard/operations/vendors/page.tsx` applies to its own page.
  */
 export default async function OperationsPage({
   searchParams,
@@ -47,13 +55,17 @@ export default async function OperationsPage({
     );
   }
 
-  const [rings, staff, stats] = await Promise.all([
+  const [rings, staff, stats, stabling, permissions] = await Promise.all([
     getRingStatus(currentShow.id),
     listStaff(currentShow.id),
     getShowStats(currentShow.id),
+    listStabling(currentShow.id),
+    getMyPermissions(currentShow.id),
   ]);
+  const vendorCount = permissions.canViewMoney ? (await listVendors(currentShow.id)).length : null;
 
   const live = rings.filter((r) => r.scoringOpen).length;
+  const navHref = (path: string) => `/dashboard/operations/${path}?show=${currentShow.id}`;
 
   return (
     <>
@@ -89,63 +101,82 @@ export default async function OperationsPage({
           )}
         </div>
 
+        {/* Riders/Horses/Stalled/Vendors, each linking to its own top-level nav item — ported from showstaff-ops.html's clickable KPI tiles (`.kpi-click`, `onclick="showTab(...)"`). */}
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-          <div className="stat">
+          <Link href={navHref('riders')} className="stat" style={statLinkStyle}>
             <div className="stat-label">Riders</div>
             <div className="stat-value">{stats.riders}</div>
-          </div>
-          <div className="stat">
+          </Link>
+          <Link href={navHref('horses')} className="stat" style={statLinkStyle}>
             <div className="stat-label">Horses</div>
             <div className="stat-value">{stats.horses}</div>
-          </div>
-          <div className="stat">
-            <div className="stat-label">Rings live</div>
-            <div className="stat-value">{live}</div>
-            <div className="stat-sub">of {rings.length}</div>
-          </div>
-          <div className="stat">
-            <div className="stat-label">Staff on site</div>
-            <div className="stat-value">{staff.length}</div>
-          </div>
+          </Link>
+          <Link href={navHref('stabling')} className="stat" style={statLinkStyle}>
+            <div className="stat-label">Stalled</div>
+            <div className="stat-value">{stabling.stalls.length}</div>
+          </Link>
+          <Link href={navHref('vendors')} className="stat" style={statLinkStyle}>
+            <div className="stat-label">Vendors</div>
+            <div className="stat-value">{vendorCount ?? '—'}</div>
+            {vendorCount === null && <div className="stat-sub">No money access</div>}
+          </Link>
         </div>
       </div>
 
       <div className="dash-card">
-        <h2 className="show-detail-title">Ring status</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <h2 className="show-detail-title">Ring status</h2>
+          <span className="stat-sub">
+            {live} of {rings.length} live
+          </span>
+        </div>
         {rings.length === 0 ? (
           <EmptyPanel title="No classes" note="This show has no classes configured yet." />
         ) : (
           <div className="cards" style={{ marginTop: 10 }}>
             {rings.map((ring) => (
-              <div
+              <Link
                 key={ring.classId}
+                href={`/dashboard/operations/schedule?show=${currentShow.id}`}
                 className={`card-row ${ring.scoringOpen ? 'today' : ''}`}
+                style={{ color: 'inherit', textDecoration: 'none' }}
               >
                 <div className="card-main">
                   <div className="card-title">{ring.className}</div>
                   <div className="card-meta">
-                    {ring.ring ?? 'Ring not set'} · {ring.entryCount} rides
+                    {ring.ring ?? 'Ring not set'} · {ring.position} of {ring.entryCount} ridden
                   </div>
                 </div>
                 {ring.scoringOpen ? (
                   <>
                     <StatusBadge tone="warn">Live</StatusBadge>
-                    {ring.current && (
-                      <div style={{ textAlign: 'right', minWidth: 160 }}>
-                        <div className="now-eyebrow">Now in ring</div>
-                        <div style={{ fontWeight: 700 }}>
-                          #{ring.current.num} {ring.current.rider ?? '—'}
+                    <div style={{ textAlign: 'right', minWidth: 160 }}>
+                      {ring.current && (
+                        <>
+                          <div className="now-eyebrow">Now in ring</div>
+                          <div style={{ fontWeight: 700 }}>
+                            #{ring.current.num} {ring.current.rider ?? '—'}
+                          </div>
+                        </>
+                      )}
+                      {ring.upNext[0] && (
+                        <div style={{ marginTop: ring.current ? 4 : 0 }}>
+                          <span className="now-eyebrow">Next up</span>{' '}
+                          #{ring.upNext[0].num} {ring.upNext[0].rider ?? '—'}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </>
                 ) : (
                   <StatusBadge tone="neutral">Not started</StatusBadge>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
+        <p className="doc-note" style={{ marginTop: 10 }}>
+          Tap a class for its full order of go and placings on the Schedule tab.
+        </p>
       </div>
 
       <div className="dash-card">
@@ -181,8 +212,8 @@ export default async function OperationsPage({
           </div>
         )}
         <p className="doc-note">
-          Stabling and the rider/horse directories need the roster detail views, which arrive with
-          the entries module. Ring status and staffing are live.
+          Rider, horse, stabling, and vendor detail each have their own tab in the sidebar — the KPI
+          tiles above jump straight there.
         </p>
       </div>
     </>
