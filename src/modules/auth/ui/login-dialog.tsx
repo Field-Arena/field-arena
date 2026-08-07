@@ -5,7 +5,7 @@ import { ArrowRightIcon, XIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/shadcn/dialog';
 import { ROUTES } from '@/shared/constants/routes';
 import { LoginForm } from './login-form';
-import { AuthAlert } from './auth-primitives';
+import { AuthAlert } from '@/shared/ui/auth/auth-primitives';
 import { useLoginDialogStore } from '../store';
 
 /**

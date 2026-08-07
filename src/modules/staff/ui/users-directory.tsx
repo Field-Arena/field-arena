@@ -13,6 +13,7 @@ import { UploadStaffListDialog } from './upload-staff-list-dialog';
 import { ExportStaffListButton } from './export-staff-list-button';
 import { PermissionsListDialog } from './permissions-list-dialog';
 import { StaffEditDialog } from './staff-edit-dialog';
+import { VendorApprovalActions } from '@/modules/vendors/ui/vendor-approval-actions';
 import type { UserDirectoryRow, UserDirectoryStatus } from '../types';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
@@ -311,6 +312,9 @@ export function UsersDirectory({
                       <StatusPill bg={meta.bg} border="transparent" fg={meta.fg}>
                         {meta.label}
                       </StatusPill>
+                      {row.kind === 'vendor' && row.status === 'pending' && (
+                        <VendorApprovalActions bookingId={row.id} showId={row.showId} />
+                      )}
                     </span>
                     {showCoggins && (
                       <span>

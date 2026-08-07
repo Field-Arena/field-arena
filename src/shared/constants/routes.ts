@@ -8,6 +8,15 @@ export const ROUTES = {
 
   onboarding: '/onboarding',
 
+  /**
+   * The rider portal — matches RIDER_WORKSPACE.href (role-workspaces.ts).
+   * Deliberately absent from PROTECTED_PREFIXES below: unlike /dashboard, this
+   * tree must stay browsable with no session at all (a show's ticket page is
+   * public — "buy first, account second"), so gating happens page-by-page
+   * instead of at the proxy.
+   */
+  rider: '/rider',
+
   dashboard: '/dashboard',
   shows: '/dashboard/shows',
   members: '/dashboard/members',

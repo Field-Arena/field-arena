@@ -5,7 +5,7 @@ import { ArrowRightIcon, CircleAlertIcon, CheckIcon, Loader2Icon } from 'lucide-
 import { Button } from '@/shared/ui/shadcn/button';
 import { Alert, AlertDescription } from '@/shared/ui/shadcn/alert';
 import { cn } from '@/shared/lib/utils';
-import { passwordStrength, passwordStrengthLabel } from '../utils';
+import { passwordStrength, passwordStrengthLabel } from '@/shared/lib/password-strength';
 
 /**
  * The primary action on every auth screen, in the design's three treatments.
@@ -31,6 +31,7 @@ export function AuthSubmit({
   showIcon = variant === 'gold',
   type = 'submit',
   onClick,
+  disabled,
 }: {
   children: ReactNode;
   pending?: boolean;
@@ -40,12 +41,14 @@ export function AuthSubmit({
   showIcon?: boolean;
   type?: 'submit' | 'button';
   onClick?: () => void;
+  /** An extra, caller-decided condition (e.g. a required field still empty) — combined with `pending`, not a replacement for it. */
+  disabled?: boolean;
 }) {
   return (
     <Button
       type={type}
       onClick={onClick}
-      disabled={pending}
+      disabled={(pending ?? false) || (disabled ?? false)}
       className={cn(
         'h-auto w-full gap-2.5 rounded-xl px-6 py-[17px] text-[15px] font-bold',
         'transition-all duration-150 ease-out disabled:opacity-70',

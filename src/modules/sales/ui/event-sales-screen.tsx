@@ -6,7 +6,7 @@ import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import { SALES_PAGE_SIZE } from '../constants';
 import type { SaleRow } from '../data/queries';
-import type { SalesStats } from '../utils';
+import { buildSalesCsv, salesCsvFilename, type SalesStats } from '../utils';
 import { RefundDialog } from './refund-dialog';
 import { ChargeMoreDialog } from './charge-more-dialog';
 
@@ -149,7 +149,34 @@ export function EventSalesScreen({
 
       <ViewTabs />
 
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex justify-end gap-2.5">
+        <button
+          type="button"
+          onClick={() => {
+            const csv = buildSalesCsv(
+              filtered.map((r) => ({
+                customer: r.customer,
+                type: r.type,
+                showName: r.showName,
+                date: r.date,
+                amountTotal: r.amountTotal,
+                statusLabel: STATUS_LABEL[r.status],
+              })),
+            );
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = salesCsvFilename(showName);
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          }}
+          className="text-forest hover:border-gold inline-flex items-center gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors"
+        >
+          ⬇ Export Contact List
+        </button>
         <button
           type="button"
           onClick={() => {

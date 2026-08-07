@@ -108,6 +108,48 @@ const PATHS: Record<string, React.ReactNode> = {
       <path {...S} d="M12 6v6l4 2" />
     </>
   ),
+
+  // Below: ShowStaff-only glyphs, ported verbatim from showstaff-ops.html's own
+  // sidebar (lines 197-202) rather than reused from the organizer set above —
+  // that file draws its own Find/Riders/Stabling/Vendors icons distinct from
+  // showstaff.html's Member Database/Horses glyphs.
+  find: (
+    <>
+      <circle cx="11" cy="11" r="6" {...S} />
+      <path {...S} d="M20 20l-4-4" />
+    </>
+  ),
+
+  riders: (
+    <>
+      <ellipse cx="10.5" cy="15.2" rx="6" ry="2.8" {...S} />
+      <path {...S} d="M16 13.8c1-1.8 2-3.2 3.2-5" />
+      <path {...S} d="M19.2 8.8l1.3.6" />
+      <path {...S} d="M18.6 7.2l.6-1.4" />
+      <path {...S} d="M5 14.2c-1.2.3-2 1.4-2.6 3" />
+      <path {...S} d="M7 17.8v3M9.5 18v3M13 17.8v3M15.5 17.5v3" />
+      <circle cx="12.6" cy="8" r="1.4" {...S} />
+      <path {...S} d="M12.4 9.4v3.4" />
+      <path {...S} d="M12.4 12.8c-.6 1.4-1 2.8-1.4 4.6" />
+      <path {...S} d="M12.6 10.2c1.4.2 2.6.6 3.6 1.6" />
+      <path {...S} d="M16.2 11.8l1.6-1.4" />
+    </>
+  ),
+
+  stabling: (
+    <>
+      <path {...S} d="M3 10l9-6 9 6" />
+      <path {...S} d="M5 10v10h14V10" />
+      <path {...S} d="M12 20v-6M9 14h6" />
+    </>
+  ),
+
+  vendors: (
+    <>
+      <path {...S} d="M5 8h14l-1 12H6L5 8z" />
+      <path {...S} d="M9 8V6a3 3 0 016 0v2" />
+    </>
+  ),
 };
 
 export function NavIcon({ name, size = 22 }: { name: string; size?: number }) {

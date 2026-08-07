@@ -5,8 +5,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { setPasswordSchema, type SetPasswordInput } from '../schemas';
 import { useSetPassword } from '../hooks/use-auth-mutations';
-import { AuthPasswordField } from './auth-field';
-import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from './auth-primitives';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-field';
+import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 
 /**
  * "Set your password" — the step `/auth/confirm` sends every invite through

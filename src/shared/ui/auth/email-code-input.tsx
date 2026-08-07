@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, type ClipboardEvent, type KeyboardEvent } from 'react';
-import { EMAIL_CODE_LENGTH } from '../constants';
+import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
 
 /**
  * The six single-character boxes for the emailed confirmation code.

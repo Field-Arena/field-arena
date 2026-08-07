@@ -10,6 +10,7 @@ import { PrimaryButton, GhostButton, ghostButtonClass } from '@/shared/ui/organi
 import { IconHorse } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { formatTimestamp } from '@/shared/lib/format/date';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import {
   useOpenTicketSales,
@@ -153,8 +154,91 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
           >
             Start live scoring
           </GhostButton>
+          {/* Ported from showstaff.html's smCopyTicketLink — the link a
+              vendor needs to apply with no account of their own (see
+              app/vendor-apply/[showId]/page.tsx). Only offered once the show
+              is published: that page 404s on an unpublished show, same gate
+              getPublicVendorApplyShow applies. */}
+          {data.published && (
+            <GhostButton
+              onClick={() => {
+                void copyVendorApplyLink(data.showId);
+              }}
+            >
+              Copy vendor application link
+            </GhostButton>
+          )}
         </div>
+
+        {/* Ported from legacy's publishStateCardHtml (showstaff.html) — the
+            one place an organizer could actually get the real rider ticket
+            link, which had no equivalent anywhere in this app until now
+            (only the Stage Actions publish/unpublish buttons existed, with
+            no way to see or copy the link itself afterward). */}
+        {data.published && (
+          <div
+            className="mt-5 rounded-xl p-4"
+            style={{ background: fa.greenTint, border: `1px solid ${fa.greenLine}` }}
+          >
+            <p className="text-[13.5px]" style={{ color: fa.green }}>
+              <strong>✓ Published</strong> — riders can see this show and buy tickets
+              {data.publishedAt ? ` since ${formatTimestamp(data.publishedAt)}` : ''}.
+            </p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={ticketLinkUrl(data.showId)}
+                onClick={(event) => {
+                  event.currentTarget.select();
+                }}
+                className="min-w-[220px] flex-1 rounded-md border border-[#D9E1DD] bg-white px-2.5 py-[7px] text-[12.5px] text-ink-deep"
+              />
+              <GhostButton
+                onClick={() => {
+                  void copyTicketLink(data.showId);
+                }}
+              >
+                Copy link
+              </GhostButton>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Link
+                href={`/rider/shows/${data.showId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={ghostButtonClass}
+              >
+                Preview ticket page ↗
+              </Link>
+            </div>
+          </div>
+        )}
       </Card>
     </>
   );
+}
+
+function ticketLinkUrl(showId: string): string {
+  return `${typeof window !== 'undefined' ? window.location.origin : ''}/rider/shows/${showId}`;
+}
+
+async function copyTicketLink(showId: string): Promise<void> {
+  const url = ticketLinkUrl(showId);
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success('Ticket link copied.');
+  } catch {
+    toast.error(`Could not copy automatically — here it is: ${url}`);
+  }
+}
+
+async function copyVendorApplyLink(showId: string): Promise<void> {
+  const url = `${window.location.origin}/vendor-apply/${showId}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success('Vendor application link copied.');
+  } catch {
+    toast.error(`Could not copy automatically — here it is: ${url}`);
+  }
 }

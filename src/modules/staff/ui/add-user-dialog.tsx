@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogClose,
@@ -55,7 +56,7 @@ export interface ClassOption {
  * (`defaultShowId`); the id still travels with the form as a hidden field
  * so `addStaffUser` gets it, it's just not asked for twice.
  *
- * Three roles change the form's shape, all matching legacy exactly:
+ * Four roles change the form's shape, all matching legacy exactly:
  *  - Vendor swaps the split name fields for a single "Business name" input
  *    (legacy's `nameFieldsHtml('as', true)`) and hides the scratch/money
  *    checkboxes, which only ever meant something for real show staff.
@@ -64,6 +65,12 @@ export interface ClassOption {
  *    same way judge-scribe.html itself was) — `addStaffUser` seats the
  *    person on every checked class via `assignJudgeToClasses`/
  *    `assignScribeToClasses` once the invite succeeds.
+ *  - Rider does nothing real on submit — matching legacy's own add-user
+ *    modal, which pushes a fake in-memory row and shows a generic success
+ *    toast with no API call, no email, and no invite-acceptance page behind
+ *    it (see ADD_USER_ROLES's doc comment). The scratch/money checkboxes are
+ *    hidden for it too, same reasoning as Vendor: they don't mean anything
+ *    for a role this form never actually creates.
  */
 export function AddUserDialog({
   shows,
@@ -109,6 +116,7 @@ export function AddUserDialog({
   const isMember = useWatch({ control: form.control, name: 'addToMemberDatabase' });
   const classIds = useWatch({ control: form.control, name: 'classIds' }) ?? [];
   const isVendor = role === 'Vendor';
+  const isRider = role === 'Rider';
   const showName = shows.find((s) => s.id === defaultShowId)?.name ?? 'this show';
 
   return (
@@ -144,6 +152,16 @@ export function AddUserDialog({
         <form
           onSubmit={(event) => {
             void form.handleSubmit((values) => {
+              if (values.role === 'Rider') {
+                // Matches legacy's own add-user modal exactly: no API call,
+                // no email, nothing persisted — just the same generic
+                // success toast it always showed regardless of what
+                // happened underneath.
+                toast.success(`${values.email} added.`);
+                setOpen(false);
+                form.reset(resetDefaults);
+                return;
+              }
               mutate(values);
             })(event);
           }}
@@ -265,7 +283,7 @@ export function AddUserDialog({
               </label>
             )}
 
-            {!isVendor && (
+            {!isVendor && !isRider && (
               <>
                 <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
                   <input
