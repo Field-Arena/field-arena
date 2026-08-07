@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRightIcon, BarChart3Icon, SearchIcon } from 'lucide-react';
+import { ArrowRightIcon, BarChart3Icon, DownloadIcon, SearchIcon } from 'lucide-react';
 import { AddTargetDialog } from './add-target-dialog';
 import { LeadStatusPill } from './lead-status-pill';
+import { LEAD_STATUSES } from '../constants';
+import { buildLeadsCsv, leadsCsvFilename } from '../utils';
 
 const NR = 'font-[family-name:var(--font-nr)]';
 const COLS = 'minmax(230px,1fr) minmax(190px,240px) 78px 128px 104px';
@@ -70,6 +72,33 @@ export function FunnelBoard({
         >
           <BarChart3Icon className="size-[15px]" aria-hidden />
           {breakdownOpen ? 'Hide closing rate breakdown' : 'View closing rate breakdown'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const csv = buildLeadsCsv(
+              filtered.map((l) => ({
+                org: l.org,
+                contact: l.contact,
+                email: l.email,
+                shows: l.shows,
+                status: LEAD_STATUSES.find((s) => s.value === l.status)?.label ?? (l.status ?? 'New'),
+              })),
+            );
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = leadsCsvFilename();
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          }}
+          className="inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep transition-colors hover:border-gold"
+        >
+          <DownloadIcon className="size-[15px]" aria-hidden />
+          Export Contact List
         </button>
         <div className="relative ml-auto min-w-[190px] max-w-[300px] flex-[1_1_220px]">
           <SearchIcon

@@ -14,18 +14,18 @@ import {
   useSendSignInCode,
   useVerifySignInCode,
 } from '../hooks/use-auth-mutations';
-import { EMAIL_CODE_LENGTH } from '../constants';
+import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
 import { isEmailAddress } from '../utils';
 import type { LoginView } from '../types';
-import { AuthField, AuthPasswordField } from './auth-field';
+import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import {
   AuthAlert,
   AuthCheckbox,
   AuthDivider,
   AuthEyebrow,
   AuthSubmit,
-} from './auth-primitives';
-import { EmailCodeInput } from './email-code-input';
+} from '@/shared/ui/auth/auth-primitives';
+import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 
 /**
  * The sign-in panel, deliberately container-agnostic.

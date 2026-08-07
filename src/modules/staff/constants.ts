@@ -176,6 +176,11 @@ export const ROLE_NAV: Record<
       tip: 'Rider pronunciation guides, sponsor copy, and rule references',
     },
   ],
+  // Eight flat items, in showstaff-ops.html's own sidebar order (lines
+  // 196-203) — Find/Riders/Horses/Stabling/Vendors were briefly consolidated
+  // into one "Directories" page with sub-tabs, but that grouped five of
+  // legacy's own top-level nav items under one link instead of matching its
+  // sidebar 1:1, so each is back to being its own item/route.
   ShowStaff: [
     {
       key: 'ops',
@@ -185,11 +190,53 @@ export const ROLE_NAV: Record<
       tip: 'Live board and on-the-ground operations',
     },
     {
-      key: 'directory',
-      label: 'Directories',
-      icon: 'users',
-      href: '/dashboard/operations/directory',
-      tip: 'Rider, horse and vendor directories',
+      key: 'find',
+      label: 'Find',
+      icon: 'find',
+      href: '/dashboard/operations/find',
+      tip: 'Look up a rider, horse, or vendor',
+    },
+    {
+      key: 'schedule',
+      label: 'Schedule',
+      icon: 'schedule',
+      href: '/dashboard/operations/schedule',
+      tip: 'The full ring-by-ring running order',
+    },
+    {
+      key: 'riders',
+      label: 'Riders',
+      icon: 'riders',
+      href: '/dashboard/operations/riders',
+      tip: 'Every rider entered in this show',
+    },
+    {
+      key: 'horses',
+      label: 'Horses',
+      icon: 'horses',
+      href: '/dashboard/operations/horses',
+      tip: 'Every horse entered in this show',
+    },
+    {
+      key: 'stabling',
+      label: 'Stabling',
+      icon: 'stabling',
+      href: '/dashboard/operations/stabling',
+      tip: 'Stall assignments and arrivals',
+    },
+    {
+      key: 'vendors',
+      label: 'Vendors',
+      icon: 'vendors',
+      href: '/dashboard/operations/vendors',
+      tip: 'Vendor booths and contacts on-site',
+    },
+    {
+      key: 'documents',
+      label: 'Documents',
+      icon: 'documents',
+      href: '/dashboard/operations/documents',
+      tip: 'Reference documents for show staff — upload a PDF for judges and scribes',
     },
   ],
   Vendor: [
@@ -206,6 +253,20 @@ export const ROLE_NAV: Record<
       icon: 'venues',
       href: '/dashboard/vendor/discover',
       tip: 'Shows with booth space still available',
+    },
+    {
+      key: 'documents',
+      label: 'Documents',
+      icon: 'documents',
+      href: '/dashboard/vendor/documents',
+      tip: 'Load-in guides, venue maps, and paperwork',
+    },
+    {
+      key: 'history',
+      label: 'History',
+      icon: 'history',
+      href: '/dashboard/vendor/history',
+      tip: "Shows you've vended at",
     },
   ],
 };
@@ -255,16 +316,20 @@ export const SHOW_INVENTORY = [
 
 /**
  * Roles offered in the "All Users" directory's "+ Add User" modal — ported
- * from showstaff.html's `addableRoles().concat(['Rider'])`, minus Rider:
+ * from showstaff.html's `addableRoles().concat(['Rider'])`, including Rider:
  *
- *  - Rider: legacy's own add-user modal pushed a demo rider into an in-memory
- *    array with an explicit "Riders aren't migrated yet" comment. This app
- *    has a real entries pipeline; faking a rider row here would be a step
- *    backward, not a port.
+ *  - Rider: legacy's own add-user modal never actually did anything for this
+ *    choice — no API call, no email, no invite-acceptance page, just a fake
+ *    row pushed into an in-memory array with an explicit "Riders aren't
+ *    migrated yet" comment in legacy's own source. Included here for exact
+ *    visual/behavioral parity with that (real, if broken) legacy screen —
+ *    selecting it in `AddUserDialog` still does nothing real, same as
+ *    legacy. A rider account is only ever created the one real way this app
+ *    supports: self-service signup from a show's own ticket page.
  *
- * Vendor IS included, unlike the five staff roles above it in the dropdown —
- * `addStaffUser` branches on it and never touches staff_assignments at all,
- * writing to vendor_bookings instead (see that function's own doc comment).
+ * Vendor IS wired to something real, unlike Rider — `addStaffUser` branches
+ * on it and never touches staff_assignments at all, writing to
+ * vendor_bookings instead (see that function's own doc comment).
  * `allUsersAcrossShows()` composing vendors from vendor_bookings rather than
  * staff rows is exactly why that branch exists.
  */
@@ -275,6 +340,7 @@ export const ADD_USER_ROLES = [
   'Announcer',
   'ShowStaff',
   'Vendor',
+  'Rider',
 ] as const;
 
 /**

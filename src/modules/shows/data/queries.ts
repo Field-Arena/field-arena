@@ -245,6 +245,7 @@ export interface RunShowData {
   showName: string;
   stage: string;
   published: boolean;
+  publishedAt: string | null;
   waiverApproved: boolean;
   runner: { ticketClosed: boolean; approved: boolean };
   stats: ShowStats;
@@ -263,7 +264,7 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
   const showResult = await supabase
     .from('shows')
-    .select('id, name, published, runner_state, waiver_text, waiver_approved_text')
+    .select('id, name, published, published_at, runner_state, waiver_text, waiver_approved_text')
     .eq('id', showId)
     .maybeSingle();
   if (showResult.error) throw showResult.error;
@@ -284,6 +285,7 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
     showName: show.name,
     stage,
     published: show.published ?? false,
+    publishedAt: show.published_at,
     waiverApproved: !!show.waiver_approved_text && show.waiver_approved_text === show.waiver_text,
     runner: { ticketClosed: !!runner.ticketClosed, approved: !!runner.approved },
     stats,

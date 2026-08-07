@@ -164,7 +164,11 @@ async function provisionedDestination(
     supabase.from('riders').select('id').eq('id', userId).maybeSingle(),
   ]);
   if (staff) return ROUTES.dashboard;
-  if (rider) return ROUTES.home;
+  // Was ROUTES.home ('/') — RIDER_WORKSPACE.href is '/rider', and the
+  // dashboard layout already redirects a rider who lands on a staff route
+  // there (see (dashboard)/layout.tsx); this just closes the same loop for
+  // the sign-in/verify paths below instead of routing through '/' first.
+  if (rider) return ROUTES.rider;
   return null;
 }
 

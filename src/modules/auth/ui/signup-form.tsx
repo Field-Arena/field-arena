@@ -8,11 +8,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
 import { signUpSchema, type SignUpInput } from '../schemas';
 import { useSignUp, useVerifyEmail, useResendEmailCode } from '../hooks/use-auth-mutations';
-import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '../constants';
+import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
 import type { SignUpStep } from '../types';
-import { AuthField, AuthPasswordField } from './auth-field';
-import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from './auth-primitives';
-import { EmailCodeInput } from './email-code-input';
+import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
+import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
+import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 
 /**
  * Two-step self-service sign-up: create the account, then confirm the emailed

@@ -1,0 +1,175 @@
+'use client';
+
+import { useState, type CSSProperties } from 'react';
+import { useUpdateRiderProfile } from '../hooks/use-rider-profile-mutations';
+import {
+  LEGACY_COLOR,
+  LegacySecTitle,
+  legacyBlockTitleStyle,
+  legacyButtonGhostStyle,
+  legacyCardStyle,
+} from './legacy-theme';
+import type { RiderProfileUpdateInput } from '../schemas';
+import type { RiderRow } from '../types';
+
+type EditableField = keyof RiderProfileUpdateInput;
+
+const rowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  borderBottom: `1px solid ${LEGACY_COLOR.border}`,
+  padding: '8px 0',
+  fontSize: 13.5,
+};
+
+const inputStyle: CSSProperties = {
+  fontFamily: 'inherit',
+  fontSize: 13.5,
+  padding: '6px 10px',
+  borderRadius: 8,
+  border: `1px solid ${LEGACY_COLOR.border}`,
+  width: 190,
+};
+
+/**
+ * Post-purchase Profile tab — mirrors legacy's #dtab-profile real mode
+ * (renderProfileTabReal, rider.html): name/category/dob/credentials/email
+ * are fixed "who you are" facts (no Edit affordance); phone, address, and
+ * emergency contact stay editable indefinitely — legacy's own `scheduleLocked`
+ * field-lock intent was never wired to real data, so there is no real
+ * "locks once scheduled" behavior to port here either. `.prof-grid`'s exact
+ * two-block layout ("Rider" / "Emergency contact") is reproduced with the
+ * same `.block-title` token the rest of the dashboard uses.
+ *
+ * Legacy's real-mode UI only ever showed street/city, never state/zip, even
+ * though the PATCH endpoint always accepted both — that reads as an
+ * unintentional gap rather than a deliberate rule, so both are included here.
+ */
+export function ProfileTab({ rider }: { rider: RiderRow }) {
+  const name = [rider.first_name, rider.last_name].filter(Boolean).join(' ') || '—';
+  const credentials = [rider.usef ? `USEF ${rider.usef}` : '', rider.fei ? `FEI ${rider.fei}` : '']
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <div style={legacyCardStyle}>
+      <LegacySecTitle>Rider profile</LegacySecTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 16 }}>
+        <div>
+          <div style={legacyBlockTitleStyle}>Rider</div>
+          <FixedRow label="Name" value={name} />
+          <FixedRow label="Category" value={rider.category ?? '—'} />
+          <FixedRow label="Date of birth" value={rider.dob ?? '—'} />
+          {credentials && <FixedRow label="Credentials" value={credentials} />}
+          <FixedRow label="Email" value={rider.email} />
+          <EditableRow rider={rider} field="phone" label="Phone" type="tel" />
+          <EditableRow rider={rider} field="street" label="Street" />
+          <EditableRow rider={rider} field="city" label="City" />
+          <EditableRow rider={rider} field="state" label="State" />
+          <EditableRow rider={rider} field="zip" label="Zip" />
+        </div>
+        <div>
+          <div style={legacyBlockTitleStyle}>Emergency contact</div>
+          <EditableRow rider={rider} field="ecFirstName" label="First name" />
+          <EditableRow rider={rider} field="ecLastName" label="Last name" />
+          <EditableRow rider={rider} field="ecRel" label="Relationship" />
+          <EditableRow rider={rider} field="ecPhone" label="Phone" type="tel" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FixedRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={rowStyle}>
+      <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
+      <span style={{ color: LEGACY_COLOR.ink }}>{value}</span>
+    </div>
+  );
+}
+
+const RIDER_ROW_VALUE: Record<EditableField, keyof RiderRow> = {
+  phone: 'phone',
+  street: 'street',
+  city: 'city',
+  state: 'state',
+  zip: 'zip',
+  usef: 'usef',
+  fei: 'fei',
+  category: 'category',
+  dob: 'dob',
+  ecFirstName: 'ec_first_name',
+  ecLastName: 'ec_last_name',
+  ecRel: 'ec_rel',
+  ecPhone: 'ec_phone',
+};
+
+function EditableRow({
+  rider,
+  field,
+  label,
+  type = 'text',
+}: {
+  rider: RiderRow;
+  field: EditableField;
+  label: string;
+  type?: 'text' | 'tel';
+}) {
+  const [editing, setEditing] = useState(false);
+  const currentValue = rider[RIDER_ROW_VALUE[field]] ?? '';
+  const updateProfile = useUpdateRiderProfile({
+    onSuccess: () => {
+      setEditing(false);
+    },
+  });
+
+  if (!editing) {
+    return (
+      <div style={rowStyle}>
+        <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: LEGACY_COLOR.ink }}>{currentValue || 'Not set'}</span>
+          <button
+            type="button"
+            style={{ ...legacyButtonGhostStyle, padding: '4px 10px', fontSize: 12 }}
+            onClick={() => {
+              setEditing(true);
+            }}
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={rowStyle}>
+      <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
+      <input
+        autoFocus
+        type={type}
+        defaultValue={currentValue}
+        disabled={updateProfile.isPending}
+        style={inputStyle}
+        onBlur={(event) => {
+          const value = event.target.value.trim();
+          // Blank is a legitimate value here (clears a previously-set
+          // field, matching legacy's handleMe PATCH) — only a genuine no-op
+          // (nothing changed) skips the mutation.
+          if (value === currentValue) {
+            setEditing(false);
+            return;
+          }
+          updateProfile.mutate({ [field]: value });
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setEditing(false);
+        }}
+      />
+    </div>
+  );
+}

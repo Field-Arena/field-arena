@@ -1,21 +1,64 @@
 import type { Metadata } from 'next';
-import { listBookableShows, listMyBookings } from '@/modules/vendors/data/queries';
+import { listMyBookings } from '@/modules/vendors/data/queries';
+import { confirmVendorCheckoutSession } from '@/modules/vendors/data/mutations';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
+import { calcPlatformFeeFlat8 } from '@/shared/lib/fees';
+import { VendorAgreementDialog } from '@/modules/vendors/ui/vendor-agreement-dialog';
+import { VendorPayButton } from '@/modules/vendors/ui/vendor-pay-button';
+import { VendorCheckoutConfirmation } from '@/modules/vendors/ui/vendor-checkout-confirmation';
 
 export const metadata: Metadata = { title: 'My Bookings — Field & Arena' };
 
+/** Client-preview only — the real total is priced server-side at "Pay now" time by data/checkout.ts's priceVendorBooking. Same all-in-flat-8% formula, just computed from the plain catalog prices listMyBookings already returns. */
+function previewAmountDue(items: { qty: number; price: number }[]): number {
+  return items.reduce((sum, item) => sum + item.qty * (item.price + calcPlatformFeeFlat8(item.price)), 0);
+}
+
 /**
- * The vendor dashboard, ported from vendor.html: bookings across every
- * organizer, plus booth space still available.
+ * "My Bookings" — ported from vendor.html's first tab: booth space reserved
+ * across every organizer and show. Booth browsing/applying moved to its own
+ * page at /dashboard/vendor/discover, matching this workspace's nav (each
+ * ROLE_NAV entry is its own route, same as Judge/Announcer's split).
+ *
+ * `?booking=<id>&checkoutSession=<id>` (Stripe's success_url, set in
+ * createVendorCheckoutSession) short-circuits the page into a confirmation
+ * view, resolved server-side — same pattern as
+ * app/rider/shows/[showId]/page.tsx's own return-from-Stripe handling.
+ * `?checkoutCanceled=1` (Stripe's cancel_url) is a quieter notice on top of
+ * the normal bookings list, not a separate screen.
  *
  * A vendor's identity is platform-wide rather than tied to one organizer, so
- * neither panel is scoped to an organization.
+ * this is not scoped to an organization.
  */
-export default async function VendorPage() {
-  const [bookings, bookable] = await Promise.all([listMyBookings(), listBookableShows()]);
+export default async function VendorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ booking?: string; checkoutSession?: string; checkoutCanceled?: string }>;
+}) {
+  const { booking: confirmBookingId, checkoutSession: checkoutSessionId, checkoutCanceled } =
+    await searchParams;
+
+  if (confirmBookingId && checkoutSessionId) {
+    const result = await confirmVendorCheckoutSession({
+      bookingId: confirmBookingId,
+      sessionId: checkoutSessionId,
+    });
+    return (
+      <>
+        <div className="dash-head">
+          <div>
+            <h1>My Bookings</h1>
+          </div>
+        </div>
+        <VendorCheckoutConfirmation result={result} />
+      </>
+    );
+  }
+
+  const bookings = await listMyBookings();
 
   const paid = bookings.filter((b) => b.status === 'paid').length;
   const spend = bookings.reduce((sum, b) => sum + (b.amountTotal ?? 0), 0);
@@ -28,6 +71,12 @@ export default async function VendorPage() {
           <p>Your booth space across every organizer on the platform.</p>
         </div>
       </div>
+
+      {checkoutCanceled === '1' && (
+        <div className="dash-card" style={{ color: 'var(--amber)' }}>
+          Checkout was canceled — nothing was charged.
+        </div>
+      )}
 
       <div className="dash-card">
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
@@ -48,7 +97,7 @@ export default async function VendorPage() {
         {bookings.length === 0 ? (
           <EmptyPanel
             title="No bookings yet"
-            note="Reserve booth space from the list below, or apply directly through an organizer's vendor application."
+            note="Reserve booth space from Reserve Space, or apply directly through an organizer's vendor application."
           />
         ) : (
           <div className="cards" style={{ marginTop: 14 }}>
@@ -59,7 +108,9 @@ export default async function VendorPage() {
               >
                 <div className="card-main">
                   <div className="card-title">{booking.showName}</div>
-                  <div className="card-meta">{booking.showDate ?? 'Dates not set'}</div>
+                  <div className="card-meta">
+                    {booking.orgName} · {booking.showDate ?? 'Dates not set'}
+                  </div>
                   {booking.items.length > 0 && (
                     <div className="b-items">
                       {booking.items.map((item) => (
@@ -92,68 +143,42 @@ export default async function VendorPage() {
                   {booking.paidAt && (
                     <div className="card-meta">paid {formatTimestamp(booking.paidAt)}</div>
                   )}
-                  {!booking.agreementSignedAt && booking.status !== 'rejected' && (
-                    <div className="card-meta" style={{ color: 'var(--amber)' }}>
-                      booth agreement unsigned
+
+                  {booking.status !== 'rejected' && (
+                    <div style={{ marginTop: 8 }}>
+                      {booking.agreementSignedAt ? (
+                        <div className="card-meta">agreement signed</div>
+                      ) : (
+                        <VendorAgreementDialog
+                          bookingId={booking.id}
+                          showName={booking.showName}
+                          agreementText={booking.vendorAgreementText}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {booking.status === 'approved' && (
+                    <div style={{ marginTop: 8 }}>
+                      {booking.agreementSignedAt ? (
+                        // Mirrors legacy's own waiver-style gate (vendor.html's
+                        // openRealPay): a vendor must sign the booth agreement
+                        // before payment is offered.
+                        <VendorPayButton
+                          bookingId={booking.id}
+                          amountDue={previewAmountDue(booking.items)}
+                        />
+                      ) : (
+                        <div className="card-meta" style={{ color: 'var(--amber)' }}>
+                          sign the booth agreement above to pay
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
-
-      <div className="dash-card">
-        <h2 className="show-detail-title">Reserve booth space</h2>
-        <p className="show-detail-meta">
-          Published shows with space still available, across every organizer.
-        </p>
-
-        {bookable.length === 0 ? (
-          <EmptyPanel
-            title="Nothing available"
-            note="No published show currently has vendor space on sale."
-          />
-        ) : (
-          bookable.map((show) => (
-            <div key={show.showId} className="discover-card">
-              <div className="discover-top">
-                <div>
-                  <div className="discover-name">{show.showName}</div>
-                  <div className="discover-meta">
-                    {show.orgName}
-                    {show.showDate && ` · ${show.showDate}`}
-                  </div>
-                </div>
-              </div>
-              <div className="space-grid">
-                {show.items.map((item) => (
-                  <div key={item.id} className="space-opt">
-                    <div className="sname">{item.name}</div>
-                    <div className="sprice">{formatMoney(item.price)}</div>
-                    <div className="savail">
-                      {item.remaining === null ? 'Unlimited' : `${String(item.remaining)} left`}
-                    </div>
-                    {/*
-                      Reserving requires a payment method, and Stripe is not
-                      configured — so this states the blocker rather than
-                      appearing to work and failing at the last step.
-                    */}
-                    <button
-                      type="button"
-                      disabled
-                      title="Reserving needs Stripe configured to take payment"
-                      className="btn btn-ghost btn-sm"
-                      style={{ opacity: 0.45 }}
-                    >
-                      Reserve
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))
         )}
       </div>
     </>
