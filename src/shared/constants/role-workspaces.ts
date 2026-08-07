@@ -142,7 +142,7 @@ export const RIDER_WORKSPACE: RoleWorkspace = {
   title: 'Rider Portal',
   hint: 'How riders discover shows, enter classes, and follow results',
   href: '/rider',
-  status: 'pending',
+  status: 'migrated',
   legacyView: 'views/rider.html',
   icon: 'pencil',
 };
