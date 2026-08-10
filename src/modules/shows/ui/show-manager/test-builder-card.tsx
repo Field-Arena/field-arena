@@ -5,8 +5,13 @@ import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { useSaveTestTemplate, useDeleteTestTemplate } from '../../hooks/use-test-builder-mutations';
 import { TB_STARTER_TESTS } from '../../constants';
-import type { TestTemplateRow, TestTemplateMovement, TestTemplateCollective } from '../../data/setup-queries';
+import type {
+  TestTemplateRow,
+  TestTemplateMovement,
+  TestTemplateCollective,
+} from '../../data/setup-queries';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_ROW_INPUT } from './tokens';
+import { SectionFooter } from './section-footer';
 
 interface Draft {
   id?: string;
@@ -30,7 +35,13 @@ function nextMovementNum(movements: TestTemplateMovement[]): number {
  * class (the legacy "Use for a class" hand-off into class_tests) isn't wired
  * yet — this covers authoring the library itself.
  */
-export function TestBuilderCard({ orgId, templates }: { orgId: string; templates: TestTemplateRow[] }) {
+export function TestBuilderCard({
+  orgId,
+  templates,
+}: {
+  orgId: string;
+  templates: TestTemplateRow[];
+}) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const save = useSaveTestTemplate({
     onSuccess: () => {
@@ -122,7 +133,10 @@ export function TestBuilderCard({ orgId, templates }: { orgId: string; templates
         <label className={SM_LABEL}>Movements</label>
         <div className="mb-3 flex flex-col gap-2">
           {draft.movements.map((m, i) => (
-            <div key={i} className="grid grid-cols-[52px_minmax(0,1fr)_70px_auto] items-center gap-2.5">
+            <div
+              key={i}
+              className="grid grid-cols-[52px_minmax(0,1fr)_70px_auto] items-center gap-2.5"
+            >
               <input
                 type="number"
                 min={1}
@@ -164,7 +178,7 @@ export function TestBuilderCard({ orgId, templates }: { orgId: string; templates
                 onClick={() => {
                   setDraft({ ...draft, movements: draft.movements.filter((_, j) => j !== i) });
                 }}
-                className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+                className="hover:text-status-danger bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors"
               >
                 Remove
               </button>
@@ -176,7 +190,10 @@ export function TestBuilderCard({ orgId, templates }: { orgId: string; templates
           onClick={() => {
             setDraft({
               ...draft,
-              movements: [...draft.movements, { num: nextMovementNum(draft.movements), text: '', coef: 1 }],
+              movements: [
+                ...draft.movements,
+                { num: nextMovementNum(draft.movements), text: '', coef: 1 },
+              ],
             });
           }}
         >
@@ -216,7 +233,7 @@ export function TestBuilderCard({ orgId, templates }: { orgId: string; templates
                 onClick={() => {
                   setDraft({ ...draft, collectives: draft.collectives.filter((_, j) => j !== i) });
                 }}
-                className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+                className="hover:text-status-danger bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors"
               >
                 Remove
               </button>
@@ -255,76 +272,81 @@ export function TestBuilderCard({ orgId, templates }: { orgId: string; templates
   }
 
   return (
-    <Card className={SM_CARD_PAD}>
-      <h2 className={SM_SECTION_HEAD}>Test Builder</h2>
-      <p className={SM_NOTE}>
-        Your organization&apos;s own dressage tests — movements and collective marks you author
-        once and reuse across shows.
-      </p>
-
-      <div className="mb-4 flex flex-wrap gap-2.5">
-        <PrimaryButton onClick={openNew}>+ New Test</PrimaryButton>
-        {TB_STARTER_TESTS.map((t) => (
-          <GhostButton
-            key={t.key}
-            onClick={() => {
-              openStarter(t.key);
-            }}
-          >
-            Clone &ldquo;{t.name}&rdquo;
-          </GhostButton>
-        ))}
-      </div>
-
-      {templates.length === 0 ? (
-        <p className="text-[13px] italic text-[#98A29D]">
-          No tests in your library yet — start from a blank test or clone one of the starters above.
+    <>
+      <Card className={SM_CARD_PAD}>
+        <h2 className={SM_SECTION_HEAD}>Test Builder</h2>
+        <p className={SM_NOTE}>
+          Your organization&apos;s own dressage tests — movements and collective marks you author
+          once and reuse across shows.
         </p>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {templates.map((t) => (
-            <div
-              key={t.id}
-              className="flex flex-wrap items-center gap-3.5 rounded-[10px] border border-[#E9EDEB] px-4 py-3"
+
+        <div className="mb-4 flex flex-wrap gap-2.5">
+          <PrimaryButton onClick={openNew}>+ New Test</PrimaryButton>
+          {TB_STARTER_TESTS.map((t) => (
+            <GhostButton
+              key={t.key}
+              onClick={() => {
+                openStarter(t.key);
+              }}
             >
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-ink-deep">{t.name}</span>
-                <span className="text-[12px] text-[#98A29D]">
-                  {t.level ?? 'No level set'} · {String(t.movements.length)} movements ·{' '}
-                  {String(t.collectives.length)} collective marks
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  openEdit(t);
-                }}
-                className="text-[13px] font-semibold text-forest hover:underline"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  duplicate(t);
-                }}
-                className="text-[13px] font-semibold text-[#5A6B63] hover:text-forest"
-              >
-                Duplicate
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  del.mutate(t.id);
-                }}
-                className="text-[13px] font-semibold text-[#5A6B63] hover:text-status-danger"
-              >
-                Delete
-              </button>
-            </div>
+              Clone &ldquo;{t.name}&rdquo;
+            </GhostButton>
           ))}
         </div>
-      )}
-    </Card>
+
+        {templates.length === 0 ? (
+          <p className="text-[13px] text-[#98A29D] italic">
+            No tests in your library yet — start from a blank test or clone one of the starters
+            above.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {templates.map((t) => (
+              <div
+                key={t.id}
+                className="flex flex-wrap items-center gap-3.5 rounded-[10px] border border-[#E9EDEB] px-4 py-3"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="text-ink-deep block text-[13.5px] font-semibold">{t.name}</span>
+                  <span className="text-[12px] text-[#98A29D]">
+                    {t.level ?? 'No level set'} · {String(t.movements.length)} movements ·{' '}
+                    {String(t.collectives.length)} collective marks
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openEdit(t);
+                  }}
+                  className="text-forest text-[13px] font-semibold hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    duplicate(t);
+                  }}
+                  className="hover:text-forest text-[13px] font-semibold text-[#5A6B63]"
+                >
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    del.mutate(t.id);
+                  }}
+                  className="hover:text-status-danger text-[13px] font-semibold text-[#5A6B63]"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <SectionFooter currentTab="Test Builder" />
+    </>
   );
 }

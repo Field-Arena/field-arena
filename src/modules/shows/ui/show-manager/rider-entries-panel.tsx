@@ -2,11 +2,11 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { ArrowUpIcon, Loader2Icon } from 'lucide-react';
 import { Card } from '@/shared/ui/organizer/card';
 import { cn } from '@/shared/lib/utils';
 import { VENDOR_SPACE_TEMPLATE } from '../../constants';
+import { SectionFooter } from './section-footer';
 import type { RiderEntriesData, VendorSpaceItem } from '../../data/setup-queries';
 import {
   useCreateAddOn,
@@ -133,25 +133,22 @@ export function RiderEntriesPanel({ data }: { data: RiderEntriesData }) {
         }}
       />
 
-      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
-        <p className="min-w-0 text-[13px] text-[#6E7C76]">
-          Next: review judges, per-class times, and arena assignments.
-        </p>
-        <Link href={`/dashboard/shows/${data.showId}/schedule`} className={cn(SM_GREEN_BTN, 'ml-auto')}>
-          Continue to Review &amp; Publish →
-        </Link>
-      </div>
+      <SectionFooter
+        currentTab="Rider Entries"
+        showId={data.showId}
+        blockedReason={!data.published ? data.notPublishedReason : null}
+      />
     </>
   );
 }
 
 function NotPublishedBanner({ reason }: { reason: string | null }) {
   return (
-    <div className="rounded-[10px] border border-[#E9EDEB] border-l-[3px] border-l-[#B4432F] bg-white px-[18px] py-4">
-      <p className="text-[13.5px] text-ink-deep">
+    <div className="rounded-[10px] border border-l-[3px] border-[#E9EDEB] border-l-[#B4432F] bg-white px-[18px] py-4">
+      <p className="text-ink-deep text-[13.5px]">
         <strong>Not published</strong> — riders can&apos;t see this show or buy tickets yet.
       </p>
-      {reason && <p className="mt-1 text-[12.5px] italic text-[#B4432F]">{reason}</p>}
+      {reason && <p className="mt-1 text-[12.5px] text-[#B4432F] italic">{reason}</p>}
     </div>
   );
 }
@@ -201,14 +198,14 @@ function BrandingSlot({
 
   return (
     <div>
-      <div className="text-[13px] font-bold text-ink-deep">{label}</div>
+      <div className="text-ink-deep text-[13px] font-bold">{label}</div>
       <div className="mb-2 text-[11.5px] text-[#98A29D]">{hint}</div>
 
       <label
         className={cn(
           'grid min-h-[104px] cursor-pointer place-items-center gap-1.5 rounded-[10px]',
           'border border-dashed border-[#D9E1DD] bg-white p-3 text-center transition-colors',
-          'hover:border-gold'
+          'hover:border-gold',
         )}
       >
         <input
@@ -266,13 +263,13 @@ function VendorMapCard({ data }: { data: RiderEntriesData }) {
             href={data.vendorMapUrl}
             target="_blank"
             rel="noreferrer"
-            className="font-semibold text-forest underline"
+            className="text-forest font-semibold underline"
           >
             View the uploaded map
           </a>
         </p>
       ) : (
-        <p className="mb-3 text-[13px] italic text-[#98A29D]">No map uploaded yet</p>
+        <p className="mb-3 text-[13px] text-[#98A29D] italic">No map uploaded yet</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -280,7 +277,7 @@ function VendorMapCard({ data }: { data: RiderEntriesData }) {
           ref={inputRef}
           type="file"
           accept="image/*,application/pdf"
-          className="cursor-pointer text-[12.5px] text-[#6E7C76] file:mr-3 file:cursor-pointer file:rounded-[9px] file:border file:border-[#D9E1DD] file:bg-white file:px-3.5 file:py-2 file:text-[12.5px] file:font-semibold file:text-forest hover:file:border-gold"
+          className="file:text-forest hover:file:border-gold cursor-pointer text-[12.5px] text-[#6E7C76] file:mr-3 file:cursor-pointer file:rounded-[9px] file:border file:border-[#D9E1DD] file:bg-white file:px-3.5 file:py-2 file:text-[12.5px] file:font-semibold"
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
           }}
@@ -300,7 +297,7 @@ function VendorMapCard({ data }: { data: RiderEntriesData }) {
                     setFile(null);
                     if (inputRef.current) inputRef.current.value = '';
                   },
-                }
+                },
               );
             });
           }}
@@ -349,7 +346,7 @@ function VendorSpacesCard({
           setQty('');
           setPrice('0');
         },
-      }
+      },
     );
   }
 
@@ -364,7 +361,7 @@ function VendorSpacesCard({
       {extraAction}
 
       {data.vendorSpaces.length === 0 ? (
-        <p className="mb-3 text-[13px] italic text-[#98A29D]">
+        <p className="mb-3 text-[13px] text-[#98A29D] italic">
           No vendor spaces configured — add whatever this show offers
         </p>
       ) : (

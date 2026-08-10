@@ -16,7 +16,7 @@ export function ReadinessMeter({ completeness }: { completeness: ShowCompletenes
     <Card className="mb-4 px-5 py-[18px]">
       <div className="mb-3 flex flex-wrap items-baseline gap-3">
         <Eyebrow>Setup readiness</Eyebrow>
-        <span className="text-[26px] font-bold leading-none tracking-[-.028em] text-[#16261F]">
+        <span className="text-[26px] leading-none font-bold tracking-[-.028em] text-[#16261F]">
           {percent}%
         </span>
         <span className="text-[12.5px] text-[#98A29D]">
@@ -36,9 +36,18 @@ export function ReadinessMeter({ completeness }: { completeness: ShowCompletenes
         />
       </div>
       {percent < 100 && (
-        <p className="mt-3 text-[12.5px] text-[#6E7C76]">
-          Still open: {completeness.sections.filter((s) => !s.ok).map((s) => s.name).join(', ')}
-        </p>
+        <>
+          <p className="mt-3 text-[12.5px] text-[#6E7C76]">
+            Still open:{' '}
+            {completeness.sections
+              .filter((s) => !s.ok)
+              .map((s) => s.name)
+              .join(', ')}
+          </p>
+          <p className="text-forest mt-1 text-[12.5px] font-semibold">
+            Next: finish {completeness.sections.find((s) => !s.ok)?.name}.
+          </p>
+        </>
       )}
     </Card>
   );

@@ -16,6 +16,7 @@ import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-
 import { MerchandiseCard } from '@/modules/shows/ui/show-manager/merchandise-card';
 import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
 import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
 import { getOrganizerContext } from '@/modules/staff/data/context';
@@ -44,11 +45,7 @@ export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
  * was replaced by an instant-create button) is not "not found" to Postgres —
  * it is a raw invalid-input-syntax error, uncaught unless ruled out here.
  */
-export default async function ShowManagerPage({
-  params,
-}: {
-  params: Promise<{ showId: string }>;
-}) {
+export default async function ShowManagerPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const show = isUuid(showId) ? await getShowSetupDetail(showId) : null;
 
@@ -68,6 +65,8 @@ export default async function ShowManagerPage({
     getOrganizerContext(show.id),
     getShowManagerVitals(show.id),
   ]);
+
+  const nextIncompleteSection = completeness.sections.find((s) => !s.ok) ?? null;
 
   return (
     <ShowManagerShell
@@ -115,6 +114,15 @@ export default async function ShowManagerPage({
         prefs={show.schedulePrefs}
         dayStartTimes={show.dayStartTimes}
         dayEndTimes={show.dayEndTimes}
+      />
+      <SectionFooter
+        currentTab="Setup"
+        showId={show.id}
+        blockedReason={
+          nextIncompleteSection
+            ? `${nextIncompleteSection.name} still needs attention — see Setup Readiness above.`
+            : null
+        }
       />
     </ShowManagerShell>
   );
