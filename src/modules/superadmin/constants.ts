@@ -13,11 +13,10 @@ export const INVITE_TTL_DAYS = 14;
  * public/views/superadmin.html (lines 392-400). Labels and tooltips are carried
  * over so the console is recognisable to anyone who used the old one.
  *
- * Two legacy buttons are intentionally absent. "Signup Flow Preview" and "Demo"
- * opened preview-signup-pages.html and preview-rider-demo.html in a new tab —
- * static walkthroughs of screens that, in this codebase, are becoming real
- * routes. Once the rider and invite flows are migrated they can be visited
- * directly, so a preview harness for them would be a copy to keep in sync.
+ * Note: this flat list has no consumer anywhere in src/ — superadmin-shell.tsx
+ * renders SUPERADMIN_SIDEBAR (grouped) and SUPERADMIN_TOOLS below instead.
+ * "Signup Flow Preview" and "Demo" (legacy's two remaining button-bar entries)
+ * are wired into SUPERADMIN_TOOLS, the list that's actually rendered.
  */
 /**
  * Glyphs and tooltips are the legacy button bar's own, transcribed from the HTML
@@ -242,28 +241,31 @@ export const SUPERADMIN_SIDEBAR = [
 ] as const;
 
 /**
- * Sidebar entries the design shows but this build cannot honour yet.
- *
- * Rendered disabled with the reason on hover rather than omitted: the legacy
- * console had both, and silently dropping them makes the console look like it
- * lost features. Both were static walkthroughs (preview-signup-pages.html,
- * preview-rider-demo.html) of screens that are becoming real routes here, so
- * rebuilding them as previews would mean maintaining a second copy of every
- * signup screen.
+ * The two legacy button-bar entries (👀 Signup Flow Preview, 🏆 Demo) that
+ * opened preview-signup-pages.html / preview-rider-demo.html in a new tab —
+ * static walkthroughs of screens legacy hadn't ported yet. Now that all 6
+ * signup/invite flows are real routes in this app, both link to the genuine
+ * article instead of a mockup:
+ *  - signup-preview → /dashboard/superadmin/preview, a step-through of all 6
+ *    real routes (src/modules/superadmin/ui/signup-flow-preview.tsx).
+ *  - demo-show → /rider/demo, the real rider flow's own demo mode
+ *    (src/modules/riders/ui/rider-demo-walkthrough.tsx) — a riders-module
+ *    route, not a SuperAdmin-side reimplementation, so there is only ever one
+ *    copy of the rider signup screens to keep in sync.
  */
 export const SUPERADMIN_TOOLS = [
   {
     key: 'signup-preview',
     label: 'Signup flow preview',
     icon: 'preview',
-    reason:
-      'Step through every signup and invite page. The legacy preview was a static walkthrough of screens that are becoming real routes here.',
+    href: '/dashboard/superadmin/preview',
+    reason: 'Step through every signup and invite page, role by role.',
   },
   {
     key: 'demo-show',
     label: 'Demo show',
     icon: 'demo',
-    reason:
-      'Rider signup, the wizard, checkout, and confirmation screen by screen. The legacy Demo page was a static walkthrough of those same screens.',
+    href: '/rider/demo',
+    reason: 'Rider signup, the wizard, checkout, and confirmation screen by screen — demo data throughout.',
   },
 ] as const;
