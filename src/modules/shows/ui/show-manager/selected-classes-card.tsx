@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { Card } from '@/shared/ui/organizer/card';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_GREEN_BTN } from './tokens';
+import { SM_CARD_PAD, SM_SECTION_HEAD } from './tokens';
+import { SectionFooter } from './section-footer';
 import type { SelectEventsData } from '../../data/setup-queries';
 
 /**
@@ -26,7 +26,7 @@ export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
         <h2 className={SM_SECTION_HEAD}>Selected Classes</h2>
 
         {groups.size === 0 ? (
-          <p className="text-[13px] italic text-[#98A29D]">
+          <p className="text-[13px] text-[#98A29D] italic">
             Nothing selected yet — check a division under any test above and it lands here.
           </p>
         ) : (
@@ -35,16 +35,28 @@ export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
               <caption className="sr-only">Classes selected for this show</caption>
               <thead>
                 <tr className="border-b border-[#E9EDEB]">
-                  <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                  <th
+                    scope="col"
+                    className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                  >
                     Division
                   </th>
-                  <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                  <th
+                    scope="col"
+                    className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                  >
                     Location
                   </th>
-                  <th scope="col" className="px-2.5 py-2 text-right text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                  <th
+                    scope="col"
+                    className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                  >
                     Fee
                   </th>
-                  <th scope="col" className="px-2.5 py-2 text-right text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                  <th
+                    scope="col"
+                    className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                  >
                     Classes
                   </th>
                 </tr>
@@ -68,17 +80,15 @@ export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
         )}
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
-        <p className="min-w-0 text-[13px] text-[#6E7C76]">
-          Next: set up add-ons, vendor spaces, and qualifications for riders to purchase.
-        </p>
-        <Link
-          href={`/dashboard/shows/${data.showId}/rider-entries`}
-          className={`${SM_GREEN_BTN} ml-auto`}
-        >
-          Continue to Rider Entries →
-        </Link>
-      </div>
+      <SectionFooter
+        currentTab="Select Events"
+        showId={data.showId}
+        blockedReason={
+          groups.size === 0
+            ? "You haven't selected any events yet — riders won't have anything to register for."
+            : null
+        }
+      />
     </>
   );
 }

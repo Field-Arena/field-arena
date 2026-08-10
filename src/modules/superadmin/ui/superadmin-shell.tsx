@@ -120,14 +120,32 @@ export function SuperAdminShell({
           Tools
         </div>
         <nav className="flex flex-col gap-0.5">
-          {SUPERADMIN_TOOLS.map((tool) => (
-            <Tip key={tool.key} text={tool.reason}>
-              <span className="flex cursor-not-allowed items-center gap-[11px] rounded-lg py-2.5 pl-3 pr-2.5 text-[13.5px] font-medium text-[rgba(251,250,247,.34)]">
-                <ConsoleIcon name={tool.icon} className="size-4 flex-none" />
-                {tool.label}
-              </span>
-            </Tip>
-          ))}
+          {SUPERADMIN_TOOLS.map((tool) => {
+            const active = pathname.startsWith(tool.href);
+            return (
+              <Tip key={tool.key} text={tool.reason}>
+                <Link
+                  href={tool.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'relative flex items-center gap-[11px] rounded-lg py-2.5 pl-3 pr-2.5 text-[13.5px] font-semibold transition-colors',
+                    active
+                      ? 'bg-[#17402F] text-paper'
+                      : 'text-[rgba(251,250,247,.66)] hover:bg-[rgba(255,255,255,.06)] hover:text-paper'
+                  )}
+                >
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-[9px] left-0 w-[3px] rounded-sm bg-gold"
+                    />
+                  )}
+                  <ConsoleIcon name={tool.icon} className={cn('size-4 flex-none', active && 'text-gold')} />
+                  {tool.label}
+                </Link>
+              </Tip>
+            );
+          })}
         </nav>
 
         <div className="mt-auto flex items-center gap-2.5 border-t border-[rgba(255,255,255,.10)] pt-5">

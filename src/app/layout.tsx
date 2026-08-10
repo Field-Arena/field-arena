@@ -4,6 +4,7 @@ import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import { QueryProvider } from '@/providers/query-provider';
 import { Toaster } from '@/shared/ui/shadcn/sonner';
+import { ScrollJumpButtons } from '@/shared/ui/scroll-jump-buttons';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -94,6 +95,7 @@ export default function RootLayout({
         <QueryProvider>
           {children}
           <Toaster />
+          <ScrollJumpButtons />
         </QueryProvider>
       </body>
     </html>

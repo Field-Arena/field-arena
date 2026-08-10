@@ -7,7 +7,8 @@ import { formatMoney } from '@/shared/lib/format/currency';
 import { calcPlatformFee } from '@/shared/lib/fees';
 import { useUpdateClassReview, useRemoveClass } from '../../hooks/use-schedule-review-mutations';
 import type { ScheduleReviewData } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_GREEN_BTN } from './tokens';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT } from './tokens';
+import { SectionFooter } from './section-footer';
 
 /**
  * "Review" — every class on this show, editable in one table, ported from
@@ -53,11 +54,11 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
         </p>
 
         {rows.length === 0 ? (
-          <p className="text-[13px] italic text-[#98A29D]">
+          <p className="text-[13px] text-[#98A29D] italic">
             No classes scheduled yet — pick some in{' '}
             <Link
               href={`/dashboard/shows/${data.showId}/select-events`}
-              className="font-semibold text-forest underline underline-offset-2"
+              className="text-forest font-semibold underline underline-offset-2"
             >
               Select Events
             </Link>{' '}
@@ -70,28 +71,52 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                 <caption className="sr-only">Classes on this show, editable</caption>
                 <thead>
                   <tr className="border-b border-[#E9EDEB]">
-                    <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Event
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Class
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Division
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Location
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Arena
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-left text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Judges
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-right text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Entry fee
                     </th>
-                    <th scope="col" className="px-2.5 py-2 text-right text-[11px] font-bold uppercase tracking-[.06em] text-[#6E7C76]">
+                    <th
+                      scope="col"
+                      className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                    >
                       Platform fee
                     </th>
                     <th scope="col" className="px-2.5 py-2" />
@@ -150,7 +175,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                           onClick={() => {
                             commitRemove(c.id);
                           }}
-                          className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+                          className="hover:text-status-danger bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors"
                         >
                           Remove
                         </button>
@@ -161,7 +186,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
               </table>
             </div>
 
-            <div className="mt-[18px] flex items-center gap-2.5 rounded-[8px] bg-cream px-4 py-3">
+            <div className="bg-cream mt-[18px] flex items-center gap-2.5 rounded-[8px] px-4 py-3">
               <label htmlFor="entries-per-class" className="m-0 text-[13px]">
                 Estimated entries per class
               </label>
@@ -185,30 +210,30 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
             <div className="mt-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
               <div>
                 <p className={SM_NOTE + ' mb-1'}>Total classes</p>
-                <div className="text-xl font-bold text-ink-deep">{totalClasses}</div>
+                <div className="text-ink-deep text-xl font-bold">{totalClasses}</div>
               </div>
               <div>
                 <p className={SM_NOTE + ' mb-1'}>Judge assignments</p>
-                <div className="text-xl font-bold text-ink-deep">{judgeAssignments}</div>
+                <div className="text-ink-deep text-xl font-bold">{judgeAssignments}</div>
               </div>
               <div>
                 <p className={SM_NOTE + ' mb-1'}>Projected entry fees</p>
-                <div className="text-xl font-bold text-ink-deep">{formatMoney(projectedFees)}</div>
+                <div className="text-ink-deep text-xl font-bold">{formatMoney(projectedFees)}</div>
               </div>
             </div>
           </>
         )}
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
-        <p className="min-w-0 text-[13px] text-[#6E7C76]">
-          Ticket sales and going live are handled from the lifecycle steps above — once ready, use
-          &quot;Open ticket sales&quot; and &quot;Approve schedule &amp; go live&quot; on Run Show.
-        </p>
-        <Link href={`/dashboard/shows/${data.showId}/run-show`} className={`${SM_GREEN_BTN} ml-auto`}>
-          Continue to Run Show →
-        </Link>
-      </div>
+      <SectionFooter
+        currentTab="Schedule / Review"
+        showId={data.showId}
+        blockedReason={
+          rows.length === 0
+            ? 'No classes are scheduled yet — add some in Select Events before moving on.'
+            : null
+        }
+      />
     </>
   );
 }

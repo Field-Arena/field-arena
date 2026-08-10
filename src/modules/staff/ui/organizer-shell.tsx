@@ -127,11 +127,23 @@ export function OrganizerShell({
     ? baseNavItems.filter((item) => item.key !== 'billing')
     : baseNavItems;
 
-  // An exact href match always wins over a prefix match — needed now that some
-  // roles (Judge/Scribe) nest sibling routes under their landing tab's own path
-  // (`/dashboard/judging` vs. `/dashboard/judging/documents`), which would
-  // otherwise light up both at once under plain prefix matching.
-  const activeNavItem = navItems.find((n) => n.href === pathname);
+  // Exactly one nav item is active at a time. An exact href match wins
+  // outright — needed for roles (Judge/Scribe) that nest sibling routes
+  // under their landing tab's own path (`/dashboard/judging` vs.
+  // `/dashboard/judging/documents`). Otherwise the item with the longest
+  // href that's still a path-prefix of the route wins: Dashboard's href
+  // (`/dashboard`) is itself a prefix of every other item's href, so on a
+  // dynamic route like `/dashboard/shows/[showId]` (no item's href equals
+  // it exactly) a plain independent startsWith check per item would light
+  // up Dashboard *and* Show Manager together — picking the longest match
+  // keeps it to Show Manager alone.
+  const activeNavItem =
+    navItems.find((n) => n.href === pathname) ??
+    navItems.reduce<(typeof navItems)[number] | null>((best, item) => {
+      if (!pathname.startsWith(`${item.href}/`)) return best;
+      if (!best || item.href.length > best.href.length) return item;
+      return best;
+    }, null);
 
   const shell = (
     <div className={cn('dash', mobilePreview && 'dash-mobile-frame')}>
@@ -143,7 +155,8 @@ export function OrganizerShell({
         {railRoles.map((role) => {
           const target = workspaceFor(role);
           if (!target) return null;
-          const label = target.status === 'pending' ? `${target.title} (not migrated)` : target.title;
+          const label =
+            target.status === 'pending' ? `${target.title} (not migrated)` : target.title;
 
           // Non-SuperAdmin sees only their own role, so there is nowhere to
           // navigate — render it as a static indicator rather than a dead link.
@@ -151,7 +164,7 @@ export function OrganizerShell({
             const active = role === profile.platform_role;
             return (
               <Tip key={role} text={target.title} className="grid place-items-center">
-                <span className={`dash-rail-btn${active ? ' active' : ''}`} aria-label={target.title}>
+                <span className={cn('dash-rail-btn', active && 'active')} aria-label={target.title}>
                   <RoleIcon role={role} size={20} />
                 </span>
               </Tip>
@@ -174,7 +187,7 @@ export function OrganizerShell({
                   disabled={isPreviewPending}
                   aria-label={label}
                   aria-current={active ? 'page' : undefined}
-                  className={`dash-rail-btn${active ? ' active' : ''}`}
+                  className={cn('dash-rail-btn', active && 'active')}
                   onClick={() => {
                     if (active) return;
                     startPreviewTransition(async () => {
@@ -183,7 +196,10 @@ export function OrganizerShell({
                       // dropdown below, which passes the current `pathname`
                       // because its whole point is toggling money visibility
                       // without leaving the page you're already on.
-                      await setPreviewRole(role === 'ShowAdmin' ? 'showadmin' : 'organizer', target.href);
+                      await setPreviewRole(
+                        role === 'ShowAdmin' ? 'showadmin' : 'organizer',
+                        target.href,
+                      );
                     });
                   }}
                 >
@@ -206,7 +222,7 @@ export function OrganizerShell({
                   disabled={isPreviewPending}
                   aria-label={label}
                   aria-current={active ? 'page' : undefined}
-                  className={`dash-rail-btn${active ? ' active' : ''}`}
+                  className={cn('dash-rail-btn', active && 'active')}
                   onClick={() => {
                     if (active) return;
                     startPreviewTransition(async () => {
@@ -225,7 +241,7 @@ export function OrganizerShell({
             <Tip key={role} text={label} className="grid place-items-center">
               <Link
                 href={target.href}
-                className={`dash-rail-btn${active ? ' active' : ''}`}
+                className={cn('dash-rail-btn', active && 'active')}
                 aria-label={label}
                 aria-current={active ? 'page' : undefined}
               >
@@ -288,7 +304,10 @@ export function OrganizerShell({
         {(profile.platform_role === 'Organizer' || impersonating) && (
           <>
             <div className="dash-side-heading">VIEWING AS</div>
-            <Tip text="Preview as Organizer (full access) or ShowAdmin (financials hidden)" className="block w-full">
+            <Tip
+              text="Preview as Organizer (full access) or ShowAdmin (financials hidden)"
+              className="block w-full"
+            >
               <select
                 className="dash-select"
                 value={previewingAsShowAdmin ? 'showadmin' : 'organizer'}
@@ -316,12 +335,10 @@ export function OrganizerShell({
         */}
         <nav className="dash-nav" aria-label={`${activeWorkspace.title} navigation`}>
           {navItems.map((item) => {
-            const active = activeNavItem
-              ? item.key === activeNavItem.key
-              : pathname.startsWith(`${item.href}/`);
+            const active = item.key === activeNavItem?.key;
             return (
               <Tip key={item.key} text={item.tip} className="block w-full">
-                <Link href={item.href} className={`dash-nav-item${active ? ' active' : ''}`}>
+                <Link href={item.href} className={cn('dash-nav-item', active && 'active')}>
                   <NavIcon name={item.icon} />
                   <span>{item.label}</span>
                 </Link>

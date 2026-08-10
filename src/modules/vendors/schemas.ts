@@ -1,54 +1,22 @@
 import { z } from 'zod';
 
 /**
- * Vendor self-service inputs: signing up with no prior invite, applying to a
- * show, signing the booth agreement, the booking's document checklist, and
- * booth-fee checkout.
+ * Vendor self-service inputs: applying to a show (anonymously, or as an
+ * already-signed-in Vendor), signing the booth agreement, the booking's
+ * document checklist, and booth-fee checkout.
  */
-
-/**
- * Self-service vendor account creation — the "apply first, account second"
- * entry point from a show's public vendor-apply page (see
- * data/mutations.ts's signUpVendor). Same shape as riders/schemas.ts's
- * riderSignUpSchema, kept as its own copy rather than imported: a module must
- * not reach into another module's internals (.claude/rules/folder-structure.md).
- */
-export const vendorSignUpSchema = z.object({
-  name: z.string().trim().min(1, 'Your name is required').max(200),
-  email: z.email('Enter a valid email address').min(1, 'Email is required'),
-  password: z
-    .string()
-    .min(8, 'Passwords need at least 8 characters')
-    .refine((value) => /[a-z]/.test(value) && /[A-Z]/.test(value), {
-      message: 'Add an uppercase letter to strengthen this password',
-    })
-    .refine((value) => /[0-9]/.test(value) || /[^A-Za-z0-9]/.test(value), {
-      message: 'Add a number or symbol to strengthen this password',
-    }),
-});
-
-export type VendorSignUpInput = z.infer<typeof vendorSignUpSchema>;
-
-/** The 6-digit code Supabase emails after signUpVendor, when email confirmation is on. */
-export const vendorVerifySchema = z.object({
-  email: z.email('Enter a valid email address'),
-  token: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, 'Enter all six digits from the email'),
-});
-
-export type VendorVerifyInput = z.infer<typeof vendorVerifySchema>;
-
-export const vendorResendCodeSchema = z.object({ email: z.email('Enter a valid email address') });
-
-export type VendorResendCodeInput = z.infer<typeof vendorResendCodeSchema>;
 
 const cartLine = z.object({
   vendorItemId: z.uuid(),
   qty: z.coerce.number().int().min(1).max(999),
 });
 
+/**
+ * Applying to a show as an already-signed-in platform Vendor
+ * (VendorApplyDialog's "Reserve Space" flow, data/mutations.ts's
+ * applyToVendorShow) — contact email comes from the caller's own session, not
+ * this input, so it isn't collected here.
+ */
 export const applyToShowSchema = z.object({
   showId: z.uuid(),
   /** Business/farm name as it should appear in the programme — see vendor_bookings.name's own doc comment for why this is separate from the signed-in person's own name. */
@@ -88,14 +56,60 @@ export const applyToShowSchema = z.object({
   // have inserted the same empty vendor_booking_items set) — one that just
   // happened live: a form submitted with every quantity still at its default
   // 0 creates an approvable, signable, $0-forever booking with nothing to
-  // pay. Both apply entry points (this schema is shared by
-  // VendorApplyDialog's already-signed-in flow and
-  // VendorApplyEntryForm's no-account flow) also disable their own submit
-  // button on an empty cart — this is the real enforcement, not just UX.
+  // pay. VendorApplyDialog also disables its own submit button on an empty
+  // cart — this is the real enforcement, not just UX.
   items: z.array(cartLine).min(1, 'Select at least one booth space').max(50),
 });
 
 export type ApplyToShowInput = z.input<typeof applyToShowSchema>;
+
+/**
+ * Applying to a show with no account at all — legacy's vendor-apply.html,
+ * ported faithfully as a genuinely anonymous submission (see
+ * supabase/migrations/20260810120000_vendor_public_apply.sql for the RLS half
+ * of this). `contactName` and `email` are required here, unlike
+ * applyToShowSchema above: with no session to fall back on for identity, this
+ * is the only way to know who applied or to look the application up later.
+ * Same required set as legacy's own client-side validation (business name,
+ * contact name, email).
+ */
+export const applyToShowPublicSchema = z.object({
+  showId: z.uuid(),
+  businessName: z.string().trim().min(1, 'A business or farm name is required').max(300),
+  contactName: z.string().trim().min(1, 'A contact name is required').max(200),
+  email: z.email('Enter a valid email address'),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  website: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  productsOffered: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  specialRequests: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  // Same min(1) footgun guard as applyToShowSchema above — legacy's own
+  // server-side validation didn't enforce this, but an approvable, signable,
+  // $0-forever booking with nothing to pay is a real bug this port already
+  // found and fixed once; not worth reintroducing for the public entry point.
+  items: z.array(cartLine).min(1, 'Select at least one booth space').max(50),
+});
+
+export type ApplyToShowPublicInput = z.input<typeof applyToShowPublicSchema>;
 
 export const signVendorAgreementSchema = z.object({
   bookingId: z.uuid(),

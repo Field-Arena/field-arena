@@ -7,15 +7,12 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
-import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import type { Json } from '@/shared/types/database.types';
 import {
-  vendorSignUpSchema,
-  vendorVerifySchema,
-  vendorResendCodeSchema,
   applyToShowSchema,
+  applyToShowPublicSchema,
   signVendorAgreementSchema,
   createVendorDocumentUploadUrlSchema,
   registerVendorDocumentSchema,
@@ -31,159 +28,9 @@ import {
   priceVendorBooking,
   saveVendorOffSessionCard,
 } from './checkout';
-import type {
-  FinalizeVendorBookingResult,
-  VendorCheckoutSessionResult,
-  VendorResendOutcome,
-  VendorSignUpOutcome,
-  VendorVerifyOutcome,
-} from '../types';
+import type { FinalizeVendorBookingResult, VendorCheckoutSessionResult } from '../types';
 
 type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
-
-/**
- * Same "a stalled mail send throws a bare, message-less fetch failure"
- * problem riders/data/mutations.ts's own withMailTransport documents —
- * Supabase's shared testing SMTP sender is slow enough that this is a real,
- * not hypothetical, failure mode. Kept as its own copy rather than imported,
- * per this codebase's "a module must not reach into another module's
- * internals" rule.
- */
-const MAIL_UNREACHABLE = 'We could not reach the email service just now. Wait a moment and try again.';
-
-async function withMailTransport<T>(
-  run: () => Promise<T>
-): Promise<{ ok: true; value: T } | { ok: false; message: string }> {
-  try {
-    return { ok: true, value: await run() };
-  } catch (cause) {
-    console.error('[vendors] auth transport failure', cause);
-    return { ok: false, message: MAIL_UNREACHABLE };
-  }
-}
-
-/**
- * Self-provisions the `users` row (platform_role: 'Vendor') for an
- * authenticated auth.users account that doesn't have one yet — the Vendor
- * equivalent of riders/data/mutations.ts's ensureRiderProfile, closing the
- * gap found while matching this port against legacy: legacy's entry.html
- * offered "I'm a Rider" and "I'm a Vendor" as parallel no-invite entry
- * points, but only the rider half was ever ported. Runs on the caller's own
- * request-scoped client — users_insert_self_vendor RLS
- * (20260807010000_vendor_self_signup.sql) already lets a signed-in user
- * insert their own row scoped to platform_role = 'Vendor', so no elevated
- * privilege is needed or wanted for this write.
- *
- * Select-then-insert rather than upsert, same reasoning as
- * ensureRiderProfile: an upsert would silently overwrite an
- * already-provisioned row's fields (e.g. a name edited since) on a second call.
- */
-async function ensureVendorProfile(
-  supabase: ServerClient,
-  user: { id: string; email?: string | null },
-  name: string
-): Promise<void> {
-  const { data: existing, error: selectError } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle();
-  if (selectError) throw selectError;
-  if (existing) return;
-
-  const { error: insertError } = await supabase.from('users').insert({
-    id: user.id,
-    name,
-    email: (user.email ?? '').toLowerCase(),
-    platform_role: 'Vendor',
-  });
-  if (insertError) throw insertError;
-}
-
-/**
- * Creates the auth.users account for a self-service vendor sign-up and, once
- * a session exists, immediately provisions the matching `users` row.
- *
- * Deliberately NOT routed through auth module's signUpWithPassword — that
- * function's landAfterSignup/provisionedDestination enforce Field & Arena's
- * invite-only rule for staff, signing an unprovisioned account back out with
- * "ask your organizer to invite you." Vendor is a carved-out exception, same
- * as Rider: legacy's vendor-apply.html let a stranger submit a real
- * application with no account at all, and this is the closest equivalent
- * under this port's real-auth model — this function never checks for an
- * existing invite and never signs the new account back out.
- */
-export async function signUpVendor(input: unknown): Promise<VendorSignUpOutcome> {
-  const { name, email, password } = vendorSignUpSchema.parse(input);
-
-  const supabase = await createServerClient();
-  const attempt = await withMailTransport(() =>
-    supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${ROUTES.dashboard}/vendor`,
-        // Carries the name across to verifyVendorSignUpCode, a separate
-        // request (just email + the emailed code) with no other way to know
-        // what was typed on this original form.
-        data: { name },
-      },
-    })
-  );
-  if (!attempt.ok) return { status: 'error', message: attempt.message };
-
-  const { data, error } = attempt.value;
-  if (error) return { status: 'error', message: error.message };
-
-  // Same "empty identities array" signal auth module's signUpWithPassword
-  // relies on — Supabase does not otherwise say an address is already
-  // registered, to keep this from being an account-enumeration oracle.
-  if (data.user && data.user.identities?.length === 0) {
-    return { status: 'exists' };
-  }
-
-  if (!data.session || !data.user) {
-    return { status: 'verify', email };
-  }
-
-  // Confirmation is off for this project — the account is live immediately.
-  await ensureVendorProfile(supabase, data.user, name);
-  revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: `${ROUTES.dashboard}/vendor` };
-}
-
-/** Exchanges the emailed 6-digit code for a session, then provisions the vendor row. Name was already captured at sign-up time and isn't re-asked here. */
-export async function verifyVendorSignUpCode(input: unknown): Promise<VendorVerifyOutcome> {
-  const { email, token } = vendorVerifySchema.parse(input);
-
-  const supabase = await createServerClient();
-  const attempt = await withMailTransport(() => supabase.auth.verifyOtp({ email, token, type: 'email' }));
-  if (!attempt.ok) return { status: 'error', message: attempt.message };
-
-  const { data, error } = attempt.value;
-  if (error || !data.user) {
-    return { status: 'error', message: 'That code did not check out. Send a new one and retry.' };
-  }
-
-  const metadataName = (data.user.user_metadata as { name?: unknown }).name;
-  const name = typeof metadataName === 'string' && metadataName.trim() ? metadataName : (data.user.email ?? 'Vendor');
-  await ensureVendorProfile(supabase, data.user, name);
-  revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: `${ROUTES.dashboard}/vendor` };
-}
-
-/** Sends a fresh six-digit code to a vendor signup that hasn't confirmed yet. */
-export async function resendVendorSignUpCode(input: unknown): Promise<VendorResendOutcome> {
-  const { email } = vendorResendCodeSchema.parse(input);
-
-  const supabase = await createServerClient();
-  const attempt = await withMailTransport(() => supabase.auth.resend({ type: 'signup', email }));
-  if (!attempt.ok) return { status: 'error', message: attempt.message };
-
-  const { error } = attempt.value;
-  if (error) return { status: 'error', message: error.message };
-  return { status: 'sent' };
-}
 
 /**
  * Vendor self-service writes — applying to a show, signing the booth
@@ -226,36 +73,51 @@ async function requireVendorProfile(): Promise<{ id: string; email: string }> {
   return { id: profile.id, email: profile.email };
 }
 
+interface VendorApplyFields {
+  showId: string;
+  businessName: string;
+  contact: string;
+  contactName?: string;
+  phone?: string;
+  website?: string;
+  productsOffered?: string;
+  specialRequests?: string;
+  items: { vendorItemId: string; qty: number }[];
+}
+
 /**
  * The real, non-money half of vendor-apply.html's POST: creates a pending
- * vendor_bookings row (+ its line items) for the signed-in vendor, same shape
- * the legacy public application wrote — including its qty-cap check (409 when
- * a space no longer has room), same non-transactional best-effort legacy's
- * own handleVendorApply makes (a genuine simultaneous double-booking is not
- * closed here, matching that source).
+ * vendor_bookings row (+ its line items), same shape the legacy public
+ * application wrote — including its qty-cap check (409 when a space no
+ * longer has room), same non-transactional best-effort legacy's own
+ * handleVendorApply makes (a genuine simultaneous double-booking is not
+ * closed here, matching that source). Shared by both `applyToVendorShow`
+ * (signed-in vendor) and `applyToShowPublic` (anonymous, legacy's actual
+ * entry point) — the only difference between them is who `contact` and the
+ * write client's identity are.
  *
  * The cap check itself has to read through the service-role client: RLS only
  * ever admits a vendor to their own booking's line items
  * (vendor_booking_items_select_own), so a normal client here would always see
  * zero existing bookings for a show the applicant has never booked before —
  * silently disabling the cap rather than enforcing it. Only read — the
- * booking/line-item writes below stay on the caller's own client, so RLS
- * still governs what gets written.
+ * booking/line-item writes below stay on the caller's own client (`supabase`,
+ * scoped to whatever the caller is actually allowed to insert under RLS), so
+ * RLS still governs what gets written.
  */
-export async function applyToVendorShow(input: unknown): Promise<{ bookingId: string }> {
-  const parsed = applyToShowSchema.parse(input);
-  const vendor = await requireVendorProfile();
-  const supabase = await createServerClient();
-  const admin = createAdminClient();
-
+async function insertPendingVendorBooking(
+  supabase: ServerClient,
+  admin: ReturnType<typeof createAdminClient>,
+  fields: VendorApplyFields
+): Promise<{ bookingId: string }> {
   const { data: catalog, error: catalogError } = await supabase
     .from('vendor_items')
     .select('id, name, price, qty')
-    .eq('show_id', parsed.showId)
+    .eq('show_id', fields.showId)
     .eq('enabled', true)
     .in(
       'id',
-      parsed.items.map((l) => l.vendorItemId)
+      fields.items.map((l) => l.vendorItemId)
     );
   if (catalogError) throw new Error(catalogError.message);
 
@@ -267,7 +129,7 @@ export async function applyToVendorShow(input: unknown): Promise<{ bookingId: st
   // then trip vendor_booking_items' unique(booking_id, vendor_item_id)
   // constraint as an unhandled 500 on insert.
   const cartByItem = new Map<string, number>();
-  for (const line of parsed.items) {
+  for (const line of fields.items) {
     if (!catalogById.has(line.vendorItemId)) continue;
     cartByItem.set(line.vendorItemId, (cartByItem.get(line.vendorItemId) ?? 0) + line.qty);
   }
@@ -278,7 +140,7 @@ export async function applyToVendorShow(input: unknown): Promise<{ bookingId: st
     const { data: existingBookings, error: existingError } = await admin
       .from('vendor_bookings')
       .select('id, status')
-      .eq('show_id', parsed.showId)
+      .eq('show_id', fields.showId)
       .neq('status', 'rejected');
     if (existingError) throw new Error(existingError.message);
 
@@ -308,27 +170,34 @@ export async function applyToVendorShow(input: unknown): Promise<{ bookingId: st
     }
   }
 
-  const { data: booking, error: bookingError } = await supabase
-    .from('vendor_bookings')
-    .insert({
-      show_id: parsed.showId,
-      name: parsed.businessName,
-      contact: vendor.email,
-      contact_name: parsed.contactName ?? null,
-      phone: parsed.phone ?? null,
-      website: parsed.website ?? null,
-      products_offered: parsed.productsOffered ?? null,
-      special_requests: parsed.specialRequests ?? null,
-      status: 'pending',
-    })
-    .select('id')
-    .single();
+  // The id is generated here rather than read back via `.select().single()`
+  // (Postgres RETURNING): RETURNING requires the new row to also satisfy the
+  // table's SELECT policies, and an anonymous caller has none that admit it
+  // (vendor_bookings_select_own matches contact against auth.jwt()->>'email',
+  // which anon has none of) — confirmed live, the insert itself succeeds
+  // under vendor_bookings_insert_anon but a chained `.select()` 42501s. A
+  // signed-in vendor's own insert would pass RETURNING fine (their JWT email
+  // matches), but generating the id upfront works identically for both
+  // callers, so there's only one code path to get right.
+  const bookingId = crypto.randomUUID();
+  const { error: bookingError } = await supabase.from('vendor_bookings').insert({
+    id: bookingId,
+    show_id: fields.showId,
+    name: fields.businessName,
+    contact: fields.contact,
+    contact_name: fields.contactName ?? null,
+    phone: fields.phone ?? null,
+    website: fields.website ?? null,
+    products_offered: fields.productsOffered ?? null,
+    special_requests: fields.specialRequests ?? null,
+    status: 'pending',
+  });
   if (bookingError) throw new Error(bookingError.message);
 
   if (cart.length > 0) {
     const { error: itemsError } = await supabase.from('vendor_booking_items').insert(
       cart.map((line) => ({
-        booking_id: booking.id,
+        booking_id: bookingId,
         vendor_item_id: line.vendorItemId,
         qty: line.qty,
       }))
@@ -336,9 +205,61 @@ export async function applyToVendorShow(input: unknown): Promise<{ bookingId: st
     if (itemsError) throw new Error(itemsError.message);
   }
 
+  return { bookingId };
+}
+
+/** Applies to a show as an already-signed-in platform Vendor — VendorApplyDialog's "Reserve Space" flow. */
+export async function applyToVendorShow(input: unknown): Promise<{ bookingId: string }> {
+  const parsed = applyToShowSchema.parse(input);
+  const vendor = await requireVendorProfile();
+  const supabase = await createServerClient();
+  const admin = createAdminClient();
+
+  const result = await insertPendingVendorBooking(supabase, admin, {
+    showId: parsed.showId,
+    businessName: parsed.businessName,
+    contact: vendor.email,
+    contactName: parsed.contactName,
+    phone: parsed.phone,
+    website: parsed.website,
+    productsOffered: parsed.productsOffered,
+    specialRequests: parsed.specialRequests,
+    items: parsed.items,
+  });
+
   revalidatePath('/dashboard/vendor');
   revalidatePath('/dashboard/vendor/discover');
-  return { bookingId: booking.id };
+  return result;
+}
+
+/**
+ * Applies to a show with no account at all — the genuine legacy
+ * vendor-apply.html entry point, faithfully anonymous: no
+ * `requireVendorProfile`, and the booking/line-item insert runs on the
+ * caller's own (unauthenticated) request-scoped client, admitted by
+ * `vendor_bookings_insert_anon`/`vendor_booking_items_insert_anon`
+ * (supabase/migrations/20260810120000_vendor_public_apply.sql). `contact` is
+ * the email typed on the form, not a session's — the same column a later
+ * real Vendor account reconciles against by email
+ * (vendor_bookings_select_own/update_own), so an applicant who signs up
+ * afterward with the same address already sees this booking.
+ */
+export async function applyToShowPublic(input: unknown): Promise<{ bookingId: string }> {
+  const parsed = applyToShowPublicSchema.parse(input);
+  const supabase = await createServerClient();
+  const admin = createAdminClient();
+
+  return insertPendingVendorBooking(supabase, admin, {
+    showId: parsed.showId,
+    businessName: parsed.businessName,
+    contact: parsed.email,
+    contactName: parsed.contactName,
+    phone: parsed.phone,
+    website: parsed.website,
+    productsOffered: parsed.productsOffered,
+    specialRequests: parsed.specialRequests,
+    items: parsed.items,
+  });
 }
 
 /**

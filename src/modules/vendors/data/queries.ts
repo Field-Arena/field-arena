@@ -241,9 +241,10 @@ export async function listBookableShows(): Promise<BookableShow[]> {
  * One show's vendor-apply catalog for a completely anonymous visitor — the
  * GET half of legacy's handleVendorApply (api/shows/[id]/[resource].js),
  * ported for app/vendor-apply/[showId]/page.tsx. No requireVendorProfile
- * here on purpose: this is the entry point BEFORE an account exists (see
- * data/mutations.ts's signUpVendor) — createServerClient() still works with
- * no session at all, and shows_select_published/vendor_items_select
+ * here on purpose: this is a genuinely anonymous entry point, no account
+ * ever required (see data/mutations.ts's applyToShowPublic) —
+ * createServerClient() still works with no session at all, and
+ * shows_select_published/vendor_items_select
  * (20260727120900_rls.sql) already admit any caller for a published,
  * non-demo, non-suspended show, the same public-safety gate
  * handleVendorApply applied.

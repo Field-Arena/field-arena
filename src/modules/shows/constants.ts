@@ -24,13 +24,7 @@ export const SM_HIERARCHY = {
     'Fourth Level': ['Fourth Level Test 1', 'Fourth Level Test 2', 'Fourth Level Test 3'],
   },
   'Freestyle / Pas de Deux / Quadrille': {
-    Freestyle: [
-      'Training Level',
-      'First Level',
-      'Second Level',
-      'Third Level',
-      'Fourth Level',
-    ],
+    Freestyle: ['Training Level', 'First Level', 'Second Level', 'Third Level', 'Fourth Level'],
     'Pas de Deux': ['Pas de Deux'],
     Quadrille: [
       'Introductory Level',
@@ -116,7 +110,7 @@ export const DEFAULT_CLASS_FEE = 65;
  * indexes into SM_HIERARCHY with a computed key and loses its types.
  */
 export function groupsFor(
-  category: CatalogCategory
+  category: CatalogCategory,
 ): { group: string; tests: readonly string[] }[] {
   return Object.entries(SM_HIERARCHY[category]).map(([group, tests]) => ({
     group,
@@ -280,7 +274,11 @@ export const TB_STARTER_TESTS = [
     ],
     collectives: [
       { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      { key: 'impulsion', label: 'Impulsion (desire to move forward, elasticity of steps)', coef: 1 },
+      {
+        key: 'impulsion',
+        label: 'Impulsion (desire to move forward, elasticity of steps)',
+        coef: 1,
+      },
       { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
       { key: 'rider', label: "Rider's position and seat", coef: 1 },
       { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
@@ -303,7 +301,11 @@ export const TB_STARTER_TESTS = [
     ],
     collectives: [
       { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      { key: 'impulsion', label: 'Impulsion (desire to move forward, elasticity of steps)', coef: 1 },
+      {
+        key: 'impulsion',
+        label: 'Impulsion (desire to move forward, elasticity of steps)',
+        coef: 1,
+      },
       { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
       { key: 'rider', label: "Rider's position and seat", coef: 1 },
       { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
@@ -327,7 +329,11 @@ export const TB_STARTER_TESTS = [
     ],
     collectives: [
       { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      { key: 'impulsion', label: 'Impulsion (desire to move forward, elasticity of steps)', coef: 1 },
+      {
+        key: 'impulsion',
+        label: 'Impulsion (desire to move forward, elasticity of steps)',
+        coef: 1,
+      },
       { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
       { key: 'rider', label: "Rider's position and seat", coef: 1 },
       { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
@@ -353,7 +359,11 @@ export const TB_STARTER_TESTS = [
     ],
     collectives: [
       { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      { key: 'impulsion', label: 'Impulsion (desire to move forward, elasticity of steps)', coef: 1 },
+      {
+        key: 'impulsion',
+        label: 'Impulsion (desire to move forward, elasticity of steps)',
+        coef: 1,
+      },
       { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
       { key: 'rider', label: "Rider's position and seat", coef: 1 },
       { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
@@ -524,7 +534,7 @@ function placeLabel(index: number): string {
  */
 export function ribbonFor(
   index: number,
-  override?: RibbonColor[] | null
+  override?: RibbonColor[] | null,
 ): {
   place: string;
   name: string;
@@ -535,3 +545,59 @@ export function ribbonFor(
   if (custom) return { place: placeLabel(index), ...custom };
   return RIBBONS[index] ?? { ...RIBBON_FALLBACK, place: placeLabel(index) };
 }
+
+/**
+ * Show Manager's seven tabs, in display/flow order, plus what the shared
+ * SectionFooter says at the bottom of each one. Single source for both
+ * ShowManagerShell's tab bar and SectionFooter's "Continue to X" targets, so
+ * the two can never disagree about order or the URL a tab lives at.
+ * Test Builder is last and has no `next` — SectionFooter renders a closing
+ * state there instead of a dangling link.
+ */
+export const SHOW_MANAGER_SECTIONS = [
+  {
+    label: 'Setup',
+    path: '',
+    nextLabel: 'Select Events',
+    nextNote: 'Next: pick which classes this show is offering.',
+  },
+  {
+    label: 'Select Events',
+    path: '/select-events',
+    nextLabel: 'Rider Entries',
+    nextNote: 'Next: set up add-ons, vendor spaces, and qualifications for riders to purchase.',
+  },
+  {
+    label: 'Rider Entries',
+    path: '/rider-entries',
+    nextLabel: 'Schedule / Review',
+    nextNote: 'Next: review judges, per-class times, and arena assignments.',
+  },
+  {
+    label: 'Schedule / Review',
+    path: '/schedule',
+    nextLabel: 'Run Show',
+    nextNote:
+      'Ticket sales and going live are handled from the lifecycle steps above — once ready, use "Open ticket sales" and "Approve schedule & go live" on Run Show.',
+  },
+  {
+    label: 'Run Show',
+    path: '/run-show',
+    nextLabel: 'Documents',
+    nextNote: 'Next: publish any files riders or staff need — prize lists, maps, forms.',
+  },
+  {
+    label: 'Documents',
+    path: '/documents',
+    nextLabel: 'Test Builder',
+    nextNote: 'Next: build or reuse the dressage tests this show will score against.',
+  },
+  {
+    label: 'Test Builder',
+    path: '/test-builder',
+    nextLabel: null,
+    nextNote: null,
+  },
+] as const;
+
+export type ShowManagerTab = (typeof SHOW_MANAGER_SECTIONS)[number]['label'];

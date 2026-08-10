@@ -4,6 +4,7 @@ import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
 import { fa } from '@/shared/lib/organizer-theme';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import type { ShowStats, ShowListItem } from '../../data/queries';
+import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '../../constants';
 import { NewShowButton } from './new-show-button';
 import { ShowSwitcher } from './show-switcher';
 
@@ -22,16 +23,12 @@ import { ShowSwitcher } from './show-switcher';
  * whole screen. Here it renders inside OrganizerShell, which already keeps
  * the sidebar and a real "Shows" nav item on screen at all times, so that
  * bar has no job left to do and isn't reproduced.
+ *
+ * Tab order/paths come from SHOW_MANAGER_SECTIONS (src/modules/shows/constants.ts)
+ * rather than a local list — SectionFooter reads the same one, so the tab
+ * bar and the "Continue to X" footers can't disagree about order or URLs.
  */
-const SM_TABS = [
-  { label: 'Setup', path: '' },
-  { label: 'Select Events', path: '/select-events' },
-  { label: 'Rider Entries', path: '/rider-entries' },
-  { label: 'Schedule / Review', path: '/schedule' },
-  { label: 'Run Show', path: '/run-show' },
-  { label: 'Documents', path: '/documents' },
-  { label: 'Test Builder', path: '/test-builder' },
-] as const;
+const SM_TABS = SHOW_MANAGER_SECTIONS;
 
 export function ShowManagerShell({
   showId,
@@ -47,7 +44,7 @@ export function ShowManagerShell({
   showId: string;
   showName: string;
   /** Which tab is current. Passed in rather than read from the pathname so the shell stays a Server Component. */
-  activeTab?: (typeof SM_TABS)[number]['label'];
+  activeTab?: ShowManagerTab;
   orgName: string;
   shows: ShowListItem[];
   stats: ShowStats;
@@ -59,7 +56,7 @@ export function ShowManagerShell({
   const tabPath = SM_TABS.find((t) => t.label === activeTab)?.path ?? '';
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <ScreenTitle>Show Manager</ScreenTitle>
       <ScreenLede>{showName} — set up, schedule, and run your show, start to finish.</ScreenLede>
 
@@ -72,8 +69,8 @@ export function ShowManagerShell({
             aria-current={tab.label === activeTab ? 'page' : undefined}
             className={
               tab.label === activeTab
-                ? 'flex-none border-b-2 border-forest px-3.5 py-[11px] text-[13.5px] font-bold text-forest whitespace-nowrap'
-                : 'flex-none border-b-2 border-transparent px-3.5 py-[11px] text-[13.5px] font-medium text-[#6E7C76] whitespace-nowrap transition-colors hover:text-forest'
+                ? 'border-forest text-forest flex-none border-b-2 px-3.5 py-[11px] text-[13.5px] font-bold whitespace-nowrap'
+                : 'hover:text-forest flex-none border-b-2 border-transparent px-3.5 py-[11px] text-[13.5px] font-medium whitespace-nowrap text-[#6E7C76] transition-colors'
             }
           >
             {tab.label}
@@ -86,8 +83,8 @@ export function ShowManagerShell({
         {SHOW_STAGES.map((s, i) => (
           <span key={s.key} className="contents">
             <span
-              className={`inline-flex items-center gap-2 whitespace-nowrap text-[13px] ${
-                i === currentIndex ? 'font-semibold text-forest' : 'text-[#5A6B63]'
+              className={`inline-flex items-center gap-2 text-[13px] whitespace-nowrap ${
+                i === currentIndex ? 'text-forest font-semibold' : 'text-[#5A6B63]'
               }`}
             >
               <span
@@ -106,7 +103,7 @@ export function ShowManagerShell({
 
       <Card className="mb-[18px] p-[16px_18px_18px]">
         <div className="mb-3.5 flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-forest">
+          <span className="text-forest inline-flex items-center gap-2 text-[13.5px] font-semibold">
             <span className="size-[7px] rounded-full" style={{ background: fa.green }} />
             {orgName}
           </span>
