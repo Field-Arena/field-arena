@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CheckCircle2Icon } from 'lucide-react';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { readableError } from '@/shared/lib/error-message';
 import { ROUTES } from '@/shared/constants/routes';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthEyebrow, AuthSubmit } from '@/shared/ui/auth/auth-primitives';
@@ -177,7 +178,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
         {apply.isError && (
           <div className="mt-5">
             <AuthAlert tone="error">
-              {apply.error instanceof Error ? apply.error.message : 'Could not submit your application'}
+              {readableError(apply.error, 'Could not submit your application')}
             </AuthAlert>
           </div>
         )}
