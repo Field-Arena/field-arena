@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { CheckCircle2Icon } from 'lucide-react';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { readableError } from '@/shared/lib/error-message';
 import { ROUTES } from '@/shared/constants/routes';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthEyebrow, AuthSubmit } from '@/shared/ui/auth/auth-primitives';
@@ -56,6 +58,16 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
         <p className="text-[14.5px] leading-[1.58] text-fa-muted">
           {show.orgName} will review your application to vend at {show.showName} and follow up at{' '}
           <span className="font-medium text-ink-deep">{email}</span>.
+        </p>
+        <p className="text-[14.5px] leading-[1.58] text-fa-muted">
+          Once approved, come back and{' '}
+          <Link
+            href="/vendor-apply/account"
+            className="border-b border-gold font-semibold text-forest transition-colors hover:border-forest"
+          >
+            claim your vendor account
+          </Link>{' '}
+          with this same email to sign the booth agreement and pay.
         </p>
       </div>
     );
@@ -177,7 +189,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
         {apply.isError && (
           <div className="mt-5">
             <AuthAlert tone="error">
-              {apply.error instanceof Error ? apply.error.message : 'Could not submit your application'}
+              {readableError(apply.error, 'Could not submit your application')}
             </AuthAlert>
           </div>
         )}

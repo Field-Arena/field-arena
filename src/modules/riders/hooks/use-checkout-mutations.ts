@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
+import { unwrap } from '@/shared/lib/unwrap-action';
 import { createCheckoutSession } from '../data/mutations';
 import type { CreateCheckoutSessionInput } from '../schemas';
 
@@ -14,7 +15,7 @@ import type { CreateCheckoutSessionInput } from '../schemas';
  */
 export function useCreateCheckoutSession() {
   return useMutation({
-    mutationFn: (input: CreateCheckoutSessionInput) => createCheckoutSession(input),
+    mutationFn: async (input: CreateCheckoutSessionInput) => unwrap(await createCheckoutSession(input)),
     onSuccess: (result) => {
       window.location.href = result.url;
     },

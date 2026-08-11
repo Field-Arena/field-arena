@@ -57,3 +57,21 @@ export interface PublicVendorApplyShow {
   orgName: string;
   items: { id: string; name: string; price: number; qty: number | null; remaining: number | null }[];
 }
+
+/**
+ * Outcomes for vendor self-service sign-up — same shape as riders/types.ts's
+ * RiderSignUpOutcome (kept as a local copy, not imported — modules must not
+ * reach into another module's internals), returned rather than thrown: a
+ * Server Action that throws loses its message in a production build.
+ */
+export type VendorSignUpOutcome =
+  | { status: 'verify'; email: string }
+  | { status: 'done'; redirectTo: string }
+  | { status: 'exists' }
+  | { status: 'error'; message: string };
+
+export type VendorVerifyOutcome =
+  | { status: 'done'; redirectTo: string }
+  | { status: 'error'; message: string };
+
+export type VendorResendOutcome = { status: 'sent' } | { status: 'error'; message: string };

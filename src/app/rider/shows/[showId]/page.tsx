@@ -150,7 +150,13 @@ export default async function RiderShowPage({
 
       <ClassHorseAssignment classes={detail.classes} horses={horses} />
 
-      <CheckoutSummary showId={showId} classes={detail.classes} addOns={detail.addOns} qualTypes={detail.qualTypes} />
+      <CheckoutSummary
+        showId={showId}
+        classes={detail.classes}
+        addOns={detail.addOns}
+        qualTypes={detail.qualTypes}
+        waiverSatisfied={!waiverText || !!waiverSignature}
+      />
     </main>
   );
 }
