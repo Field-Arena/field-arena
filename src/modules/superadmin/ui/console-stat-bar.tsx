@@ -34,28 +34,28 @@ const ICON_TONES = {
 
 export function ConsoleStatBar({ stats }: { stats: ConsoleStat[] }) {
   return (
-    <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mb-7 grid grid-cols-2 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <div
             key={stat.label}
-            className="flex flex-col gap-3 rounded-[14px] border border-line bg-white p-[22px]"
+            className="flex flex-col gap-2 rounded-[14px] border border-line bg-white p-4"
           >
             <span
               className={cn(
-                'grid size-10 place-items-center rounded-[10px]',
+                'grid size-9 place-items-center rounded-[10px]',
                 ICON_TONES[stat.iconTone]
               )}
             >
-              <Icon className="size-[18px]" aria-hidden />
+              <Icon className="size-4" aria-hidden />
             </span>
 
             {/* A zero is greyed: it reads as "nothing here yet" rather than as a
                 measured result, which is how the design draws empty counts. */}
             <span
               className={cn(
-                'font-[family-name:var(--font-nr)] text-4xl leading-none',
+                'font-[family-name:var(--font-nr)] text-[28px] leading-none',
                 stat.value === 0 ? 'text-[#C4CDC8]' : 'text-forest'
               )}
             >
