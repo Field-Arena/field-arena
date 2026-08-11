@@ -24,11 +24,22 @@ export function CheckoutSummary({
   classes,
   addOns,
   qualTypes,
+  waiverSatisfied,
 }: {
   showId: string;
   classes: ClassWithCapacity[];
   addOns: AddOnWithRemaining[];
   qualTypes: QualTypeRow[];
+  /**
+   * `true` when the show has no waiver text, or the rider already has a
+   * signature on file — `false` blocks checkout the same way an unassigned
+   * horse does. Without this, "Proceed to payment" stayed clickable for a
+   * rider who never scrolled up to sign, and the only feedback was
+   * priceCart's server-side rejection — whose message Next.js redacts in
+   * production (see readableError's doc comment), so the rider saw a bare
+   * "Could not start checkout" with no indication why.
+   */
+  waiverSatisfied: boolean;
 }) {
   const selectedClassIds = useEntryCartStore((state) => state.selectedClassIds);
   const classHorseAssignments = useEntryCartStore((state) => state.classHorseAssignments);
@@ -89,10 +100,15 @@ export function CheckoutSummary({
         {canCheckout && !everyClassAssigned && (
           <p className="text-xs text-destructive">Assign a horse to every selected class to continue.</p>
         )}
+        {canCheckout && everyClassAssigned && !waiverSatisfied && (
+          <p className="text-xs text-destructive">
+            Sign this show&apos;s waiver above to continue.
+          </p>
+        )}
         <Button
           type="button"
           className="w-full"
-          disabled={!canCheckout || !everyClassAssigned || createSession.isPending}
+          disabled={!canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending}
           onClick={() => {
             const cart = [...selectedClassIds].flatMap((classId) => {
               const horseIds = (classHorseAssignments[classId] ?? []).filter(

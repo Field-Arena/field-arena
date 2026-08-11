@@ -6,6 +6,7 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
+import { run, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import type { Database, Json } from '@/shared/types/database.types';
 import { HORSE_DOCUMENTS_BUCKET } from '../constants';
 import {
@@ -557,69 +558,82 @@ export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
  * legacy's handleCheckoutSessionCreate, choosing the same hosted-Checkout
  * approach over hand-built Elements so wallets/BNPL/card are whatever the
  * org's own Stripe Dashboard has enabled, never hardcoded here.
+ *
+ * Wrapped in `run()` (shared/lib/action-result.ts) rather than throwing
+ * directly: priceCart's validation failures — empty cart, unsigned waiver,
+ * closed ticket window — are exactly the kind of thing a rider needs to read
+ * and act on, but Next.js redacts a Server Action's thrown error message in
+ * production. `run()` catches them, and `describeError` reads their
+ * `UserFacingError` message back out for the client; `unwrap()` on the
+ * calling hook turns the returned failure back into a thrown Error in the
+ * browser, where nothing redacts it.
  */
-export async function createCheckoutSession(input: unknown): Promise<CheckoutSessionResult> {
-  const parsed = createCheckoutSessionSchema.parse(input);
-  const supabase = await createServerClient();
-  const rider = await requireCurrentRiderProfile(supabase);
+export async function createCheckoutSession(
+  input: unknown
+): Promise<ActionResult<CheckoutSessionResult>> {
+  return run('Could not start checkout', async () => {
+    const parsed = createCheckoutSessionSchema.parse(input);
+    const supabase = await createServerClient();
+    const rider = await requireCurrentRiderProfile(supabase);
 
-  const admin = createAdminClient();
-  const priced = await priceCart(admin, rider.id, parsed.showId, parsed.cart, parsed.addOns);
+    const admin = createAdminClient();
+    const priced = await priceCart(admin, rider.id, parsed.showId, parsed.cart, parsed.addOns);
 
-  const { data: order, error: orderError } = await admin
-    .from('orders')
-    .insert({
-      rider_id: rider.id,
-      show_id: parsed.showId,
-      amount_total: priced.total,
-      status: 'pending',
-      items: itemsToJson(priced.items),
-      fee_total: priced.feeTotal,
-    })
-    .select()
-    .single();
-  if (orderError) throw orderError;
+    const { data: order, error: orderError } = await admin
+      .from('orders')
+      .insert({
+        rider_id: rider.id,
+        show_id: parsed.showId,
+        amount_total: priced.total,
+        status: 'pending',
+        items: itemsToJson(priced.items),
+        fee_total: priced.feeTotal,
+      })
+      .select()
+      .single();
+    if (orderError) throw orderError;
 
-  const stripeCustomerId = await createOrderStripeCustomer(rider);
-  const stripe = getStripeClient();
-  const returnPath = `/rider/shows/${parsed.showId}`;
+    const stripeCustomerId = await createOrderStripeCustomer(rider);
+    const stripe = getStripeClient();
+    const returnPath = `/rider/shows/${parsed.showId}`;
 
-  const paymentIntentData: NonNullable<
-    import('stripe').Stripe.Checkout.SessionCreateParams['payment_intent_data']
-  > = { setup_future_usage: 'off_session' };
-  // Decision mirrored from legacy: unfinished organizer Connect onboarding
-  // never blocks a show from going on sale — money just sits in the
-  // platform's own Stripe balance (plain charge, no transfer_data) until
-  // onboarding finishes.
-  if (priced.chargesEnabled && priced.stripeConnectAccountId) {
-    paymentIntentData.application_fee_amount = Math.round(priced.feeTotal * 100);
-    paymentIntentData.transfer_data = { destination: priced.stripeConnectAccountId };
-  }
+    const paymentIntentData: NonNullable<
+      import('stripe').Stripe.Checkout.SessionCreateParams['payment_intent_data']
+    > = { setup_future_usage: 'off_session' };
+    // Decision mirrored from legacy: unfinished organizer Connect onboarding
+    // never blocks a show from going on sale — money just sits in the
+    // platform's own Stripe balance (plain charge, no transfer_data) until
+    // onboarding finishes.
+    if (priced.chargesEnabled && priced.stripeConnectAccountId) {
+      paymentIntentData.application_fee_amount = Math.round(priced.feeTotal * 100);
+      paymentIntentData.transfer_data = { destination: priced.stripeConnectAccountId };
+    }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    customer: stripeCustomerId,
-    line_items: buildStripeLineItems(priced.items, priced.currency),
-    success_url: `${env.siteUrl}${returnPath}?order=${order.id}&checkoutSession={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
-    metadata: { showId: parsed.showId, riderId: rider.id, orderId: order.id },
-    payment_intent_data: paymentIntentData,
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer: stripeCustomerId,
+      line_items: buildStripeLineItems(priced.items, priced.currency),
+      success_url: `${env.siteUrl}${returnPath}?order=${order.id}&checkoutSession={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
+      metadata: { showId: parsed.showId, riderId: rider.id, orderId: order.id },
+      payment_intent_data: paymentIntentData,
+    });
+
+    const paymentIntentId =
+      typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null);
+    await admin.from('orders').update({ stripe_payment_intent_id: paymentIntentId }).eq('id', order.id);
+
+    if (!session.url) throw new UserFacingError('Stripe did not return a checkout URL. Please try again.');
+
+    return {
+      orderId: order.id,
+      sessionId: session.id,
+      url: session.url,
+      total: priced.total,
+      items: priced.items,
+      feeTotal: priced.feeTotal,
+    };
   });
-
-  const paymentIntentId =
-    typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? null);
-  await admin.from('orders').update({ stripe_payment_intent_id: paymentIntentId }).eq('id', order.id);
-
-  if (!session.url) throw new Error('Stripe did not return a checkout URL. Please try again.');
-
-  return {
-    orderId: order.id,
-    sessionId: session.id,
-    url: session.url,
-    total: priced.total,
-    items: priced.items,
-    feeTotal: priced.feeTotal,
-  };
 }
 
 /**

@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { calcPlatformFee, calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { env } from '@/shared/lib/env';
+import { UserFacingError } from '@/shared/lib/action-result';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { Json } from '@/shared/types/database.types';
 import { NON_CAPPED_ENTRY_STATUS } from '../constants';
@@ -72,11 +73,19 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * Prices and fully validates a cart server-side. Throws a rider-facing
- * message (never a raw Postgres/Stripe error) on the first failed check,
- * matching legacy's "reject the whole quote on the first bad line" stance —
- * partially pricing a cart the client can't actually check out is worse than
- * one clear error.
+ * Prices and fully validates a cart server-side. Throws a `UserFacingError`
+ * (never a raw Postgres/Stripe error) on the first failed check, matching
+ * legacy's "reject the whole quote on the first bad line" stance — partially
+ * pricing a cart the client can't actually check out is worse than one clear
+ * error.
+ *
+ * `UserFacingError` specifically, not a plain `Error`: the caller
+ * (`data/mutations.ts`'s `createCheckoutSession`) runs this inside
+ * `action-result.ts`'s `run()`, which only lets a `UserFacingError`'s own
+ * message cross back to the browser — everything else (a plain `Error`, a
+ * raw Postgrest error) is logged and replaced with a generic fallback. A
+ * plain `throw new Error(...)` here would silently become that same
+ * generic fallback in production, the exact bug this type exists to prevent.
  */
 export async function priceCart(
   admin: AdminClient,
@@ -86,7 +95,7 @@ export async function priceCart(
   addOnLines: CheckoutAddOnLine[]
 ): Promise<PricedCart> {
   if (cart.length === 0 && addOnLines.length === 0) {
-    throw new Error('Your cart is empty.');
+    throw new UserFacingError('Your cart is empty.');
   }
 
   const { data: show, error: showError } = await admin
@@ -95,7 +104,7 @@ export async function priceCart(
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
-  if (!show?.published) throw new Error('This show is not open for entries.');
+  if (!show?.published) throw new UserFacingError('This show is not open for entries.');
 
   const { data: org, error: orgError } = await admin
     .from('organizations')
@@ -103,17 +112,17 @@ export async function priceCart(
     .eq('id', show.org_id)
     .maybeSingle();
   if (orgError) throw orgError;
-  if (!org || org.suspended || org.is_demo) throw new Error('This show is not open for entries.');
+  if (!org || org.suspended || org.is_demo) throw new UserFacingError('This show is not open for entries.');
 
   // Real enforcement of the ticket-sale window — the UI gates on this too
   // (getTicketWindowStatus, same util), but that is advisory only. This is
   // what actually stops a purchase outside the window.
   const windowStatus = getTicketWindowStatus(parseTicketWindow(show));
   if (windowStatus === 'not_open_yet') {
-    throw new Error('Ticket sales for this show have not opened yet.');
+    throw new UserFacingError('Ticket sales for this show have not opened yet.');
   }
   if (windowStatus === 'closed') {
-    throw new Error('Ticket sales for this show have closed.');
+    throw new UserFacingError('Ticket sales for this show have closed.');
   }
 
   if (show.waiver_text && show.waiver_text.trim().length > 0) {
@@ -125,7 +134,7 @@ export async function priceCart(
       .maybeSingle();
     if (waiverError) throw waiverError;
     if (!signature) {
-      throw new Error("You must sign this show's waiver of liability before entering.");
+      throw new UserFacingError("You must sign this show's waiver of liability before entering.");
     }
   }
 
@@ -143,7 +152,7 @@ export async function priceCart(
   const classById = new Map(classRowsResult.data.map((c) => [c.id, c]));
   for (const classId of classIds) {
     if (classById.get(classId)?.show_id !== showId) {
-      throw new Error('One of the selected classes was not found.');
+      throw new UserFacingError('One of the selected classes was not found.');
     }
   }
 
@@ -155,7 +164,7 @@ export async function priceCart(
   const horseById = new Map(horseRowsResult.data.map((h) => [h.id, h]));
   for (const horseId of horseIds) {
     if (horseById.get(horseId)?.rider_id !== riderId) {
-      throw new Error('One of the selected horses is not on your account.');
+      throw new UserFacingError('One of the selected horses is not on your account.');
     }
   }
 
@@ -171,7 +180,7 @@ export async function priceCart(
       const activeCount = existingEntries.filter((e) => e.status !== NON_CAPPED_ENTRY_STATUS).length;
       if (activeCount + addingCount > cap) {
         const label = classById.get(classId)?.label ?? 'This class';
-        throw new Error(`"${label}" is already at its rider cap.`);
+        throw new UserFacingError(`"${label}" is already at its rider cap.`);
       }
     }
   }
@@ -234,7 +243,7 @@ export async function priceCart(
   for (const line of addOnLines) {
     const addOn = addOnById.get(line.addOnId);
     if (addOn?.show_id !== showId) {
-      throw new Error('Invalid add-on selection.');
+      throw new UserFacingError('Invalid add-on selection.');
     }
     if (addOn.qty != null) {
       const sold = paidOrders.reduce((sum, order) => {
@@ -245,7 +254,7 @@ export async function priceCart(
         return sum + addOnQty;
       }, 0);
       if (sold + line.qty > addOn.qty) {
-        throw new Error(`"${addOn.name}" doesn't have enough left.`);
+        throw new UserFacingError(`"${addOn.name}" doesn't have enough left.`);
       }
     }
     const unitAmount = round2(allInFlat8(addOn.price));
@@ -260,7 +269,7 @@ export async function priceCart(
   }
 
   const total = round2(items.reduce((sum, item) => sum + item.amount, 0));
-  if (total <= 0) throw new Error('Nothing to charge.');
+  if (total <= 0) throw new UserFacingError('Nothing to charge.');
 
   // application_fee_amount = the sum of calcPlatformFee() over each item's
   // own base price — every item's `amount` above already has that fee baked
