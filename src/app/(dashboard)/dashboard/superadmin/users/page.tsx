@@ -28,6 +28,11 @@ export default async function PlatformUsersPage() {
     getStaffProfile(),
   ]);
 
+  // The "Super Admins" tab lists Super Admins only — every other login belongs
+  // to an organizer's team and shows in the Organizer Staff Directory tab
+  // (BUG-USERS-002; matches the legacy console's split).
+  const superAdmins = accounts.filter((account) => account.role === 'SuperAdmin');
+
   return (
     <div className="space-y-7">
       <div className="max-w-[640px]">
@@ -45,7 +50,7 @@ export default async function PlatformUsersPage() {
 
       <UsersTabs
         superAdmins={
-          <SuperAdminsPanel accounts={accounts} currentUserId={profile?.id ?? ''} />
+          <SuperAdminsPanel accounts={superAdmins} currentUserId={profile?.id ?? ''} />
         }
         directory={<DirectoryPanel organizers={organizers} />}
       />

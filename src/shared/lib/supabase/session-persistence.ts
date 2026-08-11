@@ -36,3 +36,28 @@ export function withoutPersistence(options: CookieOptions): CookieOptions {
 export function persistenceDisabled(value: string | undefined): boolean {
   return value === SESSION_PERSISTENCE_OFF;
 }
+
+/**
+ * Harden the Supabase auth cookies so the raw JWT + refresh token can never be
+ * read by page JavaScript (`document.cookie`).
+ *
+ * `@supabase/ssr` writes the session into cookies, and by default those come
+ * back readable — a single XSS anywhere would then hand an attacker the refresh
+ * token and, with it, the account. Every write of these cookies is server-side
+ * in this app (sign-in / sign-up / OTP are Server Actions, refresh is the proxy;
+ * the browser client only ever calls `uploadToSignedUrl`, which authorises with
+ * its own token and needs no session), so forcing HttpOnly here breaks nothing
+ * client-side while closing that hole.
+ *
+ * `secure` is production-only: a Secure cookie is refused over plain http, which
+ * is exactly local dev, so requiring it there would lock sign-in out of
+ * localhost. Production is always https, where it's on.
+ */
+export function hardenAuthCookie(options: CookieOptions): CookieOptions {
+  return {
+    ...options,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: options.sameSite ?? 'lax',
+  };
+}

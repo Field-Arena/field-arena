@@ -1160,7 +1160,16 @@ export async function removeClass(input: unknown): Promise<void> {
   const { error } = await supabase.from('classes').delete().eq('id', parsed.classId);
   if (error) throw new Error(error.message);
 
+  // Schedule/Review and Select Events are two views of the one `classes` table
+  // (Select Events derives a group's checked state from whether any class with
+  // that division still exists). Removing a class here must therefore refresh
+  // Select Events too, or that tab keeps showing the now-deleted class's group
+  // as selected from stale cache (BUG-SCHEDULE-001). Same revalidation set as
+  // removeCatalogGroup, the sibling delete on the Select Events side.
   revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
+  revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
+  revalidatePath('/dashboard/shows');
+  revalidatePath('/dashboard/schedule');
 }
 
 /* ── Show Manager — Documents tab writes ─────────────────────────────────

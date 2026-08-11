@@ -30,6 +30,11 @@ import {
   moveDocumentSchema,
 } from '../schemas';
 import { ONBOARDING_CHECKLIST_TEMPLATE } from '../constants';
+import {
+  fail,
+  type CreateOrganizationResult,
+  type AddSuperAdminResult,
+} from './action-result';
 
 const CONSOLE_PATH = '/dashboard/superadmin';
 const USERS_PATH = '/dashboard/superadmin/users';
@@ -65,8 +70,12 @@ async function requireSuperAdmin() {
  * silently remove that check.
  */
 
-export async function createOrganization(input: unknown) {
-  const parsed = createOrganizationSchema.parse(input);
+export async function createOrganization(input: unknown): Promise<CreateOrganizationResult> {
+  const parsedResult = createOrganizationSchema.safeParse(input);
+  if (!parsedResult.success) {
+    return fail(parsedResult.error.issues[0]?.message ?? 'Please check the form and try again.');
+  }
+  const parsed = parsedResult.data;
   const name = [parsed.contactFirstName, parsed.contactLastName].filter(Boolean).join(' ');
   const normalizedEmail = parsed.contactEmail.trim().toLowerCase();
 
@@ -79,7 +88,20 @@ export async function createOrganization(input: unknown) {
     admin.from('riders').select('id').eq('email', normalizedEmail).maybeSingle(),
   ]);
   if (existingUser || existingRider) {
-    throw new Error('A user with this email already exists.');
+    return fail('A user with this email already exists.');
+  }
+
+  // Deterministic organization-name uniqueness (case-insensitive, ignoring
+  // soft-deleted rows) — an explicit, typed check rather than relying on an
+  // incidental failure. A live org and a soft-deleted one may share a name.
+  const { data: nameClash } = await admin
+    .from('organizations')
+    .select('id')
+    .ilike('name', parsed.name.trim())
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (nameClash) {
+    return fail(`An organizer named “${parsed.name.trim()}” already exists.`);
   }
 
   const supabase = await createServerClient();
@@ -98,7 +120,7 @@ export async function createOrganization(input: unknown) {
     .select('id, name')
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) return fail(error.message);
 
   /**
    * The owner is invited and provisioned in the same action, mirroring
@@ -139,7 +161,8 @@ export async function createOrganization(input: unknown) {
     }
   );
   if (inviteError) {
-    throw new Error(
+    revalidatePath(CONSOLE_PATH);
+    return fail(
       `Organization "${org.name}" was created, but its owner invite could not be sent (${inviteError.message}). Use Resend invite to try again.`
     );
   }
@@ -154,13 +177,14 @@ export async function createOrganization(input: unknown) {
   if (profileError) {
     // Leave no orphaned auth user behind if the profile insert fails.
     await admin.auth.admin.deleteUser(invited.user.id);
-    throw new Error(
+    revalidatePath(CONSOLE_PATH);
+    return fail(
       `Organization "${org.name}" was created, but its owner account could not be provisioned (${profileError.message}).`
     );
   }
 
   revalidatePath(CONSOLE_PATH);
-  return { id: org.id, name: org.name };
+  return { ok: true, id: org.id, name: org.name };
 }
 
 /**
@@ -306,9 +330,13 @@ export async function setOrganizationDeleted(input: unknown) {
  * creating an auth user is not an RLS-governed operation at all. requireSuperAdmin
  * above is what authorizes this, since the policy no longer can.
  */
-export async function addSuperAdmin(input: unknown): Promise<{ email: string }> {
+export async function addSuperAdmin(input: unknown): Promise<AddSuperAdminResult> {
   await requireSuperAdmin();
-  const { name, email } = addSuperAdminSchema.parse(input);
+  const parsedResult = addSuperAdminSchema.safeParse(input);
+  if (!parsedResult.success) {
+    return fail(parsedResult.error.issues[0]?.message ?? 'Please check the form and try again.');
+  }
+  const { name, email } = parsedResult.data;
   const normalizedEmail = email.trim().toLowerCase();
 
   const admin = createAdminClient();
@@ -322,7 +350,7 @@ export async function addSuperAdmin(input: unknown): Promise<{ email: string }> 
     .eq('email', normalizedEmail)
     .maybeSingle();
   if (existing) {
-    throw new Error('A user with this email already exists.');
+    return fail('A user with this email already exists.');
   }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
@@ -335,8 +363,10 @@ export async function addSuperAdmin(input: unknown): Promise<{ email: string }> 
   );
   if (inviteError) {
     // The most common cause is an auth account that already exists for this
-    // address without a staff profile (e.g. a rider, or a stalled signup).
-    throw new Error(
+    // address without a staff profile (e.g. a rider, or a stalled signup); the
+    // other is Supabase's built-in-email rate limit (a project-level setting).
+    // Either way, surface the real reason instead of an opaque 500.
+    return fail(
       /already.*regist|exist/i.test(inviteError.message)
         ? 'That email already has an account. It can only be added as a Super Admin from the database, not through this invite.'
         : inviteError.message
@@ -352,11 +382,11 @@ export async function addSuperAdmin(input: unknown): Promise<{ email: string }> 
   if (insertError) {
     // Leave no orphaned auth user behind if the profile insert fails.
     await admin.auth.admin.deleteUser(invited.user.id);
-    throw new Error(insertError.message);
+    return fail(insertError.message);
   }
 
   revalidatePath(USERS_PATH);
-  return { email: normalizedEmail };
+  return { ok: true, email: normalizedEmail };
 }
 
 /**

@@ -97,9 +97,12 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         redirect, so there is no result to cache and no success state to toast —
         the only UI need is a pending flag while the navigation happens.
 
-        The label differs for a pending org because there is no organizer account
-        to act as yet — the legacy row said "Preview onboarding form" for the same
-        reason.
+        The label reads "Enter as organizer" for pending orgs too, not "Preview
+        onboarding" (BUG-ORGLIST-001): this button is full impersonation — a
+        live, data-mutating session under the "Viewing as" banner — so a label
+        implying a safe read-only preview was misleading. There is no read-only
+        onboarding preview view in this app, so the honest, consistent label is
+        the one that matches the behavior.
       */}
       <button
         type="button"
@@ -112,7 +115,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
           });
         }}
       >
-        {entering ? 'Entering…' : pending ? 'Preview onboarding' : 'Enter as organizer'}
+        {entering ? 'Entering…' : 'Enter as organizer'}
         <ArrowRightIcon className="size-[13px]" aria-hidden />
       </button>
 
