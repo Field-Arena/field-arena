@@ -29,7 +29,14 @@ function errorMessage(error: unknown, fallback: string): string {
 
 export function useCreateOrganization(options?: { onSuccess?: () => void }) {
   return useMutation({
-    mutationFn: (input: CreateOrganizationInput) => createOrganization(input),
+    // The action returns a typed result rather than throwing (see mutations.ts /
+    // BUG-API-001). Re-throw here on failure so the existing onError/toast path
+    // still fires — now with the real, actionable message.
+    mutationFn: async (input: CreateOrganizationInput) => {
+      const result = await createOrganization(input);
+      if (!result.ok) throw new Error(result.error);
+      return result;
+    },
     onSuccess: ({ name }) => {
       toast.success(`${name} added. Its owner invite is pending.`);
       options?.onSuccess?.();

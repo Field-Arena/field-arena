@@ -55,6 +55,7 @@ export function UsersDirectory({
   const [statusFilter, setStatusFilter] = useState('');
   const [cogginsOnly, setCogginsOnly] = useState(false);
   const [editingRow, setEditingRow] = useState<UserDirectoryRow | null>(null);
+  const [page, setPage] = useState(1);
 
   const targetShow = shows.find((s) => s.id === targetShowId) ?? shows[0] ?? null;
   const targetShowStaff = useMemo(
@@ -87,6 +88,16 @@ export function UsersDirectory({
       })
       .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
   }, [rows, roleFilter, showFilter, statusFilter, cogginsOnly, search]);
+
+  // Client-side pagination (BUG-ORGUSERS-001): the directory can hold hundreds of
+  // rows, so only one page is rendered at a time. `effectivePage` is clamped to
+  // the current result count, so narrowing the filters can never strand the view
+  // on an empty page — no separate reset-on-filter effect is needed.
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const effectivePage = Math.min(Math.max(1, page), pageCount);
+  const pageStart = (effectivePage - 1) * PAGE_SIZE;
+  const pagedRows = filteredRows.slice(pageStart, pageStart + PAGE_SIZE);
 
   const columns = showCoggins
     ? 'minmax(160px,1.4fr) 120px 160px minmax(160px,1.2fr) 130px 110px 150px'
@@ -275,7 +286,7 @@ export function UsersDirectory({
                 No users match those filters.
               </div>
             ) : (
-              filteredRows.map((row) => {
+              pagedRows.map((row) => {
                 const clickable = row.kind === 'staff';
                 const meta = USER_STATUS_META[row.status];
                 return (
@@ -326,6 +337,40 @@ export function UsersDirectory({
               })
             )}
           </div>
+
+          {filteredRows.length > PAGE_SIZE && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#48574F]">
+              <span>
+                Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredRows.length)} of{' '}
+                {filteredRows.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={effectivePage <= 1}
+                  onClick={() => {
+                    setPage(effectivePage - 1);
+                  }}
+                  className="rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold text-ink-deep transition-colors hover:border-gold disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="tabular-nums">
+                  Page {effectivePage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={effectivePage >= pageCount}
+                  onClick={() => {
+                    setPage(effectivePage + 1);
+                  }}
+                  className="rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold text-ink-deep transition-colors hover:border-gold disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 

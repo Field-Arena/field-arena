@@ -24,7 +24,14 @@ export function useAddSuperAdmin(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: AddSuperAdminInput) => addSuperAdmin(input),
+    // Typed result, not a throw (BUG-API-001/USERS-001) — re-throw on failure so
+    // the real reason (e.g. email rate limit, address already registered)
+    // reaches this onError toast instead of an opaque 500.
+    mutationFn: async (input: AddSuperAdminInput) => {
+      const result = await addSuperAdmin(input);
+      if (!result.ok) throw new Error(result.error);
+      return result;
+    },
     onSuccess: ({ email }) => {
       toast.success(`Invite sent to ${email}. They'll set a password and sign in.`);
       router.refresh();

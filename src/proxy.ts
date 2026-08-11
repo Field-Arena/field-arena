@@ -6,6 +6,7 @@ import {
   SESSION_PERSISTENCE_COOKIE,
   persistenceDisabled,
   withoutPersistence,
+  hardenAuthCookie,
 } from '@/shared/lib/supabase/session-persistence';
 
 /**
@@ -50,7 +51,11 @@ export async function proxy(request: NextRequest) {
         }
         response = NextResponse.next({ request });
         for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, persistSession ? options : withoutPersistence(options));
+          response.cookies.set(
+            name,
+            value,
+            hardenAuthCookie(persistSession ? options : withoutPersistence(options)),
+          );
         }
       },
     },

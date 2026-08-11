@@ -3,7 +3,7 @@ import { createServerClient as createSSRClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/shared/types/database.types';
 import { env } from '@/shared/lib/env';
-import { withoutPersistence } from './session-persistence';
+import { withoutPersistence, hardenAuthCookie } from './session-persistence';
 
 export async function createServerClient({
   /**
@@ -24,7 +24,11 @@ export async function createServerClient({
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, persistSession ? options : withoutPersistence(options));
+            cookieStore.set(
+              name,
+              value,
+              hardenAuthCookie(persistSession ? options : withoutPersistence(options)),
+            );
           }
         } catch {
           // setAll may be called from a Server Component during render — Next.js
