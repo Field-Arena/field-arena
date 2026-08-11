@@ -6,6 +6,47 @@ import { z } from 'zod';
  * document checklist, and booth-fee checkout.
  */
 
+/**
+ * Claiming a real account after an anonymous application — legacy's own
+ * vendor.html mounted Clerk's SignUp widget directly on the page when the
+ * visitor had no session yet, so a vendor who already applied (or is about
+ * to) could create an account and immediately see it, matched by email. This
+ * is that same bridge under Supabase Auth: applyToShowPublic never creates a
+ * login, so without this there is no way for an approved applicant to ever
+ * reach signVendorAgreement/createVendorCheckoutSession (both require a real
+ * Vendor account) — see data/mutations.ts's signUpVendor doc comment.
+ */
+export const vendorSignUpSchema = z.object({
+  name: z.string().trim().min(1, 'Your name is required').max(200),
+  email: z.email('Enter a valid email address').min(1, 'Email is required'),
+  password: z
+    .string()
+    .min(8, 'Passwords need at least 8 characters')
+    .refine((value) => /[a-z]/.test(value) && /[A-Z]/.test(value), {
+      message: 'Add an uppercase letter to strengthen this password',
+    })
+    .refine((value) => /[0-9]/.test(value) || /[^A-Za-z0-9]/.test(value), {
+      message: 'Add a number or symbol to strengthen this password',
+    }),
+});
+
+export type VendorSignUpInput = z.infer<typeof vendorSignUpSchema>;
+
+/** The 6-digit code Supabase emails after signUpVendor, when email confirmation is on. */
+export const vendorVerifySchema = z.object({
+  email: z.email('Enter a valid email address'),
+  token: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Enter all six digits from the email'),
+});
+
+export type VendorVerifyInput = z.infer<typeof vendorVerifySchema>;
+
+export const vendorResendCodeSchema = z.object({ email: z.email('Enter a valid email address') });
+
+export type VendorResendCodeInput = z.infer<typeof vendorResendCodeSchema>;
+
 const cartLine = z.object({
   vendorItemId: z.uuid(),
   qty: z.coerce.number().int().min(1).max(999),
