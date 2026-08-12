@@ -44,7 +44,11 @@ export default async function JudgingHistoryPage() {
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice />}
 
-      <JudgingStatusCard rings={snapshot.rings} contacts={snapshot.contacts} />
+      <JudgingStatusCard
+        rings={snapshot.rings}
+        contacts={snapshot.contacts}
+        assignmentsToday={snapshot.assignmentsToday}
+      />
 
       {history.length === 0 ? (
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">

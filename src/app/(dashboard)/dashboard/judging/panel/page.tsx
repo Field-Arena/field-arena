@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { buildDemoAssignments, buildDemoPanelContacts, buildTodaySnapshot } from '@/modules/judging/utils';
+import {
+  buildDemoAssignments,
+  buildDemoPanelContacts,
+  buildTodaySnapshot,
+} from '@/modules/judging/utils';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { PanelContactCard } from '@/modules/judging/ui/panel-contact-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
@@ -31,7 +35,11 @@ export default async function JudgingPanelPage() {
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice />}
 
-      <JudgingStatusCard rings={snapshot.rings} contacts={snapshot.contacts} />
+      <JudgingStatusCard
+        rings={snapshot.rings}
+        contacts={snapshot.contacts}
+        assignmentsToday={snapshot.assignmentsToday}
+      />
 
       {contacts.length === 0 ? (
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
