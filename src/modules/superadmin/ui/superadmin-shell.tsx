@@ -7,8 +7,11 @@ import { LogOutIcon } from 'lucide-react';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import { RoleRail } from '@/shared/ui/role-rail';
+import { NavIcon } from '@/shared/ui/nav-icon';
 import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
+import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
+import { ROLE_NAV } from '@/modules/staff/constants';
 import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '../constants';
 import { OrganizerSearch } from './organizer-search';
 import { AddOrganizerDialog } from './add-organizer-dialog';
@@ -43,6 +46,25 @@ export function SuperAdminShell({
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
   const isOrganizerList = pathname === '/dashboard/superadmin';
 
+  // The console's own pages live under /dashboard/superadmin; every other route
+  // a SuperAdmin reaches here is a role-workspace PREVIEW opened from the ROLES
+  // rail (Judge, Scribe, Announcer, …). On those, the sidebar shows that role's
+  // own tabs (My Assignments / Panel / Documents / History for a judge) instead
+  // of the console nav — otherwise the preview is stuck on its landing tab with
+  // no way to reach the rest of what the role actually sees.
+  const isConsoleRoute =
+    pathname === '/dashboard/superadmin' || pathname.startsWith('/dashboard/superadmin/');
+  const previewNav = isConsoleRoute ? undefined : ROLE_NAV[activeRailRole];
+  const previewTitle = ROLE_WORKSPACES[activeRailRole]?.title ?? 'Workspace';
+  const activePreviewHref =
+    previewNav?.find((item) => item.href === pathname)?.href ??
+    previewNav?.reduce<string | null>((best, item) => {
+      if (!pathname.startsWith(`${item.href}/`)) return best;
+      if (!best || item.href.length > best.length) return item.href;
+      return best;
+    }, null) ??
+    null;
+
   const initials =
     profile.name
       .split(/\s+/)
@@ -75,7 +97,44 @@ export function SuperAdminShell({
           </span>
         </div>
 
-        {SUPERADMIN_SIDEBAR.map((group) => (
+        {previewNav ? (
+          <>
+            <div className="px-2 pb-2.5 text-[9.5px] font-bold uppercase tracking-[.16em] text-[rgba(251,250,247,.34)]">
+              {previewTitle}
+            </div>
+            <nav className="flex flex-col gap-0.5">
+              {previewNav.map((item) => {
+                const active = item.href === activePreviewHref;
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'relative flex items-center gap-[11px] rounded-lg py-2.5 pl-3 pr-2.5 text-[13.5px] font-semibold transition-colors',
+                      active
+                        ? 'bg-[#17402F] text-paper'
+                        : 'text-[rgba(251,250,247,.66)] hover:bg-[rgba(255,255,255,.06)] hover:text-paper'
+                    )}
+                  >
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-[9px] left-0 w-[3px] rounded-sm bg-gold"
+                      />
+                    )}
+                    <span className={cn('flex-none', active && 'text-gold')}>
+                      <NavIcon name={item.icon} size={16} />
+                    </span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </>
+        ) : (
+          <>
+            {SUPERADMIN_SIDEBAR.map((group) => (
           <div key={group.heading}>
             <div className="px-2 pb-2.5 text-[9.5px] font-bold uppercase tracking-[.16em] text-[rgba(251,250,247,.34)]">
               {group.heading}
@@ -147,6 +206,8 @@ export function SuperAdminShell({
             );
           })}
         </nav>
+          </>
+        )}
 
         <div className="mt-auto flex items-center gap-2.5 border-t border-[rgba(255,255,255,.10)] pt-5">
           <span className="grid size-[30px] flex-none place-items-center rounded-lg border border-[rgba(255,255,255,.12)] bg-[#17402F] text-[11.5px] font-bold text-gold-light">
