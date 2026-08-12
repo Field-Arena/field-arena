@@ -556,6 +556,14 @@ export const saveTestTemplateSchema = z.object({
 
 export type SaveTestTemplateInput = z.input<typeof saveTestTemplateSchema>;
 
+/** The Test Builder "Use for a class" hand-off — copies a template's movements/collectives into that class's class_tests row. */
+export const assignTestTemplateToClassSchema = z.object({
+  templateId: z.uuid(),
+  classId: z.uuid(),
+});
+
+export type AssignTestTemplateToClassInput = z.input<typeof assignTestTemplateToClassSchema>;
+
 /* ── Horses screen ────────────────────────────────────────────────────────
    "+ Add Horse" (writes to shows.manual_horses), the per-document verify
    checkbox, and the missing-documents reminder email. Ported from

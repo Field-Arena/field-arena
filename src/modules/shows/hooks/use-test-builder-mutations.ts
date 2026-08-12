@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { saveTestTemplate, deleteTestTemplate } from '../data/mutations';
-import type { SaveTestTemplateInput } from '../schemas';
+import { saveTestTemplate, deleteTestTemplate, assignTestTemplateToClass } from '../data/mutations';
+import type { SaveTestTemplateInput, AssignTestTemplateToClassInput } from '../schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {
@@ -38,6 +38,18 @@ export function useDeleteTestTemplate() {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not delete this test'));
+    },
+  });
+}
+
+export function useAssignTestToClass() {
+  return useMutation({
+    mutationFn: (input: AssignTestTemplateToClassInput) => assignTestTemplateToClass(input),
+    onSuccess: () => {
+      toast.success('Test assigned to class — scoring is ready for it now');
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not assign this test to that class'));
     },
   });
 }

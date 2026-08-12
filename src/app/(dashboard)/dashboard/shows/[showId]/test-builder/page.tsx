@@ -50,7 +50,7 @@ export default async function TestBuilderPage({
       stage={vitals.stage}
       canViewMoney={context.canViewMoney}
     >
-      <TestBuilderCard orgId={data.orgId} templates={data.templates} />
+      <TestBuilderCard orgId={data.orgId} templates={data.templates} classes={data.classes} />
     </ShowManagerShell>
   );
 }
