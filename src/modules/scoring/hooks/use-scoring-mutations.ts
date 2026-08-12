@@ -49,10 +49,31 @@ function isNetworkFailure(error: unknown): boolean {
 
 const RETRY_DELAY_MS = 3000;
 
+/** One sticky id so repeated failures re-use the same toast instead of stacking — legacy's persistent banner, as a toast. */
+const SYNC_FAILURE_TOAST_ID = 'scoring-sync-failure';
+
+/**
+ * Marks/collectives/remarks are otherwise silent on error (no per-keystroke
+ * toast — that would be noisy). But once retries are exhausted the write is
+ * genuinely lost, and legacy never let that happen invisibly: it kept a
+ * sticky "not synced" banner up and kept retrying until the write landed.
+ * This is the same "don't fail silently" guarantee via a persistent toast
+ * (duration Infinity — dismissed only by the next successful write in this
+ * class), rather than a bounded auto-hide.
+ */
 function silentMutationOptions() {
   return {
     retry: (failureCount: number, error: unknown) => failureCount < 3 && isNetworkFailure(error),
     retryDelay: RETRY_DELAY_MS,
+    onError: () => {
+      toast.error("Not synced — a mark didn't save. Check your connection and try again.", {
+        id: SYNC_FAILURE_TOAST_ID,
+        duration: Infinity,
+      });
+    },
+    onSuccess: () => {
+      toast.dismiss(SYNC_FAILURE_TOAST_ID);
+    },
   };
 }
 

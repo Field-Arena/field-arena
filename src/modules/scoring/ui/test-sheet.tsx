@@ -15,12 +15,22 @@ export interface TestSheetHandle {
  * scoresheet body. One row per movement (mark + ⚠ error toggle + remark),
  * then the collectives, then a single "Final remarks" box for the whole
  * ride.
+ *
+ * `defaultCollapsed` starts the movement/collective grid folded — the Judge
+ * side of this: they can enter or override any mark same as always (nothing
+ * about capability changes), but by default their screen only needs to show
+ * who's up, the final comment, and the signature, not a full scroll through
+ * every movement the Scribe is already typing. Scribe's view stays expanded.
+ * Local `open` state, not the `open` prop driven straight off
+ * `defaultCollapsed`, so a judge's manual expand survives this screen's
+ * 4-second poll re-renders instead of snapping back shut.
  */
 export function TestSheet({
   test,
   score,
   seatRole,
   locked,
+  defaultCollapsed = false,
   onSetMark,
   onSetCollective,
   onToggleError,
@@ -32,6 +42,7 @@ export function TestSheet({
   score: ScoreRow | undefined;
   seatRole: 'judge' | 'scribe';
   locked: boolean;
+  defaultCollapsed?: boolean;
   onSetMark: (movementNum: number, value: number) => void;
   onSetCollective: (key: string, value: number) => void;
   onToggleError: (movementNum: number) => void;
@@ -39,6 +50,7 @@ export function TestSheet({
   onSetFinalRemarks: (text: string) => void;
   handleRef?: Ref<TestSheetHandle>;
 }) {
+  const [open, setOpen] = useState(!defaultCollapsed);
   const movementWrite = useDebouncedWrite<number>((key, value) => {
     onSetMark(Number(key), value);
   });
@@ -72,6 +84,18 @@ export function TestSheet({
 
   return (
     <div className="flex flex-col gap-2.5">
+      <details
+        open={open}
+        onToggle={(e) => {
+          setOpen(e.currentTarget.open);
+        }}
+        className="flex flex-col gap-2.5"
+      >
+        <summary className="cursor-pointer list-none rounded-xl border border-[#E9EDEB] bg-white p-[12px_16px] text-[13px] font-semibold text-ink-deep marker:hidden">
+          {open ? 'Hide' : 'Show'} full test sheet — {test.movements.length} movements
+          {test.collectives.length > 0 ? `, ${String(test.collectives.length)} collective marks` : ''}
+        </summary>
+
       {test.movements.map((m) => {
         const mark = movements[String(m.num)];
         return (
@@ -142,6 +166,7 @@ export function TestSheet({
           })}
         </div>
       )}
+      </details>
 
       <div className="mt-2 flex flex-col gap-1.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
         <label htmlFor="final-remarks" className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">

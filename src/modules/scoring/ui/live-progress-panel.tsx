@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { scoreLabel, sheetPct } from '../scoring-engine';
 import { toSheet } from '../utils';
@@ -82,8 +82,11 @@ export function LiveProgressPanel({
                 ? 'In ring'
                 : 'Upcoming';
 
+            const noteColSpan = panel.length + 4;
+
             return (
-              <tr key={entry.id} className="border-t border-[#E9EDEB] align-top">
+              <Fragment key={entry.id}>
+              <tr className="border-t border-[#E9EDEB] align-top">
                 <td className="p-2">{entry.draw ?? '—'}</td>
                 <td className="p-2 font-semibold text-ink-deep">{entry.rider ?? '—'}</td>
                 <td className="p-2">{entry.horse ?? '—'}</td>
@@ -178,6 +181,23 @@ export function LiveProgressPanel({
                   )}
                 </td>
               </tr>
+              {entry.correction && (
+                <tr className="border-t border-[#E9EDEB]">
+                  <td className="p-2"></td>
+                  <td className="p-2 text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
+                    Corrected · {entry.correction}
+                  </td>
+                </tr>
+              )}
+              {entry.reason && (
+                <tr className="border-t border-[#E9EDEB]">
+                  <td className="p-2"></td>
+                  <td className="p-2 text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
+                    Eliminated · {entry.reason}
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             );
           })}
         </tbody>

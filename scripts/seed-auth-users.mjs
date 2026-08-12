@@ -52,6 +52,18 @@ const STAFF = [
   // org_id here would be the very authorization bug the legacy code fixed.
   { email: 'showadmin@fieldarena-demo.test', name: 'Marcus Hale', role: 'ShowAdmin', orgId: null, staffEmail: 'marcus.hale@fieldarena-demo.test' },
   { email: 'judge@fieldarena-demo.test', name: 'Elena Marsh', role: 'Judge', orgId: null, staffEmail: 'elena.marsh@fieldarena-demo.test' },
+  // Same staff_assignments-binding shape as Judge/ShowAdmin above — Scribe,
+  // ShowStaff, and Announcer are all per-show staff_assignments roles too,
+  // never org membership. Bound to the same seeded rows supabase/seed.sql
+  // already carries (lines 222/224/225) rather than inventing new ones.
+  { email: 'scribe@fieldarena-demo.test', name: 'Tom Reyes', role: 'Scribe', orgId: null, staffEmail: 'tom.reyes@fieldarena-demo.test' },
+  { email: 'showstaff@fieldarena-demo.test', name: 'Sam Whitfield', role: 'ShowStaff', orgId: null, staffEmail: 'sam.whitfield@fieldarena-demo.test' },
+  { email: 'announcer@fieldarena-demo.test', name: 'Dana Boyd', role: 'Announcer', orgId: null, staffEmail: 'dana.boyd@fieldarena-demo.test' },
+  // Vendor is platform-wide, never a staff_assignments row (see
+  // modules/vendors/data/mutations.ts's ensureVendorProfile) — no
+  // staffEmail binding, and org_id stays null same as every other
+  // non-Organizer/ShowAdmin role.
+  { email: 'vendor@fieldarena-demo.test', name: 'Priya Nair', role: 'Vendor', orgId: null },
 ];
 
 const RIDERS = [

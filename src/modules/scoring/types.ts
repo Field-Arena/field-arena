@@ -53,6 +53,8 @@ export interface RideEntry {
   reason: string | null;
   finalizedAt: string | null;
   testOverride: TestDefinition | null;
+  /** When this entry first became the current ride — null until then. Real anchor for the Ride Time countdown, not a fabricated one. */
+  rideStartedAt: string | null;
 }
 
 export interface ClassScoringState {
@@ -72,6 +74,10 @@ export interface ClassScoringState {
     workingInEntryId: string | null;
     resultsPublished: boolean;
   };
+  /** `classes.time`, 'HH:MM' or null — the ring's scheduled start for this class. */
+  scheduledTime: string | null;
+  /** `classes.location` — the ring name, or null if not set. */
+  ring: string | null;
 }
 
 export type SeatRole = 'judge' | 'scribe';

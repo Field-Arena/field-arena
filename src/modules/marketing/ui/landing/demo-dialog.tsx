@@ -15,7 +15,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import { DEMO_DISCIPLINES, DEMO_VOLUMES } from '../../landing-content';
+import { DEMO_DISCIPLINES, DEMO_VOLUMES, CALENDLY_URL } from '../../landing-content';
 import { demoRequestSchema, type DemoRequestInput } from '../../schemas';
 import { useDemoRequest } from '../../hooks/use-demo-request';
 
@@ -80,18 +80,29 @@ export function DemoDialog({
               Thank you — we have it.
             </DialogTitle>
             <DialogDescription className="mx-auto max-w-[360px] text-[14.5px] leading-[1.6] text-fa-muted">
-              Someone will be in touch to arrange a walkthrough built around your discipline and
-              the way your shows actually run.
+              Pick a time that works and we&apos;ll bring a walkthrough built around your discipline
+              and the way your shows actually run.
             </DialogDescription>
-            <Button
-              type="button"
-              onClick={() => {
-                close(false);
-              }}
-              className="mt-7 h-auto rounded-[10px] bg-forest px-6 py-3 text-sm font-bold text-paper hover:bg-gold hover:text-forest"
-            >
-              Close
-            </Button>
+            <div className="mt-7 flex flex-col items-center gap-3">
+              <a
+                href={CALENDLY_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-auto items-center gap-2.5 rounded-[10px] bg-gold px-6 py-3 text-sm font-bold text-forest transition-all hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)]"
+              >
+                Schedule your walkthrough
+                <ArrowRightIcon className="size-[15px]" aria-hidden />
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  close(false);
+                }}
+                className="text-[13.5px] font-semibold text-fa-muted hover:text-forest"
+              >
+                Maybe later
+              </button>
+            </div>
           </div>
         ) : (
           <>

@@ -30,6 +30,15 @@ export const NAV_LINKS = [
  * conversation. Sending them to a rider sign-up form would be the wrong door.
  */
 export const DEMO_DEEP_LINK = '/?demo=1';
+
+/**
+ * The client's Calendly scheduling link. Surfaced from the Book-a-demo dialog so
+ * a visitor can pick a real time; the booking then arrives back as a lead via
+ * /api/webhooks/calendly (status `demo_scheduled`). Override per environment
+ * with NEXT_PUBLIC_CALENDLY_URL without touching this default.
+ */
+export const CALENDLY_URL =
+  process.env.NEXT_PUBLIC_CALENDLY_URL ?? 'https://calendly.com/ameforward/30min';
 export const LOGIN_HREF = ROUTES.login;
 export const SIGNUP_HREF = ROUTES.signup;
 
