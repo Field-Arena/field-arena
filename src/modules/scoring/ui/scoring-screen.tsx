@@ -28,6 +28,7 @@ import {
   useUnpublishResults,
 } from '../hooks/use-scoring-mutations';
 import { TestSheet, type TestSheetHandle } from './test-sheet';
+import { ScoreTally } from './score-tally';
 import { ErrorOfCoursePanel } from './error-of-course-panel';
 import { PanelStatusStrip } from './panel-status-strip';
 import { SignatureModal } from './signature-modal';
@@ -40,6 +41,7 @@ import type { PanelCandidate } from '../data/queries';
 import { StandingsPanel } from './standings-panel';
 import { ScoringToolbar } from './scoring-toolbar';
 import { NotARealTestBanner } from './not-a-real-test-banner';
+import { LiveClockStrip } from './live-clock-strip';
 import { PrintScoresheet } from './print-scoresheet';
 import type { ClassScoringState, MySeat, ScoreRow } from '../types';
 
@@ -237,6 +239,13 @@ export function ScoringScreen({
         />
       </div>
 
+      <LiveClockStrip
+        scheduledTime={state.scheduledTime}
+        ringLabel={state.ring ?? 'Ring'}
+        pos={state.classState.pos}
+        rideStartedAt={currentEntry.rideStartedAt}
+      />
+
       {!test ? (
         <NotARealTestBanner />
       ) : (
@@ -258,11 +267,14 @@ export function ScoringScreen({
             </Card>
           )}
 
+          <ScoreTally score={myScore} test={test} />
+
           <TestSheet
             test={test}
             score={myScore}
             seatRole={seatRole}
             locked={locked}
+            defaultCollapsed={seatRole === 'judge'}
             handleRef={sheetHandleRef}
             onSetMark={(movementNum, value) => {
               if (!mySeat) return;
@@ -305,7 +317,11 @@ export function ScoringScreen({
             }}
           />
 
-          <ErrorOfCoursePanel errors={myScore?.errors ?? 0} test={test} />
+          <ErrorOfCoursePanel
+            errors={myScore?.errors ?? 0}
+            errorAt={myScore?.errorAt ?? {}}
+            test={test}
+          />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <RideActionsBar

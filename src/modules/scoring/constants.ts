@@ -28,3 +28,11 @@ export const REMARK_DEBOUNCE_MS = 500;
 
 /** Retry interval for a write that failed to reach the server. */
 export const WRITE_RETRY_MS = 3000;
+
+/**
+ * Flat ride spacing assumption for the live vs-schedule clock, ported from
+ * legacy's RIDE_MINUTES — "no differentiation by level" (its own comment).
+ * Same on-time thresholds as legacy's scheduleStatus: ahead = green,
+ * on-time or ≤1 min behind = yellow, 1–10 min behind = pink, >10 = red.
+ */
+export const RIDE_MINUTES = 9;

@@ -2,6 +2,7 @@ import { cn } from '@/shared/lib/utils';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import type { AssignmentRow } from '../data/queries';
 import { formatClassTime } from '../utils';
+import { USDF_TEST_SHEETS_URL } from '../constants';
 import { LaunchScoringButton } from './launch-scoring-button';
 
 const WHEN_META = {
@@ -18,8 +19,9 @@ const WHEN_META = {
  * The design's "Test sheet: {name} ↗" is a live link to a real PDF in its
  * mock. No per-class test-sheet document exists in this schema yet (the
  * platform's Documents board matches sheets to the scoring catalog globally,
- * not to a specific class instance) — shown as plain text rather than a link
- * that would go nowhere.
+ * not to a specific class instance) — links to the same USDF test-sheets
+ * index every class links to in legacy judge-scribe.html (TEST_SHEETS_URL),
+ * not a class-specific PDF.
  */
 export function AssignmentCard({
   assignment,
@@ -57,7 +59,15 @@ export function AssignmentCard({
           </div>
         )}
         <div className="text-[13.5px] text-[#5A6B63]">
-          Test sheet: <span className="font-bold text-ink-deep">{assignment.classLabel}</span>
+          Test sheet:{' '}
+          <a
+            href={USDF_TEST_SHEETS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-ink-deep underline decoration-[#B4BFB9] hover:text-gold"
+          >
+            {assignment.classLabel} ↗
+          </a>
         </div>
       </div>
 

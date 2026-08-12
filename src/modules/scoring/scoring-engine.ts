@@ -132,6 +132,14 @@ export function sheetPct(sheet: Sheet, test: TestDefinition): Score {
   return Math.round((points / maxPoints(test)) * 100000) / 1000;
 }
 
+/** How many of this test's movements + collectives have a value entered — legacy's `countMarks`. */
+export function marksEnteredCount(sheet: Sheet, test: TestDefinition): number {
+  let count = 0;
+  for (const m of test.movements) if (sheet.movements[String(m.num)] != null) count++;
+  for (const c of test.collectives) if (sheet.collectives[c.key] != null) count++;
+  return count;
+}
+
 /** Every mark filled in. */
 export function marksComplete(sheet: Sheet, test: TestDefinition): boolean {
   return (

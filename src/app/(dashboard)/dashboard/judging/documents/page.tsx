@@ -11,8 +11,8 @@ export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
 /**
  * General rule references, ported from Judge Workspace.dc.html's Documents
- * tab. `href="#"` in the design too — see JUDGING_REFERENCE_DOCS's doc
- * comment for why these stay inert rather than faking a download.
+ * tab layout, with real external hrefs from legacy judge-scribe.html's
+ * DOCS array (USDF/USEF sources) — see JUDGING_REFERENCE_DOCS.
  */
 export default async function JudgingDocumentsPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -41,17 +41,20 @@ export default async function JudgingDocumentsPage() {
 
       <div className="flex flex-col gap-3">
         {JUDGING_REFERENCE_DOCS.map((doc) => (
-          <div
+          <a
             key={doc.name}
-            className="flex items-center gap-5 rounded-xl border border-[#E9EDEB] bg-white p-[18px_20px]"
+            href={doc.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-5 rounded-xl border border-[#E9EDEB] bg-white p-[18px_20px] transition-colors hover:border-gold"
           >
             <span className="min-w-0 flex-1 font-[Newsreader,serif] text-lg font-semibold text-ink-deep">
-              {doc.name}
+              {doc.name} ↗
             </span>
             <span className="flex-none text-[13px] whitespace-nowrap text-[#7A8781]">
               {doc.detail}
             </span>
-          </div>
+          </a>
         ))}
       </div>
 

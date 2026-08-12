@@ -186,6 +186,7 @@ export type Database = {
           order_id: string | null
           reason: string | null
           ride_order: number
+          ride_started_at: string | null
           rider: string | null
           rider_id: string | null
           status: string | null
@@ -209,6 +210,7 @@ export type Database = {
           order_id?: string | null
           reason?: string | null
           ride_order: number
+          ride_started_at?: string | null
           rider?: string | null
           rider_id?: string | null
           status?: string | null
@@ -232,6 +234,7 @@ export type Database = {
           order_id?: string | null
           reason?: string | null
           ride_order?: number
+          ride_started_at?: string | null
           rider?: string | null
           rider_id?: string | null
           status?: string | null

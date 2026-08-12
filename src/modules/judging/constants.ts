@@ -1,15 +1,26 @@
 /**
+ * Real external URLs, ported from legacy judge-scribe.html's
+ * TEST_SHEETS_URL/DR_RULES_URL/RULEBOOK_URL constants.
+ */
+export const USDF_TEST_SHEETS_URL = 'https://www.usdf.org/downloads/forms/index.asp?TypePass=Tests';
+export const USEF_DR_RULES_URL = 'https://www.usef.org/forms-pubs/F3p8pgrWgAo/dr-dressage-division';
+export const USEF_RULEBOOK_URL = 'https://www.usef.org/compete/regulation/rulebook';
+
+/**
  * The Documents tab's reference list, ported from Judge Workspace.dc.html's
- * `DOCS` mock array. Org-agnostic rule references, not per-show data — same
- * for every judge/scribe on the platform, which is why this is a constant
- * rather than a query. Links are inert (`href="#"` in the source design too)
- * since no document store backs these yet; kept that way rather than faked.
+ * `DOCS` mock array (names/details) with real hrefs from legacy
+ * judge-scribe.html's DOCS array — org-agnostic rule references, not
+ * per-show data, so this is a constant rather than a query.
  */
 export const JUDGING_REFERENCE_DOCS = [
-  { name: 'USEF Rulebook — Dressage (DR) chapter', detail: 'Official USEF rulebook' },
-  { name: 'USEF DR123 — scoring & rounding rules', detail: 'USEF rulebook · DR chapter' },
-  { name: 'Errors of course — deduction schedule', detail: 'USEF rulebook · DR chapter' },
-  { name: 'Complete USEF Rulebook', detail: 'All divisions · official' },
+  { name: 'USEF Rulebook — Dressage (DR) chapter', detail: 'Official USEF rulebook', url: USEF_DR_RULES_URL },
+  { name: 'USEF DR123 — scoring & rounding rules', detail: 'USEF rulebook · DR chapter', url: USEF_DR_RULES_URL },
+  {
+    name: 'Errors of course — deduction schedule',
+    detail: 'USEF rulebook · DR chapter',
+    url: USEF_DR_RULES_URL,
+  },
+  { name: 'Complete USEF Rulebook', detail: 'All divisions · official', url: USEF_RULEBOOK_URL },
 ] as const;
 
 /**

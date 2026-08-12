@@ -35,7 +35,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   const { data: cls, error: classError } = await supabase
     .from('classes')
     .select(
-      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published'
+      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published, time, location'
     )
     .eq('id', classId)
     .single();
@@ -55,7 +55,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     supabase
       .from('class_entries')
       .select(
-        'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override'
+        'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override, ride_started_at'
       )
       .eq('class_id', classId)
       .order('ride_order'),
@@ -143,9 +143,30 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     reason: e.reason,
     finalizedAt: e.finalized_at,
     testOverride: parseTestDefinition(undefined, e.test_override),
+    rideStartedAt: e.ride_started_at,
   }));
   const entries = allEntries.filter((e) => !e.holding);
   const holdingEntries = allEntries.filter((e) => e.holding);
+
+  // Same "write in a read" shape as the class_tests catalog fallback above —
+  // the moment the screen resolves who's currently being ridden, stamp a
+  // real anchor for the Ride Time countdown if this is the first time this
+  // entry has ever been current. Mirrors ScoringScreen's own currentEntry
+  // resolution (workingInEntryId, else entries[scoring_pos]) so the two never
+  // disagree about who "now" is.
+  const currentEntry = cls.working_in_entry_id
+    ? (allEntries.find((e) => e.id === cls.working_in_entry_id) ?? null)
+    : (entries[cls.scoring_pos ?? 0] ?? null);
+  if (currentEntry && !currentEntry.rideStartedAt) {
+    const startedAt = new Date().toISOString();
+    currentEntry.rideStartedAt = startedAt;
+    const admin = createAdminClient();
+    const { error: rideStartError } = await admin
+      .from('class_entries')
+      .update({ ride_started_at: startedAt })
+      .eq('id', currentEntry.id);
+    if (rideStartError) throw rideStartError;
+  }
 
   const scores: ScoreRow[] = scoresRes.data.map((s) => ({
     id: s.id,
@@ -178,6 +199,8 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
       workingInEntryId: cls.working_in_entry_id,
       resultsPublished: cls.results_published ?? false,
     },
+    scheduledTime: cls.time ?? null,
+    ring: cls.location ?? null,
   };
 }
 
