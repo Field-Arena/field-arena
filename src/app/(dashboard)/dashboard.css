@@ -22,6 +22,16 @@
   align-items: center;
   padding: 14px 0;
   gap: 6px;
+  /* Stay in view while the page scrolls — the rail/sidebar are navigation, not
+     content, so they pin to the viewport with their own overflow instead of
+     scrolling away with the page. align-self:start stops the grid stretching
+     the column to full content height (which would leave sticky nothing to
+     pin against). */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  overflow-y: auto;
 }
 .dash-rail-logo {
   font-family: var(--serif);
@@ -68,6 +78,14 @@
   display: flex;
   flex-direction: column;
   padding: 26px 18px 20px;
+  /* Pinned alongside the rail (see .dash-rail) so every nav item stays reachable
+     without scrolling back up; overflow-y lets a tall nav scroll inside the
+     pinned panel on short viewports. */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  overflow-y: auto;
 }
 .dash-side-brand {
   font-family: var(--serif);
