@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import {
@@ -8,6 +9,7 @@ import {
   useDeleteTestTemplate,
   useAssignTestToClass,
 } from '../../hooks/use-test-builder-mutations';
+import { saveTestTemplateSchema } from '../../schemas';
 import { TB_STARTER_TESTS } from '../../constants';
 import type {
   TestTemplateRow,
@@ -99,17 +101,28 @@ export function TestBuilderCard({
 
   function submitDraft() {
     if (!draft) return;
-    const name = draft.name.trim();
-    if (!name) return;
-    save.mutate({
+    const input = {
       id: draft.id,
       orgId,
-      name,
+      name: draft.name.trim(),
       level: draft.level.trim() || undefined,
       sourceLabel: draft.sourceLabel,
       movements: draft.movements,
       collectives: draft.collectives,
-    });
+    };
+    // Validate here so the toast names the actual problem field ("Collective
+    // mark needs a label", "Coefficient must be between 1 and 10", "Name this
+    // test", …) instead of the server's generic "Could not save this test"
+    // (BUG-TESTBUILDER-001). The same schema still runs server-side as the
+    // real gate — this only moves the message somewhere the user can act on.
+    const parsed = saveTestTemplateSchema.safeParse(input);
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? 'Please check the test details and try again.',
+      );
+      return;
+    }
+    save.mutate(input);
   }
 
   if (draft) {
