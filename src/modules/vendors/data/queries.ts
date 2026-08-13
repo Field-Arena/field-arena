@@ -194,21 +194,24 @@ export async function listBookableShows(): Promise<BookableShow[]> {
   if (shows.error) throw shows.error;
   if (booked.error) throw booked.error;
 
-  // Not yet started, and not one of the seeded demo/suspended organizations —
-  // the same "safe to show a real applicant" gate handleVendorApply and
-  // handleDiscoverVendorShows both apply on the legacy side.
+  // Not yet started, and not a suspended organization. Demo orgs ARE included
+  // now (BUG-VENDORSPACES-001): they are the orgs the product is demoed with,
+  // so their published shows must be bookable here too — see the matching RLS
+  // relaxation in 20260813120000_vendor_discover_include_demo_orgs.sql, without
+  // which the shows/organizations reads above still return nothing for a demo
+  // org regardless of this filter.
   const upcomingShows = shows.data.filter((s) => !s.start_date || s.start_date >= today);
   const orgIds = [...new Set(upcomingShows.map((s) => s.org_id))];
   const { data: orgs, error: orgError } = await supabase
     .from('organizations')
-    .select('id, name, suspended, is_demo')
+    .select('id, name, suspended')
     .in('id', orgIds);
   if (orgError) throw orgError;
 
   const orgById = new Map(orgs.map((o) => [o.id, o]));
   const visibleShows = upcomingShows.filter((s) => {
     const org = orgById.get(s.org_id);
-    return org && !org.suspended && !org.is_demo;
+    return org && !org.suspended;
   });
 
   const bookedByItem = new Map<string, number>();
