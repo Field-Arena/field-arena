@@ -75,8 +75,15 @@ export async function proxy(request: NextRequest) {
   const isGuestOnly = GUEST_ONLY_ROUTES.some((route) => pathname === route);
 
   if (isProtected && !user) {
+    // Signing in is a MODAL, never the standalone /login page — a cleared or
+    // expired cookie hitting a protected route lands on the marketing home with
+    // the login dialog open (`?signin=1`, read by LoginDialogMount), the same
+    // way logout does. The /login route still exists for emailed links and the
+    // no_profile notice, but the app never routes normal sign-in through it.
     const url = request.nextUrl.clone();
-    url.pathname = ROUTES.login;
+    url.pathname = ROUTES.home;
+    url.search = '';
+    url.searchParams.set('signin', '1');
     // Preserved so login can return the user where they were headed.
     url.searchParams.set('next', pathname);
     return copyCookies(response, NextResponse.redirect(url));

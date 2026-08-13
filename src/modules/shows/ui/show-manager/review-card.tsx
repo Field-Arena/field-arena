@@ -67,7 +67,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
-              <table className="w-full min-w-[840px] border-collapse text-[13.5px]">
+              <table className="w-full min-w-[900px] border-collapse text-[13.5px]">
                 <caption className="sr-only">Classes on this show, editable</caption>
                 <thead>
                   <tr className="border-b border-[#E9EDEB]">
@@ -124,9 +124,19 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                 </thead>
                 <tbody>
                   {rows.map((c) => (
-                    <tr key={c.id} className="border-b border-[#EEF2F0]">
-                      <td className="px-2.5 py-2 whitespace-nowrap">{c.event ?? '—'}</td>
+                    <tr
+                      key={c.id}
+                      className="border-b border-[#EEF2F0] transition-colors [&>td]:align-middle hover:bg-[#FAFBF8]"
+                    >
                       <td className="px-2.5 py-2">
+                        <span
+                          className="block max-w-[150px] truncate text-[#6E7C76]"
+                          title={c.event ?? undefined}
+                        >
+                          {c.event ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-2 whitespace-nowrap">
                         <strong>{c.displayName ?? c.label}</strong>
                       </td>
                       <td className="px-2.5 py-2 whitespace-nowrap">{c.division ?? '—'}</td>
@@ -134,7 +144,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                       <td className="px-2.5 py-2">
                         <input
                           defaultValue={c.arena ?? ''}
-                          className={`${SM_ROW_INPUT} w-[150px]`}
+                          className={`${SM_ROW_INPUT} w-[150px]!`}
                           onBlur={(e) => {
                             commit(c.id, { arena: e.target.value || null });
                           }}
@@ -146,7 +156,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                           min={1}
                           step={1}
                           defaultValue={c.judgesCount}
-                          className={`${SM_ROW_INPUT} w-14`}
+                          className={`${SM_ROW_INPUT} w-[64px]! appearance-none`}
                           onBlur={(e) => {
                             const n = Number.parseInt(e.target.value, 10);
                             commit(c.id, { judgesCount: Number.isFinite(n) && n > 0 ? n : 1 });
@@ -159,7 +169,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                           min={0}
                           step={1}
                           defaultValue={c.fee}
-                          className={`${SM_ROW_INPUT} w-16 text-right`}
+                          className={`${SM_ROW_INPUT} w-[90px]! appearance-none text-right`}
                           onBlur={(e) => {
                             const n = Number.parseFloat(e.target.value);
                             commit(c.id, { fee: Number.isFinite(n) && n >= 0 ? n : 0 });
@@ -196,7 +206,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                 min={0}
                 step={1}
                 value={entriesPerClass}
-                className={`${SM_ROW_INPUT} w-[70px]`}
+                className={`${SM_ROW_INPUT} w-[70px]! appearance-none`}
                 onChange={(e) => {
                   const n = Number.parseInt(e.target.value, 10);
                   setEntriesPerClass(Number.isFinite(n) && n >= 0 ? n : 0);

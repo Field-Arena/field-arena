@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { AuthShell } from '@/modules/auth/ui/auth-shell';
 import { LoginForm } from '@/modules/auth/ui/login-form';
 import { LoginNotice } from '@/modules/auth/ui/login-notice';
@@ -9,13 +10,18 @@ export const metadata: Metadata = {
 };
 
 /**
- * Where the proxy redirects unauthenticated users, and where invite and
- * password-reset links land. The header also renders the same LoginForm in a
- * dialog, which is closer to how the legacy app behaved — but a route has to
- * exist regardless, because a redirect and an emailed link both need a URL.
+ * Signing in is a MODAL everywhere in the app, so a bare visit to /login (a
+ * typed URL, an old bookmark) is bounced to the marketing home with the login
+ * dialog open (`?signin=1`, read by LoginDialogMount) rather than shown this
+ * standalone page.
  *
- * The `error` param is also what stops this page from becoming half of an
- * infinite redirect — see the guest-only rule in proxy.ts.
+ * The page still renders — never redirects — when an `error` is present, because
+ * those cases genuinely need a full page: `no_profile` in particular is an
+ * already-authenticated account that must be offered a Sign out button, which
+ * the sign-in dialog has no place for. That `error` param is also what stops
+ * this route from becoming half of an infinite redirect (an authenticated user
+ * reaching bare /login is bounced to /dashboard by the guest-only rule in
+ * proxy.ts before this page ever runs, so only anonymous visitors get here).
  */
 export default async function LoginPage({
   searchParams,
@@ -23,6 +29,10 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+
+  if (!error) {
+    redirect(`${ROUTES.home}?signin=1`);
+  }
 
   return (
     <AuthShell alternate={{ label: 'Create an account', href: ROUTES.signup }}>

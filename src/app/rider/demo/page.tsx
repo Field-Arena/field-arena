@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { RiderDemoWalkthrough } from '@/modules/riders/ui/rider-demo-walkthrough';
+import { getStaffProfile } from '@/modules/auth/data/queries';
 
 export const metadata: Metadata = { title: 'Rider Signup Demo — Field & Arena' };
 
@@ -15,6 +16,10 @@ export const metadata: Metadata = { title: 'Rider Signup Demo — Field & Arena'
  * restored "Demo" button (src/modules/superadmin/constants.ts) just links
  * here rather than reimplementing this on the SuperAdmin side.
  */
-export default function RiderDemoPage() {
-  return <RiderDemoWalkthrough />;
+export default async function RiderDemoPage() {
+  // Public route, but when the SuperAdmin reaches it from the console's "Demo
+  // show" tool they need a way back — anonymous visitors get no such button.
+  const profile = await getStaffProfile();
+  const isSuperAdmin = profile?.platform_role === 'SuperAdmin';
+  return <RiderDemoWalkthrough showBackToConsole={isSuperAdmin} />;
 }
