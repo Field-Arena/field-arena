@@ -39,11 +39,14 @@ export function AssignmentCard({
   // Today's own group already says "today" via the section heading, but History
   // and Upcoming show classes from any date — a time with no date ("8:00 AM ·
   // Training Level Test 3") gives no way to tell which day a completed class
-  // was on (BUG-SCRIBEHISTORY-001).
-  const dateTime =
-    variant === 'today'
-      ? time
-      : [formatDateShort(assignment.classDate), time].filter(Boolean).join(' · ');
+  // was on (BUG-SCRIBEHISTORY-001). Prefer the show's structured start_date;
+  // fall back to its date_label / class date (showDate) so a show recorded with
+  // only a text date ("Jul 10-12, 2026") still shows a date instead of nothing.
+  const dateLabel =
+    formatDateShort(assignment.classDate) ||
+    formatDateShort(assignment.showDate) ||
+    (assignment.showDate ?? '');
+  const dateTime = variant === 'today' ? time : [dateLabel, time].filter(Boolean).join(' · ');
 
   return (
     <div
