@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { StepPillNav, type StepPillNavStep } from '@/shared/ui/step-pill-nav';
 import { useEntryCartStore } from '../store';
 import { ClassPicker } from './class-picker';
@@ -9,7 +10,12 @@ import { RiderDemoAccountStep } from './rider-demo-account-step';
 import { RiderDemoDetailsStep } from './rider-demo-details-step';
 import { RiderDemoPaymentStep } from './rider-demo-payment-step';
 import { CheckoutConfirmation } from './checkout-confirmation';
-import type { AddOnWithRemaining, ClassWithCapacity, FinalizeOrderResult, QualTypeRow } from '../types';
+import type {
+  AddOnWithRemaining,
+  ClassWithCapacity,
+  FinalizeOrderResult,
+  QualTypeRow,
+} from '../types';
 
 const DEMO_SHOW_ID = 'demo-show';
 
@@ -88,7 +94,13 @@ const DEMO_ADD_ONS: AddOnWithRemaining[] = [
 ];
 
 const DEMO_QUAL_TYPES: QualTypeRow[] = [
-  { id: 'demo-qual-1', name: 'Regional Championship qualifier', price: 15, show_id: DEMO_SHOW_ID, enabled: true },
+  {
+    id: 'demo-qual-1',
+    name: 'Regional Championship qualifier',
+    price: 15,
+    show_id: DEMO_SHOW_ID,
+    enabled: true,
+  },
 ];
 
 const DEMO_RESULT: FinalizeOrderResult = {
@@ -98,18 +110,44 @@ const DEMO_RESULT: FinalizeOrderResult = {
   orderId: 'demo-order',
   total: 0,
   items: [
-    { kind: 'class_entry', label: 'Training Level Test 1 — Willow', qty: 1, unitPrice: 65, amount: 65 + 7.99 },
+    {
+      kind: 'class_entry',
+      label: 'Training Level Test 1 — Willow',
+      qty: 1,
+      unitPrice: 65,
+      amount: 65 + 7.99,
+    },
     { kind: 'addon', label: 'Overnight stall × 2', qty: 2, unitPrice: 45, amount: 2 * (45 + 3.6) },
   ],
 };
 DEMO_RESULT.total = DEMO_RESULT.items.reduce((sum, item) => sum + item.amount, 0);
 
 const STEPS: StepPillNavStep[] = [
-  { key: 'tickets', label: 'Choose tickets', title: 'Choose tickets', sub: 'Pick classes and add-ons for the show.' },
-  { key: 'account', label: 'Your account', title: 'Your account', sub: 'Sign up / sign in — demo mode skips real auth.' },
-  { key: 'details', label: 'Rider details & waiver', title: 'Rider details & waiver', sub: 'Horse info, required documents, and the waiver of liability.' },
+  {
+    key: 'tickets',
+    label: 'Choose tickets',
+    title: 'Choose tickets',
+    sub: 'Pick classes and add-ons for the show.',
+  },
+  {
+    key: 'account',
+    label: 'Your account',
+    title: 'Your account',
+    sub: 'Sign up / sign in — demo mode skips real auth.',
+  },
+  {
+    key: 'details',
+    label: 'Rider details & waiver',
+    title: 'Rider details & waiver',
+    sub: 'Horse info, required documents, and the waiver of liability.',
+  },
   { key: 'payment', label: 'Payment', title: 'Payment', sub: 'Order summary and payment step.' },
-  { key: 'confirmation', label: 'Confirmation', title: 'Confirmation', sub: 'What a rider sees immediately after a successful (demo) payment.' },
+  {
+    key: 'confirmation',
+    label: 'Confirmation',
+    title: 'Confirmation',
+    sub: 'What a rider sees immediately after a successful (demo) payment.',
+  },
 ];
 
 /**
@@ -121,7 +159,11 @@ const STEPS: StepPillNavStep[] = [
  * the three steps whose real counterparts fire real mutations. Zero
  * Supabase writes anywhere in this component tree.
  */
-export function RiderDemoWalkthrough() {
+export function RiderDemoWalkthrough({
+  showBackToConsole = false,
+}: {
+  showBackToConsole?: boolean;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const reset = useEntryCartStore((state) => state.reset);
 
@@ -136,36 +178,62 @@ export function RiderDemoWalkthrough() {
   }, [reset]);
 
   return (
-    <StepPillNav
-      steps={STEPS}
-      activeIndex={activeIndex}
-      onJump={setActiveIndex}
-      onPrev={() => { setActiveIndex((i) => Math.max(0, i - 1)); }}
-      onNext={() => { setActiveIndex((i) => Math.min(STEPS.length - 1, i + 1)); }}
-    >
-      <div className="mx-auto max-w-2xl space-y-6">
-        {activeIndex === 0 && (
-          <>
-            <ClassPicker classes={DEMO_CLASSES} qualTypes={DEMO_QUAL_TYPES} />
-            <AddOnPicker addOns={DEMO_ADD_ONS} />
-          </>
-        )}
-        {activeIndex === 1 && (
-          <RiderDemoAccountStep onNext={() => { setActiveIndex(2); }} />
-        )}
-        {activeIndex === 2 && (
-          <RiderDemoDetailsStep onNext={() => { setActiveIndex(3); }} />
-        )}
-        {activeIndex === 3 && (
-          <RiderDemoPaymentStep
-            classes={DEMO_CLASSES}
-            addOns={DEMO_ADD_ONS}
-            qualTypes={DEMO_QUAL_TYPES}
-            onNext={() => { setActiveIndex(4); }}
-          />
-        )}
-        {activeIndex === 4 && <CheckoutConfirmation result={DEMO_RESULT} showId={DEMO_SHOW_ID} />}
-      </div>
-    </StepPillNav>
+    <>
+      {showBackToConsole && (
+        <div className="flex items-center border-b border-[#E9EDEB] bg-white px-5 py-2.5">
+          <Link
+            href="/dashboard/superadmin"
+            className="text-forest hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+          >
+            ← Back to console
+          </Link>
+        </div>
+      )}
+      <StepPillNav
+        steps={STEPS}
+        activeIndex={activeIndex}
+        onJump={setActiveIndex}
+        onPrev={() => {
+          setActiveIndex((i) => Math.max(0, i - 1));
+        }}
+        onNext={() => {
+          setActiveIndex((i) => Math.min(STEPS.length - 1, i + 1));
+        }}
+      >
+        <div className="mx-auto max-w-2xl space-y-6">
+          {activeIndex === 0 && (
+            <>
+              <ClassPicker classes={DEMO_CLASSES} qualTypes={DEMO_QUAL_TYPES} />
+              <AddOnPicker addOns={DEMO_ADD_ONS} />
+            </>
+          )}
+          {activeIndex === 1 && (
+            <RiderDemoAccountStep
+              onNext={() => {
+                setActiveIndex(2);
+              }}
+            />
+          )}
+          {activeIndex === 2 && (
+            <RiderDemoDetailsStep
+              onNext={() => {
+                setActiveIndex(3);
+              }}
+            />
+          )}
+          {activeIndex === 3 && (
+            <RiderDemoPaymentStep
+              classes={DEMO_CLASSES}
+              addOns={DEMO_ADD_ONS}
+              qualTypes={DEMO_QUAL_TYPES}
+              onNext={() => {
+                setActiveIndex(4);
+              }}
+            />
+          )}
+          {activeIndex === 4 && <CheckoutConfirmation result={DEMO_RESULT} showId={DEMO_SHOW_ID} />}
+        </div>
+      </StepPillNav>
+    </>
   );
 }
