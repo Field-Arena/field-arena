@@ -172,33 +172,34 @@ export const RING_SIZES = [
   { id: 'small', label: 'Small (20m × 40m)' },
 ] as const;
 
-export const updateShowDetailsSchema = z.object({
-  showId: z.uuid(),
-  name: z.string().trim().min(3, 'Show name is required').max(160),
-  /** Free text, matching shows.show_details.org. Distinct from org_id: this is the club/association name shown to riders, not the platform account. */
-  org: optionalText(160),
-  showType: z.enum(['rated', 'schooling']),
-  /**
-   * Blank is allowed, unlike createShowSchema's required dates.
-   *
-   * "+ New Show" now creates the row before anything is filled in, so a show
-   * legitimately sits with no dates while its organizer works down the Setup
-   * card. This card also autosaves the whole card on every field change — so
-   * requiring dates here rejected an edit to the timezone or club name on a
-   * show that simply had not been dated yet.
-   */
-  startDate: z
-    .union([isoDate, z.literal('')])
-    .optional()
-    .transform((v) => v ?? ''),
-  endDate: z
-    .union([isoDate, z.literal('')])
-    .optional()
-    .transform((v) => v ?? ''),
-  timezone: optionalText(60),
-  startingRiderNumber: z.coerce.number().int().min(1).max(99999),
-  governingBodies: z.array(z.enum(GOVERNING_BODIES)),
-})
+export const updateShowDetailsSchema = z
+  .object({
+    showId: z.uuid(),
+    name: z.string().trim().min(3, 'Show name is required').max(160),
+    /** Free text, matching shows.show_details.org. Distinct from org_id: this is the club/association name shown to riders, not the platform account. */
+    org: optionalText(160),
+    showType: z.enum(['rated', 'schooling']),
+    /**
+     * Blank is allowed, unlike createShowSchema's required dates.
+     *
+     * "+ New Show" now creates the row before anything is filled in, so a show
+     * legitimately sits with no dates while its organizer works down the Setup
+     * card. This card also autosaves the whole card on every field change — so
+     * requiring dates here rejected an edit to the timezone or club name on a
+     * show that simply had not been dated yet.
+     */
+    startDate: z
+      .union([isoDate, z.literal('')])
+      .optional()
+      .transform((v) => v ?? ''),
+    endDate: z
+      .union([isoDate, z.literal('')])
+      .optional()
+      .transform((v) => v ?? ''),
+    timezone: optionalText(60),
+    startingRiderNumber: z.coerce.number().int().min(1).max(99999),
+    governingBodies: z.array(z.enum(GOVERNING_BODIES)),
+  })
   // Only once both are set — half-dated is a normal state mid-setup.
   .refine((d) => !d.startDate || !d.endDate || d.endDate >= d.startDate, {
     message: 'End date cannot be before the start date',
@@ -322,9 +323,9 @@ export const WAIVER_TEXT_DEFAULT =
   "[DEFAULT DRAFT — adapted from a real USDF-published waiver of liability (Revised form 10/2020), not a substitute for review by an attorney licensed in your state. The Equine Liability Act warning below is Georgia's exact required language as an example only — replace it with your own state's required warning language before relying on this.]\n\n" +
   'I, the undersigned Participant (which term includes Participant\'s parent or legally-appointed guardian, if a minor), freely and voluntarily seek to participate in {{SHOW_NAME}} on {{SHOW_DATES}}, produced by {{ORGANIZER_NAME}} (the "Event"), and any related educational or training programs, youth programs, clinics, or competitions (collectively, "the Activities"). {{ORGANIZER_NAME}}, together with its sponsors, managers, property owners, officials, organizers, affiliates, and their respective directors, officers, members, employees, agents, volunteers, representatives, and designated officials, are collectively referred to as the "Event Sponsor."\n\n' +
   'In consideration of the Event Sponsor allowing Participant to participate in the Activities, Participant agrees as follows:\n\n' +
-  '1. ACKNOWLEDGMENT OF INHERENT RISKS OF EQUINE ACTIVITIES/ASSUMPTION OF RISKS. Participant acknowledges that there are numerous inherent risks of equine activities, whether preparing for, entering, attending, participating in, or leaving the Event. The inherent risks include those dangers and conditions which are an integral part of equine activities, including, but not limited to: (a) the propensity of an equine or other animal to behave in ways that may result in injury, harm, or death to persons on or around them; (b) the unpredictability of the equine\'s reaction to such things as sounds, sudden movements and unfamiliar objects, persons, or other animals; (c) certain hazards such as surface or subsurface conditions; (d) collisions with other animals or objects; (e) the potential of a participant or other Participant to act in a negligent manner that may contribute to injury to the participant, Participant, or others, such as failing to maintain control over the equine or not acting within their ability; (f) the breakage or failure of tack or other equipment; (g) the potential that an equine or animal may cause injury or harm to the rider or other persons or animals in the vicinity; and (h) the potential transmission of communicable diseases to both humans and equines. Participant is not relying on Event Sponsor to list within this document all possible inherent risks or all risks of participating in any of the Activities at any location.\n\n' +
-  '2. WAIVER AND RELEASE OF LIABILITY. With full knowledge and appreciation of these and other inherent risks associated with equine activities and the Activities, Participant freely and voluntarily assumes the risks of the equine activities involved in any aspect of them. Participant also voluntarily agrees to waive any and all rights to sue and hereby releases the Event Sponsor from all liability, loss, claims, or actions for injury, death, expenses, or damage to person or property resulting from the inherent risks of the Event, or resulting from any action or inaction by the Event Sponsor. This waiver and release is effective even if the injury, death or damage to person or property is caused by, or contributed to by, actions or failure to act of the Event Sponsor and which actions or inactions constitute ordinary negligence or a violation of any applicable law pertaining to equine activity liabilities. Neither Participant nor Participant\'s representatives shall make any claim against, maintain an action against, or recover from the Event Sponsor or its sponsors, directors, officers, members, employees, agents, volunteers, representatives, designated officials, or others acting on their behalf for injury, loss, damage or death of the Participant, to the Participant\'s horse, or to the Participant\'s personal property (regardless of ordinary negligence by the Event Sponsor or regardless of an alleged violation of an applicable equine activity liability law).\n\n' +
-  '3. EQUINE LIABILITY ACT. Should the Activities take place in a state with an equine activity liability law, Participant acknowledges reading the applicable state warning below (example only — replace with your own state\'s required language).\n\nGEORGIA WARNING (example): Under Georgia law, an equine activity sponsor or equine professional is not liable for an injury to or the death of a participant in equine activities resulting from the inherent risks of equine activities, pursuant to Chapter 12 of Title 4 of the Official Code of Georgia Annotated.\n\n' +
+  "1. ACKNOWLEDGMENT OF INHERENT RISKS OF EQUINE ACTIVITIES/ASSUMPTION OF RISKS. Participant acknowledges that there are numerous inherent risks of equine activities, whether preparing for, entering, attending, participating in, or leaving the Event. The inherent risks include those dangers and conditions which are an integral part of equine activities, including, but not limited to: (a) the propensity of an equine or other animal to behave in ways that may result in injury, harm, or death to persons on or around them; (b) the unpredictability of the equine's reaction to such things as sounds, sudden movements and unfamiliar objects, persons, or other animals; (c) certain hazards such as surface or subsurface conditions; (d) collisions with other animals or objects; (e) the potential of a participant or other Participant to act in a negligent manner that may contribute to injury to the participant, Participant, or others, such as failing to maintain control over the equine or not acting within their ability; (f) the breakage or failure of tack or other equipment; (g) the potential that an equine or animal may cause injury or harm to the rider or other persons or animals in the vicinity; and (h) the potential transmission of communicable diseases to both humans and equines. Participant is not relying on Event Sponsor to list within this document all possible inherent risks or all risks of participating in any of the Activities at any location.\n\n" +
+  "2. WAIVER AND RELEASE OF LIABILITY. With full knowledge and appreciation of these and other inherent risks associated with equine activities and the Activities, Participant freely and voluntarily assumes the risks of the equine activities involved in any aspect of them. Participant also voluntarily agrees to waive any and all rights to sue and hereby releases the Event Sponsor from all liability, loss, claims, or actions for injury, death, expenses, or damage to person or property resulting from the inherent risks of the Event, or resulting from any action or inaction by the Event Sponsor. This waiver and release is effective even if the injury, death or damage to person or property is caused by, or contributed to by, actions or failure to act of the Event Sponsor and which actions or inactions constitute ordinary negligence or a violation of any applicable law pertaining to equine activity liabilities. Neither Participant nor Participant's representatives shall make any claim against, maintain an action against, or recover from the Event Sponsor or its sponsors, directors, officers, members, employees, agents, volunteers, representatives, designated officials, or others acting on their behalf for injury, loss, damage or death of the Participant, to the Participant's horse, or to the Participant's personal property (regardless of ordinary negligence by the Event Sponsor or regardless of an alleged violation of an applicable equine activity liability law).\n\n" +
+  "3. EQUINE LIABILITY ACT. Should the Activities take place in a state with an equine activity liability law, Participant acknowledges reading the applicable state warning below (example only — replace with your own state's required language).\n\nGEORGIA WARNING (example): Under Georgia law, an equine activity sponsor or equine professional is not liable for an injury to or the death of a participant in equine activities resulting from the inherent risks of equine activities, pursuant to Chapter 12 of Title 4 of the Official Code of Georgia Annotated.\n\n" +
   '4. MEDICAL TREATMENT. In the event of injury to me during the Event, I authorize the Organizer and Event medical staff to arrange for necessary emergency medical treatment on my behalf, at my expense, if I am unable to consent at the time.\n\n' +
   "5. MINORS. If Participant is under 18 years of age, this agreement is signed on Participant's behalf by Participant's parent or legally-appointed guardian, who represents that they have the legal authority to bind the minor to this agreement and agree to its terms on the minor's behalf as well as their own.\n\n" +
   '6. MISCELLANEOUS. This document is intended to be as broad and inclusive as applicable state law permits. If any clause conflicts with applicable law, only that clause will be void, but the remainder shall stay in full force and effect.\n\n' +
@@ -347,10 +348,22 @@ export const WAIVER_TEXT_DEFAULT =
 export const updateTicketWindowSchema = z
   .object({
     showId: z.uuid(),
-    ticketOpen: z.union([isoDate, z.literal('')]).optional().transform((v) => v ?? ''),
-    ticketCloseDate: z.union([isoDate, z.literal('')]).optional().transform((v) => v ?? ''),
+    ticketOpen: z
+      .union([isoDate, z.literal('')])
+      .optional()
+      .transform((v) => v ?? ''),
+    ticketCloseDate: z
+      .union([isoDate, z.literal('')])
+      .optional()
+      .transform((v) => v ?? ''),
     ticketCloseTime: z
-      .union([z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM'), z.literal('')])
+      .union([
+        z
+          .string()
+          .trim()
+          .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM'),
+        z.literal(''),
+      ])
       .optional()
       .transform((v) => v ?? ''),
   })
@@ -387,7 +400,12 @@ export const addCatalogGroupSchema = z.object({
   tests: z.array(z.string().trim().min(1).max(160)).min(1).max(40),
   fee: z.coerce.number().min(0).max(100000),
   /** A ring name from shows.locations, or '' for "No location set". */
-  location: z.string().trim().max(80).optional().transform((v) => v ?? ''),
+  location: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => v ?? ''),
 });
 
 export type AddCatalogGroupInput = z.input<typeof addCatalogGroupSchema>;
@@ -510,7 +528,6 @@ export type UploadVendorMapInput = z.input<typeof uploadVendorMapSchema>;
    riders must upload. Matches uploadDocumentSchema's pattern in the
    superadmin module. */
 
-
 export const removeShowDocumentSchema = z.object({
   id: z.uuid(),
   showId: z.uuid(),
@@ -531,16 +548,37 @@ export type UpdateDocumentEventsInput = z.input<typeof updateDocumentEventsSchem
    organizer authors once and reuses across shows. Distinct from
    class_tests, which is the test actually assigned to one class. */
 
+// Custom messages so a rejected "Save test" (BUG-TESTBUILDER-001) names the
+// actual problem — Zod's own default ("Number must be...") reaches the toast
+// as-is via readableError, with no field label to say which movement/mark.
 const testMovementSchema = z.object({
-  num: z.coerce.number().int().min(1).max(60),
-  text: z.string().trim().max(300),
-  coef: z.coerce.number().min(1).max(10),
+  num: z.coerce
+    .number()
+    .int()
+    .min(1, 'Movement number must be 1 or higher')
+    .max(60, 'Movement number is too high'),
+  text: z.string().trim().max(300, 'Movement description is too long (max 300 characters)'),
+  coef: z.coerce
+    .number()
+    .min(1, 'Coefficient must be between 1 and 10')
+    .max(10, 'Coefficient must be between 1 and 10'),
 });
 
 const testCollectiveSchema = z.object({
-  key: z.string().trim().min(1).max(60),
-  label: z.string().trim().min(1).max(160),
-  coef: z.coerce.number().min(1).max(10),
+  key: z
+    .string()
+    .trim()
+    .min(1, 'Collective mark is missing its key')
+    .max(60, 'Collective mark key is too long'),
+  label: z
+    .string()
+    .trim()
+    .min(1, 'Collective mark needs a label')
+    .max(160, 'Collective mark label is too long (max 160 characters)'),
+  coef: z.coerce
+    .number()
+    .min(1, 'Coefficient must be between 1 and 10')
+    .max(10, 'Coefficient must be between 1 and 10'),
 });
 
 export const saveTestTemplateSchema = z.object({
