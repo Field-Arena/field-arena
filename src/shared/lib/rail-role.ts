@@ -18,6 +18,16 @@ import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-worksp
  */
 const RAIL_ROLE_COOKIE = 'fa_rail_role';
 
+/**
+ * Remembers whether the SuperAdmin wanted the Organizer or the Show Admin view
+ * when they clicked one of those rail icons with no organization picked yet —
+ * so the org picker they're sent to can land them straight in that variant once
+ * they "Enter as organizer" (legacy platform.html's `pendingRoleKey`). Read and
+ * cleared by enterAsOrganizer (which reads it by the same literal name, since a
+ * 'use server' module cannot export a plain constant to share).
+ */
+const PENDING_PREVIEW_COOKIE = 'fa_pending_preview';
+
 /** A preview session, not a standing state — matches preview-role.ts's own framing. */
 const MAX_AGE_SECONDS = 60 * 60 * 8;
 
@@ -52,6 +62,22 @@ export async function setRailRole(role: string): Promise<void> {
     path: '/',
     maxAge: MAX_AGE_SECONDS,
   });
+
+  // The Organizer / Show Admin workspaces need a real organization — there is
+  // nothing to render for a SuperAdmin who hasn't picked one, so (matching the
+  // legacy platform.html rail) send them to the org picker instead of a blank
+  // /dashboard, remembering which variant they wanted so "Enter as organizer"
+  // drops them straight into it. Every other role previews with its own sample
+  // data and needs no org, so those go straight to their workspace.
+  if (role === 'Organizer' || role === 'ShowAdmin') {
+    store.set(PENDING_PREVIEW_COOKIE, role === 'ShowAdmin' ? 'showadmin' : 'organizer', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: MAX_AGE_SECONDS,
+    });
+    redirect('/dashboard/superadmin');
+  }
 
   redirect(workspace.href);
 }
