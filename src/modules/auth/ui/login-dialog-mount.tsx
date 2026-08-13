@@ -5,12 +5,15 @@ import { useSearchParams } from 'next/navigation';
 import { useLoginDialogStore } from '../store';
 
 /**
- * Opens the login dialog with a notice when the URL carries `?notice=`.
+ * Opens the login dialog from the URL — `?notice=` with a message, or a bare
+ * `?signin=1` to just open it.
  *
- * This is how a just-verified but un-provisioned sign-up lands: verifyEmailCode
- * signs it out and redirects here, and the message shows inside the dialog rather
- * than on the standalone /login page. Read once on mount, like the demo dialog's
- * `?demo=1` deep link.
+ * `?notice=` is how a just-verified but un-provisioned sign-up lands:
+ * verifyEmailCode signs it out and redirects here, and the message shows inside
+ * the dialog rather than on the standalone /login page. `?signin=1` is where
+ * logout lands (see useSignOut) so signing back in reuses the same dialog the
+ * whole app signs in with, not the /login page. Read once on mount, like the
+ * demo dialog's `?demo=1` deep link.
  */
 const NOTICES: Record<string, string> = {
   pending_invite:
@@ -21,11 +24,14 @@ export function LoginDialogMount() {
   const params = useSearchParams();
   const key = params.get('notice');
   const message = key ? NOTICES[key] : undefined;
+  const wantsSignIn = params.get('signin') === '1';
+  const openDialog = useLoginDialogStore((state) => state.openDialog);
   const openWithNotice = useLoginDialogStore((state) => state.openWithNotice);
 
   useEffect(() => {
     if (message) openWithNotice(message);
-  }, [message, openWithNotice]);
+    else if (wantsSignIn) openDialog();
+  }, [message, wantsSignIn, openDialog, openWithNotice]);
 
   return null;
 }

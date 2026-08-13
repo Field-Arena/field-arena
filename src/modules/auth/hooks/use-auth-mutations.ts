@@ -146,13 +146,18 @@ export function useResendEmailCode() {
 }
 
 export function useSignOut() {
-  const router = useRouter();
-
   return useMutation({
     mutationFn: () => signOut(),
     onSuccess: () => {
-      router.refresh();
-      router.push('/');
+      // A full navigation, not router.refresh() + push('/'): refreshing the
+      // protected route we're signing out FROM re-runs the proxy against a
+      // now-empty session, which 307s to the standalone /login page and wins the
+      // race against a soft push('/') — so the user lands on the login PAGE
+      // instead of the marketing home. A hard load of '/' avoids that entirely
+      // and guarantees every auth-dependent Server Component re-renders
+      // signed-out. `?signin=1` reopens the same login DIALOG the whole app
+      // signs in with (see LoginDialogMount), matching the legacy modal flow.
+      window.location.assign('/?signin=1');
     },
     onError: (error) => {
       toast.error(readableError(error, 'Could not sign out'));
