@@ -1,6 +1,10 @@
 import { isPast } from '@/shared/lib/format/date';
 import type { AssignmentRow, PanelContact, TodayPanelContact } from './data/queries';
-import { DEMO_PANEL_CONTACTS, DEMO_TODAY_ASSIGNMENTS, DEMO_UPCOMING_ASSIGNMENTS } from './constants';
+import {
+  DEMO_PANEL_CONTACTS,
+  DEMO_TODAY_ASSIGNMENTS,
+  DEMO_UPCOMING_ASSIGNMENTS,
+} from './constants';
 
 /**
  * Which of the "My Assignments" tab's two groups, or History, a class falls
@@ -10,7 +14,7 @@ import { DEMO_PANEL_CONTACTS, DEMO_TODAY_ASSIGNMENTS, DEMO_UPCOMING_ASSIGNMENTS 
  */
 export function classifyAssignment(
   assignment: Pick<AssignmentRow, 'classDate' | 'resultsPublished'>,
-  todayIso: string
+  todayIso: string,
 ): 'today' | 'upcoming' | 'history' {
   if (assignment.resultsPublished) return 'history';
   if (assignment.classDate && isPast(assignment.classDate)) return 'history';
@@ -28,10 +32,10 @@ export function classifyAssignment(
 export function buildTodaySnapshot(
   assignments: AssignmentRow[],
   panelContacts: PanelContact[],
-  todayIso: string
-): { rings: string[]; contacts: TodayPanelContact[] } {
+  todayIso: string,
+): { rings: string[]; contacts: TodayPanelContact[]; assignmentsToday: number } {
   const todayClassIds = new Set(
-    assignments.filter((a) => a.classDate === todayIso).map((a) => a.classId)
+    assignments.filter((a) => a.classDate === todayIso).map((a) => a.classId),
   );
 
   const rings = [
@@ -39,7 +43,7 @@ export function buildTodaySnapshot(
       assignments
         .filter((a) => todayClassIds.has(a.classId))
         .map((a) => a.ring)
-        .filter((ring): ring is string => ring !== null)
+        .filter((ring): ring is string => ring !== null),
     ),
   ];
 
@@ -52,7 +56,7 @@ export function buildTodaySnapshot(
     contacts.push({ name: contact.name, role: contact.role, position: contact.position });
   }
 
-  return { rings, contacts };
+  return { rings, contacts, assignmentsToday: todayClassIds.size };
 }
 
 /**
@@ -77,7 +81,7 @@ export function buildDemoAssignments(todayIso: string): AssignmentRow[] {
       partnerName: string;
     },
     classDate: string,
-    id: string
+    id: string,
   ): AssignmentRow => ({
     classId: `demo-class-${id}`,
     classLabel: d.classLabel,
@@ -110,7 +114,9 @@ export function buildDemoPanelContacts(): PanelContact[] {
 }
 
 /** A class is "complete" once every entry has been scored, scratched, or disqualified — drives the Results view. */
-export function isAssignmentComplete(assignment: Pick<AssignmentRow, 'entryCount' | 'advancedCount'>): boolean {
+export function isAssignmentComplete(
+  assignment: Pick<AssignmentRow, 'entryCount' | 'advancedCount'>,
+): boolean {
   return assignment.entryCount > 0 && assignment.advancedCount === assignment.entryCount;
 }
 
@@ -132,7 +138,14 @@ export interface PlacingRow {
  * import (same precedent as `resolveScoringPermissions`'s three copies).
  */
 export function rankPlacings(
-  rides: { entryId: string; num: string; rider: string; horse: string; finalPct: number | null; ctot: number | null }[]
+  rides: {
+    entryId: string;
+    num: string;
+    rider: string;
+    horse: string;
+    finalPct: number | null;
+    ctot: number | null;
+  }[],
 ): PlacingRow[] {
   const scored = rides
     .filter((r): r is typeof r & { finalPct: number } => typeof r.finalPct === 'number')
@@ -147,10 +160,18 @@ export function rankPlacings(
     if (i > 0) {
       const prev = scored[i - 1];
       const stillTied =
-        row.finalPct === prev?.finalPct && (row.ctot == null || prev.ctot == null || row.ctot === prev.ctot);
+        row.finalPct === prev?.finalPct &&
+        (row.ctot == null || prev.ctot == null || row.ctot === prev.ctot);
       if (!stillTied) rank = i + 1;
     }
-    return { entryId: row.entryId, num: row.num, rider: row.rider, horse: row.horse, pct: row.finalPct, rank };
+    return {
+      entryId: row.entryId,
+      num: row.num,
+      rider: row.rider,
+      horse: row.horse,
+      pct: row.finalPct,
+      rank,
+    };
   });
 }
 

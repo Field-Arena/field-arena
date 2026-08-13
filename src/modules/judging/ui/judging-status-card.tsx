@@ -15,39 +15,53 @@ import type { TodayPanelContact } from '../data/queries';
  * (the same gap WorkspaceHeader's own doc comment flags for the organizer
  * dashboard's ring strip) — so this shows today's real ring name(s) instead
  * of a number nobody is actually measuring.
+ *
+ * `rings` can be empty even with real assignments today — a class only ends
+ * up in it once an organizer has set that class's ring/location, which
+ * nothing requires. `assignmentsToday` is the honest fallback: it comes
+ * straight from today's assignment count, not from whether a ring name
+ * happens to exist, so "No assignments today" only ever says that when it's
+ * true.
  */
 export function JudgingStatusCard({
   rings,
   contacts,
+  assignmentsToday,
 }: {
   rings: string[];
   contacts: TodayPanelContact[];
+  assignmentsToday: number;
 }) {
   const [open, setOpen] = useState(false);
 
-  const ringLabel = rings.length > 0 ? rings.join(', ') : 'No assignments today';
+  const ringLabel =
+    rings.length > 0
+      ? rings.join(', ')
+      : assignmentsToday > 0
+        ? `${String(assignmentsToday)} assignment${assignmentsToday === 1 ? '' : 's'} today — ring not set`
+        : 'No assignments today';
 
   const tooltipText =
     contacts.length > 0
       ? contacts
           .map(
             (c) =>
-              `${c.name} is ${c.role === 'judge' ? 'judging' : 'scribing'}${c.position ? ` at ${c.position}` : ''}`
+              `${c.name} is ${c.role === 'judge' ? 'judging' : 'scribing'}${c.position ? ` at ${c.position}` : ''}`,
           )
           .join('; ')
       : "You're the only one on today's panel.";
 
   return (
     <div className="mb-7 flex flex-wrap items-center gap-6 rounded-[14px] border border-[#E9EDEB] bg-white p-[18px_22px] shadow-[0_1px_2px_rgba(16,40,32,.04),0_12px_30px_-16px_rgba(16,40,32,.13)]">
-      <LiveClock className="flex-none font-mono text-[26px] font-semibold tracking-[.03em] text-ink-deep" />
+      <LiveClock className="text-ink-deep flex-none font-mono text-[26px] font-semibold tracking-[.03em]" />
 
       <span className="h-[30px] w-px flex-none bg-[#E9EDEB]" />
 
       <span className="flex min-w-[160px] flex-1 flex-col gap-0.5">
-        <span className="text-[10px] font-bold uppercase tracking-[.12em] text-[#7A8781]">
+        <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
           Today
         </span>
-        <span className="text-[15px] font-bold text-ink-deep">{ringLabel}</span>
+        <span className="text-ink-deep text-[15px] font-bold">{ringLabel}</span>
       </span>
 
       <div className="relative flex-none">
@@ -56,7 +70,7 @@ export function JudgingStatusCard({
           onClick={() => {
             setOpen((o) => !o);
           }}
-          className="inline-flex items-center gap-[7px] rounded-[9px] border border-[#D9E1DD] bg-white px-[15px] py-2.5 text-[12.5px] font-semibold text-ink-deep transition-colors hover:border-gold"
+          className="text-ink-deep hover:border-gold inline-flex items-center gap-[7px] rounded-[9px] border border-[#D9E1DD] bg-white px-[15px] py-2.5 text-[12.5px] font-semibold transition-colors"
         >
           <PeopleIcon />
           Who&apos;s on the panel

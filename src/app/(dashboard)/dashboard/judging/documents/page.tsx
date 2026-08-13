@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { buildDemoAssignments, buildDemoPanelContacts, buildTodaySnapshot } from '@/modules/judging/utils';
+import {
+  buildDemoAssignments,
+  buildDemoPanelContacts,
+  buildTodaySnapshot,
+} from '@/modules/judging/utils';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { JUDGING_REFERENCE_DOCS } from '@/modules/judging/constants';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
@@ -37,7 +41,11 @@ export default async function JudgingDocumentsPage() {
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice />}
 
-      <JudgingStatusCard rings={snapshot.rings} contacts={snapshot.contacts} />
+      <JudgingStatusCard
+        rings={snapshot.rings}
+        contacts={snapshot.contacts}
+        assignmentsToday={snapshot.assignmentsToday}
+      />
 
       <div className="flex flex-col gap-3">
         {JUDGING_REFERENCE_DOCS.map((doc) => (
@@ -46,9 +54,9 @@ export default async function JudgingDocumentsPage() {
             href={doc.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-5 rounded-xl border border-[#E9EDEB] bg-white p-[18px_20px] transition-colors hover:border-gold"
+            className="hover:border-gold flex items-center gap-5 rounded-xl border border-[#E9EDEB] bg-white p-[18px_20px] transition-colors"
           >
-            <span className="min-w-0 flex-1 font-[Newsreader,serif] text-lg font-semibold text-ink-deep">
+            <span className="text-ink-deep min-w-0 flex-1 font-[Newsreader,serif] text-lg font-semibold">
               {doc.name} ↗
             </span>
             <span className="flex-none text-[13px] whitespace-nowrap text-[#7A8781]">
@@ -59,8 +67,8 @@ export default async function JudgingDocumentsPage() {
       </div>
 
       <p className="mt-4 text-[13px] leading-[1.55] text-[#7A8781]">
-        General references that apply to every class. The test sheet for a specific class is on
-        that class in My Assignments.
+        General references that apply to every class. The test sheet for a specific class is on that
+        class in My Assignments.
       </p>
     </>
   );

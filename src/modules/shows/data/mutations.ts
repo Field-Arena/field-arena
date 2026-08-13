@@ -36,6 +36,7 @@ import {
   removeShowDocumentSchema,
   updateDocumentEventsSchema,
   saveTestTemplateSchema,
+  assignTestTemplateToClassSchema,
   saveShowExpensesSchema,
   updateScheduleRulesSchema,
   setClassDurationSchema,
@@ -1261,6 +1262,41 @@ export async function deleteTestTemplate(id: string): Promise<void> {
   const supabase = await createServerClient();
   const { error } = await supabase.from('test_templates').delete().eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * "Use for a class" — the hand-off legacy's own Test Builder comment
+ * described but never wired (showstaff.html: copies a template's
+ * movements/collectives into that class's class_tests row). Caller's own
+ * client, not admin: `class_tests_write` RLS (`canEditShow` on the class's
+ * show) is the real gate on which classes this organizer may attach a test
+ * to, same reasoning every other organizer write in this file follows.
+ * Upsert on `class_id` (unique) so re-assigning a class overwrites its
+ * current test rather than erroring.
+ */
+export async function assignTestTemplateToClass(input: unknown): Promise<void> {
+  const parsed = assignTestTemplateToClassSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: template, error: templateError } = await supabase
+    .from('test_templates')
+    .select('name, movements, collectives')
+    .eq('id', parsed.templateId)
+    .single();
+  if (templateError) throw new Error(templateError.message);
+
+  const { error } = await supabase.from('class_tests').upsert(
+    {
+      class_id: parsed.classId,
+      name: template.name,
+      movements: template.movements,
+      collectives: template.collectives,
+    },
+    { onConflict: 'class_id' }
+  );
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
 /* ── Financial (Billing) tab ─────────────────────────────────────────────── */

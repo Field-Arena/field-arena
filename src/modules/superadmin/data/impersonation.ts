@@ -71,6 +71,24 @@ export async function enterAsOrganizer(orgId: string): Promise<void> {
     maxAge: MAX_AGE_SECONDS,
   });
 
+  // Honour the variant the SuperAdmin picked in the ROLES rail before they had
+  // an org (rail-role.ts's 'fa_pending_preview', legacy platform.html's
+  // pendingRoleKey): "Show Admin" enters money-hidden, "Organizer" enters full.
+  // The literal cookie names are shared by name because a 'use server' module
+  // cannot export a plain constant to import from the other side.
+  const pending = store.get('fa_pending_preview')?.value;
+  if (pending === 'showadmin') {
+    store.set('fa_preview_role', 'showadmin', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: MAX_AGE_SECONDS,
+    });
+  } else if (pending === 'organizer') {
+    store.delete('fa_preview_role');
+  }
+  if (pending) store.delete('fa_pending_preview');
+
   redirect('/dashboard');
 }
 

@@ -33,7 +33,11 @@ export default async function JudgingPage() {
   const assignments = isSuperAdminPreview ? buildDemoAssignments(todayIso) : realAssignments;
   const panelContacts = isSuperAdminPreview ? buildDemoPanelContacts() : realPanelContacts;
   const roleLabel = profile?.platform_role === 'Scribe' ? 'Scribe' : 'Judge';
-  const { rings, contacts } = buildTodaySnapshot(assignments, panelContacts, todayIso);
+  const { rings, contacts, assignmentsToday } = buildTodaySnapshot(
+    assignments,
+    panelContacts,
+    todayIso,
+  );
 
   const today = assignments.filter((a) => classifyAssignment(a, todayIso) === 'today');
   const upcoming = assignments.filter((a) => classifyAssignment(a, todayIso) === 'upcoming');
@@ -55,12 +59,12 @@ export default async function JudgingPage() {
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice />}
 
-      <JudgingStatusCard rings={rings} contacts={contacts} />
+      <JudgingStatusCard rings={rings} contacts={contacts} assignmentsToday={assignmentsToday} />
 
       {today.length > 0 && (
         <Link
           href="/dashboard/judging/results"
-          className="mb-3.5 inline-block text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+          className="hover:text-gold mb-3.5 inline-block text-[13px] font-semibold text-[#5A6B63]"
         >
           🏆 View Results
         </Link>
@@ -73,7 +77,7 @@ export default async function JudgingPage() {
         </Card>
       ) : (
         <>
-          <h3 className="mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold text-ink-deep">
+          <h3 className="text-ink-deep mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold">
             Today&apos;s Ring Times
           </h3>
           <div className="mb-8 flex flex-col gap-3">
@@ -88,7 +92,7 @@ export default async function JudgingPage() {
             )}
           </div>
 
-          <h3 className="mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold text-ink-deep">
+          <h3 className="text-ink-deep mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold">
             Upcoming
           </h3>
           <div className="flex flex-col gap-3">
@@ -98,7 +102,11 @@ export default async function JudgingPage() {
               </Card>
             ) : (
               upcoming.map((a) => (
-                <AssignmentCard key={`${a.classId}-${a.seatId}`} assignment={a} variant="upcoming" />
+                <AssignmentCard
+                  key={`${a.classId}-${a.seatId}`}
+                  assignment={a}
+                  variant="upcoming"
+                />
               ))
             )}
           </div>
@@ -109,5 +117,5 @@ export default async function JudgingPage() {
 }
 
 function GoldDot() {
-  return <span className="size-2 rounded-full bg-gold" />;
+  return <span className="bg-gold size-2 rounded-full" />;
 }

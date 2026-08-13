@@ -1,5 +1,6 @@
 import { cn } from '@/shared/lib/utils';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
+import { formatDateShort } from '@/shared/lib/format/date';
 import type { AssignmentRow } from '../data/queries';
 import { formatClassTime } from '../utils';
 import { USDF_TEST_SHEETS_URL } from '../constants';
@@ -35,18 +36,26 @@ export function AssignmentCard({
     .filter(Boolean)
     .join(' · ');
   const when = WHEN_META[variant];
+  // Today's own group already says "today" via the section heading, but History
+  // and Upcoming show classes from any date — a time with no date ("8:00 AM ·
+  // Training Level Test 3") gives no way to tell which day a completed class
+  // was on (BUG-SCRIBEHISTORY-001).
+  const dateTime =
+    variant === 'today'
+      ? time
+      : [formatDateShort(assignment.classDate), time].filter(Boolean).join(' · ');
 
   return (
     <div
       className={cn(
         'flex flex-wrap items-center gap-5 rounded-xl border bg-white p-[18px_20px]',
         'shadow-[0_1px_2px_rgba(16,40,32,.03)]',
-        variant === 'today' ? 'border-[#E9EDEB] border-l-4 border-l-gold' : 'border-[#E9EDEB]'
+        variant === 'today' ? 'border-l-gold border-l-4 border-[#E9EDEB]' : 'border-[#E9EDEB]',
       )}
     >
       <div className="min-w-[260px] flex-1">
-        <div className="mb-1.5 font-[Newsreader,serif] text-lg font-semibold text-ink-deep">
-          {time ? `${time} · ` : ''}
+        <div className="text-ink-deep mb-1.5 font-[Newsreader,serif] text-lg font-semibold">
+          {dateTime ? `${dateTime} · ` : ''}
           {assignment.classLabel}
         </div>
         <div className="mb-0.5 text-[13.5px] text-[#5A6B63]">
@@ -55,7 +64,8 @@ export function AssignmentCard({
         </div>
         {assignment.partnerName && (
           <div className="mb-[7px] text-[13.5px] text-[#5A6B63]">
-            With {assignment.partnerName} ({assignment.partnerRole === 'judge' ? 'Judge' : 'Scribe'})
+            With {assignment.partnerName} ({assignment.partnerRole === 'judge' ? 'Judge' : 'Scribe'}
+            )
           </div>
         )}
         <div className="text-[13.5px] text-[#5A6B63]">
@@ -64,7 +74,7 @@ export function AssignmentCard({
             href={USDF_TEST_SHEETS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-bold text-ink-deep underline decoration-[#B4BFB9] hover:text-gold"
+            className="text-ink-deep hover:text-gold font-bold underline decoration-[#B4BFB9]"
           >
             {assignment.classLabel} ↗
           </a>

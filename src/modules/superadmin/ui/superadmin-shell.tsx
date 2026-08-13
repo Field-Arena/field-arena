@@ -54,8 +54,25 @@ export function SuperAdminShell({
   // no way to reach the rest of what the role actually sees.
   const isConsoleRoute =
     pathname === '/dashboard/superadmin' || pathname.startsWith('/dashboard/superadmin/');
-  const previewNav = isConsoleRoute ? undefined : ROLE_NAV[activeRailRole];
-  const previewTitle = ROLE_WORKSPACES[activeRailRole]?.title ?? 'Workspace';
+  // Which role's workspace is being previewed. The rail cookie (activeRailRole)
+  // is authoritative — it's the only thing that can tell Judge from Scribe, who
+  // share one route — but a direct URL hit (or a stale cookie) has none, so the
+  // route itself is the fallback. That keeps every previewable role's own tabs
+  // showing (Judge/Scribe, Announcer, Show Operations, Vendor), never the
+  // console nav, no matter how the page was reached.
+  const previewRole = ROLE_NAV[activeRailRole]
+    ? activeRailRole
+    : pathname.startsWith('/dashboard/judging')
+      ? 'Judge'
+      : pathname.startsWith('/dashboard/announcing')
+        ? 'Announcer'
+        : pathname.startsWith('/dashboard/operations')
+          ? 'ShowStaff'
+          : pathname.startsWith('/dashboard/vendor')
+            ? 'Vendor'
+            : activeRailRole;
+  const previewNav = isConsoleRoute ? undefined : ROLE_NAV[previewRole];
+  const previewTitle = ROLE_WORKSPACES[previewRole]?.title ?? 'Workspace';
   const activePreviewHref =
     previewNav?.find((item) => item.href === pathname)?.href ??
     previewNav?.reduce<string | null>((best, item) => {

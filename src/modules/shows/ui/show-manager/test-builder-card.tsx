@@ -3,12 +3,17 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
-import { useSaveTestTemplate, useDeleteTestTemplate } from '../../hooks/use-test-builder-mutations';
+import {
+  useSaveTestTemplate,
+  useDeleteTestTemplate,
+  useAssignTestToClass,
+} from '../../hooks/use-test-builder-mutations';
 import { TB_STARTER_TESTS } from '../../constants';
 import type {
   TestTemplateRow,
   TestTemplateMovement,
   TestTemplateCollective,
+  TestBuilderClassOption,
 } from '../../data/setup-queries';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_ROW_INPUT } from './tokens';
 import { SectionFooter } from './section-footer';
@@ -31,24 +36,30 @@ function nextMovementNum(movements: TestTemplateMovement[]): number {
 /**
  * "Test Builder" — an organization's own dressage test library, ported from
  * showstaff.html's Test Builder tab. Real movements/collective marks saved to
- * test_templates, reusable across shows. Assigning a built test to a specific
- * class (the legacy "Use for a class" hand-off into class_tests) isn't wired
- * yet — this covers authoring the library itself.
+ * test_templates, reusable across shows. Each template also gets a "Use for
+ * a class" picker — the legacy comment's own name for this hand-off — which
+ * copies its movements/collectives into that class's class_tests row so the
+ * live-scoring screen (`modules/scoring`) resolves a real test instead of
+ * showing "Not a real test."
  */
 export function TestBuilderCard({
   orgId,
   templates,
+  classes,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
+  classes: TestBuilderClassOption[];
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [pickedClass, setPickedClass] = useState<Record<string, string>>({});
   const save = useSaveTestTemplate({
     onSuccess: () => {
       setDraft(null);
     },
   });
   const del = useDeleteTestTemplate();
+  const assignToClass = useAssignTestToClass();
 
   function openNew() {
     setDraft({ ...EMPTY_DRAFT });
@@ -340,6 +351,36 @@ export function TestBuilderCard({
                 >
                   Delete
                 </button>
+                {classes.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={pickedClass[t.id] ?? ''}
+                      onChange={(e) => {
+                        setPickedClass({ ...pickedClass, [t.id]: e.target.value });
+                      }}
+                      className={SM_ROW_INPUT}
+                    >
+                      <option value="">Use for a class…</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={!pickedClass[t.id] || assignToClass.isPending}
+                      onClick={() => {
+                        const classId = pickedClass[t.id];
+                        if (!classId) return;
+                        assignToClass.mutate({ templateId: t.id, classId });
+                      }}
+                      className="text-forest text-[13px] font-semibold hover:underline disabled:cursor-not-allowed disabled:text-[#B4BFB9] disabled:no-underline"
+                    >
+                      Assign
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

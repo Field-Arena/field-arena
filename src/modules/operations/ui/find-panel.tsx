@@ -32,7 +32,10 @@ export function FindPanel({
   }, [term, riders, horses, vendors, canViewVendors]);
 
   const hasNoMatches =
-    !!matches && matches.riders.length === 0 && matches.horses.length === 0 && matches.vendors.length === 0;
+    !!matches &&
+    matches.riders.length === 0 &&
+    matches.horses.length === 0 &&
+    matches.vendors.length === 0;
 
   return (
     <div className="dash-card">
@@ -44,11 +47,21 @@ export function FindPanel({
           setTerm(e.target.value);
         }}
       />
-      {!matches && <p style={{ color: 'var(--fa-muted)' }}>Start typing to search across the whole show.</p>}
-      {hasNoMatches && <p style={{ color: 'var(--fa-muted)' }}>No matches for &quot;{term}&quot;.</p>}
+      {!matches && (
+        <p style={{ color: 'var(--fa-muted)' }}>Start typing to search across the whole show.</p>
+      )}
+      {hasNoMatches && (
+        // BUG-SOFIND-001: an unbroken long query (no spaces) needs an explicit
+        // wrap rule — the default is to overflow this card rather than break.
+        <p style={{ color: 'var(--fa-muted)', overflowWrap: 'anywhere' }}>
+          No matches for &quot;{term}&quot;.
+        </p>
+      )}
       {matches && matches.riders.length > 0 && (
         <>
-          <h3 style={{ fontSize: 14, color: 'var(--hunter-deep)', margin: '14px 0 4px' }}>Riders</h3>
+          <h3 style={{ fontSize: 14, color: 'var(--hunter-deep)', margin: '14px 0 4px' }}>
+            Riders
+          </h3>
           {matches.riders.map((r) => (
             <div key={r.num} style={rowStyle}>
               <div>
@@ -73,7 +86,9 @@ export function FindPanel({
       )}
       {matches && matches.horses.length > 0 && (
         <>
-          <h3 style={{ fontSize: 14, color: 'var(--hunter-deep)', margin: '14px 0 4px' }}>Horses</h3>
+          <h3 style={{ fontSize: 14, color: 'var(--hunter-deep)', margin: '14px 0 4px' }}>
+            Horses
+          </h3>
           {matches.horses.map((h) => (
             <div key={h.key} style={rowStyle}>
               <div>
@@ -92,7 +107,9 @@ export function FindPanel({
       )}
       {matches && matches.vendors.length > 0 && (
         <>
-          <h3 style={{ fontSize: 14, color: 'var(--hunter-deep)', margin: '14px 0 4px' }}>Vendors</h3>
+          <h3 style={{ fontSize: 14, color: 'var(--hunter-deep)', margin: '14px 0 4px' }}>
+            Vendors
+          </h3>
           {matches.vendors.map((v) => (
             <div key={v.id} style={rowStyle}>
               <div>

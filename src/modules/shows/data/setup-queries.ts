@@ -993,11 +993,18 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
   }));
 }
 
+export interface TestBuilderClassOption {
+  id: string;
+  label: string;
+}
+
 export interface TestBuilderPageData {
   showId: string;
   showName: string;
   orgId: string;
   templates: TestTemplateRow[];
+  /** This show's classes, for the "Use for a class" picker on each template. */
+  classes: TestBuilderClassOption[];
 }
 
 /** Show Manager, Test Builder tab: the show's identity (for the shell) plus its organization's test library. */
@@ -1008,9 +1015,19 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (show.error) throw show.error;
   if (!show.data) return null;
 
-  const templates = await listTestTemplates(show.data.org_id);
+  const [templates, classesRes] = await Promise.all([
+    listTestTemplates(show.data.org_id),
+    supabase.from('classes').select('id, label').eq('show_id', showId).order('label'),
+  ]);
+  if (classesRes.error) throw classesRes.error;
 
-  return { showId: show.data.id, showName: show.data.name, orgId: show.data.org_id, templates };
+  return {
+    showId: show.data.id,
+    showName: show.data.name,
+    orgId: show.data.org_id,
+    templates,
+    classes: classesRes.data,
+  };
 }
 
 /* ── Financial (Billing) tab ─────────────────────────────────────────────
