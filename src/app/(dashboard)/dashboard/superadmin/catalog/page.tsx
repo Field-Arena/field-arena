@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { InfoIcon } from 'lucide-react';
 import { listScoringCatalog, listCatalogDocuments } from '@/modules/superadmin/data/queries';
 import { CatalogBoard } from '@/modules/superadmin/ui/catalog-board';
+import { groupSheetsByFamily } from '@/modules/superadmin/utils';
 
 export const metadata: Metadata = {
   title: 'Scoring Catalog — SuperAdmin Console',
@@ -18,12 +19,7 @@ export default async function ScoringCatalogPage() {
   const [sheets, docs] = await Promise.all([listScoringCatalog(), listCatalogDocuments()]);
   const testDocs = docs.filter((d) => d.folder === 'Tests');
 
-  const byFamily = new Map<string, number>();
-  for (const sheet of sheets) {
-    const family = sheet.family ?? 'unassigned';
-    byFamily.set(family, (byFamily.get(family) ?? 0) + 1);
-  }
-  const stubs = sheets.filter((s) => !s.source_file).length;
+  const { byFamily, stubs } = groupSheetsByFamily(sheets);
 
   const tiles: { label: string; value: number }[] = [
     { label: 'Sheets', value: sheets.length },

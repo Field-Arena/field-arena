@@ -5,23 +5,10 @@ import Link from 'next/link';
 import { ArrowRightIcon, SearchIcon, UploadIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { CATALOG_FAMILY_META, CATALOG_SCORE_TYPES } from '../constants';
-import type { CatalogDocument, CatalogSheetRow } from '../data/queries';
+import type { CatalogDocument, CatalogSheetRow } from '../types';
+import { readFileAsBase64 } from '../utils';
 import { useUploadDocument } from '../hooks/use-document-mutations';
 import { UploadSheetDialog } from './upload-sheet-dialog';
-
-function readFile(file: File): Promise<{ dataBase64: string; contentType: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      resolve({ dataBase64: result.split(',')[1] ?? '', contentType: file.type || 'application/pdf' });
-    };
-    reader.onerror = () => {
-      reject(new Error('Could not read the file'));
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 const COLS = 'minmax(280px,1fr) 150px 160px 130px 110px 92px';
 const FAM_FALLBACK = {
@@ -264,7 +251,7 @@ function CatalogFileCell({
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) {
-            void readFile(file).then(({ dataBase64, contentType }) => {
+            void readFileAsBase64(file).then(({ dataBase64, contentType }) => {
               upload.mutate({ folder: 'Tests', name: sourceFile, dataBase64, contentType });
             });
           }

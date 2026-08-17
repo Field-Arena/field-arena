@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { listCatalogDocuments, listScoringCatalog } from '@/modules/superadmin/data/queries';
-import { DocumentsBoard, type TestSheetItem } from '@/modules/superadmin/ui/documents-board';
+import { DocumentsBoard } from '@/modules/superadmin/ui/documents-board';
+import { toTestSheetItems } from '@/modules/superadmin/utils';
 
 export const metadata: Metadata = {
   title: 'Documents — SuperAdmin Console',
@@ -18,9 +19,7 @@ const NR = 'font-[family-name:var(--font-nr)]';
 export default async function PlatformDocumentsPage() {
   const [sheets, docs] = await Promise.all([listScoringCatalog(), listCatalogDocuments()]);
 
-  const testSheets: TestSheetItem[] = sheets
-    .filter((s) => s.source_file)
-    .map((s) => ({ id: s.id, title: s.title, level: s.level, sourceFile: s.source_file ?? '' }));
+  const testSheets = toTestSheetItems(sheets);
 
   return (
     <div className="space-y-7">

@@ -4,6 +4,7 @@ import { listOrganizations } from '@/modules/superadmin/data/queries';
 import { OrganizationsTable } from '@/modules/superadmin/ui/organizations-table';
 import { ConsoleStatBar } from '@/modules/superadmin/ui/console-stat-bar';
 import { OrganizerStatusFilter } from '@/modules/superadmin/ui/organizer-status-filter';
+import { summarizeOrganizations } from '@/modules/superadmin/utils';
 
 export const metadata: Metadata = {
   title: 'Super Admin — Field & Arena',
@@ -39,11 +40,7 @@ export default async function SuperAdminOverviewPage({
   // Totals describe the platform, so they always reflect every organization —
   // narrowing them to the current search would make them read as platform
   // figures while silently meaning something else.
-  const onboarded = all.filter((org) => org.onboarded).length;
-  const pending = all.length - onboarded;
-  const totalShows = all.reduce((sum, org) => sum + org.showCount, 0);
-  const totalRiders = all.reduce((sum, org) => sum + org.riderCount, 0);
-  const withShows = all.filter((org) => org.showCount > 0).length;
+  const { onboarded, pending, totalShows, totalRiders, withShows } = summarizeOrganizations(all);
 
   // The status filter narrows what the table shows, on top of whatever the
   // search box already narrowed — so a search plus "Pending" combine rather

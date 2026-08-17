@@ -7,6 +7,7 @@ import { getStaffProfile } from '@/modules/auth/data/queries';
 import { UsersTabs } from '@/modules/superadmin/ui/users-tabs';
 import { SuperAdminsPanel } from '@/modules/superadmin/ui/super-admins-panel';
 import { DirectoryPanel } from '@/modules/superadmin/ui/directory-panel';
+import { filterSuperAdmins } from '@/modules/superadmin/utils';
 
 export const metadata: Metadata = {
   title: 'Users — SuperAdmin Console',
@@ -31,7 +32,7 @@ export default async function PlatformUsersPage() {
   // The "Super Admins" tab lists Super Admins only — every other login belongs
   // to an organizer's team and shows in the Organizer Staff Directory tab
   // (BUG-USERS-002; matches the legacy console's split).
-  const superAdmins = accounts.filter((account) => account.role === 'SuperAdmin');
+  const superAdmins = filterSuperAdmins(accounts);
 
   return (
     <div className="space-y-7">

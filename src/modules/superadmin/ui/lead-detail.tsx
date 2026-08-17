@@ -4,8 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon, Loader2Icon, MailIcon } from 'lucide-react';
 import { LEAD_STATUSES } from '../constants';
-import type { LeadRow } from '../data/queries';
+import type { LeadRow } from '../types';
 import type { ChecklistItem } from '../schemas';
+import { parseMoneyField, toChecklist } from '../utils';
 import { useUpdateLead, useSendLeadOnboarding } from '../hooks/use-lead-mutations';
 import { LeadStatusPill } from './lead-status-pill';
 
@@ -17,23 +18,6 @@ const H2 = 'font-[family-name:var(--font-nr)] text-[21px] font-medium tracking-[
 const SAVE =
   'rounded-[9px] bg-hunter-deep px-5 py-[11px] text-[13.5px] font-bold text-paper transition hover:bg-gold hover:text-hunter-deep disabled:opacity-60';
 const GRID = 'grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(258px,1fr))]';
-
-/** Reads a numeric field back to a plain number, or null if blank/garbage. */
-function money(value: string): number | null {
-  const n = Number(value.replace(/[^0-9.]/g, ''));
-  return Number.isFinite(n) && value.trim() ? n : null;
-}
-
-function toChecklist(raw: unknown): ChecklistItem[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (x): x is ChecklistItem =>
-      typeof x === 'object' &&
-      x !== null &&
-      typeof (x as ChecklistItem).id === 'string' &&
-      typeof (x as ChecklistItem).label === 'string'
-  );
-}
 
 /**
  * The full target detail page — Contact & account, Deal economics, Notes, and
@@ -170,7 +154,11 @@ function EconomicsSection({ lead }: { lead: LeadRow }) {
           disabled={update.isPending}
           className={SAVE}
           onClick={() => {
-            update.mutate({ id: lead.id, costPerEvent: money(cost), avgRevenuePerShow: money(rev) });
+            update.mutate({
+              id: lead.id,
+              costPerEvent: parseMoneyField(cost),
+              avgRevenuePerShow: parseMoneyField(rev),
+            });
           }}
         >
           {update.isPending ? 'Saving…' : 'Save'}

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { listLeads } from '@/modules/superadmin/data/queries';
 import { FunnelBoard, type LeadListItem } from '@/modules/superadmin/ui/funnel-board';
+import { summarizeLeadFunnel } from '@/modules/superadmin/utils';
 
 export const metadata: Metadata = {
   title: 'Sales Funnel — SuperAdmin Console',
@@ -17,21 +18,10 @@ const NR = 'font-[family-name:var(--font-nr)]';
 export default async function SalesFunnelPage() {
   const leads = await listLeads();
 
-  const counts: Record<string, number> = {};
-  for (const lead of leads) {
-    const key = lead.status ?? 'new';
-    counts[key] = (counts[key] ?? 0) + 1;
-  }
-
   // Closing rate: of the leads that reached a real outcome (demo done, onboarding,
   // won, or lost), how many became customers. New and demo-scheduled are excluded —
   // they have not had a real chance yet. Matches the legacy formula exactly.
-  const resolved =
-    (counts.demo_completed ?? 0) +
-    (counts.onboarding ?? 0) +
-    (counts.customer ?? 0) +
-    (counts.lost ?? 0);
-  const closingRate = resolved ? Math.round(((counts.customer ?? 0) / resolved) * 100) : null;
+  const { counts, closingRate } = summarizeLeadFunnel(leads);
 
   const tiles: { label: string; value: string }[] = [
     { label: 'Total leads', value: String(leads.length) },
