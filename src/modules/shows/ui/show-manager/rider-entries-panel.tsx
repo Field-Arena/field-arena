@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Image from 'next/image';
 import { ArrowUpIcon, Loader2Icon } from 'lucide-react';
 import { Card } from '@/shared/ui/organizer/card';
 import { cn } from '@/shared/lib/utils';
@@ -223,13 +222,16 @@ function BrandingSlot({
         {upload.isPending ? (
           <Loader2Icon className="size-5 animate-spin text-[#6E7C76]" aria-hidden />
         ) : url ? (
-          <Image
+          // Plain <img>, not next/image: the branding is an arbitrary user upload
+          // (often an SVG) served from a public Supabase bucket. next/image blocks
+          // SVG by default and needs the storage host in images.remotePatterns, and
+          // buys nothing here since these are never optimized. max-w-full lets a
+          // wide banner fill its box while object-contain keeps every shape intact.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={url}
             alt={`${label} for this show`}
-            width={320}
-            height={104}
-            unoptimized
-            className="max-h-[104px] w-auto object-contain"
+            className="max-h-[150px] max-w-full rounded-[6px] object-contain"
           />
         ) : (
           <>
