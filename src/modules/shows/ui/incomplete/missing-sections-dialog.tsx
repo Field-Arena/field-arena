@@ -1,22 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { IconCheck, IconX, IconChevronRight } from '@/shared/ui/organizer/icons';
 import type { CompletenessSection } from '../../data/setup-queries';
 
 /**
  * Per-show breakdown behind the "INCOMPLETE" badge on the Incomplete Shows
- * list — ported from the design export's MissingSectionsDialog, rebuilt
- * against real per-section completeness (see getShowCompleteness in
- * data/setup-queries.ts) instead of the export's static same-for-every-show
- * demo checklist.
+ * list — real per-section completeness (see getShowCompleteness in
+ * data/setup-queries.ts).
  *
- * Every item links into the real Show Manager Setup page rather than the
- * export's smTab/showLabel store dispatch — Setup is one page today (see
- * show-manager/'s own comments on why only three of its cards are built),
- * so every link lands there; the item just tells the organizer which card
- * on that page still needs attention.
+ * Every section is a one-tap jump straight to the card that owns it: the six
+ * Setup cards deep-link by anchor (#show-details, #venue, …, matching the
+ * ids in shows/[showId]/page.tsx), Select Events and Staffing go to their own
+ * pages. Unmapped names fall back to the Setup page.
  */
 export function MissingSectionsDialog({
   showId,
@@ -29,7 +25,18 @@ export function MissingSectionsDialog({
   sections: CompletenessSection[];
   onClose: () => void;
 }) {
-  const [openSection, setOpenSection] = useState<string | null>(null);
+  const base = `/dashboard/shows/${showId}`;
+  const targets: Record<string, string> = {
+    'Show Details': `${base}#show-details`,
+    Venue: `${base}#venue`,
+    'Class Divisions': `${base}#class-divisions`,
+    'Select Events': `${base}/select-events`,
+    'Required Documents': `${base}#required-documents`,
+    'Merchandise Sales': `${base}#merchandise`,
+    Staffing: `/dashboard/users`,
+    'Waiver of Liability': `${base}#waiver`,
+  };
+  const hrefFor = (name: string) => targets[name] ?? base;
 
   return (
     <div
@@ -57,52 +64,33 @@ export function MissingSectionsDialog({
         </div>
 
         <p className="mb-[18px] text-[13.5px] leading-[1.5] text-[#5A6B63] [text-wrap:pretty]">
-          Tap a section to see what&rsquo;s left, then tap any item to jump to Setup.
+          Tap any section to jump straight to it — the ones marked{' '}
+          <IconX size={12} className="inline text-[#B4432F]" /> still need finishing.
         </p>
 
         <div className="flex flex-col gap-0.5">
           {sections.map((sec) => {
-            const open = openSection === sec.name;
+            const missing = sec.items.filter((i) => !i.ok).map((i) => i.label);
             return (
-              <div key={sec.name}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenSection(open ? null : sec.name);
-                  }}
-                  className="flex w-full items-center gap-[11px] px-1 py-[7px] text-left text-sm font-bold text-[#16261F] transition-colors hover:text-[#0D2C23]"
-                >
-                  {sec.ok ? (
-                    <IconCheck size={14} className="flex-none text-[#2E7048]" />
-                  ) : (
-                    <IconX size={14} className="flex-none text-[#B4432F]" />
-                  )}
-                  {sec.name}
-                  <IconChevronRight
-                    className={`flex-none text-[#9AA6A0] transition-transform duration-150 ease-out ${open ? 'rotate-90' : ''}`}
-                  />
-                </button>
-
-                {open && (
-                  <div className="flex flex-col gap-px py-0.5 pb-1.5 pl-[26px]">
-                    {sec.items.map((item) => (
-                      <Link
-                        key={item.label}
-                        href={`/dashboard/shows/${showId}`}
-                        onClick={onClose}
-                        className="flex items-center gap-[11px] rounded-md px-2 py-[5px] text-left text-[13.5px] text-[#3F5049] transition-colors hover:bg-[#F4F7F5] hover:text-[#0D2C23]"
-                      >
-                        {item.ok ? (
-                          <IconCheck className="flex-none text-[#2E7048]" />
-                        ) : (
-                          <IconX className="flex-none text-[#B4432F]" />
-                        )}
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
+              <Link
+                key={sec.name}
+                href={hrefFor(sec.name)}
+                onClick={onClose}
+                className="flex items-center gap-[11px] rounded-md px-2 py-[9px] text-left transition-colors hover:bg-[#F4F7F5]"
+              >
+                {sec.ok ? (
+                  <IconCheck size={15} className="flex-none text-[#2E7048]" />
+                ) : (
+                  <IconX size={15} className="flex-none text-[#B4432F]" />
                 )}
-              </div>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-[#16261F]">{sec.name}</span>
+                  {!sec.ok && missing.length > 0 && (
+                    <span className="block text-[12px] text-[#8A968F]">{missing.join(', ')}</span>
+                  )}
+                </span>
+                <IconChevronRight className="flex-none text-[#9AA6A0]" />
+              </Link>
             );
           })}
         </div>
