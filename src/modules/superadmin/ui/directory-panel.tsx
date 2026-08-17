@@ -1,5 +1,5 @@
 import { cn } from '@/shared/lib/utils';
-import type { DirectoryOrganizer } from '../data/queries';
+import type { DirectoryOrganizer } from '../types';
 import { DirectoryOrg, ORG_COLS } from './directory-org';
 
 /**

@@ -17,7 +17,7 @@ import {
   type PermissionKey,
 } from '@/shared/constants/permissions';
 import { useUpdateStaffPermissions } from '../hooks/use-org-staff-mutations';
-import type { DirectoryStaff } from '../data/queries';
+import type { DirectoryStaff } from '../types';
 
 /**
  * The per-person permission editor, ported from the legacy openStaffPermModal.

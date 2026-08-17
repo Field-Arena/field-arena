@@ -1,8 +1,22 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import type { PermissionKey } from '@/shared/constants/permissions';
 import { resolveStaffPermissions, countEnabledPermissions } from '../utils';
+import type {
+  PlatformStats,
+  OrganizationSummary,
+  LeadRow,
+  CatalogSheetRow,
+  ScoringSheet,
+  CatalogDocument,
+  PlatformAccount,
+  DirectoryStaff,
+  DirectoryOrganizer,
+  BillingSummary,
+  OrganizationBilling,
+  ShowBilling,
+  OrganizationBillingDetail,
+} from '../types';
 
 /**
  * SuperAdmin console reads.
@@ -19,19 +33,6 @@ import { resolveStaffPermissions, countEnabledPermissions } from '../utils';
  * column when given '*', so the whole request is rejected with a permission
  * error rather than silently omitting the column.
  */
-
-export interface PlatformStats {
-  organizations: number;
-  activeOrganizations: number;
-  shows: number;
-  publishedShows: number;
-  classes: number;
-  entries: number;
-  riders: number;
-  staff: number;
-  revenue: number;
-  paidOrders: number;
-}
 
 export async function getPlatformStats(): Promise<PlatformStats> {
   const supabase = await createServerClient();
@@ -73,36 +74,6 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     revenue,
     paidOrders: paid.data?.length ?? 0,
   };
-}
-
-export interface OrganizationSummary {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  currency: string | null;
-  locale: string | null;
-  suspended: boolean;
-  isDemo: boolean;
-  deletedAt: string | null;
-  feeModel: string;
-  showCount: number;
-  entryCount: number;
-  riderCount: number;
-  /**
-   * entries x avg_entry_value, matching the legacy console's "Revenue (est.)"
-   * column. It is an estimate and labelled as one: the legacy ARCHITECTURE note
-   * is explicit that these figures were never Stripe data. Settled revenue comes
-   * from paid orders and is reported separately on the billing page.
-   */
-  revenueEstimate: number;
-  /**
-   * Whether the Organizer owner has actually signed in for this organization.
-   * Drives the Onboard/Pending pill: an organization can exist with shows
-   * configured while its owner has never signed in, which is precisely the state
-   * the "Resend invite" action exists for.
-   */
-  onboarded: boolean;
 }
 
 /**
@@ -257,7 +228,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
 const LEAD_COLUMNS =
   'id, org_name, contact_name, email, phone, website, shows_per_year, status, cost_per_event, avg_revenue_per_show, notes, calendly_event_uri, demo_at, onboarding_at, onboarding_checklist, onboarding_email_sent_at, created_at, updated_at';
 
-export async function listLeads() {
+export async function listLeads(): Promise<LeadRow[]> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('leads')
@@ -267,8 +238,6 @@ export async function listLeads() {
   return data;
 }
 
-export type LeadRow = Awaited<ReturnType<typeof listLeads>>[number];
-
 export async function getLead(id: string): Promise<LeadRow | null> {
   const supabase = await createServerClient();
   const { data, error } = await supabase.from('leads').select(LEAD_COLUMNS).eq('id', id).maybeSingle();
@@ -276,7 +245,7 @@ export async function getLead(id: string): Promise<LeadRow | null> {
   return data;
 }
 
-export async function listScoringCatalog() {
+export async function listScoringCatalog(): Promise<CatalogSheetRow[]> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('scoring_catalog')
@@ -286,9 +255,7 @@ export async function listScoringCatalog() {
   return data;
 }
 
-export type CatalogSheetRow = Awaited<ReturnType<typeof listScoringCatalog>>[number];
-
-export async function getScoringSheet(id: string) {
+export async function getScoringSheet(id: string): Promise<ScoringSheet | null> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('scoring_catalog')
@@ -299,16 +266,6 @@ export async function getScoringSheet(id: string) {
     .maybeSingle();
   if (error) throw error;
   return data;
-}
-
-export type ScoringSheet = NonNullable<Awaited<ReturnType<typeof getScoringSheet>>>;
-
-export interface CatalogDocument {
-  id: string;
-  folder: string;
-  name: string;
-  url: string | null;
-  createdAt: string;
 }
 
 /**
@@ -352,20 +309,6 @@ export async function listPlatformUsers() {
   return data;
 }
 
-export interface PlatformAccount {
-  id: string;
-  name: string;
-  email: string;
-  role: string | null;
-  createdAt: string;
-  /**
-   * `pending` means the account was provisioned but the person has never signed
-   * in — they still owe the set-password step from their invite email. Legacy
-   * drew the same line as "Active" vs "Invite pending".
-   */
-  status: 'active' | 'pending';
-}
-
 /**
  * Every staff-side login on the platform — Super Admins, Organizers, and every
  * per-show role — with whether they have actually signed in yet.
@@ -403,29 +346,6 @@ export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
     createdAt: row.created_at,
     status: signedInById.get(row.id) ? 'active' : 'pending',
   }));
-}
-
-export interface DirectoryStaff {
-  id: string;
-  name: string;
-  email: string | null;
-  role: string;
-  showId: string;
-  showName: string;
-  status: string | null;
-  permissions: Record<PermissionKey, boolean>;
-  permissionCount: number;
-}
-
-export interface DirectoryOrganizer {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  showCount: number;
-  /** For the "Add a user" show picker — only this org's shows. */
-  shows: { id: string; name: string }[];
-  staff: DirectoryStaff[];
 }
 
 /**
@@ -503,43 +423,6 @@ export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[
 }
 
 // ── Billing ────────────────────────────────────────────────────────────────
-
-export interface BillingSummary {
-  /** Everything riders have actually paid, across every organization. */
-  grossPaid: number;
-  /** The platform's cut of that, fixed at order creation and never refundable. */
-  platformFees: number;
-  refunded: number;
-  /** What organizers are owed: gross, less the platform's cut and refunds. */
-  netToOrganizers: number;
-  paidOrders: number;
-  pendingOrders: number;
-  failedOrders: number;
-}
-
-export interface OrganizationBilling {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  feeModel: string;
-  currency: string | null;
-  locale: string | null;
-  paidOrders: number;
-  gross: number;
-  platformFee: number;
-  refunded: number;
-  net: number;
-  /**
-   * Whether a Stripe Connect account is attached. A BOOLEAN, never the id.
-   *
-   * The RLS migration revokes column-level SELECT on stripe_connect_account_id
-   * from authenticated and anon, so this cannot be read with the user's client at
-   * all — it is fetched with the service key and reduced to a flag here, so the
-   * payment identifier never leaves the server even in a props payload.
-   */
-  stripeConnected: boolean;
-}
 
 /**
  * Platform billing, computed from paid orders.
@@ -646,34 +529,6 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
       stripeConnected: connected.has(org.id),
     };
   });
-}
-
-export interface ShowBilling {
-  id: string;
-  name: string;
-  startDate: string | null;
-  endDate: string | null;
-  volume: number;
-  platformFee: number;
-  net: number;
-}
-
-export interface OrganizationBillingDetail {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  currency: string | null;
-  locale: string | null;
-  feeModel: string;
-  payoutCadence: string;
-  holdbackPercent: number | null;
-  /** Boolean only — never the account id. See OrganizationBilling. */
-  stripeConnected: boolean;
-  volume: number;
-  platformFee: number;
-  net: number;
-  shows: ShowBilling[];
 }
 
 /**

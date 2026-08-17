@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowRightIcon } from 'lucide-react';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
-import type { OrganizationBilling } from '../data/queries';
+import type { OrganizationBilling } from '../types';
 
 /**
  * Per-organizer billing, matching the Admin Console design: organizer, Stripe

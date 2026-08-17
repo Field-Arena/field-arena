@@ -19,7 +19,7 @@ import {
 } from '@/shared/ui/shadcn/dropdown-menu';
 import { cn } from '@/shared/lib/utils';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
-import type { DirectoryOrganizer, DirectoryStaff } from '../data/queries';
+import type { DirectoryOrganizer, DirectoryStaff } from '../types';
 import {
   useChangeStaffRole,
   useRemoveStaffAssignment,

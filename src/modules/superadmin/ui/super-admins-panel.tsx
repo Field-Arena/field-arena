@@ -12,7 +12,7 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
-import type { PlatformAccount } from '../data/queries';
+import type { PlatformAccount } from '../types';
 import { useRemoveSuperAdmin } from '../hooks/use-superadmin-user-mutations';
 import { AddSuperAdminDialog } from './add-super-admin-dialog';
 

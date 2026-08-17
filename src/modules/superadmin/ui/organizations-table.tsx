@@ -1,7 +1,7 @@
 import { formatMoney } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
 import { OrganizationRowActions } from './organization-row-actions';
-import type { OrganizationSummary } from '../data/queries';
+import type { OrganizationSummary } from '../types';
 
 /**
  * The "Clients — Organizers" table, built to the Admin Console design.
