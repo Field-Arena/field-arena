@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 
 /**
  * Access control + workspace coherence for the whole SuperAdmin console.

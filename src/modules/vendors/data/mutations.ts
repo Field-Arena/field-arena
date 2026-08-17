@@ -9,7 +9,7 @@ import { getStripeClient } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import type { Json } from '@/shared/types/database.types';
 import {
   vendorSignUpSchema,

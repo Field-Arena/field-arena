@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
 import { env } from '@/shared/lib/env';

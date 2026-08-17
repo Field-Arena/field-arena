@@ -5,7 +5,7 @@ import { run, UserFacingError, type ActionResult } from '@/shared/lib/action-res
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { addOrgMember } from '@/modules/organizations/data/mutations';
 import { assignJudgeToClasses, assignScribeToClasses } from '@/modules/judging/data/mutations';
 import { env } from '@/shared/lib/env';

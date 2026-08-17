@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { Json } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getShowStage } from './queries';
 import {
   createShowSchema,

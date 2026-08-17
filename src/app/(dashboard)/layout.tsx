@@ -4,7 +4,7 @@ import { OrganizerShell } from '@/modules/staff/ui/organizer-shell';
 import { SuperAdminShell } from '@/modules/superadmin/ui/superadmin-shell';
 import { PendingWorkspace } from '@/shared/ui/pending-workspace';
 import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getPreviewingAsShowAdmin } from '@/modules/staff/data/preview-role';
 import { getSelectedOrg } from '@/modules/staff/data/org-selection';
 import { getRailRole } from '@/shared/lib/rail-role';

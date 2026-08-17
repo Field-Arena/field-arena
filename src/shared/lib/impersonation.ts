@@ -26,6 +26,12 @@ import { createServerClient } from '@/shared/lib/supabase/server';
  *
  * httpOnly so client script cannot read or forge it, and sameSite lax so it
  * survives an ordinary navigation but not a cross-site request.
+ *
+ * Lives in shared/lib rather than modules/superadmin/data because
+ * getImpersonatedOrgId (and exitOrganizerView) are read by every module whose
+ * mutations need to know which organization the caller is acting as — shows,
+ * sales, organizations, staff, vendors — plus the dashboard layout itself, not
+ * just the superadmin console that sets the cookie.
  */
 const IMPERSONATION_COOKIE = 'fa_impersonate_org';
 

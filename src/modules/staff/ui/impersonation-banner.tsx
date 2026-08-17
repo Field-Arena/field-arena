@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { EyeIcon, XIcon } from 'lucide-react';
-import { exitOrganizerView } from '@/modules/superadmin/data/impersonation';
+import { exitOrganizerView } from '@/shared/lib/impersonation';
 
 /**
  * Shown across the top of the organizer workspace while a SuperAdmin is viewing

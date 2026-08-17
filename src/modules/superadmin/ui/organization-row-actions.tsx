@@ -37,8 +37,8 @@ import {
   useUpdateOrganization,
 } from '../hooks/use-organization-mutations';
 import { FeeModelField, FormField } from './organizer-form-fields';
-import { enterAsOrganizer } from '../data/impersonation';
-import type { OrganizationSummary } from '../data/queries';
+import { enterAsOrganizer } from '@/shared/lib/impersonation';
+import type { OrganizationSummary } from '../types';
 
 /**
  * Per-row actions: Edit, Suspend/Reactivate, Delete.

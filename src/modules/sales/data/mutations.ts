@@ -5,7 +5,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { refundSaleSchema, chargeMoreSchema } from '../schemas';
 
 /**
