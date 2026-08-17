@@ -47,5 +47,18 @@ export async function requestDemo(input: unknown): Promise<void> {
     status: 'new',
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // A lead for this organization already exists (leads_org_name_key is unique
+    // on org_name). From the visitor's side that is not a failure — their
+    // interest is already on our radar and they can still book a walkthrough —
+    // so we let the flow continue to the "thank you / schedule" step rather than
+    // surface a raw database constraint error. The existing lead is left
+    // untouched so an in-progress sales conversation is never clobbered.
+    if (error.code === '23505') return;
+
+    // Anything else is a genuine server-side fault: log the real cause for us,
+    // show the visitor a plain, actionable message instead of Postgres wording.
+    console.error('[marketing] demo request failed', error.message);
+    throw new Error('Something went wrong on our end. Please try again in a moment.');
+  }
 }
