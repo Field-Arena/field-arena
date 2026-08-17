@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { assignJudgeToClassesSchema, assignScribeToClassesSchema } from '../schemas';
+import {
+  assignJudgeToClassesSchema,
+  assignScribeToClassesSchema,
+  setClassPanelSchema,
+} from '../schemas';
 
 /**
  * Seats a judge on a class's panel — the write side of what
@@ -130,6 +134,35 @@ export async function assignScribeToClasses(input: unknown): Promise<void> {
   const { error } = await supabase
     .from('class_panel')
     .upsert(rows, { onConflict: 'class_id,seat_id' });
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard/judging');
+}
+
+/**
+ * Sets the head-judge panel seat (J1 / position C) for a set of classes at once
+ * — the write path behind Setup → Venue's "Assign Judges" dialog.
+ *
+ * Unlike assignJudgeToClasses / assignScribeToClasses above (which open a fresh
+ * seat on every call, for the incremental "+ Add User" checklist), this is
+ * idempotent: it upserts the one J1 seat, so re-assigning a ring replaces its
+ * judge/scribe rather than stacking extra seats. A null id clears that role.
+ * Guarded by class_panel_write (canEditShow), so only show staff who may edit
+ * the show can call it.
+ */
+export async function setClassPanel(input: unknown): Promise<void> {
+  const { classIds, judgeStaffId, scribeStaffId } = setClassPanelSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const rows = classIds.map((classId) => ({
+    class_id: classId,
+    seat_id: 'J1',
+    position: 'C',
+    judge_staff_id: judgeStaffId,
+    scribe_staff_id: scribeStaffId,
+  }));
+
+  const { error } = await supabase.from('class_panel').upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard/judging');

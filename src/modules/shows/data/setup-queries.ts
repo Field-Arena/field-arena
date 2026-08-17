@@ -29,6 +29,7 @@ export interface ClassRow {
   label: string;
   displayName: string | null;
   division: string | null;
+  location: string | null;
   fee: number;
   judgesCount: number;
   date: string | null;
@@ -46,7 +47,7 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
   const { data, error } = await supabase
     .from('classes')
     .select(
-      'id, label, display_name, division, fee, judges_count, date, time, scoring_open, results_published, ribbon_places, award_scope'
+      'id, label, display_name, division, location, fee, judges_count, date, time, scoring_open, results_published, ribbon_places, award_scope'
     )
     .eq('show_id', showId)
     .order('label');
@@ -75,6 +76,7 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
     label: c.label,
     displayName: c.display_name,
     division: c.division,
+    location: c.location,
     fee: c.fee ?? 0,
     judgesCount: c.judges_count ?? 1,
     date: c.date,

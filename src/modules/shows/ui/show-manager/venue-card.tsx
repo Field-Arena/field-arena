@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { RING_SIZES, MAX_RINGS } from '../../schemas';
-import type { RingRow, VenueOption } from '../../data/setup-queries';
+import type { RingRow, VenueOption, ClassRow, StaffRow } from '../../data/setup-queries';
 import { useUpdateShowLocations, useApplySavedVenue } from '../../hooks/use-show-mutations';
+import { AssignJudgesDialog } from '@/modules/judging/ui/assign-judges-dialog';
 import { Card } from '@/shared/ui/organizer/card';
 import { primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { IconBarn } from '@/shared/ui/organizer/icons';
@@ -21,27 +22,43 @@ import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_SELECT, S
  * only copies its ring layout — see applySavedVenue and listVenuesForOrg in
  * data/*.ts for why that's a scope choice, not a data limitation.
  *
- * "Assign Judges" (per ring) is a separate feature neither source has
- * finished porting — that button stays a toast stub, the same way the
- * design's own unbuilt tabs say "send me the screen for this section."
- * "Open Stable Chart" is real now (modules/shows/ui/stable-chart/) and links
- * there directly.
+ * "Assign Judges" (per ring) opens AssignJudgesDialog — pick the head judge and
+ * scribe and the classes they officiate; it writes the class panel that a
+ * Judge/Scribe's My Assignments reads. "Open Stable Chart" links to the real
+ * stable chart (modules/shows/ui/stable-chart/).
  */
 export function VenueCard({
   showId,
   venueId,
   locations,
   venues,
+  staff,
+  classes,
 }: {
   showId: string;
   venueId: string | null;
   locations: RingRow[];
   venues: VenueOption[];
+  staff: StaffRow[];
+  classes: ClassRow[];
 }) {
   const [rings, setRings] = useState<RingRow[]>(
     locations.length ? locations : [{ name: 'Ring 1', size: 'standard' }]
   );
   const [selectedVenue, setSelectedVenue] = useState(venueId ?? '');
+  const [assignRing, setAssignRing] = useState<string | null>(null);
+
+  const judges = staff
+    .filter((s) => s.role.toLowerCase() === 'judge')
+    .map((s) => ({ id: s.id, name: s.name }));
+  const scribes = staff
+    .filter((s) => s.role.toLowerCase() === 'scribe')
+    .map((s) => ({ id: s.id, name: s.name }));
+  const panelClasses = classes.map((c) => ({
+    id: c.id,
+    label: c.displayName ?? c.label,
+    location: c.location,
+  }));
 
   const { mutate: saveLocations } = useUpdateShowLocations();
   const { mutate: applyVenue, isPending: applyingVenue } = useApplySavedVenue({
@@ -72,6 +89,7 @@ export function VenueCard({
   }
 
   return (
+    <>
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Venue</h2>
       <p className={SM_NOTE}>
@@ -161,7 +179,7 @@ export function VenueCard({
               type="button"
               className="whitespace-nowrap rounded-[9px] border border-[#EDF0EE] bg-[#EFEAE0] px-[15px] py-2.5 text-[13px] font-semibold text-[#48574F] transition-colors hover:border-gold hover:text-ink-deep"
               onClick={() => {
-                toast('Judge assignment isn’t built yet — coming in a later update.');
+                setAssignRing(ring.name);
               }}
             >
               Assign Judges →
@@ -184,5 +202,17 @@ export function VenueCard({
         </Link>
       </div>
     </Card>
+
+    <AssignJudgesDialog
+      open={assignRing !== null}
+      onOpenChange={(next) => {
+        if (!next) setAssignRing(null);
+      }}
+      ringName={assignRing ?? ''}
+      classes={panelClasses}
+      judges={judges}
+      scribes={scribes}
+    />
+    </>
   );
 }

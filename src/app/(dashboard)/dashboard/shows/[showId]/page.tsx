@@ -3,6 +3,8 @@ import {
   getShowSetupDetail,
   listVenuesForOrg,
   listDivisions,
+  listClasses,
+  listStaff,
   getShowCompleteness,
 } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
@@ -58,12 +60,14 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
     );
   }
 
-  const [venues, divisions, completeness, context, vitals] = await Promise.all([
+  const [venues, divisions, completeness, context, vitals, staff, classes] = await Promise.all([
     listVenuesForOrg(show.orgId),
     listDivisions(show.id),
     getShowCompleteness(show.id),
     getOrganizerContext(show.id),
     getShowManagerVitals(show.id),
+    listStaff(show.id),
+    listClasses(show.id),
   ]);
 
   const nextIncompleteSection = completeness.sections.find((s) => !s.ok) ?? null;
@@ -79,13 +83,19 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
       canViewMoney={context.canViewMoney}
     >
       <ReadinessMeter completeness={completeness} />
-      <ShowDetailsCard show={show} />
-      <VenueCard
-        showId={show.id}
-        venueId={show.venueId}
-        locations={show.locations}
-        venues={venues}
-      />
+      <div id="show-details" className="scroll-mt-24">
+        <ShowDetailsCard show={show} />
+      </div>
+      <div id="venue" className="scroll-mt-24">
+        <VenueCard
+          showId={show.id}
+          venueId={show.venueId}
+          locations={show.locations}
+          venues={venues}
+          staff={staff}
+          classes={classes}
+        />
+      </div>
       <ContactCard
         showId={show.id}
         website={show.website}
@@ -93,20 +103,31 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
         contactEmail={show.contactEmail}
       />
       <PrizeListCard showId={show.id} prizeListUrl={show.prizeListUrl} />
-      <ClassDivisionsCard showId={show.id} divisions={divisions} />
+      <div id="class-divisions" className="scroll-mt-24">
+        <ClassDivisionsCard showId={show.id} divisions={divisions} />
+      </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <RequiredDocumentsCard showId={show.id} documentRequirements={show.documentRequirements} />
-        <MerchandiseCard
+        <div id="required-documents" className="scroll-mt-24">
+          <RequiredDocumentsCard
+            showId={show.id}
+            documentRequirements={show.documentRequirements}
+          />
+        </div>
+        <div id="merchandise" className="scroll-mt-24">
+          <MerchandiseCard
+            showId={show.id}
+            merchandiseEnabled={show.merchandiseEnabled}
+            merchItems={show.merchItems}
+          />
+        </div>
+      </div>
+      <div id="waiver" className="scroll-mt-24">
+        <WaiverCard
           showId={show.id}
-          merchandiseEnabled={show.merchandiseEnabled}
-          merchItems={show.merchItems}
+          waiverText={show.waiverText}
+          waiverApprovedText={show.waiverApprovedText}
         />
       </div>
-      <WaiverCard
-        showId={show.id}
-        waiverText={show.waiverText}
-        waiverApprovedText={show.waiverApprovedText}
-      />
       <SchedulePreferencesCard
         showId={show.id}
         startDate={show.startDate}

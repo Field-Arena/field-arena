@@ -153,6 +153,16 @@ async function provisionIfNewAccount(
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
   if (existingStaffUser || existingRider) {
+    // The account already exists — link the staff row we just created to it, or
+    // the org never resolves for them (listMemberOrgs and RLS both key off
+    // staff_assignments.user_id, not email).
+    if (existingStaffUser) {
+      await admin
+        .from('staff_assignments')
+        .update({ user_id: existingStaffUser.id })
+        .eq('email', email)
+        .is('user_id', null);
+    }
     await sendStaffInviteNotification({ to: email, name, role, showName }).catch(() => undefined);
     return;
   }
@@ -179,6 +189,16 @@ async function provisionIfNewAccount(
     email,
     platform_role: platformRoleForStaff(role),
   });
+
+  // Link the pending staff_assignments row(s) for this email to the freshly
+  // provisioned account. Without this the staff row keeps user_id = null, and
+  // listMemberOrgs (which matches on user_id) resolves no org for them — the
+  // "This account is not attached to an organization" empty state.
+  await admin
+    .from('staff_assignments')
+    .update({ user_id: invited.user.id })
+    .eq('email', email)
+    .is('user_id', null);
 }
 
 /**
