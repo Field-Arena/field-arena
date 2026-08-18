@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { CheckIcon } from 'lucide-react';
-import { AUTH_ASIDE_POINTS, AUTH_ASIDE_QUOTE } from '../constants';
+import { AUTH_ASIDE_POINTS, AUTH_ASIDE_QUOTE } from '@/modules/auth/constants';
 
 /**
  * The forest panel beside the auth forms.

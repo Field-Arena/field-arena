@@ -2,7 +2,7 @@
 
 import { Button } from '@/shared/ui/shadcn/button';
 import { AuthAlert } from '@/shared/ui/auth/auth-primitives';
-import { useSignOut } from '../hooks/use-auth-mutations';
+import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 
 /**
  * Why another route sent the visitor to the login form.

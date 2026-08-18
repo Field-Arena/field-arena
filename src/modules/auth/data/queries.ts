@@ -6,22 +6,12 @@ export type StaffProfile = Database['public']['Tables']['users']['Row'];
 export type RiderProfile = Database['public']['Tables']['riders']['Row'];
 
 /**
- * The signed-in staff profile, or null.
- *
- * Returning null covers three genuinely different situations that all mean "this
- * request cannot act as staff":
- *
- *  - nobody is signed in;
- *  - a rider is signed in (riders have no row in public.users);
- *  - an auth account exists with no profile row at all.
- *
- * That third case is not hypothetical. Accounts predating the schema rebuild are
- * in exactly that state, and they are the reason callers must check for a
- * profile rather than settling for `auth.getUser()` returning a user. An
- * authenticated session with no profile passes every "is someone logged in"
- * check and then reads zero rows from every table, because each RLS policy
- * resolves the caller's role through this table — so the app looks broken rather
- * than unauthorized.
+ * The signed-in staff profile, or null — nobody signed in, a rider signed in
+ * (riders have no `public.users` row), or an auth account with no profile row
+ * at all (real, for accounts predating the schema rebuild). Callers must
+ * check for a profile rather than trusting `auth.getUser()` alone: every RLS
+ * policy resolves the caller's role through this table, so a session with no
+ * profile reads zero rows everywhere and the app looks broken, not unauthorized.
  */
 export async function getStaffProfile(): Promise<StaffProfile | null> {
   const supabase = await createServerClient();

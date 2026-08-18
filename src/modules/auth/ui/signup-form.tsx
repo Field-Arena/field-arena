@@ -6,22 +6,22 @@ import { ROUTES } from '@/shared/constants/routes';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
-import { signUpSchema, type SignUpInput } from '../schemas';
-import { useSignUp, useVerifyEmail, useResendEmailCode } from '../hooks/use-auth-mutations';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
-import type { SignUpStep } from '../types';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
+import { Button } from '@/shared/ui/shadcn/button';
+import { signUpSchema, type SignUpInput } from '@/modules/auth/schemas';
+import {
+  useSignUp,
+  useVerifyEmail,
+  useResendEmailCode,
+} from '@/modules/auth/hooks/use-auth-mutations';
+import type { SignUpStep } from '@/modules/auth/types';
 
 /**
  * Two-step self-service sign-up: create the account, then confirm the emailed
- * code.
- *
- * Which step runs is decided by the SERVER, not assumed here — Supabase only
- * withholds the session when email confirmation is switched on for the project,
- * and if it is off the account is live immediately and the verify step would be
- * an empty ceremony. See SignUpOutcome.
+ * code. Which step runs is decided by the SERVER — see SignUpOutcome.
  */
 export function SignUpForm() {
   const [step, setStep] = useState<SignUpStep>('account');
@@ -67,8 +67,7 @@ export function SignUpForm() {
   }, [cooldown]);
 
   // useWatch, not form.watch(): watch() returns a fresh function each render,
-  // which the React Compiler cannot memoize, so it bails out of optimising this
-  // whole component. useWatch subscribes to the one field instead.
+  // which the React Compiler cannot memoize.
   const password = useWatch({ control: form.control, name: 'password' });
   const { errors } = form.formState;
 
@@ -85,18 +84,19 @@ export function SignUpForm() {
         <div className="mb-[30px] inline-flex items-center gap-2.5 rounded-[10px] border border-line-mint bg-mint py-2.5 pl-3.5 pr-3">
           <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
           <span className="text-sm font-medium text-forest">{email}</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               setStep('account');
               setCode('');
               setFormError(null);
               verify.reset();
             }}
-            className="ml-0.5 border-l border-line-mint-2 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:text-gold"
+            className="h-auto rounded-none border-l border-line-mint-2 bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:bg-transparent hover:text-gold"
           >
             Change
-          </button>
+          </Button>
         </div>
 
         <form
@@ -112,7 +112,7 @@ export function SignUpForm() {
                 onError: (error) => {
                   setFormError(error.message);
                 },
-              }
+              },
             );
           }}
         >
@@ -128,8 +128,9 @@ export function SignUpForm() {
 
           <div className="flex items-center justify-between gap-4 border-b border-line pb-[26px]">
             <span className="text-[13.5px] text-fa-muted">Didn&apos;t get it? Check spam, or</span>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               disabled={cooldown > 0 || resend.isPending}
               onClick={() => {
                 resend.mutate(
@@ -138,13 +139,13 @@ export function SignUpForm() {
                     onSuccess: () => {
                       setCooldown(RESEND_COOLDOWN_SECONDS);
                     },
-                  }
+                  },
                 );
               }}
-              className="text-[13.5px] font-bold text-forest transition-colors hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="h-auto bg-transparent px-0 py-0 text-[13.5px] font-bold text-forest transition-colors hover:bg-transparent hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
             >
               {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
-            </button>
+            </Button>
           </div>
 
           <div className="mt-[26px]">
@@ -227,8 +228,7 @@ export function SignUpForm() {
           </AuthSubmit>
         </div>
 
-        {/* The design underlines these with a 1px GOLD border rather than a text
-            underline — see Signup Page.dc.html. */}
+        {/* The design underlines these with a 1px GOLD border rather than a text underline. */}
         <p className="mt-[18px] text-center text-[12.5px] leading-[1.6] text-fa-muted-2">
           By continuing you agree to the{' '}
           <Link

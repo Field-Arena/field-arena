@@ -9,6 +9,7 @@ import {
 } from '@/shared/lib/supabase/session-persistence';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
+import { MAIL_UNREACHABLE_MESSAGE, NOT_PROVISIONED_MESSAGE } from '@/modules/auth/constants';
 import {
   loginSchema,
   requestPasswordResetSchema,
@@ -16,38 +17,19 @@ import {
   signUpSchema,
   verifyEmailSchema,
   verifySignInCodeSchema,
-} from '../schemas';
+} from '@/modules/auth/schemas';
 import type {
   SignUpOutcome,
   VerifyOutcome,
   ResendOutcome,
   LoginOutcome,
   SignInCodeOutcome,
-} from '../types';
+} from '@/modules/auth/types';
 
 /**
- * Runs a Supabase auth call that sends an email, turning a transport failure
- * into something the form can show.
- *
- * These calls block while Supabase's built-in mail service delivers: measured at
- * ~12.6s for sign-up against ~0.5s for a call that sends nothing. When that
- * delivery stalls, the request dies at the socket with "fetch failed" — which is
- * not a Supabase error object, so it escaped the `error` branch below, bubbled
- * out of the server action, and reached the browser as a bare 500 with no
- * message. The visitor saw a spinner stop and nothing else.
- *
- * The underlying slowness is a configuration problem, not a code one: the
- * project has no custom SMTP, so it is on Supabase's shared testing sender.
- * Until that is set, this at least fails legibly.
- */
-const MAIL_UNREACHABLE =
-  'We could not reach the email service just now. Wait a moment and try again.';
-
-/**
- * Supabase's auth errors are written for a developer reading a log, not for
- * someone stuck on a form. Two come up constantly and both read as faults when
- * they are not, so they get plain wording; anything else is passed through
- * unchanged rather than guessed at.
+ * Supabase's auth errors are written for a developer, not someone stuck on a
+ * form. Two come up constantly and both read as faults when they are not, so
+ * they get plain wording; anything else passes through unchanged.
  */
 function readableAuthError(message: string): string {
   if (/rate limit/i.test(message)) {
@@ -67,7 +49,7 @@ async function withMailTransport<T>(
     return { ok: true, value: await run() };
   } catch (cause) {
     console.error(`[auth] ${label} transport failure`, cause);
-    return { ok: false, message: MAIL_UNREACHABLE };
+    return { ok: false, message: MAIL_UNREACHABLE_MESSAGE };
   }
 }
 
@@ -138,18 +120,13 @@ async function recordSessionPersistence(remember: boolean): Promise<void> {
 
 type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
 
-const NOT_PROVISIONED_MESSAGE =
-  'This account is not set up on Field & Arena yet. Ask your organizer or a platform admin to invite you.';
-
 /**
  * The workspace an authenticated account should open, or null when it has no
  * profile at all.
  *
- * Access is invite-only. A login is provisioned by an organizer or a platform
- * admin — a public.users staff row, or a public.riders row an organizer adds for
- * a competitor — and NEVER by signing up. Staff land in the dashboard, riders in
- * their portal; null means the account was never provisioned and each caller
- * decides how to say so.
+ * Access is invite-only — provisioned by an organizer or platform admin,
+ * never by signing up. Staff land in the dashboard, riders in their portal;
+ * null means the account was never provisioned.
  *
  * The caller's own client is passed in rather than made fresh: it already holds
  * the session the sign-in/sign-up/verify just established, which a new client

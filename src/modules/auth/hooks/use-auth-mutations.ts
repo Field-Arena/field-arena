@@ -14,7 +14,7 @@ import {
   resendEmailCode,
   sendSignInCode,
   verifySignInCode,
-} from '../data/mutations';
+} from '@/modules/auth/data/mutations';
 import type {
   LoginInput,
   RequestPasswordResetInput,
@@ -22,14 +22,14 @@ import type {
   SignUpInput,
   VerifyEmailInput,
   VerifySignInCodeInput,
-} from '../schemas';
+} from '@/modules/auth/schemas';
 import type {
   SignUpOutcome,
   VerifyOutcome,
   ResendOutcome,
   LoginOutcome,
   SignInCodeOutcome,
-} from '../types';
+} from '@/modules/auth/types';
 
 /**
  * Per layers.md, side effects and toasts live in the mutation hook rather than

@@ -1,22 +1,12 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRightIcon, MailIcon } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/constants/routes';
-import { cn } from '@/shared/lib/utils';
-import { loginSchema, type LoginInput } from '../schemas';
-import {
-  useSignIn,
-  useRequestPasswordReset,
-  useSendSignInCode,
-  useVerifySignInCode,
-} from '../hooks/use-auth-mutations';
 import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
-import { isEmailAddress } from '../utils';
-import type { LoginView } from '../types';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import {
   AuthAlert,
@@ -26,21 +16,24 @@ import {
   AuthSubmit,
 } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
+import { Button } from '@/shared/ui/shadcn/button';
+import { loginSchema, type LoginInput } from '@/modules/auth/schemas';
+import {
+  useSignIn,
+  useRequestPasswordReset,
+  useSendSignInCode,
+  useVerifySignInCode,
+} from '@/modules/auth/hooks/use-auth-mutations';
+import { isEmailAddress } from '@/modules/auth/utils/is-email-address';
+import type { LoginView } from '@/modules/auth/types';
+import { AuthPanel } from '@/modules/auth/ui/auth-panel';
+import { AuthHeading } from '@/modules/auth/ui/auth-heading';
+import { BackButton } from '@/modules/auth/ui/back-button';
 
 /**
- * The sign-in panel, deliberately container-agnostic.
- *
- * The legacy build had no /login route at all — Clerk's hosted widget was
- * mounted into a div on the marketing page, so signing in was an overlay. Clerk
- * supplied that UI; Supabase Auth is an API, so the form is ours either way, and
- * the only real question is where it renders. This component is therefore used
- * twice: by the /login route (which the proxy redirects to, and which invite
- * and password-reset links land on) and by the header dialog, which preserves
- * the overlay feel the app had before.
- *
- * It owns its own heading block because the design swaps the whole panel — the
- * eyebrow, heading, and lead all change between signing in and resetting — so a
- * container that drew a fixed header could not follow it.
+ * The sign-in panel, used both by the standalone /login route and by the
+ * header dialog — see AuthShell's doc comment for why it renders in both
+ * places.
  */
 export function LoginForm({
   onSuccess,
@@ -71,8 +64,7 @@ export function LoginForm({
   const verifyCode = useVerifySignInCode({ onSuccess });
 
   // useWatch, not form.watch(): watch() returns a fresh function each render,
-  // which the React Compiler cannot memoize, so it bails out of optimising this
-  // whole component.
+  // which the React Compiler cannot memoize.
   const email = useWatch({ control: form.control, name: 'email' });
   const remember = useWatch({ control: form.control, name: 'remember' }) ?? true;
   const { errors } = form.formState;
@@ -88,11 +80,11 @@ export function LoginForm({
 
   if (view === 'forgot') {
     return (
-      <Panel centred>
+      <AuthPanel centred>
         <AuthEyebrow centred>Reset</AuthEyebrow>
-        <Heading as={headingLevel} className="mt-4 text-[34px] leading-[1.04]">
+        <AuthHeading as={headingLevel} className="mt-4 text-[34px] leading-[1.04]">
           Forgot password?
-        </Heading>
+        </AuthHeading>
         <p className="mb-[26px] mt-2.5 max-w-[300px] text-[14.5px] leading-[1.56] text-fa-muted">
           We&apos;ll send a reset link to{' '}
           <strong className="font-semibold text-forest">{emailLabel}</strong>.
@@ -116,7 +108,7 @@ export function LoginForm({
                   setResetSent(true);
                   setNotice('Reset link sent. It expires in 30 minutes.');
                 },
-              }
+              },
             );
           }}
         >
@@ -127,8 +119,9 @@ export function LoginForm({
           <AuthDivider>Or, sign in with another method</AuthDivider>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
           disabled={sendCode.isPending}
           onClick={() => {
             if (!isEmailAddress(email)) {
@@ -151,18 +144,16 @@ export function LoginForm({
                 onError: (error) => {
                   setFormError(error.message);
                 },
-              }
+              },
             );
           }}
-          className="flex w-full items-center gap-3 rounded-xl border border-field bg-white px-4 py-3.5 text-left text-[14.5px] text-ink-deep transition-colors duration-150 ease-out hover:border-gold hover:bg-[#FEFCF5] disabled:opacity-70"
+          className="h-auto w-full justify-start gap-3 rounded-xl border border-field bg-white px-4 py-3.5 text-left text-[14.5px] font-normal text-ink-deep transition-colors duration-150 ease-out hover:border-gold hover:bg-[#FEFCF5] disabled:opacity-70"
         >
           <MailIcon className="size-[17px] flex-none text-fa-muted" aria-hidden />
           <span>
-            {isEmailAddress(email)
-              ? `Email code to ${email}`
-              : 'Email me a one-time code instead'}
+            {isEmailAddress(email) ? `Email code to ${email}` : 'Email me a one-time code instead'}
           </span>
-        </button>
+        </Button>
 
         {formError && (
           <div className="mt-[18px] w-full text-left">
@@ -180,22 +171,18 @@ export function LoginForm({
             show('login');
           }}
         />
-      </Panel>
+      </AuthPanel>
     );
   }
 
-  /**
-   * Entering the emailed code. The design's prototype stops at "One-time code
-   * sent", which would hand someone a code and no box to type it into — so this
-   * panel is authored, reusing the sign-up flow's code entry.
-   */
+  /** The prototype stops at "One-time code sent" — this panel is authored to give it somewhere to go. */
   if (view === 'code') {
     return (
-      <Panel centred>
+      <AuthPanel centred>
         <AuthEyebrow centred>One-time code</AuthEyebrow>
-        <Heading as={headingLevel} className="mt-4 text-[34px] leading-[1.04]">
+        <AuthHeading as={headingLevel} className="mt-4 text-[34px] leading-[1.04]">
           Check your inbox.
-        </Heading>
+        </AuthHeading>
         <p className="mb-[26px] mt-2.5 max-w-[320px] text-[14.5px] leading-[1.56] text-fa-muted">
           We sent a {EMAIL_CODE_LENGTH}-digit code to{' '}
           <strong className="font-semibold text-forest">{emailLabel}</strong>.
@@ -215,7 +202,7 @@ export function LoginForm({
                 onError: (error) => {
                   setFormError(error.message);
                 },
-              }
+              },
             );
           }}
         >
@@ -228,11 +215,7 @@ export function LoginForm({
           )}
 
           <div className="mt-[26px]">
-            <AuthSubmit
-              variant="gold-flat"
-              pending={verifyCode.isPending}
-              pendingLabel="Signing in…"
-            >
+            <AuthSubmit variant="gold-flat" pending={verifyCode.isPending} pendingLabel="Signing in…">
               Sign in
             </AuthSubmit>
           </div>
@@ -243,16 +226,16 @@ export function LoginForm({
             show('forgot');
           }}
         />
-      </Panel>
+      </AuthPanel>
     );
   }
 
   return (
-    <Panel>
+    <AuthPanel>
       <AuthEyebrow>Log in</AuthEyebrow>
-      <Heading as={headingLevel} className="mt-[18px] text-[38px] leading-[1.02]">
+      <AuthHeading as={headingLevel} className="mt-[18px] text-[38px] leading-[1.02]">
         Welcome back.
-      </Heading>
+      </AuthHeading>
       <p className="mb-7 mt-2.5 max-w-[330px] text-[15px] leading-[1.56] text-fa-muted">
         Organizer, staff, or rider — one login for Field &amp; Arena.
       </p>
@@ -291,15 +274,16 @@ export function LoginForm({
             placeholder="Your password"
             error={errors.password?.message}
             action={
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   show('forgot');
                 }}
-                className="text-[12.5px] font-semibold text-fa-muted transition-colors hover:text-gold"
+                className="h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold text-fa-muted transition-colors hover:bg-transparent hover:text-gold"
               >
                 Forgot password?
-              </button>
+              </Button>
             }
             {...form.register('password')}
           />
@@ -341,54 +325,6 @@ export function LoginForm({
           </div>
         )}
       </form>
-    </Panel>
-  );
-}
-
-/** Each view fades in on its own, so switching panels reads as a step, not a jump. */
-function Panel({ children, centred }: { children: ReactNode; centred?: boolean }) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col [animation:fa-in_.22s_ease-out_both]',
-        centred && 'items-center text-center'
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Heading({
-  as,
-  className,
-  children,
-}: {
-  as: 'h1' | 'h2';
-  className?: string;
-  children: ReactNode;
-}) {
-  const Tag = as;
-  return (
-    <Tag
-      className={cn(
-        'font-[family-name:var(--font-nr)] font-medium tracking-[-.024em] text-forest',
-        className
-      )}
-    >
-      {children}
-    </Tag>
-  );
-}
-
-function BackButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mt-[22px] px-2 py-1 text-[13.5px] font-semibold text-fa-muted transition-colors hover:text-gold"
-    >
-      Back
-    </button>
+    </AuthPanel>
   );
 }

@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { LockIcon } from 'lucide-react';
-import { AuthAside } from './auth-aside';
-import { LoginTrigger } from './login-trigger';
-import { LoginDialog } from './login-dialog';
+import { AuthAside } from '@/modules/auth/ui/auth-aside';
+import { LoginTrigger } from '@/modules/auth/ui/login-trigger';
+import { LoginDialog } from '@/modules/auth/ui/login-dialog';
+import { StepMarker } from '@/modules/auth/ui/step-marker';
+import { MobileBrand } from '@/modules/auth/ui/mobile-brand';
 
 /**
  * The split layout both auth screens share: forest panel on the left, form on
@@ -17,13 +19,7 @@ export function AuthShell({
   children: ReactNode;
   /** The two-step progress marker. Omitted by sign-in, which is one step. */
   step?: 1 | 2;
-  /**
-   * The "already have an account" style link in the top-right. `dialog` opens
-   * the sign-in overlay instead of navigating, which is how the design has it.
-   * Omitted by screens with no sensible alternate action — set-password,
-   * reached mid-invite with a session already open, has nowhere else to send
-   * someone.
-   */
+  /** The "already have an account" link in the top-right. `dialog` opens the sign-in overlay instead of navigating. */
   alternate?: { label: string; href: string; dialog?: boolean };
 }) {
   return (
@@ -60,46 +56,5 @@ export function AuthShell({
 
       <LoginDialog />
     </div>
-  );
-}
-
-function StepMarker({ current }: { current: 1 | 2 }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="grid size-5 place-items-center rounded-full bg-forest text-[9.5px] font-bold text-gold">
-        1
-      </span>
-      <span className="text-[10.5px] font-bold uppercase tracking-[.16em] text-forest">
-        Account
-      </span>
-      <span aria-hidden className="mx-1 h-px w-[26px] bg-line-mint-2" />
-      <span
-        className={`grid size-5 place-items-center rounded-full border border-line-mint-2 text-[9.5px] font-bold ${
-          current === 2 ? 'bg-forest text-gold' : 'bg-paper text-fa-muted-2'
-        }`}
-      >
-        2
-      </span>
-      <span
-        className={`text-[10.5px] font-bold uppercase tracking-[.16em] ${
-          current === 2 ? 'text-forest' : 'text-fa-muted-2'
-        }`}
-      >
-        Verify
-      </span>
-    </div>
-  );
-}
-
-/** Sign-in has no step marker, but the panel is hidden on mobile — so the brand
- *  still has to appear somewhere on a small screen. */
-function MobileBrand() {
-  return (
-    <Link href="/" className="flex items-center gap-2.5 text-forest lg:invisible">
-      <span className="grid size-7 place-items-center rounded-lg bg-gold font-[family-name:var(--font-nr)] text-xs font-semibold text-forest">
-        F&amp;A
-      </span>
-      <span className="font-[family-name:var(--font-nr)] text-base font-medium">Field &amp; Arena</span>
-    </Link>
   );
 }

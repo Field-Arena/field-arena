@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useLoginDialogStore } from '../store';
+import { useLoginDialogStore } from '@/modules/auth/store';
 
 /**
  * Opens the login dialog from the URL — `?notice=` with a message, or a bare

@@ -3,19 +3,19 @@
 import Link from 'next/link';
 import { ArrowRightIcon, XIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/shadcn/dialog';
-import { ROUTES } from '@/shared/constants/routes';
-import { LoginForm } from './login-form';
+import { Button } from '@/shared/ui/shadcn/button';
 import { AuthAlert } from '@/shared/ui/auth/auth-primitives';
-import { useLoginDialogStore } from '../store';
+import { ROUTES } from '@/shared/constants/routes';
+import { LoginForm } from '@/modules/auth/ui/login-form';
+import { useLoginDialogStore } from '@/modules/auth/store';
 
 /**
  * Sign-in as an overlay, which is how the design draws it — a dialog over the
  * page you were already on rather than a screen you navigate to.
  *
- * The /login ROUTE still exists and is not redundant. The proxy redirects
- * unauthenticated requests somewhere, and password-reset and invite emails link
- * to a URL; a dialog has neither. So the same LoginForm renders in both, and the
- * route stays the destination for anything arriving from outside the app.
+ * The /login ROUTE still exists too: the proxy redirects unauthenticated
+ * requests somewhere, and password-reset and invite emails link to a URL, so
+ * the same LoginForm renders in both places.
  */
 export function LoginDialog() {
   const open = useLoginDialogStore((state) => state.open);
@@ -29,19 +29,20 @@ export function LoginDialog() {
         aria-label="Log in to Field & Arena"
         className="max-h-[90vh] gap-0 overflow-y-auto rounded-[18px] border-line bg-paper p-0 font-[family-name:var(--font-ar)] shadow-[0_40px_90px_rgba(9,26,21,.45)] sm:max-w-[452px]"
       >
-        <button
+        <Button
           type="button"
+          variant="ghost"
           aria-label="Close"
           onClick={() => {
             setOpen(false);
           }}
-          className="absolute right-5 top-5 grid size-[34px] place-items-center rounded-[9px] border border-line-mint bg-mint text-fa-muted transition-colors hover:border-forest hover:bg-forest hover:text-paper"
+          className="absolute right-5 top-5 h-auto grid size-[34px] place-items-center rounded-[9px] border border-line-mint bg-mint p-0 text-fa-muted transition-colors hover:border-forest hover:bg-forest hover:text-paper"
         >
           <XIcon className="size-[15px]" aria-hidden />
-        </button>
+        </Button>
 
-        {/* The visible heading moves with the panel — sign in, reset, code — so
-            the dialog's accessible name is a fixed one that does not chase it. */}
+        {/* The heading moves with the panel — sign in, reset, code — so the
+            dialog's accessible name is a fixed one that does not chase it. */}
         <DialogTitle className="sr-only">Log in to Field &amp; Arena</DialogTitle>
         <DialogDescription className="sr-only">
           Sign in to Field &amp; Arena, or reset your password.
