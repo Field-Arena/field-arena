@@ -1,7 +1,8 @@
 'use server';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { uploadShowDocumentSchema } from '../schemas';
+import { uploadShowDocumentSchema } from '@/modules/operations/schemas';
+import { OPERATIONS_DOCUMENTS_PATH } from '@/modules/operations/constants';
 
 /**
  * ShowStaff's one write path — uploading a PDF to the show's shared document
@@ -41,5 +42,5 @@ export async function uploadShowDocument(input: unknown): Promise<void> {
     throw new Error(error.message);
   }
 
-  revalidatePath('/dashboard/operations/documents');
+  revalidatePath(OPERATIONS_DOCUMENTS_PATH);
 }

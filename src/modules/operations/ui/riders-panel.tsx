@@ -1,7 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
-import type { RiderDirectoryRow } from '../data/queries';
-import { searchStyle } from './directory-styles';
+import { Input } from '@/shared/ui/shadcn/input';
+import type { RiderDirectoryRow } from '@/modules/operations/data/queries';
+import { searchStyle } from '@/modules/operations/ui/directory-styles';
 
 /** "Riders" — ported from showstaff-ops.html's viewRiders()/ridersRows(). */
 export function RidersPanel({ riders }: { riders: RiderDirectoryRow[] }) {
@@ -20,7 +21,8 @@ export function RidersPanel({ riders }: { riders: RiderDirectoryRow[] }) {
       <h2 style={{ fontSize: 17, color: 'var(--hunter-deep)', margin: '0 0 4px' }}>
         Rider directory ({riders.length})
       </h2>
-      <input
+      <Input
+        className="h-auto"
         style={searchStyle}
         placeholder="Search riders, horses, or numbers…"
         value={term}

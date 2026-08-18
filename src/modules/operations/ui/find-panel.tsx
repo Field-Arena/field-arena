@@ -1,7 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
-import type { HorseDirectoryRow, RiderDirectoryRow, VendorRow } from '../data/queries';
-import { rowStyle, whereStyle, searchStyle } from './directory-styles';
+import { Input } from '@/shared/ui/shadcn/input';
+import type { HorseDirectoryRow, RiderDirectoryRow, VendorRow } from '@/modules/operations/data/queries';
+import { rowStyle, whereStyle, searchStyle } from '@/modules/operations/ui/directory-styles';
 
 /** "Find" — ported from showstaff-ops.html's viewFind()/findBody(): one search box across riders, horses, and vendors. */
 export function FindPanel({
@@ -39,7 +40,8 @@ export function FindPanel({
 
   return (
     <div className="dash-card">
-      <input
+      <Input
+        className="h-auto"
         style={{ ...searchStyle, fontSize: 16, padding: '14px 16px' }}
         placeholder="Search riders, horses, or vendors…"
         value={term}

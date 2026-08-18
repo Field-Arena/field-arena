@@ -1,8 +1,8 @@
 'use client';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { uploadShowDocument } from '../data/mutations';
-import type { UploadShowDocumentInput } from '../schemas';
+import { uploadShowDocument } from '@/modules/operations/data/mutations';
+import type { UploadShowDocumentInput } from '@/modules/operations/schemas';
 
 /** Wraps the upload Server Action for the Documents tab's file input. */
 export function useUploadShowDocument() {

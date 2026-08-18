@@ -1,6 +1,6 @@
 'use client';
 import { useMemo } from 'react';
-import type { StablingData } from '../data/queries';
+import type { StablingData } from '@/modules/operations/data/queries';
 
 /** "Stabling" — ported from showstaff-ops.html's viewStabling(). */
 export function StablingPanel({ stabling }: { stabling: StablingData }) {

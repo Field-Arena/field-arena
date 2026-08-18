@@ -1,6 +1,7 @@
 'use client';
 import type { ChangeEvent } from 'react';
-import { useUploadShowDocument } from '../hooks/use-document-mutations';
+import { Input } from '@/shared/ui/shadcn/input';
+import { useUploadShowDocument } from '@/modules/operations/hooks/use-document-mutations';
 
 /**
  * "+ Upload PDF", ported from viewDocuments()'s hidden file input. Loops over
@@ -29,12 +30,13 @@ export function DocumentUploadButton({ showId }: { showId: string }) {
   return (
     <label className="dash-btn dash-btn-dark" style={{ cursor: 'pointer', display: 'inline-flex' }}>
       {isPending ? 'Uploading…' : '+ Upload PDF'}
-      <input
+      <Input
         type="file"
         accept="application/pdf"
         multiple
         onChange={handleChange}
         disabled={isPending}
+        className="h-auto"
         style={{ display: 'none' }}
       />
     </label>

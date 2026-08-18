@@ -2,7 +2,9 @@ import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
-import { resolveOperationsPermissions, withSharedRank } from '../utils';
+import { ORG_LEVEL_ROLES } from '@/modules/operations/constants';
+import { resolveOperationsPermissions } from '@/modules/operations/utils/resolve-operations-permissions';
+import { withSharedRank } from '@/modules/operations/utils/with-shared-rank';
 
 /**
  * ShowStaff reads, ported from showstaff-ops.html: the Find/Riders/Horses/
@@ -49,8 +51,6 @@ export async function listMyShows(): Promise<OperationsShow[]> {
 
   return shows.map((s) => ({ id: s.id, name: s.name, dateLabel: s.date_label }));
 }
-
-const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
 
 /**
  * The signed-in caller's effective permissions for this show — used here to

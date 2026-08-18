@@ -1,5 +1,5 @@
 'use client';
-import type { VendorRow } from '../data/queries';
+import type { VendorRow } from '@/modules/operations/data/queries';
 
 /**
  * "Vendors" — ported from showstaff-ops.html's viewVendors(). `vendors` is
