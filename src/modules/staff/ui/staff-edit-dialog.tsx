@@ -23,15 +23,16 @@ import {
   useReassignStaffShow,
   useUpdateStaffDetails,
 } from '../hooks/use-user-directory-mutations';
+import { splitName } from '../utils';
 import type { UserDirectoryRow } from '../types';
 import type { ChangeStaffRoleInput } from '../schemas';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
 /** row.firstName/lastName is null for rows created before that split was tracked (e.g. superadmin's addOrgStaff) — falls back to splitting the combined name so the fields still start populated. */
-function splitName(row: UserDirectoryRow): { firstName: string; lastName: string } {
+function splitRowName(row: UserDirectoryRow): { firstName: string; lastName: string } {
   if (row.firstName || row.lastName) return { firstName: row.firstName ?? '', lastName: row.lastName ?? '' };
-  const [firstName = '', ...rest] = row.name.trim().split(/\s+/);
-  return { firstName, lastName: rest.join(' ') };
+  const { first, last } = splitName(row.name);
+  return { firstName: first, lastName: last };
 }
 
 const SELECT_CLASS =
@@ -94,7 +95,7 @@ function StaffEditForm({
   const [role, setRole] = useState(row.role);
   const [showId, setShowId] = useState(row.showId);
   const [draft, setDraft] = useState<Record<PermissionKey, boolean>>(row.permissions ?? emptyPermissions());
-  const initialName = splitName(row);
+  const initialName = splitRowName(row);
   const [firstName, setFirstName] = useState(initialName.firstName);
   const [lastName, setLastName] = useState(initialName.lastName);
   const [email, setEmail] = useState(row.email ?? '');

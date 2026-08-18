@@ -7,13 +7,9 @@ import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
 import { SearchInput } from '@/shared/ui/organizer/search-input';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/utils';
-import {
-  MEMBER_COLUMNS,
-  MEMBER_CSV_HEADERS,
-  MEMBER_ROW_CAP,
-  type MemberColumnKey,
-} from '../constants';
+import { MEMBER_COLUMNS, MEMBER_ROW_CAP, type MemberColumnKey } from '../constants';
 import type { MemberRow } from '../data/queries';
+import { buildMembersCsv } from '../utils';
 import { useAddMembersToShow } from '../hooks/use-member-mutations';
 import { MemberEditDialog } from './member-edit-dialog';
 import { MemberImportDialog } from './member-import-dialog';
@@ -21,10 +17,6 @@ import { MemberImportDialog } from './member-import-dialog';
 /** Today in ISO, for the expired check. */
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function csvCell(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
 /**
@@ -93,31 +85,8 @@ export function MemberDatabaseScreen({
   const today = todayIso();
 
   function exportCsv() {
-    const headers = [...MEMBER_CSV_HEADERS];
-    const extraKeys = [...new Set(members.flatMap((m) => Object.keys(m.extraFields)))].sort();
-    const lines = [[...headers, ...extraKeys].map(csvCell).join(',')];
-
-    for (const m of members) {
-      // A person imported without split names still exports as two columns —
-      // the display name is the only thing that survived, so it leads.
-      const first = m.firstName ?? m.name.split(/\s+/).slice(0, -1).join(' ');
-      const last = m.lastName ?? m.name.split(/\s+/).slice(-1).join(' ');
-      lines.push(
-        [
-          first,
-          last,
-          m.role ?? '',
-          m.phone ?? '',
-          m.email ?? '',
-          m.notes ?? '',
-          ...extraKeys.map((k) => m.extraFields[k] ?? ''),
-        ]
-          .map(csvCell)
-          .join(','),
-      );
-    }
-
-    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    const csv = buildMembersCsv(members);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const link = document.createElement('a');
     link.href = url;
     link.download = 'field-and-arena-member-database.csv';
