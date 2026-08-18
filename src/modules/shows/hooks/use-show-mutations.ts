@@ -24,7 +24,7 @@ import {
   updateMerchandise,
   saveWaiverText,
   approveWaiver,
-} from '../data/mutations';
+} from '@/modules/shows/data/mutations';
 import type {
   CreateShowInput,
   CreateClassInput,
@@ -39,7 +39,7 @@ import type {
   UpdateDocumentRequirementsInput,
   UpdateMerchandiseInput,
   SaveWaiverTextInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
 /** Re-exported so every hook in this module reports the same way. */
 const message = readableError;

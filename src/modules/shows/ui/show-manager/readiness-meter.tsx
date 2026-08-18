@@ -1,5 +1,5 @@
 import { Card, Eyebrow } from '@/shared/ui/organizer/card';
-import type { ShowCompleteness } from '../../data/setup-queries';
+import type { ShowCompleteness } from '@/modules/shows/data/setup-queries';
 
 /**
  * "Setup readiness" — ported from the Admin Console design export's

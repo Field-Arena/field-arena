@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
-import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '../../constants';
-import { SM_GREEN_BTN } from './tokens';
+import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/constants';
+import { SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
 
 /**
  * The "what to do next" footer every Show Manager section ends on — one

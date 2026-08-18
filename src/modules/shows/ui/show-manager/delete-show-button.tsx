@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { DangerButton } from '@/shared/ui/organizer/buttons';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { useDeleteShow } from '../../hooks/use-show-mutations';
+import { useDeleteShow } from '@/modules/shows/hooks/use-show-mutations';
 
 /**
  * "Delete" on a show row — Show Manager's picker and the Incomplete Shows

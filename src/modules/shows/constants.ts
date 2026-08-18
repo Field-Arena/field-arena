@@ -227,6 +227,15 @@ export const QUAL_TYPE_PRESETS = [
   { body: 'USEF', price: 20 },
 ] as const;
 
+/* ── Show Manager — Setup tab ─────────────────────────────────────────────── */
+
+/** Contact card's three toggle-edit rows — design's smInfoRowHtml pattern. */
+export const CONTACT_FIELDS = [
+  { key: 'website', label: 'Website', type: 'url', placeholder: 'https://…' },
+  { key: 'phone', label: 'Phone', type: 'tel', placeholder: '(555) 555-0100' },
+  { key: 'contactEmail', label: 'Contact email', type: 'email', placeholder: 'info@yourshow.com' },
+] as const;
+
 /* ── Show Manager — Rider Entries tab ────────────────────────────────────── */
 
 /**
@@ -601,3 +610,47 @@ export const SHOW_MANAGER_SECTIONS = [
 ] as const;
 
 export type ShowManagerTab = (typeof SHOW_MANAGER_SECTIONS)[number]['label'];
+
+/* ── Server Action revalidatePath targets ────────────────────────────────── */
+
+export const DASHBOARD_PATH = '/dashboard';
+export const SHOWS_PATH = '/dashboard/shows';
+export const SCHEDULE_PATH = '/dashboard/schedule';
+export const HORSES_PATH = '/dashboard/horses';
+export const STABLE_CHART_PATH = '/dashboard/horses/stable-chart';
+
+/** The Documents tab's private storage bucket; path convention is documents/{show_id}/{filename}. */
+export const SHOW_DOCS_BUCKET = 'documents';
+
+/** Matches showstaff.html's defaultRules() — the state a show with no schedule_prefs row yet renders as. */
+export const DEFAULT_SCHEDULE_PREFS = {
+  perMin: 9,
+  buffer: 2,
+  upper: 2,
+  end: '17:00',
+  order: 'low',
+  warmup: 'no',
+  lunch: true,
+  extraBreaks: 0,
+  extraBreakMin: 10,
+  hardRuleEnabled: true,
+  hardRuleSameHorseMin: 30,
+  hardRuleDiffHorseMin: 55,
+  awardsByDivision: false,
+} as const;
+
+/** Mirrors the schedule engine's own upper-level set — see stepMinutesForClass. */
+export const UPPER_LEVELS = new Set(['Third Level', 'Fourth Level', 'FEI']);
+
+/** Ring-size display labels for the Master Schedule's per-arena header. */
+export const RING_SIZE_LABEL: Record<string, string> = {
+  standard: 'Standard (20m × 60m)',
+  small: 'Small (20m × 40m)',
+};
+
+/**
+ * The exact 3-body list showstaff.html's renderSetupView hardcodes for the
+ * Show Details card — distinct from GOVERNING_BODIES in schemas.ts (which
+ * also offers USEA/None), that being the create-show form's own picker.
+ */
+export const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;

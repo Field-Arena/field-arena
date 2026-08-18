@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_STABLES, MAX_STALLS_PER_STABLE } from './constants';
+import { MAX_STABLES, MAX_STALLS_PER_STABLE } from '@/modules/shows/constants';
 
 /**
  * Field set drawn from the shows table and the legacy ShowManager Setup panel —

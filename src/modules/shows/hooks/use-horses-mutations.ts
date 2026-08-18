@@ -4,12 +4,12 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { addManualHorse, verifyHorseDocument, remindHorseDocuments } from '../data/horses-mutations';
+import { addManualHorse, verifyHorseDocument, remindHorseDocuments } from '@/modules/shows/data/horses-mutations';
 import type {
   AddManualHorseInput,
   VerifyHorseDocumentInput,
   RemindHorseDocumentsInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
 /** Mutation hooks for the Horses screen. Add/verify revalidate server-side; router.refresh() pulls the re-rendered rows back into this view. */
 

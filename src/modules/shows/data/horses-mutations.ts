@@ -8,11 +8,10 @@ import {
   addManualHorseSchema,
   verifyHorseDocumentSchema,
   remindHorseDocumentsSchema,
-} from '../schemas';
-import type { ManualHorseEntry } from './horses-queries';
-import type { DocumentRequirement } from './setup-queries';
-
-const HORSES_PATH = '/dashboard/horses';
+} from '@/modules/shows/schemas';
+import { HORSES_PATH } from '@/modules/shows/constants';
+import type { ManualHorseEntry } from '@/modules/shows/data/horses-queries';
+import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
 
 /**
  * Horses screen writes: the "+ Add Horse" manual entry, the per-document

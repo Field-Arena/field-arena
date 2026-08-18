@@ -13,10 +13,11 @@ import {
   toggleStableChartStatusSchema,
   autoAssignStableStallsSchema,
   applySavedLocationStablesSchema,
-} from '../schemas';
-import { resizeStableStalls } from '../utils';
-import { getHorsesPageData } from './horses-queries';
-import { normalizeStableChart, type StableChart, type StableChartStable, type StableChartStall } from './stable-chart-queries';
+} from '@/modules/shows/schemas';
+import { resizeStableStalls } from '@/modules/shows/utils/resize-stable-stalls';
+import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
+import { normalizeStableChart, type StableChart, type StableChartStable, type StableChartStall } from '@/modules/shows/data/stable-chart-queries';
+import { HORSES_PATH, STABLE_CHART_PATH } from '@/modules/shows/constants';
 
 /**
  * Stable Chart writes — every one of these is a read-modify-write on the
@@ -34,9 +35,6 @@ import { normalizeStableChart, type StableChart, type StableChartStable, type St
  * codebase validates a narrow input shape instead of trusting a client-built
  * document.
  */
-
-const HORSES_PATH = '/dashboard/horses';
-const STABLE_CHART_PATH = '/dashboard/horses/stable-chart';
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
 

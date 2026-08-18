@@ -3,10 +3,10 @@ import { ScreenTitle, ScreenLede, Eyebrow, Card } from '@/shared/ui/organizer/ca
 import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
 import { fa } from '@/shared/lib/organizer-theme';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
-import type { ShowStats, ShowListItem } from '../../data/queries';
-import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '../../constants';
-import { NewShowButton } from './new-show-button';
-import { ShowSwitcher } from './show-switcher';
+import type { ShowStats, ShowListItem } from '@/modules/shows/data/queries';
+import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/constants';
+import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
+import { ShowSwitcher } from '@/modules/shows/ui/show-manager/show-switcher';
 
 /**
  * The "Show Manager sections" tab bar and page heading — the chrome every

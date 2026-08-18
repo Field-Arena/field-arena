@@ -18,7 +18,7 @@ import {
   updateVendorItem,
   uploadShowBranding,
   uploadVendorMap,
-} from '../data/mutations';
+} from '@/modules/shows/data/mutations';
 import type {
   CreateAddOnInput,
   CreateQualTypeInput,
@@ -27,7 +27,7 @@ import type {
   UpdateVendorItemInput,
   UploadShowBrandingInput,
   UploadVendorMapInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
 /**
  * The Rider Entries tab's three lists, plus branding and the vendor map.

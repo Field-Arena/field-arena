@@ -1,7 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getDocumentRequirements, type DocumentRequirement } from './setup-queries';
-import { COGGINS_LABEL } from '../constants';
+import { getDocumentRequirements, type DocumentRequirement } from '@/modules/shows/data/setup-queries';
+import { COGGINS_LABEL } from '@/modules/shows/constants';
 
 /**
  * The Horses screen's reads: one row per horse entered in the show, built

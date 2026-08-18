@@ -5,7 +5,7 @@ import type { Json } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
-import { getShowStage } from './queries';
+import { getShowStage } from '@/modules/shows/data/queries';
 import {
   createShowSchema,
   createClassSchema,
@@ -45,8 +45,14 @@ import {
   reorderRideSchema,
   createDocumentUploadUrlSchema,
   registerShowDocumentSchema,
-} from '../schemas';
-import { VENDOR_SPACE_TEMPLATE } from '../constants';
+} from '@/modules/shows/schemas';
+import {
+  VENDOR_SPACE_TEMPLATE,
+  DASHBOARD_PATH,
+  SHOWS_PATH,
+  SCHEDULE_PATH,
+  SHOW_DOCS_BUCKET,
+} from '@/modules/shows/constants';
 import { formatDateShort } from '@/shared/lib/format/date';
 
 /**
@@ -135,8 +141,8 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/shows');
+  revalidatePath(DASHBOARD_PATH);
+  revalidatePath(SHOWS_PATH);
   return { id };
 }
 
@@ -171,8 +177,8 @@ export async function createDraftShow(): Promise<{ id: string }> {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/shows');
+  revalidatePath(DASHBOARD_PATH);
+  revalidatePath(SHOWS_PATH);
   return { id };
 }
 
@@ -200,8 +206,8 @@ export async function createClass(input: unknown): Promise<void> {
     throw new Error(error.message);
   }
 
-  revalidatePath('/dashboard/shows');
-  revalidatePath('/dashboard/schedule');
+  revalidatePath(SHOWS_PATH);
+  revalidatePath(SCHEDULE_PATH);
 }
 
 export async function createDivision(input: unknown): Promise<{ id: string }> {
@@ -232,7 +238,7 @@ export async function createDivision(input: unknown): Promise<{ id: string }> {
     throw new Error(error.message);
   }
 
-  revalidatePath('/dashboard/shows');
+  revalidatePath(SHOWS_PATH);
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
   return { id: data.id };
 }
@@ -348,8 +354,8 @@ export async function setShowPublished(showId: string, published: boolean): Prom
     .eq('id', showId);
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/shows');
+  revalidatePath(DASHBOARD_PATH);
+  revalidatePath(SHOWS_PATH);
 }
 
 /**
@@ -385,8 +391,8 @@ export async function advanceRunnerState(
   // whether the schedule has been approved.
   revalidatePath(`/dashboard/shows/${showId}/run-show`);
   revalidatePath(`/dashboard/shows/${showId}/schedule`);
-  revalidatePath('/dashboard/schedule');
-  revalidatePath('/dashboard');
+  revalidatePath(SCHEDULE_PATH);
+  revalidatePath(DASHBOARD_PATH);
 }
 
 /* ── Show Manager — Setup tab writes ─────────────────────────────────────
@@ -433,8 +439,8 @@ export async function updateShowDetails(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
-  revalidatePath('/dashboard/shows');
-  revalidatePath('/dashboard');
+  revalidatePath(SHOWS_PATH);
+  revalidatePath(DASHBOARD_PATH);
 }
 
 export async function updateShowLocations(input: unknown): Promise<void> {
@@ -560,8 +566,8 @@ export async function deleteShow(showId: string): Promise<void> {
   const { error } = await supabase.from('shows').delete().eq('id', showId);
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/shows');
+  revalidatePath(DASHBOARD_PATH);
+  revalidatePath(SHOWS_PATH);
 }
 
 /* ── Show Manager — Setup tab writes, continued ──────────────────────────
@@ -701,7 +707,7 @@ export async function updateTicketWindow(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
-  revalidatePath('/dashboard');
+  revalidatePath(DASHBOARD_PATH);
 }
 
 /**
@@ -758,8 +764,8 @@ export async function addCatalogGroup(input: unknown): Promise<{ added: number }
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
-  revalidatePath('/dashboard/shows');
-  revalidatePath('/dashboard/schedule');
+  revalidatePath(SHOWS_PATH);
+  revalidatePath(SCHEDULE_PATH);
   return { added: data.length };
 }
 
@@ -776,8 +782,8 @@ export async function removeCatalogGroup(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
-  revalidatePath('/dashboard/shows');
-  revalidatePath('/dashboard/schedule');
+  revalidatePath(SHOWS_PATH);
+  revalidatePath(SCHEDULE_PATH);
 }
 
 export async function addCustomClass(input: unknown): Promise<void> {
@@ -800,7 +806,7 @@ export async function addCustomClass(input: unknown): Promise<void> {
   }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
-  revalidatePath('/dashboard/shows');
+  revalidatePath(SHOWS_PATH);
 }
 
 export async function createTocClass(input: unknown): Promise<void> {
@@ -826,7 +832,7 @@ export async function createTocClass(input: unknown): Promise<void> {
   }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
-  revalidatePath('/dashboard/shows');
+  revalidatePath(SHOWS_PATH);
 }
 
 /**
@@ -1169,16 +1175,14 @@ export async function removeClass(input: unknown): Promise<void> {
   // removeCatalogGroup, the sibling delete on the Select Events side.
   revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
-  revalidatePath('/dashboard/shows');
-  revalidatePath('/dashboard/schedule');
+  revalidatePath(SHOWS_PATH);
+  revalidatePath(SCHEDULE_PATH);
 }
 
 /* ── Show Manager — Documents tab writes ─────────────────────────────────
    The file library organizers publish to competitors. `documents` is a
    private bucket; path convention is documents/{show_id}/{filename}, matching
    what storage.sql's fa_documents_write policy expects. */
-
-const SHOW_DOCS_BUCKET = 'documents';
 
 export async function removeShowDocument(input: unknown): Promise<void> {
   const parsed = removeShowDocumentSchema.parse(input);
@@ -1373,7 +1377,7 @@ export async function registerShowDocument(input: unknown): Promise<{ id: string
 /* ── Master Schedule ─────────────────────────────────────────────────────── */
 
 function revalidateSchedule(showId: string): void {
-  revalidatePath('/dashboard/schedule');
+  revalidatePath(SCHEDULE_PATH);
   revalidatePath(`/dashboard/shows/${showId}/schedule`);
 }
 

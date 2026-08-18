@@ -12,14 +12,15 @@ import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
+import { Input } from '@/shared/ui/shadcn/input';
 import {
   useOpenTicketSales,
   useCloseTicketSales,
   useApproveSchedule,
-} from '../../hooks/use-run-show-mutations';
-import type { RunShowData } from '../../data/queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from './tokens';
-import { SectionFooter } from './section-footer';
+} from '@/modules/shows/hooks/use-run-show-mutations';
+import type { RunShowData } from '@/modules/shows/data/queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 const STAT_TINTS = [
   { bg: '#E3EDFB', fg: '#2E5FA8' },
@@ -200,14 +201,14 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
               {data.publishedAt ? ` since ${formatTimestamp(data.publishedAt)}` : ''}.
             </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <input
+              <Input
                 type="text"
                 readOnly
                 value={ticketLinkUrl(data.showId)}
                 onClick={(event) => {
                   event.currentTarget.select();
                 }}
-                className="text-ink-deep min-w-[220px] flex-1 rounded-md border border-[#D9E1DD] bg-white px-2.5 py-[7px] text-[12.5px]"
+                className="text-ink-deep h-auto min-w-[220px] flex-1 rounded-md border border-[#D9E1DD] bg-white px-2.5 py-[7px] text-[12.5px]"
               />
               <GhostButton
                 onClick={() => {

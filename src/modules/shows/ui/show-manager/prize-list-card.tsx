@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { useUpdatePrizeList } from '../../hooks/use-show-mutations';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT } from './tokens';
+import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
+import { useUpdatePrizeList } from '@/modules/shows/hooks/use-show-mutations';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 
 /** "Prize list" — one toggle-edit URL field, same recipe as Contact's rows. */
 export function PrizeListCard({
@@ -30,12 +32,12 @@ export function PrizeListCard({
         <div className="min-w-0">
           <span className={`${SM_LABEL} mb-1.5`}>Prize list URL</span>
           {editing ? (
-            <input
+            <Input
               autoFocus
               type="url"
               value={value}
               placeholder="https://…"
-              className={SM_INPUT}
+              className={cn('h-auto', SM_INPUT)}
               onChange={(e) => {
                 setValue(e.target.value);
               }}

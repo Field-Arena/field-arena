@@ -10,14 +10,14 @@ import {
   scratchEntry,
   setClassDuration,
   updateScheduleRules,
-} from '../data/mutations';
+} from '@/modules/shows/data/mutations';
 import type {
   MoveClassToRingDayInput,
   ReorderRideInput,
   ScratchEntryInput,
   SetClassDurationInput,
   UpdateScheduleRulesInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
 /**
  * Master Schedule's in-place edits.

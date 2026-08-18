@@ -3,15 +3,17 @@
 import { useRef, useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import {
   useUploadShowDocument,
   useRemoveShowDocument,
   useUpdateDocumentEvents,
-} from '../../hooks/use-documents-mutations';
-import type { ShowDocumentRow } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from './tokens';
-import { SectionFooter } from './section-footer';
+} from '@/modules/shows/hooks/use-documents-mutations';
+import type { ShowDocumentRow } from '@/modules/shows/data/setup-queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 /**
  * "Documents" — the file library an organizer publishes to competitors
@@ -60,12 +62,12 @@ export function DocumentsCard({
         </p>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <input
+          <Input
             ref={inputRef}
             type="file"
             accept="application/pdf,image/*"
             multiple
-            className="hidden"
+            className="h-auto hidden"
             onChange={(e) => {
               const files = e.target.files;
               if (files?.length) handleFiles(files);
@@ -107,26 +109,28 @@ export function DocumentsCard({
                         View
                       </a>
                     )}
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => {
                         setOpenDocId(open ? null : doc.id);
                       }}
-                      className="hover:text-forest text-[13px] font-semibold text-[#5A6B63]"
+                      className="h-auto px-0 py-0 hover:bg-transparent hover:text-forest text-[13px] font-semibold text-[#5A6B63]"
                     >
                       {doc.eventIds.length > 0
                         ? `Attached to ${String(doc.eventIds.length)} ${doc.eventIds.length === 1 ? 'class' : 'classes'}`
                         : 'Attach to classes'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => {
                         remove.mutate({ id: doc.id, showId });
                       }}
-                      className="hover:text-status-danger text-[13px] font-semibold text-[#5A6B63]"
+                      className="h-auto px-0 py-0 hover:bg-transparent hover:text-status-danger text-[13px] font-semibold text-[#5A6B63]"
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                   {open && (
                     <div className="border-t border-[#EEF2F0] bg-[#FBFCFB] px-4 py-3.5">

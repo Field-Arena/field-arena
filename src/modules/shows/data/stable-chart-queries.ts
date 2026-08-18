@@ -1,6 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getHorsesPageData } from './horses-queries';
+import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
 
 /**
  * The Stable Chart screen's reads — barns, stalls, who's in them — plus the

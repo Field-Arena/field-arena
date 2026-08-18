@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
-import type { ShowPickerSummary } from '../../data/queries';
-import type { ShowCompleteness } from '../../data/setup-queries';
-import { MissingSectionsDialog } from '../incomplete/missing-sections-dialog';
-import { NewShowButton } from './new-show-button';
-import { DeleteShowButton } from './delete-show-button';
+import { Button } from '@/shared/ui/shadcn/button';
+import type { ShowPickerSummary } from '@/modules/shows/data/queries';
+import type { ShowCompleteness } from '@/modules/shows/data/setup-queries';
+import { MissingSectionsDialog } from '@/modules/shows/ui/incomplete/missing-sections-dialog';
+import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
+import { DeleteShowButton } from '@/modules/shows/ui/show-manager/delete-show-button';
 
 export interface ShowPickerRow {
   show: ShowPickerSummary;
@@ -37,7 +38,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
   const openRow = rows.find((r) => r.show.id === openShowId);
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <ScreenTitle>Show Manager</ScreenTitle>
       <ScreenLede>Set up, schedule, and run your show — start to finish.</ScreenLede>
 
@@ -63,7 +64,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
           return (
             <div
               key={show.id}
-              className="grid items-center gap-[18px] rounded-[10px] border-[1.5px] bg-[#FAF6EC] px-[18px] py-[15px] [grid-template-columns:minmax(0,1fr)_auto]"
+              className="grid [grid-template-columns:minmax(0,1fr)_auto] items-center gap-[18px] rounded-[10px] border-[1.5px] bg-[#FAF6EC] px-[18px] py-[15px]"
               style={{
                 borderColor: show.published ? '#E9EDEB' : '#B4432F',
                 borderLeft: show.published ? '4px solid #2E7048' : '1.5px solid #B4432F',
@@ -82,26 +83,27 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
 
               <div className="flex items-center gap-3">
                 {!complete && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       setOpenShowId(show.id);
                     }}
-                    className="flex cursor-pointer flex-col items-end gap-[3px] border-0 bg-transparent p-0"
+                    className="flex h-auto cursor-pointer flex-col items-end gap-[3px] border-0 bg-transparent p-0 hover:bg-transparent"
                   >
                     <span className="rounded-full bg-[#B4432F] px-[11px] py-1 text-[10px] font-extrabold tracking-[.1em] text-[#FBF7EE]">
                       INCOMPLETE
                     </span>
-                    <span className="text-[11px] italic text-[#7A6A5C]">
+                    <span className="text-[11px] text-[#7A6A5C] italic">
                       Click to see what&rsquo;s missing
                     </span>
-                  </button>
+                  </Button>
                 )}
 
                 {show.published ? (
                   <Link
                     href={`/dashboard/shows/${show.id}/run-show`}
-                    className="inline-flex items-center gap-[7px] whitespace-nowrap rounded-full border border-[#B9D8C0] bg-[#E3F0E5] px-[15px] py-2 text-[13px] font-bold text-[#2E7048]"
+                    className="inline-flex items-center gap-[7px] rounded-full border border-[#B9D8C0] bg-[#E3F0E5] px-[15px] py-2 text-[13px] font-bold whitespace-nowrap text-[#2E7048]"
                   >
                     <span className="size-[7px] rounded-full bg-[#2E7048]" />
                     {SHOW_STAGES.find((s) => s.key === show.stage)?.label ?? 'Live'}
@@ -110,7 +112,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
                   <>
                     <Link
                       href={`/dashboard/shows/${show.id}`}
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold text-[#16261F] transition-colors hover:border-[#B4432F]"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold whitespace-nowrap text-[#16261F] transition-colors hover:border-[#B4432F]"
                     >
                       <span className="size-1.5 rounded-full bg-[#B4432F]" />
                       Setup

@@ -4,21 +4,31 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
 import {
   useSaveTestTemplate,
   useDeleteTestTemplate,
   useAssignTestToClass,
-} from '../../hooks/use-test-builder-mutations';
-import { saveTestTemplateSchema } from '../../schemas';
-import { TB_STARTER_TESTS } from '../../constants';
+} from '@/modules/shows/hooks/use-test-builder-mutations';
+import { saveTestTemplateSchema } from '@/modules/shows/schemas';
+import { TB_STARTER_TESTS } from '@/modules/shows/constants';
 import type {
   TestTemplateRow,
   TestTemplateMovement,
   TestTemplateCollective,
   TestBuilderClassOption,
-} from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_ROW_INPUT } from './tokens';
-import { SectionFooter } from './section-footer';
+} from '@/modules/shows/data/setup-queries';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_LABEL,
+  SM_INPUT,
+  SM_ROW_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
+import { nextMovementNum } from '@/modules/shows/utils/next-movement-num';
 
 interface Draft {
   id?: string;
@@ -30,10 +40,6 @@ interface Draft {
 }
 
 const EMPTY_DRAFT: Draft = { name: '', level: '', movements: [], collectives: [] };
-
-function nextMovementNum(movements: TestTemplateMovement[]): number {
-  return movements.reduce((max, m) => Math.max(max, m.num), 0) + 1;
-}
 
 /**
  * "Test Builder" — an organization's own dressage test library, ported from
@@ -133,9 +139,9 @@ export function TestBuilderCard({
         <div className="mb-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div>
             <label className={SM_LABEL}>Test name</label>
-            <input
+            <Input
               value={draft.name}
-              className={SM_INPUT}
+              className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
                 setDraft({ ...draft, name: e.target.value });
               }}
@@ -143,10 +149,10 @@ export function TestBuilderCard({
           </div>
           <div>
             <label className={SM_LABEL}>Level</label>
-            <input
+            <Input
               value={draft.level}
               placeholder="e.g. Training Level"
-              className={SM_INPUT}
+              className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
                 setDraft({ ...draft, level: e.target.value });
               }}
@@ -161,11 +167,11 @@ export function TestBuilderCard({
               key={i}
               className="grid grid-cols-[52px_minmax(0,1fr)_70px_auto] items-center gap-2.5"
             >
-              <input
+              <Input
                 type="number"
                 min={1}
                 value={m.num}
-                className={SM_ROW_INPUT}
+                className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
                   const num = Number.parseInt(e.target.value, 10);
                   const next = [...draft.movements];
@@ -173,23 +179,23 @@ export function TestBuilderCard({
                   setDraft({ ...draft, movements: next });
                 }}
               />
-              <input
+              <Input
                 value={m.text}
                 placeholder="Movement description"
-                className={SM_ROW_INPUT}
+                className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
                   const next = [...draft.movements];
                   next[i] = { ...m, text: e.target.value };
                   setDraft({ ...draft, movements: next });
                 }}
               />
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={10}
                 value={m.coef}
                 title="Coefficient"
-                className={SM_ROW_INPUT}
+                className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
                   const coef = Number.parseInt(e.target.value, 10);
                   const next = [...draft.movements];
@@ -197,15 +203,16 @@ export function TestBuilderCard({
                   setDraft({ ...draft, movements: next });
                 }}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setDraft({ ...draft, movements: draft.movements.filter((_, j) => j !== i) });
                 }}
-                className="hover:text-status-danger bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -228,23 +235,23 @@ export function TestBuilderCard({
         <div className="mb-3 flex flex-col gap-2">
           {draft.collectives.map((c, i) => (
             <div key={i} className="grid grid-cols-[minmax(0,1fr)_70px_auto] items-center gap-2.5">
-              <input
+              <Input
                 value={c.label}
                 placeholder="e.g. Gaits (freedom and regularity)"
-                className={SM_ROW_INPUT}
+                className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
                   const next = [...draft.collectives];
                   next[i] = { ...c, label: e.target.value };
                   setDraft({ ...draft, collectives: next });
                 }}
               />
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={10}
                 value={c.coef}
                 title="Coefficient"
-                className={SM_ROW_INPUT}
+                className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
                   const coef = Number.parseInt(e.target.value, 10);
                   const next = [...draft.collectives];
@@ -252,15 +259,16 @@ export function TestBuilderCard({
                   setDraft({ ...draft, collectives: next });
                 }}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setDraft({ ...draft, collectives: draft.collectives.filter((_, j) => j !== i) });
                 }}
-                className="hover:text-status-danger bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -337,33 +345,36 @@ export function TestBuilderCard({
                     {String(t.collectives.length)} collective marks
                   </span>
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => {
                     openEdit(t);
                   }}
-                  className="text-forest text-[13px] font-semibold hover:underline"
+                  className="text-forest h-auto px-0 py-0 text-[13px] font-semibold hover:bg-transparent hover:underline"
                 >
                   Edit
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => {
                     duplicate(t);
                   }}
-                  className="hover:text-forest text-[13px] font-semibold text-[#5A6B63]"
+                  className="hover:text-forest h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                 >
                   Duplicate
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => {
                     del.mutate(t.id);
                   }}
-                  className="hover:text-status-danger text-[13px] font-semibold text-[#5A6B63]"
+                  className="hover:text-status-danger h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                 >
                   Delete
-                </button>
+                </Button>
                 {classes.length > 0 && (
                   <div className="flex items-center gap-2">
                     <select
@@ -380,18 +391,19 @@ export function TestBuilderCard({
                         </option>
                       ))}
                     </select>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       disabled={!pickedClass[t.id] || assignToClass.isPending}
                       onClick={() => {
                         const classId = pickedClass[t.id];
                         if (!classId) return;
                         assignToClass.mutate({ templateId: t.id, classId });
                       }}
-                      className="text-forest text-[13px] font-semibold hover:underline disabled:cursor-not-allowed disabled:text-[#B4BFB9] disabled:no-underline"
+                      className="text-forest h-auto px-0 py-0 text-[13px] font-semibold hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B4BFB9] disabled:no-underline"
                     >
                       Assign
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

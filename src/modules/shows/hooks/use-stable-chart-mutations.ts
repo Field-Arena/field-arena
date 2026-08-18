@@ -13,7 +13,7 @@ import {
   toggleStableChartStatus,
   autoAssignStableStalls,
   applySavedLocationStables,
-} from '../data/stable-chart-mutations';
+} from '@/modules/shows/data/stable-chart-mutations';
 import type {
   SetStableCountInput,
   UpdateStableFieldInput,
@@ -23,7 +23,7 @@ import type {
   ToggleStableChartStatusInput,
   AutoAssignStableStallsInput,
   ApplySavedLocationStablesInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
 /**
  * Mutation hooks for the Stable Chart screen. Every action revalidates

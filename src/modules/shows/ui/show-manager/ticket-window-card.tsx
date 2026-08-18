@@ -2,9 +2,15 @@
 
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
-import { useUpdateTicketWindow } from '../../hooks/use-select-events-mutations';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_LABEL, SM_INPUT } from './tokens';
-import type { SelectEventsData } from '../../data/setup-queries';
+import { Input } from '@/shared/ui/shadcn/input';
+import { useUpdateTicketWindow } from '@/modules/shows/hooks/use-select-events-mutations';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_LABEL,
+  SM_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
+import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 
 /**
  * "Ticket Sales Window" — when riders may enter.
@@ -30,56 +36,65 @@ export function TicketWindowCard({ data }: { data: SelectEventsData }) {
     });
   }
 
+  const windowDateFields: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    onSave: () => void;
+  }[] = [
+    {
+      id: 'ticket-open',
+      label: 'Ticket sales open',
+      value: open,
+      onChange: setOpen,
+      onSave: () => {
+        save({ ticketOpen: open });
+      },
+    },
+    {
+      id: 'ticket-close-date',
+      label: 'Ticket sales close (date)',
+      value: closeDate,
+      onChange: setCloseDate,
+      onSave: () => {
+        save({ ticketCloseDate: closeDate });
+      },
+    },
+  ];
+
   return (
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Ticket Sales Window</h2>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="ticket-open" className={SM_LABEL}>
-            Ticket sales open
-          </label>
-          <input
-            id="ticket-open"
-            type="date"
-            className={SM_INPUT}
-            value={open}
-            onChange={(e) => {
-              setOpen(e.target.value);
-            }}
-            onBlur={() => {
-              save({ ticketOpen: open });
-            }}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="ticket-close-date" className={SM_LABEL}>
-            Ticket sales close (date)
-          </label>
-          <input
-            id="ticket-close-date"
-            type="date"
-            className={SM_INPUT}
-            value={closeDate}
-            onChange={(e) => {
-              setCloseDate(e.target.value);
-            }}
-            onBlur={() => {
-              save({ ticketCloseDate: closeDate });
-            }}
-          />
-        </div>
+        {windowDateFields.map((f) => (
+          <div key={f.id}>
+            <label htmlFor={f.id} className={SM_LABEL}>
+              {f.label}
+            </label>
+            <Input
+              id={f.id}
+              type="date"
+              className={`h-auto ${SM_INPUT}`}
+              value={f.value}
+              onChange={(e) => {
+                f.onChange(e.target.value);
+              }}
+              onBlur={f.onSave}
+            />
+          </div>
+        ))}
       </div>
 
       <div className="mt-4 sm:max-w-[calc(50%-8px)]">
         <label htmlFor="ticket-close-time" className={SM_LABEL}>
           Ticket sales close (time)
         </label>
-        <input
+        <Input
           id="ticket-close-time"
           type="time"
-          className={SM_INPUT}
+          className={`h-auto ${SM_INPUT}`}
           value={closeTime}
           onChange={(e) => {
             setCloseTime(e.target.value);

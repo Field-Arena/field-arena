@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import type { ShowListItem } from '../../data/queries';
+import type { ShowListItem } from '@/modules/shows/data/queries';
 
 /**
  * Show Manager's own show switcher — distinct from the Dashboard's GET-form
@@ -32,7 +32,7 @@ export function ShowSwitcher({
         onChange={(e) => {
           setPending(e.target.value);
         }}
-        className="min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm text-ink-deep"
+        className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
         aria-label="Select show"
       >
         {shows.map((show) => (

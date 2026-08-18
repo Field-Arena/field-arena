@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { CheckIcon, SendIcon } from 'lucide-react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import { SM_GHOST_BTN } from '../show-manager/tokens';
-import { useApproveSchedule } from '../../hooks/use-run-show-mutations';
+import { SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
+import { useApproveSchedule } from '@/modules/shows/hooks/use-run-show-mutations';
 
 /**
  * Approves the built schedule and pushes it live.
@@ -39,17 +40,18 @@ export function PublishScheduleButton({
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         disabled={approve.isPending}
-        className={cn(SM_GHOST_BTN, 'border-gold text-forest')}
+        className={cn('h-auto', SM_GHOST_BTN, 'border-gold text-forest', 'hover:bg-transparent')}
         onClick={() => {
           setConfirming(true);
         }}
       >
         <SendIcon className="size-4" aria-hidden />
         {approve.isPending ? 'Publishing…' : 'Publish schedule'}
-      </button>
+      </Button>
 
       <ConfirmDialog
         open={confirming}

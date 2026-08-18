@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
 import {
   useCreateDivision,
   useRenameDivision,
   useDeleteDivision,
-} from '../../hooks/use-show-mutations';
-import type { DivisionRow } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from './tokens';
+} from '@/modules/shows/hooks/use-show-mutations';
+import type { DivisionRow } from '@/modules/shows/data/setup-queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 
 /** "Class divisions" — createDivision already existed (used elsewhere); this card adds rename/remove and the Setup-tab UI around all three. */
 export function ClassDivisionsCard({
@@ -57,31 +60,32 @@ export function ClassDivisionsCard({
       <div className="mb-4 flex flex-col gap-2">
         {rows.map((d) => (
           <div key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3.5">
-            <input
+            <Input
               value={d.name}
-              className={SM_ROW_INPUT}
+              className={cn('h-auto', SM_ROW_INPUT)}
               onChange={(e) => {
                 commitRename(d.id, e.target.value);
               }}
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => {
                 commitRemove(d.id);
               }}
-              className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+              className="h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent hover:text-status-danger"
             >
               Remove
-            </button>
+            </Button>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <input
+        <Input
           value={newName}
           placeholder="e.g. Vintage, Para, Masters"
-          className={SM_INPUT}
+          className={cn('h-auto', SM_INPUT)}
           onChange={(e) => {
             setNewName(e.target.value);
           }}

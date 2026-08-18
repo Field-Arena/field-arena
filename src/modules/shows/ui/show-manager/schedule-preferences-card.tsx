@@ -1,38 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import type { UpdateSchedulePrefsInput } from '../../schemas';
-import type { SchedulePrefs } from '../../data/setup-queries';
-import { useUpdateSchedulePrefs } from '../../hooks/use-show-mutations';
+import type { UpdateSchedulePrefsInput } from '@/modules/shows/schemas';
+import type { SchedulePrefs } from '@/modules/shows/data/setup-queries';
+import { useUpdateSchedulePrefs } from '@/modules/shows/hooks/use-show-mutations';
+import { showDayDates } from '@/modules/shows/utils/show-day-dates';
+import { dayLabel } from '@/modules/shows/utils/day-label';
 import { Card } from '@/shared/ui/organizer/card';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT, SM_SELECT } from './tokens';
-
-/** Local-date parts back to 'YYYY-MM-DD' — not toISOString(), which converts to UTC and lands on the wrong calendar day for any server/viewer timezone ahead of UTC (e.g. a local-midnight Sep 19 in PKT, UTC+5, is Sep 18 in UTC). */
-function toIsoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${String(y)}-${m}-${day}`;
-}
-
-/** One 'YYYY-MM-DD' per day in [start, end], inclusive. Falls back to a single "Day 1" when no dates are set yet — matches showstaff.html's effDays fallback in renderSetupView. */
-function showDayDates(startDate: string, endDate: string): string[] {
-  if (!startDate) return [];
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = endDate ? new Date(`${endDate}T00:00:00`) : start;
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [startDate];
-  const days: string[] = [];
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    days.push(toIsoDate(d));
-  }
-  return days;
-}
-
-function dayLabel(iso: string, index: number): string {
-  const date = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return `Day ${String(index + 1)}`;
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-}
+import { Input } from '@/shared/ui/shadcn/input';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_LABEL,
+  SM_INPUT,
+  SM_SELECT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
 /**
  * "Schedule preferences" — the last of the three Setup cards this batch
@@ -76,11 +59,45 @@ export function SchedulePreferencesCard({
   const [extraBreaks, setExtraBreaks] = useState(prefs.extraBreaks);
   const [extraBreakMin, setExtraBreakMin] = useState(prefs.extraBreakMin);
   const [dayStarts, setDayStarts] = useState<string[]>(
-    effDays.map((_, i) => dayStartTimes[i] ?? '08:00')
+    effDays.map((_, i) => dayStartTimes[i] ?? '08:00'),
   );
   const [dayEnds, setDayEnds] = useState<string[]>(effDays.map((_, i) => dayEndTimes[i] ?? ''));
 
   const { mutate } = useUpdateSchedulePrefs();
+
+  const rateFields: {
+    id: string;
+    label: string;
+    min: number;
+    max: number;
+    value: number;
+    onChange: (v: number) => void;
+  }[] = [
+    {
+      id: 'sm-permin',
+      label: 'Time per ride (min)',
+      min: 3,
+      max: 30,
+      value: perMin,
+      onChange: setPerMin,
+    },
+    {
+      id: 'sm-buffer',
+      label: 'Change-over buffer (min)',
+      min: 0,
+      max: 15,
+      value: buffer,
+      onChange: setBuffer,
+    },
+    {
+      id: 'sm-upper',
+      label: 'Upper-level allowance (min)',
+      min: 0,
+      max: 15,
+      value: upper,
+      onChange: setUpper,
+    },
+  ];
 
   function save(overrides: Partial<UpdateSchedulePrefsInput> = {}) {
     mutate({
@@ -121,72 +138,36 @@ export function SchedulePreferencesCard({
       </p>
 
       <div className="grid grid-cols-1 gap-x-[26px] gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <label htmlFor="sm-permin" className={SM_LABEL}>
-            Time per ride (min)
-          </label>
-          <input
-            id="sm-permin"
-            type="number"
-            min={3}
-            max={30}
-            value={perMin}
-            className={SM_INPUT}
-            onChange={(e) => {
-              setPerMin(Number(e.target.value));
-            }}
-            onBlur={() => {
-              save();
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="sm-buffer" className={SM_LABEL}>
-            Change-over buffer (min)
-          </label>
-          <input
-            id="sm-buffer"
-            type="number"
-            min={0}
-            max={15}
-            value={buffer}
-            className={SM_INPUT}
-            onChange={(e) => {
-              setBuffer(Number(e.target.value));
-            }}
-            onBlur={() => {
-              save();
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="sm-upper" className={SM_LABEL}>
-            Upper-level allowance (min)
-          </label>
-          <input
-            id="sm-upper"
-            type="number"
-            min={0}
-            max={15}
-            value={upper}
-            className={SM_INPUT}
-            onChange={(e) => {
-              setUpper(Number(e.target.value));
-            }}
-            onBlur={() => {
-              save();
-            }}
-          />
-        </div>
+        {rateFields.map((f) => (
+          <div key={f.id}>
+            <label htmlFor={f.id} className={SM_LABEL}>
+              {f.label}
+            </label>
+            <Input
+              id={f.id}
+              type="number"
+              min={f.min}
+              max={f.max}
+              value={f.value}
+              className={`h-auto ${SM_INPUT}`}
+              onChange={(e) => {
+                f.onChange(Number(e.target.value));
+              }}
+              onBlur={() => {
+                save();
+              }}
+            />
+          </div>
+        ))}
         <div>
           <label htmlFor="sm-latest-finish" className={SM_LABEL}>
             Latest finish
           </label>
-          <input
+          <Input
             id="sm-latest-finish"
             type="time"
             value={end}
-            className={SM_INPUT}
+            className={`h-auto ${SM_INPUT}`}
             onChange={(e) => {
               setEnd(e.target.value);
             }}
@@ -198,7 +179,7 @@ export function SchedulePreferencesCard({
       </div>
 
       <div className="mt-6">
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#6E7C76]">
+        <div className="mb-1.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
           Per-day start / stop times
         </div>
         <p className="mb-4 text-[12.5px] leading-[1.5] text-[#6E7C76]">
@@ -208,24 +189,24 @@ export function SchedulePreferencesCard({
         <div className="flex flex-col gap-2.5">
           {effDays.map((day, i) => (
             <div key={day} className="flex flex-wrap items-center gap-3">
-              <span className="w-[100px] flex-none text-[13.5px] font-bold text-forest">
+              <span className="text-forest w-[100px] flex-none text-[13.5px] font-bold">
                 {day === '__day1__' ? 'Day 1' : dayLabel(day, i)}
               </span>
               <span className="w-9 flex-none text-[11px] text-[#7C8A84]">Start</span>
-              <input
+              <Input
                 type="time"
                 value={dayStarts[i] ?? '08:00'}
-                className="w-[130px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold"
+                className="text-ink-deep focus-visible:border-gold h-auto w-[130px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] outline-none"
                 onChange={(e) => {
                   setDayStart(i, e.target.value);
                 }}
               />
               <span className="ml-1.5 w-9 flex-none text-[11px] text-[#7C8A84]">Stop</span>
-              <input
+              <Input
                 type="time"
                 value={dayEnds[i] ?? ''}
                 placeholder={end}
-                className="w-[130px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold"
+                className="text-ink-deep focus-visible:border-gold h-auto w-[130px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] outline-none"
                 onChange={(e) => {
                   setDayEnd(i, e.target.value);
                 }}
@@ -293,12 +274,12 @@ export function SchedulePreferencesCard({
         <div>
           <span className={SM_LABEL}>Additional breaks</span>
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="number"
               min={0}
               max={6}
               value={extraBreaks}
-              className="w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm text-ink-deep outline-none focus-visible:border-gold"
+              className="text-ink-deep focus-visible:border-gold h-auto w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm outline-none"
               onChange={(e) => {
                 setExtraBreaks(Number(e.target.value));
               }}
@@ -307,12 +288,12 @@ export function SchedulePreferencesCard({
               }}
             />
             <span className="text-[12.5px] text-[#7C8A84]">per day, at</span>
-            <input
+            <Input
               type="number"
               min={0}
               max={30}
               value={extraBreakMin}
-              className="w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm text-ink-deep outline-none focus-visible:border-gold"
+              className="text-ink-deep focus-visible:border-gold h-auto w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm outline-none"
               onChange={(e) => {
                 setExtraBreakMin(Number(e.target.value));
               }}

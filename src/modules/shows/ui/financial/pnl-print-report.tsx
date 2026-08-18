@@ -1,7 +1,17 @@
 import { Fragment } from 'react';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/shared/ui/shadcn/table';
+import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { PrintDate } from '@/shared/ui/print-date';
-import type { ShowPnl } from '../../data/setup-queries';
+import type { ShowPnl } from '@/modules/shows/data/setup-queries';
 
 /**
  * The printed Profit & Loss, ported from pnlGenerateReport.
@@ -44,95 +54,113 @@ export function PnlPrintReport({ pnl }: { pnl: ShowPnl }) {
               </span>
             </h2>
 
-            <table className="w-full border-collapse text-[12px]">
-              <thead>
-                <tr className="border-b border-black/20">
-                  <th className="py-1 text-left">Item</th>
-                  <th className="py-1 text-right">Qty</th>
-                  <th className="py-1 text-right">Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full border-collapse text-[12px]">
+              <TableHeader>
+                <TableRow className="border-b border-black/20 hover:bg-transparent">
+                  <TableHead className="h-auto px-0 py-1 text-left">Item</TableHead>
+                  <TableHead className="h-auto px-0 py-1 text-right">Qty</TableHead>
+                  <TableHead className="h-auto px-0 py-1 text-right">Revenue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {category.subs.map((sub) => {
-                  const showSubHeader = !(
-                    category.subs.length === 1 && sub.name === category.name
-                  );
+                  const showSubHeader = !(category.subs.length === 1 && sub.name === category.name);
 
                   return (
                     <Fragment key={sub.name}>
                       {showSubHeader && (
-                        <tr>
-                          <td colSpan={3} className="pt-2 font-bold">
+                        <TableRow className="border-0 hover:bg-transparent">
+                          <TableCell colSpan={3} className="p-0 pt-2 font-bold whitespace-normal">
                             {sub.name}{' '}
                             <span className="font-normal text-[#555]">
                               — {formatMoneyExact(sub.subtotal)}
                             </span>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )}
                       {sub.items.map((item) => (
-                        <tr key={`${sub.name}-${item.label}`}>
-                          <td className={showSubHeader ? 'pl-[18px]' : undefined}>{item.label}</td>
-                          <td className="text-right">{item.qty}</td>
-                          <td className="text-right">{formatMoneyExact(item.revenue)}</td>
-                        </tr>
+                        <TableRow
+                          key={`${sub.name}-${item.label}`}
+                          className="border-0 hover:bg-transparent"
+                        >
+                          <TableCell
+                            className={cn('p-0 whitespace-normal', showSubHeader && 'pl-[18px]')}
+                          >
+                            {item.label}
+                          </TableCell>
+                          <TableCell className="p-0 text-right whitespace-normal">
+                            {item.qty}
+                          </TableCell>
+                          <TableCell className="p-0 text-right whitespace-normal">
+                            {formatMoneyExact(item.revenue)}
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </Fragment>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </section>
         ))
       )}
 
-      <table className="w-full border-collapse text-[12px]">
-        <tfoot>
-          <tr className="border-t border-black/20 font-bold">
-            <td className="py-1">Total revenue</td>
-            <td className="py-1 text-right">{formatMoneyExact(pnl.revenueTotal)}</td>
-          </tr>
-        </tfoot>
-      </table>
+      <Table className="w-full border-collapse text-[12px]">
+        <TableFooter className="border-t-0 bg-transparent">
+          <TableRow className="border-t border-b-0 border-black/20 font-bold hover:bg-transparent">
+            <TableCell className="p-0 py-1 whitespace-normal">Total revenue</TableCell>
+            <TableCell className="p-0 py-1 text-right whitespace-normal">
+              {formatMoneyExact(pnl.revenueTotal)}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
 
       <h1 className="mt-5 mb-2 text-[16px] font-bold">Expenses</h1>
 
       {pnl.expenses.length === 0 ? (
         <p className="text-[12px] text-[#555]">No expenses recorded yet for this show.</p>
       ) : (
-        <table className="w-full border-collapse text-[12px]">
-          <tbody>
+        <Table className="w-full border-collapse text-[12px]">
+          <TableBody>
             {pnl.expenses.map((expense) => (
-              <tr key={expense.id}>
-                <td className="py-0.5">{expense.label}</td>
-                <td className="py-0.5 text-right">{formatMoneyExact(expense.amount)}</td>
-              </tr>
+              <TableRow key={expense.id} className="border-0 hover:bg-transparent">
+                <TableCell className="p-0 py-0.5 whitespace-normal">{expense.label}</TableCell>
+                <TableCell className="p-0 py-0.5 text-right whitespace-normal">
+                  {formatMoneyExact(expense.amount)}
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
 
-      <table className="w-full border-collapse text-[12px]">
-        <tfoot>
-          <tr className="border-t border-black/20 font-bold">
-            <td className="py-1">Total expenses</td>
-            <td className="py-1 text-right">{formatMoneyExact(pnl.expensesTotal)}</td>
-          </tr>
-        </tfoot>
-      </table>
+      <Table className="w-full border-collapse text-[12px]">
+        <TableFooter className="border-t-0 bg-transparent">
+          <TableRow className="border-t border-b-0 border-black/20 font-bold hover:bg-transparent">
+            <TableCell className="p-0 py-1 whitespace-normal">Total expenses</TableCell>
+            <TableCell className="p-0 py-1 text-right whitespace-normal">
+              {formatMoneyExact(pnl.expensesTotal)}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
 
       {/* The report's final number — revenue's grand total minus expenses'. */}
-      <table className="mt-4 w-full border-collapse text-[15px]">
-        <tfoot>
-          <tr className="border-t-2 border-black/40 font-bold">
-            <td className="py-1.5">Net</td>
-            <td className="py-1.5 text-right" style={{ color: pnl.net < 0 ? '#a33' : 'inherit' }}>
+      <Table className="mt-4 w-full border-collapse text-[15px]">
+        <TableFooter className="border-t-0 bg-transparent">
+          <TableRow className="border-t-2 border-b-0 border-black/40 font-bold hover:bg-transparent">
+            <TableCell className="p-0 py-1.5 whitespace-normal">Net</TableCell>
+            <TableCell
+              className="p-0 py-1.5 text-right whitespace-normal"
+              style={{ color: pnl.net < 0 ? '#a33' : 'inherit' }}
+            >
               {formatMoneyExact(pnl.net)}
               {pnl.net < 0 && ' (LOSS)'}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
     </div>
   );
 }

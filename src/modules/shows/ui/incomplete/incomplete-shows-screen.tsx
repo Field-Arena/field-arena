@@ -4,12 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
+import { Button } from '@/shared/ui/shadcn/button';
 import { formatDateShort } from '@/shared/lib/format/date';
-import type { IncompleteShowSummary } from '../../data/queries';
-import type { ShowCompleteness } from '../../data/setup-queries';
-import { MissingSectionsDialog } from './missing-sections-dialog';
-import { NewShowButton } from '../show-manager/new-show-button';
-import { DeleteShowButton } from '../show-manager/delete-show-button';
+import type { IncompleteShowSummary } from '@/modules/shows/data/queries';
+import type { ShowCompleteness } from '@/modules/shows/data/setup-queries';
+import { MissingSectionsDialog } from '@/modules/shows/ui/incomplete/missing-sections-dialog';
+import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
+import { DeleteShowButton } from '@/modules/shows/ui/show-manager/delete-show-button';
 
 export interface IncompleteShowRow {
   show: IncompleteShowSummary;
@@ -35,10 +36,19 @@ export function IncompleteShowsScreen({
   const openRow = rows.find((r) => r.show.id === openShowId);
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-3 flex items-center gap-3.5 text-[13px] text-[#7A8781]">
         <Link href="/dashboard" className={ghostButtonClass}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M19 12H5M11 18l-6-6 6-6" />
           </svg>
           Dashboard
@@ -48,8 +58,8 @@ export function IncompleteShowsScreen({
 
       <ScreenTitle>Incomplete Shows</ScreenTitle>
       <ScreenLede>
-        {rows.length} show{rows.length === 1 ? '' : 's'} still {rows.length === 1 ? 'needs' : 'need'}{' '}
-        setup before they can open entries.
+        {rows.length} show{rows.length === 1 ? '' : 's'} still{' '}
+        {rows.length === 1 ? 'needs' : 'need'} setup before they can open entries.
       </ScreenLede>
 
       <div className="mb-[18px] flex flex-wrap items-center gap-5 rounded-xl border border-[#E7E0D0] bg-[#F8F5EC] px-5 py-[18px]">
@@ -68,7 +78,7 @@ export function IncompleteShowsScreen({
         {rows.map(({ show }) => (
           <div
             key={show.id}
-            className="grid items-center gap-[18px] rounded-[10px] border-[1.5px] border-[#B4432F] bg-[#FAF6EC] px-[18px] py-[15px] [grid-template-columns:minmax(0,1fr)_auto]"
+            className="grid [grid-template-columns:minmax(0,1fr)_auto] items-center gap-[18px] rounded-[10px] border-[1.5px] border-[#B4432F] bg-[#FAF6EC] px-[18px] py-[15px]"
           >
             <div className="min-w-0">
               <div className="mb-1 font-[Newsreader,serif] text-[17px] font-semibold text-[#0D2C23]">
@@ -81,24 +91,25 @@ export function IncompleteShowsScreen({
             </div>
 
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setOpenShowId(show.id);
                 }}
-                className="flex cursor-pointer flex-col items-end gap-[3px] border-0 bg-transparent p-0"
+                className="flex h-auto cursor-pointer flex-col items-end justify-start gap-[3px] border-0 bg-transparent p-0 hover:bg-transparent"
               >
                 <span className="rounded-full bg-[#B4432F] px-[11px] py-1 text-[10px] font-extrabold tracking-[.1em] text-[#FBF7EE]">
                   INCOMPLETE
                 </span>
-                <span className="text-[11px] italic text-[#7A6A5C]">
+                <span className="text-[11px] text-[#7A6A5C] italic">
                   Click to see what&rsquo;s missing
                 </span>
-              </button>
+              </Button>
 
               <Link
                 href={`/dashboard/shows/${show.id}`}
-                className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold text-[#16261F] transition-colors hover:border-[#B4432F]"
+                className="inline-flex items-center gap-2 rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold whitespace-nowrap text-[#16261F] transition-colors hover:border-[#B4432F]"
               >
                 <span className="size-1.5 rounded-full bg-[#B4432F]" />
                 Setup

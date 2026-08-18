@@ -7,7 +7,7 @@
  * wrong is the kind of mistake that is discovered in the ring.
  */
 
-import { ribbonFor, type RibbonColor } from './constants';
+import { ribbonFor, type RibbonColor } from '@/modules/shows/constants';
 
 export const DIVISION_ORDER = ['J', 'Y', 'A', 'O'] as const;
 

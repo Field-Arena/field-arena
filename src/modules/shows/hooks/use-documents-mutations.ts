@@ -10,8 +10,8 @@ import {
   registerShowDocument,
   removeShowDocument,
   updateDocumentEvents,
-} from '../data/mutations';
-import type { RemoveShowDocumentInput, UpdateDocumentEventsInput } from '../schemas';
+} from '@/modules/shows/data/mutations';
+import type { RemoveShowDocumentInput, UpdateDocumentEventsInput } from '@/modules/shows/schemas';
 
 const message = readableError;
 

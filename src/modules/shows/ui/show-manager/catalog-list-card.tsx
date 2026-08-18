@@ -3,8 +3,12 @@
 import { useState, type ReactNode } from 'react';
 import { Loader2Icon } from 'lucide-react';
 import { Card } from '@/shared/ui/organizer/card';
-import type { CatalogListItem } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_GREEN_BTN } from './tokens';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
+import type { CatalogListItem } from '@/modules/shows/data/setup-queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
+import { CatalogRow } from '@/modules/shows/ui/show-manager/catalog-row';
 
 /**
  * The name-and-price list shared by Add-Ons and Qualifications.
@@ -69,8 +73,8 @@ export function CatalogListCard({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          className={`${SM_ROW_INPUT} min-w-[220px] flex-1`}
+        <Input
+          className={cn('h-auto', SM_ROW_INPUT, 'min-w-[220px] flex-1')}
           placeholder={placeholder}
           value={name}
           onChange={(e) => {
@@ -85,8 +89,8 @@ export function CatalogListCard({
           aria-label={`New ${title.toLowerCase()} name`}
         />
         <span className="text-[13px] text-[#6E7C76]">$</span>
-        <input
-          className={`${SM_ROW_INPUT} w-[110px] flex-none`}
+        <Input
+          className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
           inputMode="numeric"
           value={price}
           onChange={(e) => {
@@ -94,69 +98,16 @@ export function CatalogListCard({
           }}
           aria-label={`New ${title.toLowerCase()} price`}
         />
-        <button
+        <Button
           type="button"
-          className={SM_GREEN_BTN}
+          variant="ghost"
+          className={cn('h-auto', SM_GREEN_BTN)}
           disabled={creating || !name.trim()}
           onClick={add}
         >
           {creating && <Loader2Icon className="size-4 animate-spin" aria-hidden />}+ Add
-        </button>
+        </Button>
       </div>
     </Card>
-  );
-}
-
-function CatalogRow({
-  item,
-  onRename,
-  onRemove,
-}: {
-  item: CatalogListItem;
-  onRename: (item: CatalogListItem, name: string, price: number) => void;
-  onRemove: (id: string) => void;
-}) {
-  const [name, setName] = useState(item.name);
-  const [price, setPrice] = useState(String(item.price));
-
-  function commit() {
-    const nextName = name.trim();
-    const nextPrice = Number(price) || 0;
-    if (!nextName || (nextName === item.name && nextPrice === item.price)) return;
-    onRename(item, nextName, nextPrice);
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <input
-        className={`${SM_ROW_INPUT} min-w-[220px] flex-1`}
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
-        }}
-        onBlur={commit}
-        aria-label={`${item.name} name`}
-      />
-      <span className="text-[13px] text-[#6E7C76]">$</span>
-      <input
-        className={`${SM_ROW_INPUT} w-[110px] flex-none`}
-        inputMode="numeric"
-        value={price}
-        onChange={(e) => {
-          setPrice(e.target.value);
-        }}
-        onBlur={commit}
-        aria-label={`${item.name} price`}
-      />
-      <button
-        type="button"
-        onClick={() => {
-          onRemove(item.id);
-        }}
-        className="flex-none rounded-[9px] border border-[#E4B5AC] bg-[#FDF0EE] px-3.5 py-2.5 text-[12.5px] font-semibold text-[#B4432F] transition-colors hover:border-[#B4432F]"
-      >
-        Remove
-      </button>
-    </div>
   );
 }

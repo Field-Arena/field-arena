@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { useCreateDraftShow } from '../../hooks/use-show-mutations';
+import { useCreateDraftShow } from '@/modules/shows/hooks/use-show-mutations';
 
 /**
  * "+ New Show" — the single entry point into the Show Manager flow.
@@ -20,21 +21,22 @@ export function NewShowButton({ className }: { className?: string }) {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         disabled={isPending}
         onClick={() => {
           setConfirming(true);
         }}
         className={cn(
-          'inline-flex items-center gap-[9px] rounded-[10px] bg-[#0D2C23] px-[18px] py-3',
+          'h-auto inline-flex items-center gap-[9px] rounded-[10px] bg-[#0D2C23] px-[18px] py-3',
           'text-[13.5px] font-bold text-white transition-colors hover:bg-[#16261F]',
           'disabled:opacity-70',
           className
         )}
       >
         + New Show
-      </button>
+      </Button>
 
       <ConfirmDialog
         open={confirming}

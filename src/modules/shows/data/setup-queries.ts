@@ -1,18 +1,24 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { DEFAULT_SHOW_EXPENSES, PNL_CATEGORY_ORDER, type RibbonColor } from '../constants';
+import {
+  DEFAULT_SHOW_EXPENSES,
+  PNL_CATEGORY_ORDER,
+  DEFAULT_SCHEDULE_PREFS,
+  UPPER_LEVELS,
+  type RibbonColor,
+} from '@/modules/shows/constants';
 import {
   buildMasterSchedule,
   type MasterSchedule,
   type ScheduleEntry,
-} from '../schedule-engine';
+} from '@/modules/shows/schedule-engine';
 import {
   buildAwardsReport,
   disciplineOf,
   type AwardClassInput,
   type AwardEntry,
   type AwardsReport,
-} from '../awards-engine';
+} from '@/modules/shows/awards-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
 
 /**
@@ -352,23 +358,6 @@ export interface SchedulePrefs {
    */
   awardsByDivision: boolean;
 }
-
-/** Matches showstaff.html's defaultRules() — the state a show with no schedule_prefs row yet renders as. */
-const DEFAULT_SCHEDULE_PREFS: SchedulePrefs = {
-  perMin: 9,
-  buffer: 2,
-  upper: 2,
-  end: '17:00',
-  order: 'low',
-  warmup: 'no',
-  lunch: true,
-  extraBreaks: 0,
-  extraBreakMin: 10,
-  hardRuleEnabled: true,
-  hardRuleSameHorseMin: 30,
-  hardRuleDiffHorseMin: 55,
-  awardsByDivision: false,
-};
 
 export interface MerchItem {
   id: string;
@@ -1333,9 +1322,6 @@ export interface MasterScheduleData {
   published: boolean;
   rideMinutesByClass: Record<string, number>;
 }
-
-/** Mirrors the engine's own upper-level set — see stepMinutesForClass. */
-const UPPER_LEVELS = new Set(['Third Level', 'Fourth Level', 'FEI']);
 
 /**
  * Builds the show's master schedule.

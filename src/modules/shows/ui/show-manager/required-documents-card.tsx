@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
-import { useUpdateDocumentRequirements } from '../../hooks/use-show-mutations';
-import type { DocumentRequirement } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from './tokens';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
+import { useUpdateDocumentRequirements } from '@/modules/shows/hooks/use-show-mutations';
+import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 
 /**
  * "Required Documents" — no "Needed"/skip toggle: showstaff.html's version
@@ -53,9 +56,9 @@ export function RequiredDocumentsCard({
         <div className="mb-4 flex flex-col gap-2.5">
           {rows.map((doc) => (
             <div key={doc.id} className="flex flex-wrap items-center gap-3.5">
-              <input
+              <Input
                 value={doc.label}
-                className={`${SM_ROW_INPUT} flex-[0_1_210px]`}
+                className={cn('h-auto', SM_ROW_INPUT, 'flex-[0_1_210px]')}
                 onChange={(e) => {
                   commit(rows.map((d) => (d.id === doc.id ? { ...d, label: e.target.value } : d)));
                 }}
@@ -90,25 +93,26 @@ export function RequiredDocumentsCard({
                 />
                 Requires staff approval
               </label>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   commit(rows.filter((d) => d.id !== doc.id));
                 }}
-                className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+                className="h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent hover:text-status-danger"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
         </div>
       )}
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <input
+        <Input
           value={newLabel}
           placeholder="e.g. Coggins, Vaccination record"
-          className={SM_INPUT}
+          className={cn('h-auto', SM_INPUT)}
           onChange={(e) => {
             setNewLabel(e.target.value);
           }}
