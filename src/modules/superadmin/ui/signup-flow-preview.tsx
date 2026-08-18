@@ -3,13 +3,11 @@
 import { useState, type ReactNode } from 'react';
 import { ExternalLinkIcon } from 'lucide-react';
 import { StepPillNav, type StepPillNavStep } from '@/shared/ui/step-pill-nav';
-import {
-  OrganizerOnboardingPreview,
-  ShowStaffWorkspacePreview,
-  JudgeScribePreview,
-  AnnouncerPreview,
-  VendorBookingsPreview,
-} from './signup-preview-demos';
+import { OrganizerOnboardingPreview } from '@/modules/superadmin/ui/organizer-onboarding-preview';
+import { ShowStaffWorkspacePreview } from '@/modules/superadmin/ui/show-staff-workspace-preview';
+import { JudgeScribePreview } from '@/modules/superadmin/ui/judge-scribe-preview';
+import { AnnouncerPreview } from '@/modules/superadmin/ui/announcer-preview';
+import { VendorBookingsPreview } from '@/modules/superadmin/ui/vendor-bookings-preview';
 
 interface PreviewStep extends StepPillNavStep {
   /**
@@ -29,7 +27,7 @@ interface PreviewStep extends StepPillNavStep {
    * instead.
    */
   embeddable: boolean;
-  /** Demo-content stand-in for a non-embeddable step — see signup-preview-demos.tsx. */
+  /** Demo-content stand-in for a non-embeddable step — see the per-role preview components. */
   demo?: ReactNode;
 }
 
@@ -43,7 +41,7 @@ interface PreviewStep extends StepPillNavStep {
  * (that migration is exactly what made restoring this button possible — see
  * src/modules/superadmin/constants.ts's SUPERADMIN_TOOLS comment) that
  * SuperAdmin has no session for, so an iframe there would only show a login
- * screen — each instead gets a demo-content stand-in (signup-preview-demos.tsx)
+ * screen — each instead gets a demo-content stand-in (per-role preview components)
  * showing the real page's shape with seeded data, same idea as legacy's own
  * built-in per-page demo mode, plus "Open live route" to see the real thing.
  */

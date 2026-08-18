@@ -7,8 +7,8 @@ import {
   createScoringSheet,
   updateScoringSheet,
   deleteScoringSheet,
-} from '../data/mutations';
-import type { CreateSheetInput, UpdateSheetInput } from '../schemas';
+} from '@/modules/superadmin/data/mutations';
+import type { CreateSheetInput, UpdateSheetInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 /**

@@ -9,8 +9,8 @@ import {
   setOrganizationSuspended,
   setOrganizationDeleted,
   resendOrganizerInvite,
-} from '../data/mutations';
-import type { CreateOrganizationInput, UpdateOrganizationInput } from '../schemas';
+} from '@/modules/superadmin/data/mutations';
+import type { CreateOrganizationInput, UpdateOrganizationInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 /**

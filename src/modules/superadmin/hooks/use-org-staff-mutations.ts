@@ -9,12 +9,12 @@ import {
   changeStaffRole,
   updateStaffPermissions,
   removeStaffAssignment,
-} from '../data/mutations';
+} from '@/modules/superadmin/data/mutations';
 import type {
   AddOrgStaffInput,
   ChangeStaffRoleInput,
   UpdateStaffPermissionsInput,
-} from '../schemas';
+} from '@/modules/superadmin/schemas';
 
 /**
  * Mutation hooks for the Organizer Staff Directory tab. Toasts and refreshes live

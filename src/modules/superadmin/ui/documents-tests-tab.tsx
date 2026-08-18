@@ -1,16 +1,22 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { CheckIcon, UploadIcon } from 'lucide-react';
+import { useState } from 'react';
+import { CheckIcon } from 'lucide-react';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import type { CatalogDocument, TestSheetItem } from '../types';
-import { normalizeFilename, readFileAsBase64 } from '../utils';
+import type { CatalogDocument, TestSheetItem } from '@/modules/superadmin/types';
+import { normalizeFilename } from '@/modules/superadmin/utils/normalize-filename';
+import { readFileAsBase64 } from '@/modules/superadmin/utils/read-file-as-base64';
 import {
   useUploadDocument,
   useDeleteDocument,
   useMoveDocument,
-} from '../hooks/use-document-mutations';
+} from '@/modules/superadmin/hooks/use-document-mutations';
+import { StatusPill } from '@/modules/superadmin/ui/documents-tests-status-pill';
+import { RowUpload } from '@/modules/superadmin/ui/documents-tests-row-upload';
+import { BulkDrop } from '@/modules/superadmin/ui/documents-tests-bulk-drop';
 
 const HEAD = 'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
 const LINK = 'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
@@ -62,12 +68,13 @@ export function DocumentsTestsTab({
           {uploadedCount} of {testSheets.length} official test sheet
           {testSheets.length === 1 ? '' : 's'} uploaded.
         </span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
             setOnlyMissing((v) => !v);
           }}
-          className="inline-flex items-center gap-2.5 text-[13.5px] text-[#16261F]"
+          className="h-auto px-0 py-0 inline-flex items-center gap-2.5 text-[13.5px] text-[#16261F] hover:bg-transparent"
         >
           <span
             className="grid size-[17px] place-items-center rounded border"
@@ -79,7 +86,7 @@ export function DocumentsTestsTab({
             {onlyMissing && <CheckIcon className="size-3 text-gold" aria-hidden />}
           </span>
           Show only missing
-        </button>
+        </Button>
       </div>
 
       <BulkDrop
@@ -89,72 +96,79 @@ export function DocumentsTestsTab({
       />
 
       <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse">
-            <thead>
-              <tr>
-                <th className={cn(HEAD, 'text-left')}>Test</th>
-                <th className={cn(HEAD, 'w-[170px] text-left')}>Level</th>
-                <th className={cn(HEAD, 'w-[200px] text-left')}>Status</th>
-                <th className={cn(HEAD, 'w-[280px] text-right')}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-5 py-[42px] text-center text-[13.5px] text-fa-muted-2">
-                    {onlyMissing ? 'Every test sheet has a file. 🎉' : 'No test sheets yet.'}
-                  </td>
-                </tr>
-              ) : (
-                rows.map((sheet, i) => {
-                  const doc = docByName.get(sheet.sourceFile);
-                  return (
-                    <tr
-                      key={sheet.id}
-                      className="border-b border-[#EEF2EF] last:border-b-0"
-                      style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
-                    >
-                      <td className="px-5 py-3 text-[14px] text-[#16261F]">{sheet.title}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-[#5A6B63]">
-                        {sheet.level ?? '—'}
-                      </td>
-                      <td className="px-4 py-3">
+        <Table className="min-w-[900px] border-collapse">
+          <TableHeader className="[&_tr]:border-0">
+            <TableRow className="hover:bg-transparent border-b-0">
+              <TableHead className={cn('h-auto', HEAD, 'text-left')}>Test</TableHead>
+              <TableHead className={cn('h-auto', HEAD, 'w-[170px] text-left')}>Level</TableHead>
+              <TableHead className={cn('h-auto', HEAD, 'w-[200px] text-left')}>Status</TableHead>
+              <TableHead className={cn('h-auto', HEAD, 'w-[280px] text-right')}>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="whitespace-normal px-5 py-[42px] text-center text-[13.5px] text-fa-muted-2">
+                  {onlyMissing ? 'Every test sheet has a file. 🎉' : 'No test sheets yet.'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((sheet, i) => {
+                const doc = docByName.get(sheet.sourceFile);
+                return (
+                  <TableRow
+                    key={sheet.id}
+                    className="hover:bg-transparent border-b border-[#EEF2EF] last:border-b-0"
+                    style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
+                  >
+                    <TableCell className="whitespace-normal px-5 py-3 text-[14px] text-[#16261F]">
+                      {sheet.title}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-[13.5px] text-[#5A6B63]">
+                      {sheet.level ?? '—'}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      {doc ? (
+                        <StatusPill tone="ok" label={`Uploaded ${formatTimestamp(doc.createdAt)}`} />
+                      ) : (
+                        <StatusPill tone="warn" label="Missing" />
+                      )}
+                    </TableCell>
+                    <TableCell className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-3.5">
                         {doc ? (
-                          <StatusPill tone="ok" label={`Uploaded ${formatTimestamp(doc.createdAt)}`} />
-                        ) : (
-                          <StatusPill tone="warn" label="Missing" />
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center justify-end gap-3.5">
-                          {doc ? (
-                            <>
-                              {doc.url && (
-                                <a href={doc.url} target="_blank" rel="noreferrer" className={LINK}>
-                                  View / Download
-                                </a>
-                              )}
-                              <button type="button" className={DEL} onClick={() => { remove.mutate(doc.id); }}>
-                                Delete
-                              </button>
-                            </>
-                          ) : (
-                            <RowUpload
-                              onFile={(file) => {
-                                void uploadFile('Tests', sheet.sourceFile, file);
+                          <>
+                            {doc.url && (
+                              <a href={doc.url} target="_blank" rel="noreferrer" className={LINK}>
+                                View / Download
+                              </a>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className={`h-auto px-0 py-0 hover:bg-transparent ${DEL}`}
+                              onClick={() => {
+                                remove.mutate(doc.id);
                               }}
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        ) : (
+                          <RowUpload
+                            onFile={(file) => {
+                              void uploadFile('Tests', sheet.sourceFile, file);
+                            }}
+                          />
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {unmatched.length > 0 && (
@@ -167,131 +181,63 @@ export function DocumentsTestsTab({
             Catalog. If one genuinely isn&apos;t a test, move it to the Documents folder.
           </p>
           <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr>
-                  <th className={cn(HEAD, 'text-left')}>File</th>
-                  <th className={cn(HEAD, 'w-[220px] text-left')}>Uploaded</th>
-                  <th className={cn(HEAD, 'w-[340px] text-right')}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="min-w-[720px] border-collapse">
+              <TableHeader className="[&_tr]:border-0">
+                <TableRow className="hover:bg-transparent border-b-0">
+                  <TableHead className={cn('h-auto', HEAD, 'text-left')}>File</TableHead>
+                  <TableHead className={cn('h-auto', HEAD, 'w-[220px] text-left')}>Uploaded</TableHead>
+                  <TableHead className={cn('h-auto', HEAD, 'w-[340px] text-right')}>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {unmatched.map((d, i) => (
-                  <tr key={d.id} className="border-b border-[#EEF2EF] last:border-b-0" style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}>
-                    <td className="px-5 py-3 text-[14px] text-[#16261F]">{d.name}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-[13.5px] text-[#5A6B63]">
+                  <TableRow
+                    key={d.id}
+                    className="hover:bg-transparent border-b border-[#EEF2EF] last:border-b-0"
+                    style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
+                  >
+                    <TableCell className="whitespace-normal px-5 py-3 text-[14px] text-[#16261F]">
+                      {d.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-[13.5px] text-[#5A6B63]">
                       {formatTimestamp(d.createdAt)}
-                    </td>
-                    <td className="px-5 py-3">
+                    </TableCell>
+                    <TableCell className="px-5 py-3">
                       <div className="flex items-center justify-end gap-3.5">
                         {d.url && (
                           <a href={d.url} target="_blank" rel="noreferrer" className={LINK}>
                             View / Download
                           </a>
                         )}
-                        <button type="button" className="text-[13px] font-semibold text-[#5A6B63] hover:text-gold" onClick={() => { move.mutate({ id: d.id, folder: 'Documents' }); }}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-auto px-0 py-0 hover:bg-transparent text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+                          onClick={() => {
+                            move.mutate({ id: d.id, folder: 'Documents' });
+                          }}
+                        >
                           Move to Documents
-                        </button>
-                        <button type="button" className={DEL} onClick={() => { remove.mutate(d.id); }}>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className={`h-auto px-0 py-0 hover:bg-transparent ${DEL}`}
+                          onClick={() => {
+                            remove.mutate(d.id);
+                          }}
+                        >
                           Delete
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function StatusPill({ tone, label }: { tone: 'ok' | 'warn'; label: string }) {
-  const c =
-    tone === 'ok'
-      ? { bg: '#E4F0E8', fg: '#2E7048', dot: '#3E8E5A' }
-      : { bg: '#FBF0D4', fg: '#8A6D14', dot: '#C9A227' };
-  return (
-    <span
-      className="inline-flex h-6 items-center gap-[7px] whitespace-nowrap rounded-full px-2.5 text-[11.5px] font-bold"
-      style={{ background: c.bg, color: c.fg }}
-    >
-      <span className="size-1.5 rounded-full" style={{ background: c.dot }} aria-hidden />
-      {label}
-    </span>
-  );
-}
-
-function RowUpload({ onFile }: { onFile: (file: File) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  return (
-    <>
-      <input
-        ref={ref}
-        type="file"
-        accept="application/pdf,image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onFile(file);
-          e.target.value = '';
-        }}
-      />
-      <button
-        type="button"
-        onClick={() => ref.current?.click()}
-        className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#8A6D14] hover:text-gold"
-      >
-        <UploadIcon className="size-[13px]" aria-hidden />
-        Upload
-      </button>
-    </>
-  );
-}
-
-function BulkDrop({ onFiles }: { onFiles: (files: FileList) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={() => ref.current?.click()}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setOver(true);
-      }}
-      onDragLeave={() => {
-        setOver(false);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        setOver(false);
-        if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
-      }}
-      className={cn(
-        'flex w-full flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-[30px] transition-colors',
-        over ? 'border-gold bg-[#FCFAF4]' : 'border-[#C9B98A] hover:border-gold hover:bg-[#FCFAF4]'
-      )}
-    >
-      <input
-        ref={ref}
-        type="file"
-        accept="application/pdf"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.length) onFiles(e.target.files);
-          e.target.value = '';
-        }}
-      />
-      <span className="text-center text-[14px] text-[#5A6B63]">
-        Drag and drop test sheet PDFs here — each is matched to its test automatically by filename.
-      </span>
-      <span className="inline-flex items-center gap-2 rounded-lg border border-[#D7CFBB] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#16261F]">
-        Choose files
-      </span>
-    </button>
   );
 }

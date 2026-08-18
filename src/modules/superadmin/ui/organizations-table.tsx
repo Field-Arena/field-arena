@@ -1,7 +1,8 @@
 import { formatMoney } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
-import { OrganizationRowActions } from './organization-row-actions';
-import type { OrganizationSummary } from '../types';
+import { OrganizationRowActions } from '@/modules/superadmin/ui/organization-row-actions';
+import { StatusPill } from '@/modules/superadmin/ui/organizations-table-status-pill';
+import type { OrganizationSummary } from '@/modules/superadmin/types';
 
 /**
  * The "Clients — Organizers" table, built to the Admin Console design.
@@ -19,33 +20,6 @@ import type { OrganizationSummary } from '../types';
 
 const COLUMNS = 'grid-cols-[minmax(200px,1fr)_72px_72px_84px_216px]';
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
-
-function StatusPill({
-  tone,
-  children,
-}: {
-  tone: 'success' | 'warn' | 'danger' | 'info';
-  children: React.ReactNode;
-}) {
-  const tones = {
-    success: 'bg-[#E4F1E8] text-[#2E7048] [--dot:#3E8E5A]',
-    warn: 'bg-[#F6EAC8] text-[#8A6D14] [--dot:#C9A227]',
-    danger: 'bg-alert-bg text-alert-fg [--dot:#B4432F]',
-    info: 'bg-mint text-forest [--dot:#5A6B63]',
-  } as const;
-
-  return (
-    <span
-      className={cn(
-        'inline-flex h-[19px] flex-none items-center gap-[5px] rounded-full px-2 text-[10px] font-bold tracking-[.04em]',
-        tones[tone]
-      )}
-    >
-      <span aria-hidden className="size-[5px] rounded-full bg-[var(--dot)]" />
-      {children}
-    </span>
-  );
-}
 
 export function OrganizationsTable({ organizations }: { organizations: OrganizationSummary[] }) {
   if (organizations.length === 0) {

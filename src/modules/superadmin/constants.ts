@@ -190,6 +190,9 @@ export const CATALOG_FAMILY_META: Record<
 /** Score types (governing bodies) — the catalog's provenance filter. */
 export const CATALOG_SCORE_TYPES = ['USEF', 'USDF', 'USEF/USDF', 'FEI', 'Independent'] as const;
 
+/** The three governing bodies offered on the Admin Console's Add Organizer modal. */
+export const GOVERNING_BODIES = ['FEI', 'USDF', 'USEF'] as const;
+
 /** Disciplines a catalog sheet can belong to, from the upload modal. */
 export const CATALOG_DISCIPLINES = [
   'Dressage',
@@ -253,6 +256,14 @@ export const SUPERADMIN_SIDEBAR = [
  *    route, not a SuperAdmin-side reimplementation, so there is only ever one
  *    copy of the rider signup screens to keep in sync.
  */
+/** Console routes revalidated after a Server Action write, and the catalog docs storage bucket. */
+export const CONSOLE_PATH = '/dashboard/superadmin';
+export const USERS_PATH = '/dashboard/superadmin/users';
+export const SALES_PATH = '/dashboard/superadmin/sales';
+export const CATALOG_PATH = '/dashboard/superadmin/catalog';
+export const DOCUMENTS_PATH = '/dashboard/superadmin/documents';
+export const DOCS_BUCKET = 'catalog-docs';
+
 export const SUPERADMIN_TOOLS = [
   {
     key: 'signup-preview',

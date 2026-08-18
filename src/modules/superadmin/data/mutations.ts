@@ -28,20 +28,21 @@ import {
   uploadDocumentSchema,
   documentIdSchema,
   moveDocumentSchema,
-} from '../schemas';
-import { ONBOARDING_CHECKLIST_TEMPLATE } from '../constants';
+} from '@/modules/superadmin/schemas';
+import {
+  ONBOARDING_CHECKLIST_TEMPLATE,
+  CONSOLE_PATH,
+  USERS_PATH,
+  SALES_PATH,
+  CATALOG_PATH,
+  DOCUMENTS_PATH,
+  DOCS_BUCKET,
+} from '@/modules/superadmin/constants';
 import {
   fail,
   type CreateOrganizationResult,
   type AddSuperAdminResult,
-} from './action-result';
-
-const CONSOLE_PATH = '/dashboard/superadmin';
-const USERS_PATH = '/dashboard/superadmin/users';
-const SALES_PATH = '/dashboard/superadmin/sales';
-const CATALOG_PATH = '/dashboard/superadmin/catalog';
-const DOCUMENTS_PATH = '/dashboard/superadmin/documents';
-const DOCS_BUCKET = 'catalog-docs';
+} from '@/modules/superadmin/data/action-result';
 
 /**
  * Confirms the caller is a Super Admin, and returns their profile.

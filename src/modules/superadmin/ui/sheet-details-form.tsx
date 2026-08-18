@@ -1,7 +1,8 @@
 'use client';
 
-import { CATALOG_DISCIPLINES, CATALOG_SCORE_TYPES, CATALOG_FAMILY_META, SHEET_FAMILIES } from '../constants';
-import { INPUT, LABEL, SECTION, H2 } from './sheet-detail-styles';
+import { CATALOG_DISCIPLINES, CATALOG_SCORE_TYPES, CATALOG_FAMILY_META, SHEET_FAMILIES } from '@/modules/superadmin/constants';
+import { INPUT, LABEL, SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
+import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
 
 type SheetFamily = (typeof SHEET_FAMILIES)[number];
 
@@ -34,100 +35,82 @@ export function SheetDetailsForm({
   family: SheetFamily;
   onFamilyChange: (value: SheetFamily) => void;
 }) {
+  const textFields: {
+    key: string;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }[] = [
+    { key: 'title', label: 'Title', value: title, onChange: onTitleChange },
+    { key: 'level', label: 'Level', value: level, onChange: onLevelChange, placeholder: 'e.g. First' },
+  ];
+
+  const selectFields: {
+    key: string;
+    id: string;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    options: { value: string; label: string }[];
+  }[] = [
+    {
+      key: 'discipline',
+      id: 'sd-disc',
+      label: 'Discipline',
+      value: discipline,
+      onChange: onDisciplineChange,
+      options: CATALOG_DISCIPLINES.map((d) => ({ value: d, label: d })),
+    },
+    {
+      key: 'score',
+      id: 'sd-score',
+      label: 'Score type',
+      value: scoreType,
+      onChange: onScoreTypeChange,
+      options: CATALOG_SCORE_TYPES.map((s) => ({ value: s, label: s })),
+    },
+    {
+      key: 'family',
+      id: 'sd-family',
+      label: 'Scoring family',
+      value: family,
+      onChange: (v) => {
+        onFamilyChange(v as SheetFamily);
+      },
+      options: SHEET_FAMILIES.map((f) => ({ value: f, label: CATALOG_FAMILY_META[f]?.label ?? f })),
+    },
+  ];
+
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-[18px]`}>Sheet details</h2>
       <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))]">
-        <Field label="Title" value={title} onChange={onTitleChange} />
-        <Field label="Level" value={level} onChange={onLevelChange} placeholder="e.g. First" />
-        <div>
-          <label htmlFor="sd-disc" className={LABEL}>
-            Discipline
-          </label>
-          <select
-            id="sd-disc"
-            value={discipline}
-            onChange={(e) => {
-              onDisciplineChange(e.target.value);
-            }}
-            className={INPUT}
-          >
-            {CATALOG_DISCIPLINES.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="sd-score" className={LABEL}>
-            Score type
-          </label>
-          <select
-            id="sd-score"
-            value={scoreType}
-            onChange={(e) => {
-              onScoreTypeChange(e.target.value);
-            }}
-            className={INPUT}
-          >
-            {CATALOG_SCORE_TYPES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="sd-family" className={LABEL}>
-            Scoring family
-          </label>
-          <select
-            id="sd-family"
-            value={family}
-            onChange={(e) => {
-              onFamilyChange(e.target.value as SheetFamily);
-            }}
-            className={INPUT}
-          >
-            {SHEET_FAMILIES.map((f) => (
-              <option key={f} value={f}>
-                {CATALOG_FAMILY_META[f]?.label ?? f}
-              </option>
-            ))}
-          </select>
-        </div>
+        {textFields.map((f) => (
+          <Field key={f.key} label={f.label} value={f.value} onChange={f.onChange} placeholder={f.placeholder} />
+        ))}
+        {selectFields.map((s) => (
+          <div key={s.key}>
+            <label htmlFor={s.id} className={LABEL}>
+              {s.label}
+            </label>
+            <select
+              id={s.id}
+              value={s.value}
+              onChange={(e) => {
+                s.onChange(e.target.value);
+              }}
+              className={INPUT}
+            >
+              {s.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
       </div>
     </section>
-  );
-}
-
-export function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  const id = `sd-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`;
-  return (
-    <div>
-      <label htmlFor={id} className={LABEL}>
-        {label}
-      </label>
-      <input
-        id={id}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => {
-          onChange(e.target.value);
-        }}
-        className={INPUT}
-      />
-    </div>
   );
 }

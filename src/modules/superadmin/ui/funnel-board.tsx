@@ -3,10 +3,13 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRightIcon, BarChart3Icon, DownloadIcon, SearchIcon } from 'lucide-react';
-import { AddTargetDialog } from './add-target-dialog';
-import { LeadStatusPill } from './lead-status-pill';
-import { LEAD_STATUSES } from '../constants';
-import { buildLeadsCsv, leadsCsvFilename } from '../utils';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { AddTargetDialog } from '@/modules/superadmin/ui/add-target-dialog';
+import { LeadStatusPill } from '@/modules/superadmin/ui/lead-status-pill';
+import { LEAD_STATUSES } from '@/modules/superadmin/constants';
+import { buildLeadsCsv } from '@/modules/superadmin/utils/build-leads-csv';
+import { leadsCsvFilename } from '@/modules/superadmin/utils/leads-csv-filename';
 
 const NR = 'font-[family-name:var(--font-nr)]';
 const COLS = 'minmax(230px,1fr) minmax(190px,240px) 78px 128px 104px';
@@ -63,18 +66,20 @@ export function FunnelBoard({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
         <AddTargetDialog />
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
             setBreakdownOpen((v) => !v);
           }}
-          className="inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep transition-colors hover:border-gold"
+          className="h-auto inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep hover:bg-transparent transition-colors hover:border-gold"
         >
           <BarChart3Icon className="size-[15px]" aria-hidden />
           {breakdownOpen ? 'Hide closing rate breakdown' : 'View closing rate breakdown'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
             const csv = buildLeadsCsv(
               filtered.map((l) => ({
@@ -95,24 +100,24 @@ export function FunnelBoard({
             a.remove();
             URL.revokeObjectURL(url);
           }}
-          className="inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep transition-colors hover:border-gold"
+          className="h-auto inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep hover:bg-transparent transition-colors hover:border-gold"
         >
           <DownloadIcon className="size-[15px]" aria-hidden />
           Export Contact List
-        </button>
+        </Button>
         <div className="relative ml-auto min-w-[190px] max-w-[300px] flex-[1_1_220px]">
           <SearchIcon
             className="absolute left-[13px] top-1/2 size-[15px] -translate-y-1/2 text-[#9AA6A0]"
             aria-hidden
           />
-          <input
+          <Input
             type="search"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
             }}
             placeholder="Search targets…"
-            className="w-full rounded-[9px] border border-[#D7E0DA] bg-white py-2.5 pl-9 pr-3.5 text-[13.5px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-gold/[.14]"
+            className="h-auto w-full rounded-[9px] border border-[#D7E0DA] bg-white py-2.5 pl-9 pr-3.5 text-[13.5px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-gold/[.14]"
           />
         </div>
       </div>

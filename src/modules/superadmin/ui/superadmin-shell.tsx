@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOutIcon } from 'lucide-react';
+import { Button } from '@/shared/ui/shadcn/button';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import { RoleRail } from '@/shared/ui/role-rail';
@@ -12,10 +13,10 @@ import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 import { ROLE_NAV } from '@/modules/staff/constants';
-import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '../constants';
-import { OrganizerSearch } from './organizer-search';
-import { AddOrganizerDialog } from './add-organizer-dialog';
-import { ConsoleIcon } from './console-icon';
+import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '@/modules/superadmin/constants';
+import { OrganizerSearch } from '@/modules/superadmin/ui/organizer-search';
+import { AddOrganizerDialog } from '@/modules/superadmin/ui/add-organizer-dialog';
+import { ConsoleIcon } from '@/modules/superadmin/ui/console-icon';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
 
@@ -234,18 +235,19 @@ export function SuperAdminShell({
             <span className="truncate text-[12.5px] font-semibold text-paper">{profile.name}</span>
             <span className="text-[11px] text-[rgba(251,250,247,.45)]">Platform owner</span>
           </span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               signOut();
             }}
             disabled={isSigningOut}
             title="Sign out"
             aria-label="Sign out"
-            className="ml-auto grid size-7 flex-none place-items-center rounded-[7px] text-[rgba(251,250,247,.5)] transition-colors hover:bg-[rgba(255,255,255,.08)] hover:text-gold-light disabled:opacity-50"
+            className="ml-auto grid size-7 flex-none place-items-center rounded-[7px] p-0 text-[rgba(251,250,247,.5)] transition-colors hover:bg-[rgba(255,255,255,.08)] hover:text-gold-light disabled:opacity-50"
           >
             <LogOutIcon className="size-[15px]" aria-hidden />
-          </button>
+          </Button>
         </div>
       </aside>
 

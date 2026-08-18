@@ -16,8 +16,8 @@ import {
   PERMISSION_LABELS,
   type PermissionKey,
 } from '@/shared/constants/permissions';
-import { useUpdateStaffPermissions } from '../hooks/use-org-staff-mutations';
-import type { DirectoryStaff } from '../types';
+import { useUpdateStaffPermissions } from '@/modules/superadmin/hooks/use-org-staff-mutations';
+import type { DirectoryStaff } from '@/modules/superadmin/types';
 
 /**
  * The per-person permission editor, ported from the legacy openStaffPermModal.
@@ -46,15 +46,16 @@ export function StaffPermissionsDialog({ staff }: { staff: DirectoryStaff }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => {
           onOpenChange(true);
         }}
-        className="rounded-lg border border-line-strong px-3 py-1.5 text-[12.5px] font-bold text-forest transition-colors hover:border-gold hover:bg-[#FFFCF2]"
+        className="h-auto rounded-lg border border-line-strong px-3 py-1.5 text-[12.5px] font-bold text-forest transition-colors hover:border-gold hover:bg-[#FFFCF2]"
       >
         Permissions ({staff.permissionCount}/{PERMISSION_KEYS.length})
-      </button>
+      </Button>
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>

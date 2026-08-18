@@ -21,10 +21,10 @@ import {
   CATALOG_FAMILY_META,
   CATALOG_SCORE_TYPES,
   SHEET_FAMILIES,
-} from '../constants';
-import { createSheetSchema, type CreateSheetInput } from '../schemas';
-import { useCreateScoringSheet } from '../hooks/use-catalog-mutations';
-import { FormField } from './organizer-form-fields';
+} from '@/modules/superadmin/constants';
+import { createSheetSchema, type CreateSheetInput } from '@/modules/superadmin/schemas';
+import { useCreateScoringSheet } from '@/modules/superadmin/hooks/use-catalog-mutations';
+import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 
 const SELECT =
   'w-full rounded-lg border border-[#D7CFBB] bg-white px-3.5 py-3 text-[14px] text-[#16261F] focus-visible:border-gold focus-visible:outline-none';
@@ -63,13 +63,14 @@ export function UploadSheetDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="inline-flex items-center gap-2 rounded-[9px] bg-hunter-deep px-[18px] py-3 text-[13.5px] font-bold text-paper transition hover:bg-gold hover:text-hunter-deep"
+          variant="ghost"
+          className="h-auto inline-flex items-center gap-2 rounded-[9px] bg-hunter-deep px-[18px] py-3 text-[13.5px] font-bold text-paper hover:bg-gold transition hover:text-hunter-deep"
         >
           <UploadIcon className="size-[15px]" aria-hidden />
           Upload official sheet
-        </button>
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">

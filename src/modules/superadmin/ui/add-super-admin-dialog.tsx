@@ -13,10 +13,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { addSuperAdminSchema, type AddSuperAdminInput } from '../schemas';
-import { useAddSuperAdmin } from '../hooks/use-superadmin-user-mutations';
+import { addSuperAdminSchema, type AddSuperAdminInput } from '@/modules/superadmin/schemas';
+import { useAddSuperAdmin } from '@/modules/superadmin/hooks/use-superadmin-user-mutations';
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-line-strong bg-white px-3.5 py-2.5 text-[14px] text-hunter-deep ' +
@@ -57,12 +58,13 @@ export function AddSuperAdminDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="rounded-lg border border-hunter-deep bg-hunter-deep px-3.5 py-2 text-[13px] font-bold text-white transition hover:brightness-110"
+          variant="ghost"
+          className="h-auto rounded-lg border border-hunter-deep bg-hunter-deep px-3.5 py-2 text-[13px] font-bold text-white hover:bg-transparent transition hover:brightness-110"
         >
           <span aria-hidden>＋</span> Add Super Admin
-        </button>
+        </Button>
       </DialogTrigger>
 
       <DialogContent
@@ -70,13 +72,14 @@ export function AddSuperAdminDialog() {
         className="gap-0 rounded-[20px] border-line-strong bg-white p-0 sm:max-w-[520px]"
       >
         <DialogClose asChild>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             aria-label="Close"
-            className="absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] bg-hunter-pale text-hunter-deep transition-colors hover:bg-line-strong"
+            className="absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] bg-hunter-pale p-0 text-hunter-deep transition-colors hover:bg-line-strong"
           >
             <XIcon className="size-[18px]" aria-hidden />
-          </button>
+          </Button>
         </DialogClose>
 
         <DialogHeader className="gap-0 px-8 pt-8 pb-6">
@@ -145,19 +148,21 @@ export function AddSuperAdminDialog() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-[20px] border-t border-line bg-hunter-pale px-8 py-5">
             <span className="text-[13px] text-fa-muted">Access starts the moment they accept.</span>
             <div className="flex items-center gap-2.5">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="rounded-[10px] border border-line-strong bg-white px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep transition-colors hover:border-hunter-deep"
+                className="h-auto rounded-[10px] border border-line-strong bg-white px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep hover:bg-transparent transition-colors hover:border-hunter-deep"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="ghost"
                 disabled={isPending}
-                className="inline-flex items-center gap-2 rounded-[10px] bg-hunter-deep px-4 py-2.5 text-[13.5px] font-bold text-white transition hover:brightness-110 disabled:opacity-70"
+                className="h-auto inline-flex items-center gap-2 rounded-[10px] bg-hunter-deep px-4 py-2.5 text-[13.5px] font-bold text-white hover:bg-transparent transition hover:brightness-110 disabled:opacity-70"
               >
                 {isPending ? 'Sending…' : 'Send invite'}
                 {isPending ? (
@@ -165,7 +170,7 @@ export function AddSuperAdminDialog() {
                 ) : (
                   <ArrowRightIcon className="size-[15px]" aria-hidden />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </form>

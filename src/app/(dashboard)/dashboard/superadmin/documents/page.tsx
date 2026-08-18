@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { listCatalogDocuments, listScoringCatalog } from '@/modules/superadmin/data/queries';
 import { DocumentsBoard } from '@/modules/superadmin/ui/documents-board';
-import { toTestSheetItems } from '@/modules/superadmin/utils';
+import { toTestSheetItems } from '@/modules/superadmin/utils/to-test-sheet-items';
 
 export const metadata: Metadata = {
   title: 'Documents — SuperAdmin Console',

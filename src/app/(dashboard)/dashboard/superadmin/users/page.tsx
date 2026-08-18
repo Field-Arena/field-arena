@@ -7,7 +7,7 @@ import { getStaffProfile } from '@/modules/auth/data/queries';
 import { UsersTabs } from '@/modules/superadmin/ui/users-tabs';
 import { SuperAdminsPanel } from '@/modules/superadmin/ui/super-admins-panel';
 import { DirectoryPanel } from '@/modules/superadmin/ui/directory-panel';
-import { filterSuperAdmins } from '@/modules/superadmin/utils';
+import { filterSuperAdmins } from '@/modules/superadmin/utils/filter-super-admins';
 
 export const metadata: Metadata = {
   title: 'Users — SuperAdmin Console',

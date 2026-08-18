@@ -13,10 +13,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { createLeadSchema, type CreateLeadInput } from '../schemas';
-import { useCreateLead } from '../hooks/use-lead-mutations';
+import { createLeadSchema, type CreateLeadInput } from '@/modules/superadmin/schemas';
+import { useCreateLead } from '@/modules/superadmin/hooks/use-lead-mutations';
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-line-strong bg-white px-3.5 py-2.5 text-[14px] text-hunter-deep ' +
@@ -49,16 +50,57 @@ export function AddTargetDialog() {
 
   const { errors } = form.formState;
 
+  const TOP_FIELDS: { id: string; name: 'orgName'; label: string; placeholder: string }[] = [
+    { id: 'at-org', name: 'orgName', label: 'Organization name', placeholder: 'Peachtree Dressage Association' },
+  ];
+  const GRID_FIELDS: {
+    id: string;
+    name: 'contactName' | 'email' | 'phone' | 'website';
+    label: string;
+    placeholder: string;
+    type?: string;
+  }[] = [
+    { id: 'at-contact', name: 'contactName', label: 'Contact name', placeholder: 'Jane Whitfield' },
+    { id: 'at-email', name: 'email', label: 'Email', type: 'email', placeholder: 'jane@example.com' },
+    { id: 'at-phone', name: 'phone', label: 'Phone', placeholder: '(404) 555-0134' },
+    { id: 'at-website', name: 'website', label: 'Website', placeholder: 'example.com' },
+  ];
+
+  function renderField(f: { id: string; name: keyof CreateLeadInput; label: string; placeholder: string; type?: string }) {
+    const error = errors[f.name];
+    return (
+      <div key={f.id}>
+        <Label htmlFor={f.id} className={LABEL}>
+          {f.label}
+        </Label>
+        <Input
+          id={f.id}
+          type={f.type}
+          placeholder={f.placeholder}
+          aria-invalid={!!error}
+          className={FIELD}
+          {...form.register(f.name)}
+        />
+        {error && (
+          <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
+            {error.message}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="inline-flex items-center gap-2 rounded-[9px] bg-gold px-4 py-[11px] text-[13.5px] font-bold text-hunter-deep transition hover:bg-gold-light hover:shadow-[0_8px_24px_rgba(201,162,39,.26)]"
+          variant="ghost"
+          className="h-auto inline-flex items-center gap-2 rounded-[9px] bg-gold px-4 py-[11px] text-[13.5px] font-bold text-hunter-deep hover:bg-gold-light transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)]"
         >
           <PlusIcon className="size-[15px]" aria-hidden />
           Add Target
-        </button>
+        </Button>
       </DialogTrigger>
 
       <DialogContent
@@ -66,13 +108,14 @@ export function AddTargetDialog() {
         className="max-h-[90vh] gap-0 overflow-y-auto rounded-[20px] border-line-strong bg-white p-0 sm:max-w-[560px]"
       >
         <DialogClose asChild>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             aria-label="Close"
-            className="absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] bg-hunter-pale text-hunter-deep transition-colors hover:bg-line-strong"
+            className="absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] bg-hunter-pale p-0 text-hunter-deep transition-colors hover:bg-line-strong"
           >
             <XIcon className="size-[18px]" aria-hidden />
-          </button>
+          </Button>
         </DialogClose>
 
         <DialogHeader className="gap-0 px-8 pt-8 pb-6">
@@ -100,95 +143,9 @@ export function AddTargetDialog() {
           noValidate
         >
           <div className="space-y-4 border-t border-line px-8 py-6">
-            <div>
-              <Label htmlFor="at-org" className={LABEL}>
-                Organization name
-              </Label>
-              <Input
-                id="at-org"
-                placeholder="Peachtree Dressage Association"
-                aria-invalid={!!errors.orgName}
-                className={FIELD}
-                {...form.register('orgName')}
-              />
-              {errors.orgName && (
-                <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
-                  {errors.orgName.message}
-                </p>
-              )}
-            </div>
+            {TOP_FIELDS.map(renderField)}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="at-contact" className={LABEL}>
-                  Contact name
-                </Label>
-                <Input
-                  id="at-contact"
-                  placeholder="Jane Whitfield"
-                  aria-invalid={!!errors.contactName}
-                  className={FIELD}
-                  {...form.register('contactName')}
-                />
-                {errors.contactName && (
-                  <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
-                    {errors.contactName.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="at-email" className={LABEL}>
-                  Email
-                </Label>
-                <Input
-                  id="at-email"
-                  type="email"
-                  placeholder="jane@example.com"
-                  aria-invalid={!!errors.email}
-                  className={FIELD}
-                  {...form.register('email')}
-                />
-                {errors.email && (
-                  <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="at-phone" className={LABEL}>
-                  Phone
-                </Label>
-                <Input
-                  id="at-phone"
-                  placeholder="(404) 555-0134"
-                  aria-invalid={!!errors.phone}
-                  className={FIELD}
-                  {...form.register('phone')}
-                />
-                {errors.phone && (
-                  <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
-                    {errors.phone.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="at-website" className={LABEL}>
-                  Website
-                </Label>
-                <Input
-                  id="at-website"
-                  placeholder="example.com"
-                  aria-invalid={!!errors.website}
-                  className={FIELD}
-                  {...form.register('website')}
-                />
-                {errors.website && (
-                  <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
-                    {errors.website.message}
-                  </p>
-                )}
-              </div>
-            </div>
+            <div className="grid gap-4 sm:grid-cols-2">{GRID_FIELDS.map(renderField)}</div>
 
             <div className="max-w-[240px]">
               <Label htmlFor="at-shows" className={LABEL}>
@@ -216,19 +173,21 @@ export function AddTargetDialog() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-[20px] border-t border-line bg-hunter-pale px-8 py-5">
             <span className="text-[13px] text-fa-muted">Lands in the funnel as &ldquo;New&rdquo;.</span>
             <div className="flex items-center gap-2.5">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="rounded-[10px] border border-line-strong bg-white px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep transition-colors hover:border-hunter-deep"
+                className="h-auto rounded-[10px] border border-line-strong bg-white px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep hover:bg-transparent transition-colors hover:border-hunter-deep"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                variant="ghost"
                 disabled={isPending}
-                className="inline-flex items-center gap-2 rounded-[10px] bg-gold px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep transition hover:bg-gold-light hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-70"
+                className="h-auto inline-flex items-center gap-2 rounded-[10px] bg-gold px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep hover:bg-gold-light transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-70"
               >
                 {isPending ? 'Adding…' : 'Add Lead'}
                 {isPending ? (
@@ -236,7 +195,7 @@ export function AddTargetDialog() {
                 ) : (
                   <ArrowRightIcon className="size-[15px]" aria-hidden />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </form>

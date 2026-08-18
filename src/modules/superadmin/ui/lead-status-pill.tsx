@@ -1,4 +1,4 @@
-import { LEAD_PILL, LEAD_STATUSES } from '../constants';
+import { LEAD_PILL, LEAD_STATUSES } from '@/modules/superadmin/constants';
 
 const LABELS = new Map<string, string>(LEAD_STATUSES.map((s) => [s.value, s.label]));
 const FALLBACK = { bg: '#EDF5F1', fg: '#5A6B63', dot: '#9AA6A0' };

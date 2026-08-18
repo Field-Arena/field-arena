@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import type { CatalogDocument, TestSheetItem } from '../types';
-import { DocumentsTestsTab } from './documents-tests-tab';
-import { DocumentsGeneralTab } from './documents-general-tab';
+import type { CatalogDocument, TestSheetItem } from '@/modules/superadmin/types';
+import { DocumentsTestsTab } from '@/modules/superadmin/ui/documents-tests-tab';
+import { DocumentsGeneralTab } from '@/modules/superadmin/ui/documents-general-tab';
 
 /**
  * The platform file store, matching the Admin Console design: a Tests tab that
@@ -27,21 +28,22 @@ export function DocumentsBoard({
     <div className="space-y-5">
       <div className="flex items-center gap-2.5">
         {(['tests', 'documents'] as const).map((t) => (
-          <button
+          <Button
             key={t}
             type="button"
+            variant="ghost"
             onClick={() => {
               setTab(t);
             }}
             className={cn(
-              'rounded-full border px-5 py-2 text-[13.5px] font-semibold transition-colors',
+              'h-auto rounded-full border px-5 py-2 text-[13.5px] font-semibold hover:bg-transparent transition-colors',
               tab === t
                 ? 'border-hunter-deep bg-hunter-deep text-paper'
                 : 'border-[#D7E0DA] bg-white text-[#5A6B63] hover:border-hunter-deep'
             )}
           >
             {t === 'tests' ? 'Tests' : 'Documents'}
-          </button>
+          </Button>
         ))}
       </div>
 

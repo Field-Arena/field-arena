@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { addSuperAdmin, removeSuperAdmin } from '../data/mutations';
-import type { AddSuperAdminInput } from '../schemas';
+import { addSuperAdmin, removeSuperAdmin } from '@/modules/superadmin/data/mutations';
+import type { AddSuperAdminInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 /**

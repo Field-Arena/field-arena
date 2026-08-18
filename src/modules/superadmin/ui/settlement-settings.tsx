@@ -5,7 +5,7 @@ import { Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { useUpdateSettlement } from '../hooks/use-settlement-mutations';
+import { useUpdateSettlement } from '@/modules/superadmin/hooks/use-settlement-mutations';
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-field bg-white px-4 py-3 text-[14.5px] text-hunter-deep ' +

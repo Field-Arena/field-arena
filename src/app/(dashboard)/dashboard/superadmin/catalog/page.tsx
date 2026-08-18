@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { InfoIcon } from 'lucide-react';
 import { listScoringCatalog, listCatalogDocuments } from '@/modules/superadmin/data/queries';
 import { CatalogBoard } from '@/modules/superadmin/ui/catalog-board';
-import { groupSheetsByFamily } from '@/modules/superadmin/utils';
+import { groupSheetsByFamily } from '@/modules/superadmin/utils/group-sheets-by-family';
 
 export const metadata: Metadata = {
   title: 'Scoring Catalog — SuperAdmin Console',

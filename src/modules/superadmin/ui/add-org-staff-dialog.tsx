@@ -16,9 +16,9 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
-import { addOrgStaffSchema, type AddOrgStaffInput } from '../schemas';
-import { useAddOrgStaff } from '../hooks/use-org-staff-mutations';
-import { FormField } from './organizer-form-fields';
+import { addOrgStaffSchema, type AddOrgStaffInput } from '@/modules/superadmin/schemas';
+import { useAddOrgStaff } from '@/modules/superadmin/hooks/use-org-staff-mutations';
+import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 
 const SELECT_CLASS =
   'w-full rounded-lg border border-field bg-white px-3 py-2 text-[14px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none';
@@ -62,14 +62,15 @@ export function AddOrgStaffDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           disabled={!hasShows}
           title={hasShows ? undefined : 'This organizer has no shows to assign staff to yet'}
-          className="rounded-lg border border-hunter-deep bg-hunter-deep px-3 py-1.5 text-[12.5px] font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+          className="h-auto rounded-lg border border-hunter-deep bg-hunter-deep px-3 py-1.5 text-[12.5px] font-bold text-white hover:bg-transparent transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
         >
           <span aria-hidden>＋</span> Add a user
-        </button>
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[480px]">

@@ -1,9 +1,11 @@
 'use client';
 
 import type { Dispatch, SetStateAction } from 'react';
-import type { SheetDefShape } from '../utils';
-import { SECTION, H2, SMALL_INPUT } from './sheet-detail-styles';
-import { RowRemove, AddRow } from './sheet-movements-editor';
+import { Input } from '@/shared/ui/shadcn/input';
+import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
+import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
+import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
+import { AddRow } from '@/modules/superadmin/ui/sheet-add-row';
 
 /** The collective-marks editor for a movement-family sheet. Extracted from SheetDetail. */
 export function SheetCollectivesEditor({
@@ -25,7 +27,7 @@ export function SheetCollectivesEditor({
             key={i}
             className="flex items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
           >
-            <input
+            <Input
               value={cm.name}
               placeholder="e.g. Gaits"
               onChange={(e) => {
@@ -36,9 +38,9 @@ export function SheetCollectivesEditor({
                   ),
                 }));
               }}
-              className={`${SMALL_INPUT} min-w-0 flex-1`}
+              className={`h-auto ${SMALL_INPUT} min-w-0 flex-1`}
             />
-            <input
+            <Input
               value={String(cm.coef)}
               placeholder="Coef"
               onChange={(e) => {
@@ -50,7 +52,7 @@ export function SheetCollectivesEditor({
                   ),
                 }));
               }}
-              className={`${SMALL_INPUT} w-[78px] flex-none`}
+              className={`h-auto ${SMALL_INPUT} w-[78px] flex-none`}
             />
             <RowRemove
               label="Remove collective"

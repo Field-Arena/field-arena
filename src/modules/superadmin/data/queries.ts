@@ -1,7 +1,8 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { resolveStaffPermissions, countEnabledPermissions } from '../utils';
+import { resolveStaffPermissions } from '@/modules/superadmin/utils/resolve-staff-permissions';
+import { countEnabledPermissions } from '@/modules/superadmin/utils/count-enabled-permissions';
 import type {
   PlatformStats,
   OrganizationSummary,
@@ -16,7 +17,7 @@ import type {
   OrganizationBilling,
   ShowBilling,
   OrganizationBillingDetail,
-} from '../types';
+} from '@/modules/superadmin/types';
 
 /**
  * SuperAdmin console reads.

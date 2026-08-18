@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { createLead, updateLead, sendLeadOnboarding } from '../data/mutations';
-import type { CreateLeadInput, UpdateLeadInput } from '../schemas';
+import { createLead, updateLead, sendLeadOnboarding } from '@/modules/superadmin/data/mutations';
+import type { CreateLeadInput, UpdateLeadInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 /**

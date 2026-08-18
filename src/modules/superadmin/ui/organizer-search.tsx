@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { Input } from '@/shared/ui/shadcn/input';
 
 /**
  * The "Search organizers…" field from the legacy console's button bar.
@@ -47,7 +48,7 @@ export function OrganizerSearch() {
       >
         Organizer
       </label>
-      <input
+      <Input
         id="organizer-search"
         type="search"
         value={value}
@@ -55,7 +56,7 @@ export function OrganizerSearch() {
           handleChange(event.target.value);
         }}
         placeholder="Search organizers…"
-        className="w-[210px] rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] text-ink outline-none placeholder:text-[#8a968f] focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/30"
+        className="h-auto w-[210px] rounded-lg border border-border bg-white px-3 py-1.5 text-[13px] text-ink outline-none placeholder:text-[#8a968f] focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/30"
       />
     </span>
   );

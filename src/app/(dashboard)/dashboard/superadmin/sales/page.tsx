@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { listLeads } from '@/modules/superadmin/data/queries';
 import { FunnelBoard, type LeadListItem } from '@/modules/superadmin/ui/funnel-board';
-import { summarizeLeadFunnel } from '@/modules/superadmin/utils';
+import { summarizeLeadFunnel } from '@/modules/superadmin/utils/summarize-lead-funnel';
 
 export const metadata: Metadata = {
   title: 'Sales Funnel — SuperAdmin Console',

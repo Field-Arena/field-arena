@@ -1,7 +1,7 @@
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { formatDateRange } from '@/shared/lib/format/date';
 import { cn } from '@/shared/lib/utils';
-import type { ShowBilling } from '../types';
+import type { ShowBilling } from '@/modules/superadmin/types';
 
 /** Per-show reconciliation for one organizer, in the console's table pattern. */
 const COLUMNS = 'grid-cols-[minmax(220px,1fr)_130px_130px_130px]';

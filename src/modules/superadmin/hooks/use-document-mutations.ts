@@ -7,8 +7,8 @@ import {
   uploadCatalogDocument,
   deleteCatalogDocument,
   moveCatalogDocument,
-} from '../data/mutations';
-import type { UploadDocumentInput } from '../schemas';
+} from '@/modules/superadmin/data/mutations';
+import type { UploadDocumentInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 /**

@@ -1,6 +1,6 @@
 import { cn } from '@/shared/lib/utils';
-import type { DirectoryOrganizer } from '../types';
-import { DirectoryOrg, ORG_COLS } from './directory-org';
+import type { DirectoryOrganizer } from '@/modules/superadmin/types';
+import { DirectoryOrg, ORG_COLS } from '@/modules/superadmin/ui/directory-org';
 
 /**
  * The "Organizer staff directory" tab, matching the Admin Console design: one

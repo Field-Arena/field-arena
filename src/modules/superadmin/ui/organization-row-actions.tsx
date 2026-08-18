@@ -29,16 +29,17 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
-import { updateOrganizationSchema, type UpdateOrganizationInput } from '../schemas';
+import { updateOrganizationSchema, type UpdateOrganizationInput } from '@/modules/superadmin/schemas';
 import {
   useResendOrganizerInvite,
   useSetOrganizationDeleted,
   useSetOrganizationSuspended,
   useUpdateOrganization,
-} from '../hooks/use-organization-mutations';
-import { FeeModelField, FormField } from './organizer-form-fields';
+} from '@/modules/superadmin/hooks/use-organization-mutations';
+import { FeeModelField } from '@/modules/superadmin/ui/fee-model-field';
+import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 import { enterAsOrganizer } from '@/shared/lib/impersonation';
-import type { OrganizationSummary } from '../types';
+import type { OrganizationSummary } from '@/modules/superadmin/types';
 
 /**
  * Per-row actions: Edit, Suspend/Reactivate, Delete.
@@ -104,11 +105,12 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         onboarding preview view in this app, so the honest, consistent label is
         the one that matches the behavior.
       */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         disabled={entering}
         title="Full impersonation — you'll act as this organizer, not just view their shows"
-        className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-line-strong px-3 py-2 text-[12.5px] font-bold text-forest transition-colors hover:border-gold hover:bg-[#FFFCF2] disabled:opacity-45"
+        className="h-auto inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-line-strong px-3 py-2 text-[12.5px] font-bold text-forest transition-colors hover:border-gold hover:bg-[#FFFCF2] disabled:opacity-45"
         onClick={() => {
           startEntering(async () => {
             await enterAsOrganizer(org.id);
@@ -117,7 +119,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       >
         {entering ? 'Entering…' : 'Enter as organizer'}
         <ArrowRightIcon className="size-[13px]" aria-hidden />
-      </button>
+      </Button>
 
       {/*
         Everything else collapses into an overflow menu. Four buttons abreast
@@ -218,19 +220,21 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               registration={form.register('name')}
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              <FormField
-                id={`eo-email-${org.id}`}
-                label="Contact email"
-                type="email"
-                error={errors.email}
-                registration={form.register('email')}
-              />
-              <FormField
-                id={`eo-phone-${org.id}`}
-                label="Phone"
-                error={errors.phone}
-                registration={form.register('phone')}
-              />
+              {(
+                [
+                  { name: 'email' as const, label: 'Contact email', type: 'email' },
+                  { name: 'phone' as const, label: 'Phone', type: undefined },
+                ]
+              ).map((f) => (
+                <FormField
+                  key={f.name}
+                  id={`eo-${f.name}-${org.id}`}
+                  label={f.label}
+                  type={f.type}
+                  error={errors[f.name]}
+                  registration={form.register(f.name)}
+                />
+              ))}
             </div>
             <FormField
               id={`eo-website-${org.id}`}
@@ -240,24 +244,21 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               registration={form.register('website')}
             />
             <div className="grid gap-3 sm:grid-cols-3">
-              <FormField
-                id={`eo-city-${org.id}`}
-                label="City"
-                error={errors.city}
-                registration={form.register('city')}
-              />
-              <FormField
-                id={`eo-region-${org.id}`}
-                label="State"
-                error={errors.region}
-                registration={form.register('region')}
-              />
-              <FormField
-                id={`eo-country-${org.id}`}
-                label="Country"
-                error={errors.country}
-                registration={form.register('country')}
-              />
+              {(
+                [
+                  { name: 'city' as const, label: 'City' },
+                  { name: 'region' as const, label: 'State' },
+                  { name: 'country' as const, label: 'Country' },
+                ]
+              ).map((f) => (
+                <FormField
+                  key={f.name}
+                  id={`eo-${f.name}-${org.id}`}
+                  label={f.label}
+                  error={errors[f.name]}
+                  registration={form.register(f.name)}
+                />
+              ))}
             </div>
             <FeeModelField
               id={`eo-feemodel-${org.id}`}

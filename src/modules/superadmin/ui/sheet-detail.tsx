@@ -13,14 +13,14 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
-import { CATALOG_FAMILY_META, SHEET_FAMILIES } from '../constants';
-import type { ScoringSheet } from '../types';
-import { readSheetDef, type SheetDefShape } from '../utils';
-import { useUpdateScoringSheet, useDeleteScoringSheet } from '../hooks/use-catalog-mutations';
-import { SECTION, H2 } from './sheet-detail-styles';
-import { SheetDetailsForm } from './sheet-details-form';
-import { SheetMovementsEditor } from './sheet-movements-editor';
-import { SheetCollectivesEditor } from './sheet-collectives-editor';
+import { CATALOG_FAMILY_META, SHEET_FAMILIES } from '@/modules/superadmin/constants';
+import type { ScoringSheet } from '@/modules/superadmin/types';
+import { readSheetDef, type SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
+import { useUpdateScoringSheet, useDeleteScoringSheet } from '@/modules/superadmin/hooks/use-catalog-mutations';
+import { SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
+import { SheetDetailsForm } from '@/modules/superadmin/ui/sheet-details-form';
+import { SheetMovementsEditor } from '@/modules/superadmin/ui/sheet-movements-editor';
+import { SheetCollectivesEditor } from '@/modules/superadmin/ui/sheet-collectives-editor';
 
 const SAVE =
   'rounded-[9px] bg-hunter-deep px-[22px] py-3 text-[13.5px] font-bold text-paper transition hover:bg-gold hover:text-hunter-deep disabled:opacity-60';
@@ -148,25 +148,26 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
       )}
 
       <div className="flex items-center gap-3">
-        <button type="button" disabled={update.isPending} className={SAVE} onClick={save}>
+        <Button type="button" variant="ghost" disabled={update.isPending} className={`h-auto hover:bg-transparent ${SAVE}`} onClick={save}>
           {update.isPending ? 'Saving…' : 'Save sheet'}
-        </button>
+        </Button>
         <Link
           href="/dashboard/superadmin/catalog"
           className="rounded-[9px] border border-[#C4D3CB] bg-white px-[18px] py-3 text-[13.5px] font-semibold text-hunter-deep transition-colors hover:border-gold"
         >
           Cancel
         </Link>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => {
             setConfirmOpen(true);
           }}
-          className="ml-auto inline-flex items-center gap-2 rounded-[9px] border border-[#E4CFC9] px-4 py-3 text-[13px] font-bold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FCF1EF]"
+          className="ml-auto h-auto inline-flex items-center gap-2 rounded-[9px] border border-[#E4CFC9] px-4 py-3 text-[13px] font-bold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FCF1EF]"
         >
           <Trash2Icon className="size-[15px]" aria-hidden />
           Delete sheet
-        </button>
+        </Button>
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

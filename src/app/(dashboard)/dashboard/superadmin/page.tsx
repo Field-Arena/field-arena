@@ -4,7 +4,7 @@ import { listOrganizations } from '@/modules/superadmin/data/queries';
 import { OrganizationsTable } from '@/modules/superadmin/ui/organizations-table';
 import { ConsoleStatBar } from '@/modules/superadmin/ui/console-stat-bar';
 import { OrganizerStatusFilter } from '@/modules/superadmin/ui/organizer-status-filter';
-import { summarizeOrganizations } from '@/modules/superadmin/utils';
+import { summarizeOrganizations } from '@/modules/superadmin/utils/summarize-organizations';
 
 export const metadata: Metadata = {
   title: 'Super Admin — Field & Arena',

@@ -1,10 +1,12 @@
 'use client';
 
 import type { Dispatch, SetStateAction } from 'react';
-import { Trash2Icon } from 'lucide-react';
-import type { SheetDefShape } from '../utils';
-import { SECTION, H2, SMALL_INPUT } from './sheet-detail-styles';
-import { Field } from './sheet-details-form';
+import { Input } from '@/shared/ui/shadcn/input';
+import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
+import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
+import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
+import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
+import { AddRow } from '@/modules/superadmin/ui/sheet-add-row';
 
 /**
  * Movement-family sheet header fields (arena, ride time, max points, …) plus
@@ -85,7 +87,7 @@ export function SheetMovementsEditor({
               className="flex items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
             >
               <span className="flex-none text-[13px] font-bold text-[#16261F]">{mv.n}</span>
-              <input
+              <Input
                 value={mv.text}
                 placeholder="Test text as printed"
                 onChange={(e) => {
@@ -96,9 +98,9 @@ export function SheetMovementsEditor({
                     ),
                   }));
                 }}
-                className={`${SMALL_INPUT} min-w-0 flex-1`}
+                className={`h-auto ${SMALL_INPUT} min-w-0 flex-1`}
               />
-              <input
+              <Input
                 value={String(mv.coef)}
                 placeholder="Coef"
                 onChange={(e) => {
@@ -110,7 +112,7 @@ export function SheetMovementsEditor({
                     ),
                   }));
                 }}
-                className={`${SMALL_INPUT} w-[78px] flex-none`}
+                className={`h-auto ${SMALL_INPUT} w-[78px] flex-none`}
               />
               <RowRemove
                 label="Remove movement"
@@ -135,30 +137,5 @@ export function SheetMovementsEditor({
         />
       </section>
     </>
-  );
-}
-
-export function RowRemove({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="grid size-[30px] flex-none place-items-center rounded-[7px] border border-transparent text-[#B4432F] transition-colors hover:border-[#F0D3CE] hover:bg-[#FCF1EF]"
-    >
-      <Trash2Icon className="size-[14px]" aria-hidden />
-    </button>
-  );
-}
-
-export function AddRow({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-lg border border-[#C4D3CB] bg-white px-3.5 py-2.5 text-[13px] font-semibold text-hunter-deep transition-colors hover:border-gold"
-    >
-      {label}
-    </button>
   );
 }
