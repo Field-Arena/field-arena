@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOutIcon, SmartphoneIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
-import { setPreviewRole } from '../data/preview-role';
-import { setSelectedOrg, type MemberOrg } from '../data/org-selection';
+import type { MemberOrg } from '../data/org-selection';
+import { useOrganizerShellPreview, useOrganizerShellOrgSwitch } from '../hooks/use-organizer-shell-actions';
 import { setRailRole } from '@/shared/lib/rail-role';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
@@ -48,14 +48,12 @@ export function OrganizerShell({
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
   const [mobilePreview, setMobilePreview] = useState(false);
-  // Matches organization-row-actions.tsx's own reasoning for enterAsOrganizer:
-  // setPreviewRole/setSelectedOrg both end in a redirect(), so there is no
-  // result to cache and no success state to react to — only a pending flag
-  // while the navigation happens. A mutation hook would risk its own
-  // try/catch intercepting the redirect's thrown signal before Next's router
-  // ever sees it.
-  const [isPreviewPending, startPreviewTransition] = useTransition();
-  const [isOrgPending, startOrgTransition] = useTransition();
+  const {
+    isPending: isPreviewPending,
+    setPreview,
+    runTransition: runPreviewTransition,
+  } = useOrganizerShellPreview();
+  const { isPending: isOrgPending, setOrg } = useOrganizerShellOrgSwitch();
 
   /**
    * The role rail is a switcher only for SuperAdmin.
@@ -190,17 +188,12 @@ export function OrganizerShell({
                   className={cn('dash-rail-btn', active && 'active')}
                   onClick={() => {
                     if (active) return;
-                    startPreviewTransition(async () => {
-                      // The rail is a navigation control — it must always
-                      // land on `/dashboard`, unlike the "VIEWING AS"
-                      // dropdown below, which passes the current `pathname`
-                      // because its whole point is toggling money visibility
-                      // without leaving the page you're already on.
-                      await setPreviewRole(
-                        role === 'ShowAdmin' ? 'showadmin' : 'organizer',
-                        target.href,
-                      );
-                    });
+                    // The rail is a navigation control — it must always land
+                    // on `/dashboard`, unlike the "VIEWING AS" dropdown below,
+                    // which passes the current `pathname` because its whole
+                    // point is toggling money visibility without leaving the
+                    // page you're already on.
+                    setPreview(role === 'ShowAdmin' ? 'showadmin' : 'organizer', target.href);
                   }}
                 >
                   <RoleIcon role={role} size={20} />
@@ -225,7 +218,7 @@ export function OrganizerShell({
                   className={cn('dash-rail-btn', active && 'active')}
                   onClick={() => {
                     if (active) return;
-                    startPreviewTransition(async () => {
+                    runPreviewTransition(async () => {
                       await setRailRole(role);
                     });
                   }}
@@ -274,10 +267,7 @@ export function OrganizerShell({
                 value={selectedOrgId ?? ''}
                 disabled={isOrgPending}
                 onChange={(e) => {
-                  const next = e.target.value;
-                  startOrgTransition(async () => {
-                    await setSelectedOrg(next, pathname);
-                  });
+                  setOrg(e.target.value, pathname);
                 }}
                 aria-label="Selected organization"
               >
@@ -314,9 +304,7 @@ export function OrganizerShell({
                 disabled={isPreviewPending}
                 onChange={(e) => {
                   const next = e.target.value === 'showadmin' ? 'showadmin' : 'organizer';
-                  startPreviewTransition(async () => {
-                    await setPreviewRole(next, pathname);
-                  });
+                  setPreview(next, pathname);
                 }}
                 aria-label="Viewing as role"
               >
