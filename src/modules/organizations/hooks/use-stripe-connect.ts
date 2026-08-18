@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { startStripeConnect } from '../data/mutations';
+import { startStripeConnect } from '@/modules/organizations/data/mutations';
 
 /**
  * Opens Stripe Connect Express onboarding.

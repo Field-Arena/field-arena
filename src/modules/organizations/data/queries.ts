@@ -1,6 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import type { VenueListItem, VenueRing, VenueStable } from '../types';
+import type { VenueListItem, VenueRing, VenueStable } from '@/modules/organizations/types';
 
 /**
  * Org-wide reads: the member database and org-level document library.

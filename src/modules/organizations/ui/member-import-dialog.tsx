@@ -10,12 +10,13 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
-import { useImportMembers } from '../hooks/use-member-mutations';
+import { Input } from '@/shared/ui/shadcn/input';
+import { useImportMembers } from '@/modules/organizations/hooks/use-member-mutations';
 import {
   detectMemberCsvColumns,
-  buildMemberRowsFromCsv,
   type ParsedMemberCsvColumn,
-} from '../utils';
+} from '@/modules/organizations/utils/detect-member-csv-columns';
+import { buildMemberRowsFromCsv } from '@/modules/organizations/utils/build-member-rows-from-csv';
 
 /**
  * "Upload List" — a CSV of people, straight into the database.
@@ -74,10 +75,10 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
 
         <div className="my-4">
           {columns.length === 0 ? (
-            <input
+            <Input
               type="file"
               accept=".csv,text/csv"
-              className="text-[13px]"
+              className="h-auto text-[13px]"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;

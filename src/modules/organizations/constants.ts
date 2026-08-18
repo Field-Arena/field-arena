@@ -85,3 +85,6 @@ export const MEMBER_CSV_HEADERS = [
   'Email',
   'Notes',
 ] as const;
+
+/** Revalidated after every member-database write. */
+export const MEMBERS_PATH = '/dashboard/members';

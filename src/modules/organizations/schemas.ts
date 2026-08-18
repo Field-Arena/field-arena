@@ -1,6 +1,10 @@
 import { z } from 'zod';
-import { MEMBER_TYPES } from './constants';
-import { MAX_RINGS, MAX_STABLES, MAX_STALLS_PER_STABLE } from './constants';
+import {
+  MEMBER_TYPES,
+  MAX_RINGS,
+  MAX_STABLES,
+  MAX_STALLS_PER_STABLE,
+} from '@/modules/organizations/constants';
 
 const optionalText = (max: number) =>
   z

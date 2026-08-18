@@ -18,7 +18,8 @@ import {
   memberIdSchema,
   importMembersSchema,
   addMembersToShowSchema,
-} from '../schemas';
+} from '@/modules/organizations/schemas';
+import { MEMBERS_PATH } from '@/modules/organizations/constants';
 
 /**
  * Resolves the org a venue write should apply to: the caller's own org, or —
@@ -210,8 +211,6 @@ export async function deleteVenue(input: unknown): Promise<void> {
 }
 
 /* ── Member Database ─────────────────────────────────────────────────────── */
-
-const MEMBERS_PATH = '/dashboard/members';
 
 /**
  * A message a person can act on, from a member write.

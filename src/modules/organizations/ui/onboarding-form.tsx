@@ -4,30 +4,42 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CircleAlertIcon, Loader2Icon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { completeOrgProfileSchema, type CompleteOrgProfileInput } from '../schemas';
-import { useCompleteOrgProfile } from '../hooks/use-organization-profile';
+import { Input } from '@/shared/ui/shadcn/input';
+import { Button } from '@/shared/ui/shadcn/button';
+import {
+  completeOrgProfileSchema,
+  type CompleteOrgProfileInput,
+} from '@/modules/organizations/schemas';
+import { useCompleteOrgProfile } from '@/modules/organizations/hooks/use-organization-profile';
+import { OnboardingField } from '@/modules/organizations/ui/onboarding-field';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
 const FIELD =
   'h-auto w-full rounded-[10px] border border-field bg-white px-4 py-3 text-[14.5px] text-ink-deep ' +
   'placeholder:text-[#9AA6A0] focus-visible:border-gold focus-visible:outline-none ' +
   'focus-visible:ring-[3px] focus-visible:ring-gold/[.15]';
-const LABEL = 'mb-2 block text-xs font-bold uppercase tracking-[.1em] text-forest';
 const GROUP = 'mb-3 text-[10.5px] font-bold uppercase tracking-[.18em] text-gold';
+
+interface FieldRow {
+  id: string;
+  label: string;
+  required?: boolean;
+  type?: string;
+  autoComplete?: string;
+  placeholder?: string;
+  name: keyof CompleteOrgProfileInput;
+}
 
 /**
  * "Complete Your Organization Profile" — the first screen an invited organizer
  * sees.
  *
- * Standalone rather than inside the dashboard shell, matching the design: at
- * this point the organizer has an account and an empty organization, so a
- * workspace with a show picker and eleven navigation items would be a shell
- * around nothing.
+ * Standalone rather than inside the dashboard shell: at this point the
+ * organizer has an account and an empty organization, so a workspace shell
+ * would be wrapped around nothing.
  *
- * Only name and email are required. The rest is genuinely optional — an
- * organizer who does not yet know which region they will run in should not be
- * blocked at the door, and every field here is editable later from the
- * workspace.
+ * Only name and email are required — every other field is editable later
+ * from the workspace.
  */
 export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProfileInput> }) {
   const form = useForm<CompleteOrgProfileInput>({
@@ -45,6 +57,46 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
 
   const submit = useCompleteOrgProfile();
   const { errors } = form.formState;
+
+  // Grouped by the design's layout — each row is one or two fields sharing a
+  // grid line, so a single .map() per row preserves the exact markup shape.
+  const orgRows: FieldRow[][] = [
+    [{ id: 'name', label: 'Organization name', required: true, placeholder: 'Meadowbrook Equestrian Center', name: 'name' }],
+    [
+      { id: 'email', label: 'Organization email', required: true, type: 'email', autoComplete: 'email', placeholder: 'office@yourorg.com', name: 'email' },
+      { id: 'website', label: 'Website', placeholder: 'www.yourorg.com', name: 'website' },
+    ],
+    [{ id: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel', placeholder: '(555) 555-0100', name: 'phone' }],
+  ];
+  const locationRows: FieldRow[][] = [
+    [
+      { id: 'city', label: 'City', placeholder: 'e.g. Asheville', name: 'city' },
+      { id: 'region', label: 'State / Region', placeholder: 'e.g. NC', name: 'region' },
+    ],
+    [{ id: 'country', label: 'Country', name: 'country' }],
+  ];
+
+  function renderRow(row: FieldRow[], withTopMargin: boolean) {
+    return (
+      <div
+        key={row.map((f) => f.id).join('-')}
+        className={cn(row.length > 1 && 'grid gap-4 sm:grid-cols-2', withTopMargin && 'mt-4')}
+      >
+        {row.map((f) => (
+          <OnboardingField key={f.id} id={f.id} label={f.label} required={f.required} error={errors[f.name]?.message}>
+            <Input
+              id={f.id}
+              type={f.type}
+              autoComplete={f.autoComplete}
+              className={FIELD}
+              placeholder={f.placeholder}
+              {...form.register(f.name)}
+            />
+          </OnboardingField>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-dvh bg-paper px-5 py-10 font-[family-name:var(--font-ar)]">
@@ -82,83 +134,12 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
           >
             <div>
               <div className={GROUP}>Organization</div>
-
-              <Field id="name" label="Organization name" required error={errors.name?.message}>
-                <input
-                  id="name"
-                  className={FIELD}
-                  placeholder="Meadowbrook Equestrian Center"
-                  {...form.register('name')}
-                />
-              </Field>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field
-                  id="email"
-                  label="Organization email"
-                  required
-                  error={errors.email?.message}
-                >
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    className={FIELD}
-                    placeholder="office@yourorg.com"
-                    {...form.register('email')}
-                  />
-                </Field>
-                <Field id="website" label="Website" error={errors.website?.message}>
-                  <input
-                    id="website"
-                    className={FIELD}
-                    placeholder="www.yourorg.com"
-                    {...form.register('website')}
-                  />
-                </Field>
-              </div>
-
-              <div className="mt-4">
-                <Field id="phone" label="Phone" error={errors.phone?.message}>
-                  <input
-                    id="phone"
-                    type="tel"
-                    autoComplete="tel"
-                    className={FIELD}
-                    placeholder="(555) 555-0100"
-                    {...form.register('phone')}
-                  />
-                </Field>
-              </div>
+              {orgRows.map((row, i) => renderRow(row, i > 0))}
             </div>
 
             <div>
               <div className={cn(GROUP, 'pt-2')}>Location</div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field id="city" label="City" error={errors.city?.message}>
-                  <input
-                    id="city"
-                    className={FIELD}
-                    placeholder="e.g. Asheville"
-                    {...form.register('city')}
-                  />
-                </Field>
-                <Field id="region" label="State / Region" error={errors.region?.message}>
-                  <input
-                    id="region"
-                    className={FIELD}
-                    placeholder="e.g. NC"
-                    {...form.register('region')}
-                  />
-                </Field>
-              </div>
-
-              <div className="mt-4">
-                <Field id="country" label="Country" error={errors.country?.message}>
-                  <input id="country" className={FIELD} {...form.register('country')} />
-                </Field>
-              </div>
+              {locationRows.map((row, i) => renderRow(row, i > 0))}
             </div>
 
             {submit.error && (
@@ -171,14 +152,15 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
               </p>
             )}
 
-            <button
+            <Button
               type="submit"
+              variant="ghost"
               disabled={submit.isPending}
-              className="flex h-auto w-full items-center justify-center gap-2.5 rounded-[10px] bg-gold px-6 py-[15px] text-[15px] font-bold text-forest transition-all hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] disabled:translate-y-0 disabled:opacity-70"
+              className="h-auto flex w-full items-center justify-center gap-2.5 rounded-[10px] bg-gold px-6 py-[15px] text-[15px] font-bold text-forest hover:bg-gold-light transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] disabled:translate-y-0 disabled:opacity-70"
             >
               {submit.isPending && <Loader2Icon className="size-[15px] animate-spin" aria-hidden />}
               {submit.isPending ? 'Saving…' : 'Finish setup'}
-            </button>
+            </Button>
 
             <p className="text-center text-[12.5px] leading-[1.6] text-fa-muted">
               You can add shows, staff, and payment details once you&apos;re in.
@@ -187,38 +169,5 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
         </div>
       </div>
     </main>
-  );
-}
-
-function Field({
-  id,
-  label,
-  required,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className={LABEL}>
-        {label}
-        {required && (
-          <span aria-hidden className="ml-1 text-gold">
-            *
-          </span>
-        )}
-      </label>
-      {children}
-      {error && (
-        <p role="alert" className="mt-1.5 text-[12.5px] text-alert-fg">
-          {error}
-        </p>
-      )}
-    </div>
   );
 }

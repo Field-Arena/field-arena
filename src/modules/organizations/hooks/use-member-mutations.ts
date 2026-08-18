@@ -10,13 +10,13 @@ import {
   deleteMember,
   importMembers,
   updateMember,
-} from '../data/mutations';
+} from '@/modules/organizations/data/mutations';
 import type {
   AddMembersToShowInput,
   CreateMemberInput,
   ImportMembersInput,
   UpdateMemberInput,
-} from '../schemas';
+} from '@/modules/organizations/schemas';
 
 const message = readableError;
 

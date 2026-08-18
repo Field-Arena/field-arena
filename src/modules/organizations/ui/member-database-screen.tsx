@@ -6,13 +6,14 @@ import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
 import { SearchInput } from '@/shared/ui/organizer/search-input';
 import { StatusBadge } from '@/shared/ui/status-badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
-import { MEMBER_COLUMNS, MEMBER_ROW_CAP, type MemberColumnKey } from '../constants';
-import type { MemberRow } from '../data/queries';
-import { buildMembersCsv } from '../utils';
-import { useAddMembersToShow } from '../hooks/use-member-mutations';
-import { MemberEditDialog } from './member-edit-dialog';
-import { MemberImportDialog } from './member-import-dialog';
+import { MEMBER_COLUMNS, MEMBER_ROW_CAP, type MemberColumnKey } from '@/modules/organizations/constants';
+import type { MemberRow } from '@/modules/organizations/data/queries';
+import { buildMembersCsv } from '@/modules/organizations/utils/build-members-csv';
+import { useAddMembersToShow } from '@/modules/organizations/hooks/use-member-mutations';
+import { MemberEditDialog } from '@/modules/organizations/ui/member-edit-dialog';
+import { MemberImportDialog } from '@/modules/organizations/ui/member-import-dialog';
 
 /** Today in ISO, for the expired check. */
 function todayIso(): string {
@@ -252,11 +253,11 @@ export function MemberDatabaseScreen({
           </p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table className="w-full border-collapse text-[13px]">
+            <Table className="border-collapse text-[13px]">
               <caption className="sr-only">Everyone in your organization&apos;s database</caption>
-              <thead>
-                <tr className="border-b border-[#E9EDEB]">
-                  <th scope="col" className="w-[30px] py-2">
+              <TableHeader className="[&_tr]:border-0">
+                <TableRow className="hover:bg-transparent border-b border-[#E9EDEB]">
+                  <TableHead scope="col" className="h-auto w-[30px] py-2">
                     <input
                       type="checkbox"
                       title="Selects every match, not just the rows shown"
@@ -278,31 +279,31 @@ export function MemberDatabaseScreen({
                         });
                       }}
                     />
-                  </th>
-                  <th scope="col" className="py-2 text-left">
+                  </TableHead>
+                  <TableHead scope="col" className="h-auto py-2 text-left">
                     Name
-                  </th>
+                  </TableHead>
                   {visibleCols.map((col) => (
-                    <th key={col.key} scope="col" className="py-2 text-left">
+                    <TableHead key={col.key} scope="col" className="h-auto py-2 text-left">
                       {col.label}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {shown.map((member) => {
                   const expired = !!member.membershipExpires && member.membershipExpires < today;
 
                   return (
-                    <tr
+                    <TableRow
                       key={member.id}
                       onClick={() => {
                         setEditing(member);
                       }}
                       className="cursor-pointer border-b border-[#F1F4F3] hover:bg-[#F8FAF9]"
                     >
-                      <td
-                        className="py-2"
+                      <TableCell
+                        className="whitespace-normal py-2"
                         onClick={(e) => {
                           e.stopPropagation();
                         }}
@@ -320,14 +321,16 @@ export function MemberDatabaseScreen({
                             });
                           }}
                         />
-                      </td>
-                      <td className="py-2 font-semibold">{member.name}</td>
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2 font-semibold">
+                        {member.name}
+                      </TableCell>
 
                       {visibleCols.map((col) => (
-                        <td
+                        <TableCell
                           key={col.key}
                           className={cn(
-                            'py-2',
+                            'whitespace-normal py-2',
                             // Notes and imported columns read as supplementary —
                             // smaller and muted, so the identifying columns stay
                             // the ones the eye lands on.
@@ -353,13 +356,13 @@ export function MemberDatabaseScreen({
                           ) : (
                             (member[col.key as MemberColumnKey] ?? '—')
                           )}
-                        </td>
+                        </TableCell>
                       ))}
-                    </tr>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </Card>

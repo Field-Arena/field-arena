@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Button } from '@/shared/ui/shadcn/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { IconX } from '@/shared/ui/organizer/icons';
@@ -20,9 +21,13 @@ import {
   modalContentClass,
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
-import { MEMBER_TYPES } from '../constants';
-import type { MemberRow } from '../data/queries';
-import { useCreateMember, useDeleteMember, useUpdateMember } from '../hooks/use-member-mutations';
+import { MEMBER_TYPES } from '@/modules/organizations/constants';
+import type { MemberRow } from '@/modules/organizations/data/queries';
+import {
+  useCreateMember,
+  useDeleteMember,
+  useUpdateMember,
+} from '@/modules/organizations/hooks/use-member-mutations';
 
 const LABEL = 'mb-1.5 block text-[12.5px] font-semibold text-forest';
 const FIELD =
@@ -298,16 +303,17 @@ export function MemberEditDialog({
 
         <DialogFooter className={modalFooterClass + ' items-center sm:justify-between'}>
           {member ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               disabled={remove.isPending}
               onClick={() => {
                 setConfirmDelete(true);
               }}
-              className="text-[12.5px] font-semibold text-[#B4432F] hover:underline disabled:opacity-50"
+              className="h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold text-[#B4432F] hover:bg-transparent hover:underline"
             >
               Delete from database
-            </button>
+            </Button>
           ) : (
             <span />
           )}

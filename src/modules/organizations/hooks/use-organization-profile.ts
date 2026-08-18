@@ -2,8 +2,8 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { completeOrganizationProfile } from '../data/mutations';
-import type { CompleteOrgProfileInput } from '../schemas';
+import { completeOrganizationProfile } from '@/modules/organizations/data/mutations';
+import type { CompleteOrgProfileInput } from '@/modules/organizations/schemas';
 
 /**
  * Onboarding submit.

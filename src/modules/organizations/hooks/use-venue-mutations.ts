@@ -4,8 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { createVenue, updateVenue, deleteVenue } from '../data/mutations';
-import type { CreateVenueInput, UpdateVenueInput } from '../schemas';
+import { createVenue, updateVenue, deleteVenue } from '@/modules/organizations/data/mutations';
+import type { CreateVenueInput, UpdateVenueInput } from '@/modules/organizations/schemas';
 
 /** Mutation hooks for the Venues page. Every action revalidates server-side; router.refresh() pulls the re-rendered list back into this view. */
 

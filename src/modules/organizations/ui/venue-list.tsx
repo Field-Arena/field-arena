@@ -6,11 +6,11 @@ import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatCard } from '@/shared/ui/organizer/stat-card';
 import { GhostButton, PrimaryButton, DangerButton } from '@/shared/ui/organizer/buttons';
 import { IconBarn } from '@/shared/ui/organizer/icons';
-import { VENUE_STAT_TINTS } from '../constants';
-import { VenueFormDialog } from './venue-form-dialog';
-import { useDeleteVenue } from '../hooks/use-venue-mutations';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import type { VenueListItem } from '../types';
+import { VENUE_STAT_TINTS } from '@/modules/organizations/constants';
+import { VenueFormDialog } from '@/modules/organizations/ui/venue-form-dialog';
+import { useDeleteVenue } from '@/modules/organizations/hooks/use-venue-mutations';
+import type { VenueListItem } from '@/modules/organizations/types';
 
 /**
  * "Your venues" — the org's reusable venue library, ported from
