@@ -5,14 +5,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
 import { useLoginDialogStore } from '@/modules/auth/store';
 
-/** Opens the sign-in dialog. Keeps the surrounding section a server component. */
-export function LoginTrigger({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function LoginTrigger({ children, className }: { children: ReactNode; className?: string }) {
   const openDialog = useLoginDialogStore((state) => state.openDialog);
 
   return (

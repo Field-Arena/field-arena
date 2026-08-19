@@ -30,20 +30,15 @@ import { AuthPanel } from '@/modules/auth/ui/auth-panel';
 import { AuthHeading } from '@/modules/auth/ui/auth-heading';
 import { BackButton } from '@/modules/auth/ui/back-button';
 
-/**
- * The sign-in panel, used both by the standalone /login route and by the
- * header dialog — see AuthShell's doc comment for why it renders in both
- * places.
- */
 export function LoginForm({
   onSuccess,
   showFooter = true,
   headingLevel = 'h2',
 }: {
   onSuccess?: () => void;
-  /** The dialog renders its own footer bar, so it suppresses this one. */
+
   showFooter?: boolean;
-  /** h1 on the standalone route, h2 inside the dialog where the page owns the h1. */
+
   headingLevel?: 'h1' | 'h2';
 }) {
   const [view, setView] = useState<LoginView>('login');
@@ -54,7 +49,7 @@ export function LoginForm({
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    // Ticked by default, as the design draws it.
+
     defaultValues: { email: '', password: '', remember: true },
   });
 
@@ -63,8 +58,6 @@ export function LoginForm({
   const sendCode = useSendSignInCode();
   const verifyCode = useVerifySignInCode({ onSuccess });
 
-  // useWatch, not form.watch(): watch() returns a fresh function each render,
-  // which the React Compiler cannot memoize.
   const email = useWatch({ control: form.control, name: 'email' });
   const remember = useWatch({ control: form.control, name: 'remember' }) ?? true;
   const { errors } = form.formState;
@@ -85,9 +78,9 @@ export function LoginForm({
         <AuthHeading as={headingLevel} className="mt-4 text-[34px] leading-[1.04]">
           Forgot password?
         </AuthHeading>
-        <p className="mb-[26px] mt-2.5 max-w-[300px] text-[14.5px] leading-[1.56] text-fa-muted">
+        <p className="text-fa-muted mt-2.5 mb-[26px] max-w-[300px] text-[14.5px] leading-[1.56]">
           We&apos;ll send a reset link to{' '}
-          <strong className="font-semibold text-forest">{emailLabel}</strong>.
+          <strong className="text-forest font-semibold">{emailLabel}</strong>.
         </p>
 
         <AuthSubmit
@@ -115,7 +108,7 @@ export function LoginForm({
           {resetSent ? 'Reset link sent' : 'Reset your password'}
         </AuthSubmit>
 
-        <div className="mb-5 mt-6 w-full">
+        <div className="mt-6 mb-5 w-full">
           <AuthDivider>Or, sign in with another method</AuthDivider>
         </div>
 
@@ -147,9 +140,9 @@ export function LoginForm({
               },
             );
           }}
-          className="h-auto w-full justify-start gap-3 rounded-xl border border-field bg-white px-4 py-3.5 text-left text-[14.5px] font-normal text-ink-deep transition-colors duration-150 ease-out hover:border-gold hover:bg-[#FEFCF5] disabled:opacity-70"
+          className="border-field text-ink-deep hover:border-gold h-auto w-full justify-start gap-3 rounded-xl border bg-white px-4 py-3.5 text-left text-[14.5px] font-normal transition-colors duration-150 ease-out hover:bg-[#FEFCF5] disabled:opacity-70"
         >
-          <MailIcon className="size-[17px] flex-none text-fa-muted" aria-hidden />
+          <MailIcon className="text-fa-muted size-[17px] flex-none" aria-hidden />
           <span>
             {isEmailAddress(email) ? `Email code to ${email}` : 'Email me a one-time code instead'}
           </span>
@@ -175,7 +168,6 @@ export function LoginForm({
     );
   }
 
-  /** The prototype stops at "One-time code sent" — this panel is authored to give it somewhere to go. */
   if (view === 'code') {
     return (
       <AuthPanel centred>
@@ -183,9 +175,9 @@ export function LoginForm({
         <AuthHeading as={headingLevel} className="mt-4 text-[34px] leading-[1.04]">
           Check your inbox.
         </AuthHeading>
-        <p className="mb-[26px] mt-2.5 max-w-[320px] text-[14.5px] leading-[1.56] text-fa-muted">
+        <p className="text-fa-muted mt-2.5 mb-[26px] max-w-[320px] text-[14.5px] leading-[1.56]">
           We sent a {EMAIL_CODE_LENGTH}-digit code to{' '}
-          <strong className="font-semibold text-forest">{emailLabel}</strong>.
+          <strong className="text-forest font-semibold">{emailLabel}</strong>.
         </p>
 
         <form
@@ -215,7 +207,11 @@ export function LoginForm({
           )}
 
           <div className="mt-[26px]">
-            <AuthSubmit variant="gold-flat" pending={verifyCode.isPending} pendingLabel="Signing in…">
+            <AuthSubmit
+              variant="gold-flat"
+              pending={verifyCode.isPending}
+              pendingLabel="Signing in…"
+            >
               Sign in
             </AuthSubmit>
           </div>
@@ -236,7 +232,7 @@ export function LoginForm({
       <AuthHeading as={headingLevel} className="mt-[18px] text-[38px] leading-[1.02]">
         Welcome back.
       </AuthHeading>
-      <p className="mb-7 mt-2.5 max-w-[330px] text-[15px] leading-[1.56] text-fa-muted">
+      <p className="text-fa-muted mt-2.5 mb-7 max-w-[330px] text-[15px] leading-[1.56]">
         Organizer, staff, or rider — one login for Field &amp; Arena.
       </p>
 
@@ -244,7 +240,6 @@ export function LoginForm({
         className="w-full"
         noValidate
         onSubmit={(event) => {
-          // handleSubmit returns a promise; the DOM handler must return void.
           void form.handleSubmit((values) => {
             setFormError(null);
             signIn.mutate(values, {
@@ -280,7 +275,7 @@ export function LoginForm({
                 onClick={() => {
                   show('forgot');
                 }}
-                className="h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold text-fa-muted transition-colors hover:bg-transparent hover:text-gold"
+                className="text-fa-muted hover:text-gold h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
               >
                 Forgot password?
               </Button>
@@ -313,11 +308,11 @@ export function LoginForm({
         </div>
 
         {showFooter && (
-          <div className="mt-7 flex items-center justify-between gap-4 border-t border-line pt-6">
-            <span className="text-[13.5px] text-fa-muted">New to Field &amp; Arena?</span>
+          <div className="border-line mt-7 flex items-center justify-between gap-4 border-t pt-6">
+            <span className="text-fa-muted text-[13.5px]">New to Field &amp; Arena?</span>
             <Link
               href={ROUTES.signup}
-              className="inline-flex items-center gap-2 text-[13.5px] font-bold text-forest transition-all duration-150 ease-out hover:gap-3 hover:text-gold"
+              className="text-forest hover:text-gold inline-flex items-center gap-2 text-[13.5px] font-bold transition-all duration-150 ease-out hover:gap-3"
             >
               Create an account
               <ArrowRightIcon className="size-3.5" aria-hidden />

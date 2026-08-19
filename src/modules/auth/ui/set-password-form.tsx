@@ -8,11 +8,6 @@ import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/a
 import { setPasswordSchema, type SetPasswordInput } from '@/modules/auth/schemas';
 import { useSetPassword } from '@/modules/auth/hooks/use-auth-mutations';
 
-/**
- * "Set your password" — the step `/auth/confirm` sends every invite through
- * before it reaches a dashboard. See setPassword in data/mutations.ts for why
- * this exists at all.
- */
 export function SetPasswordForm() {
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -24,16 +19,15 @@ export function SetPasswordForm() {
 
   const setPassword = useSetPassword();
 
-  // useWatch, not form.watch() — see signup-form.tsx's identical comment.
   const password = useWatch({ control: form.control, name: 'password' });
   const { errors } = form.formState;
 
   return (
     <div className="[animation:fa-in_.22s_ease-out_both]">
-      <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[40px] font-medium leading-[1.04] tracking-[-.022em] text-forest">
+      <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[40px] leading-[1.04] font-medium tracking-[-.022em]">
         Set your password
       </h1>
-      <p className="mb-[34px] text-[15.5px] leading-[1.58] text-fa-muted">
+      <p className="text-fa-muted mb-[34px] text-[15.5px] leading-[1.58]">
         Choose a password for your account — you&apos;ll use it to sign back in from now on.
       </p>
 

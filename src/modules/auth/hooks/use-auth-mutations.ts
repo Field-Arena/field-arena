@@ -31,10 +31,6 @@ import type {
   SignInCodeOutcome,
 } from '@/modules/auth/types';
 
-/**
- * Per layers.md, side effects and toasts live in the mutation hook rather than
- * in the UI component.
- */
 export function useSignIn(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 
@@ -46,11 +42,7 @@ export function useSignIn(options?: { onSuccess?: () => void }) {
         return;
       }
       options?.onSuccess?.();
-      /**
-       * refresh() before push() so Server Components re-render with the new
-       * session cookie. Without it the dashboard can render from a cached
-       * unauthenticated tree and appear to have no data.
-       */
+
       toast.success('Signed in.');
       router.refresh();
       router.push(outcome.redirectTo);
@@ -58,11 +50,6 @@ export function useSignIn(options?: { onSuccess?: () => void }) {
   });
 }
 
-/**
- * Every outcome here is DATA, not a thrown error — see SignUpOutcome. The form
- * renders the message inline where the design puts it, and the toast repeats it
- * for anyone who has scrolled the alert out of view.
- */
 export function useSignUp(options?: {
   onVerifyNeeded?: (email: string) => void;
   onAlreadyRegistered?: () => void;
@@ -81,14 +68,9 @@ export function useSignUp(options?: {
           options?.onAlreadyRegistered?.();
           return;
         case 'error':
-          // Rendered inline beside the form as well; the toast is what carries
-          // it if the visitor has scrolled past the alert.
           toast.error(outcome.message);
           return;
         default:
-          // Neutral on purpose: a provisioned account lands in its workspace, an
-          // un-provisioned one is routed to the login notice — "Welcome" would be
-          // wrong for the latter.
           toast.success('Account created.');
           router.refresh();
           router.push(outcome.redirectTo);
@@ -97,7 +79,6 @@ export function useSignUp(options?: {
   });
 }
 
-/** Finishes an invite by setting the account's password. See setPassword. */
 export function useSetPassword() {
   const router = useRouter();
 
@@ -149,14 +130,6 @@ export function useSignOut() {
   return useMutation({
     mutationFn: () => signOut(),
     onSuccess: () => {
-      // A full navigation, not router.refresh() + push('/'): refreshing the
-      // protected route we're signing out FROM re-runs the proxy against a
-      // now-empty session, which 307s to the standalone /login page and wins the
-      // race against a soft push('/') — so the user lands on the login PAGE
-      // instead of the marketing home. A hard load of '/' avoids that entirely
-      // and guarantees every auth-dependent Server Component re-renders
-      // signed-out. `?signin=1` reopens the same login DIALOG the whole app
-      // signs in with (see LoginDialogMount), matching the legacy modal flow.
       window.location.assign('/?signin=1');
     },
     onError: (error) => {
@@ -168,15 +141,13 @@ export function useSignOut() {
 export function useRequestPasswordReset() {
   return useMutation({
     mutationFn: (input: RequestPasswordResetInput) => requestPasswordReset(input),
-    // Always the same message — see the note in requestPasswordReset about not
-    // leaking whether an account exists.
+
     onSettled: () => {
       toast.success('If that address has an account, a reset link is on its way.');
     },
   });
 }
 
-/** Sends the one-time sign-in code offered beside the password reset. */
 export function useSendSignInCode() {
   return useMutation<SignInCodeOutcome, Error, RequestPasswordResetInput>({
     mutationFn: (input) => sendSignInCode(input),
@@ -190,7 +161,6 @@ export function useSendSignInCode() {
   });
 }
 
-/** Signs in with the emailed one-time code. Lands exactly where a password would. */
 export function useVerifySignInCode(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 
@@ -203,8 +173,7 @@ export function useVerifySignInCode(options?: { onSuccess?: () => void }) {
       }
       options?.onSuccess?.();
       toast.success('Signed in.');
-      // See useSignIn — refresh before push, so Server Components re-render with
-      // the session cookie rather than from an unauthenticated cached tree.
+
       router.refresh();
       router.push(outcome.redirectTo);
     },

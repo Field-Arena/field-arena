@@ -14,7 +14,7 @@ export function AuthHeading({
   return (
     <Tag
       className={cn(
-        'font-[family-name:var(--font-nr)] font-medium tracking-[-.024em] text-forest',
+        'text-forest font-[family-name:var(--font-nr)] font-medium tracking-[-.024em]',
         className,
       )}
     >
