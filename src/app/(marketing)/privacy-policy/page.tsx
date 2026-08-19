@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PrivacyPolicyContent } from '@/modules/marketing/content/legal';
+import { PrivacyPolicyContent } from '@/modules/marketing/content/legal/privacy-policy-content';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Field & Arena',
