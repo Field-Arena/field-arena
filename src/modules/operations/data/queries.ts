@@ -2,22 +2,9 @@ import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
-import { resolveOperationsPermissions, withSharedRank } from '../utils';
-
-/**
- * ShowStaff reads, ported from showstaff-ops.html: the Find/Riders/Horses/
- * Stabling/Vendors directories, the ring-by-ring Schedule, and the shared
- * Documents library. Every function here is its own copy against the real
- * schema rather than a re-export of `modules/announcements` or
- * `modules/shows` internals — a module may not reach into another module's
- * internals (see `.claude/rules/folder-structure.md`), and this module owns
- * its own read path the same way `modules/scoring` and `modules/judging` do.
- *
- * ShowStaff is read-only everywhere except Documents, where uploading a PDF
- * is explicitly allowed (see data/mutations.ts) — matching the legacy
- * `/api/shows/:id/[resource].js` gate exactly: GET-only on `roster`/
- * `vendors`, GET+POST on `documents`.
- */
+import { ORG_LEVEL_ROLES } from '@/modules/operations/constants';
+import { resolveOperationsPermissions } from '@/modules/operations/utils/resolve-operations-permissions';
+import { withSharedRank } from '@/modules/operations/utils/with-shared-rank';
 
 export interface OperationsShow {
   id: string;
@@ -25,7 +12,6 @@ export interface OperationsShow {
   dateLabel: string | null;
 }
 
-/** Shows this staff member (any role) is staffed on. */
 export async function listMyShows(): Promise<OperationsShow[]> {
   const profile = await getStaffProfile();
   if (!profile) return [];
@@ -50,14 +36,6 @@ export async function listMyShows(): Promise<OperationsShow[]> {
   return shows.map((s) => ({ id: s.id, name: s.name, dateLabel: s.date_label }));
 }
 
-const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
-
-/**
- * The signed-in caller's effective permissions for this show — used here to
- * gate the Vendors tab on `canViewMoney`, exactly as the legacy `vendors`
- * resource gated it server-side. Org-level roles hold every permission
- * implicitly (they're never a staff_assignments row at all).
- */
 export async function getMyPermissions(showId: string): Promise<Record<PermissionKey, boolean>> {
   const profile = await getStaffProfile();
   const allTrue = Object.fromEntries(PERMISSION_KEYS.map((k) => [k, true])) as Record<
@@ -106,15 +84,6 @@ interface RawStableChart {
   stables?: RawStable[];
 }
 
-/**
- * One stall code per horse, from the show's *published* stable chart — the
- * same single source of truth legacy's `stallCode()` used everywhere (Find,
- * Riders, Horses, and Stabling all read off of it). Riders/Horses used to
- * show `horses.stable`, a free-text field a rider types on their own horse
- * profile (see `modules/riders/ui/horse-manager.tsx`) that can disagree with
- * where the organizer actually assigned the horse — this reads the
- * organizer's authoritative chart instead, matching Stabling's own source.
- */
 async function getStallCodeByHorseId(showId: string): Promise<Map<string, string>> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
@@ -150,14 +119,6 @@ interface RosterEntry {
   stable: string | null;
 }
 
-/**
- * Every non-scratched entry across the show's classes, joined to the horse
- * record for trainer and to the published stable chart for stall code.
- * Shared groundwork for the Riders and Horses directories, which are the
- * same underlying rows grouped two different ways — exactly like
- * showstaff-ops.html's `viewRiders`/`viewHorses`, which both read the same
- * `DB.riders` array.
- */
 async function getRosterEntries(showId: string): Promise<RosterEntry[]> {
   const supabase = await createServerClient();
 
@@ -173,7 +134,7 @@ async function getRosterEntries(showId: string): Promise<RosterEntry[]> {
     .select('class_id, num, rider, horse, horse_id, status')
     .in(
       'class_id',
-      classes.map((c) => c.id)
+      classes.map((c) => c.id),
     );
   if (entryError) throw entryError;
 
@@ -219,7 +180,6 @@ export interface RiderDirectoryRow {
   classNames: string[];
 }
 
-/** The Riders tab — one row per bib number, ported from viewRiders()/ridersRows(). */
 export async function listRidersDirectory(showId: string): Promise<RiderDirectoryRow[]> {
   const rows = await getRosterEntries(showId);
   const byNum = new Map<string, RiderDirectoryRow>();
@@ -238,7 +198,7 @@ export async function listRidersDirectory(showId: string): Promise<RiderDirector
     }
   }
   return [...byNum.values()].sort((a, b) =>
-    a.num.localeCompare(b.num, undefined, { numeric: true })
+    a.num.localeCompare(b.num, undefined, { numeric: true }),
   );
 }
 
@@ -250,7 +210,6 @@ export interface HorseDirectoryRow {
   stable: string | null;
 }
 
-/** The Horses tab — one row per horse, ported from viewHorses()/horsesRows(). */
 export async function listHorsesDirectory(showId: string): Promise<HorseDirectoryRow[]> {
   const rows = await getRosterEntries(showId);
   const byHorse = new Map<string, HorseDirectoryRow>();
@@ -274,24 +233,15 @@ export interface StablingStall {
   label: string;
   horseName: string;
   riderName: string;
-  /** The rider's bib number, matched by horseId against the roster — legacy's Stabling tab shows this alongside Nights. */
+
   num: string | null;
 }
 
 export interface StablingData {
-  /** shows.stable_chart's own draft/published state. Draft charts are the organizer's working copy — ShowStaff sees the chart once it's published, matching the "who's actually stalled today" purpose of this tab. */
   published: boolean;
   stalls: StablingStall[];
 }
 
-/**
- * The Stabling tab — occupied stalls from the show's published stable chart,
- * ported from viewStabling(). Legacy also showed a "Nights" column per stall;
- * this schema has no per-stall/per-horse nights-purchased read path anywhere
- * yet (the closest sibling data, per-horse addon totals, is a documented gap
- * in `modules/shows/data/stable-chart-queries.ts`'s shavings comment) — rather
- * than fabricate that number, it's left off here too.
- */
 export async function listStabling(showId: string): Promise<StablingData> {
   const supabase = await createServerClient();
   const [{ data, error }, roster] = await Promise.all([
@@ -324,7 +274,8 @@ export async function listStabling(showId: string): Promise<StablingData> {
   }
   stalls.sort(
     (a, b) =>
-      a.stable.localeCompare(b.stable) || a.label.localeCompare(b.label, undefined, { numeric: true })
+      a.stable.localeCompare(b.stable) ||
+      a.label.localeCompare(b.label, undefined, { numeric: true }),
   );
   return { published: true, stalls };
 }
@@ -340,13 +291,6 @@ export interface VendorRow {
   itemCount: number;
 }
 
-/**
- * The Vendors tab, ported from viewVendors(). Callers must gate this behind
- * `getMyPermissions(showId).canViewMoney` — the legacy `/api/shows/:id/vendors`
- * resource 403'd a ShowStaff caller without that grant, and this function
- * itself does not re-check it (RLS is the real boundary; the UI layer is
- * where the gate belongs, same as everywhere else in this app).
- */
 export async function listVendors(showId: string): Promise<VendorRow[]> {
   const supabase = await createServerClient();
 
@@ -363,7 +307,7 @@ export async function listVendors(showId: string): Promise<VendorRow[]> {
     .select('booking_id, qty')
     .in(
       'booking_id',
-      bookings.map((b) => b.id)
+      bookings.map((b) => b.id),
     );
   if (itemsError) throw itemsError;
 
@@ -387,11 +331,10 @@ export async function listVendors(showId: string): Promise<VendorRow[]> {
 export interface ShowDocumentRow {
   id: string;
   name: string;
-  /** Signed for a private bucket read, resolved here so the page never handles storage paths directly. */
+
   url: string | null;
 }
 
-/** The Documents tab's list, ported from viewDocuments(). `documents` is a private bucket, same as `modules/announcements`'s copy of this read. */
 export async function listShowDocuments(showId: string): Promise<ShowDocumentRow[]> {
   const supabase = await createServerClient();
 
@@ -406,11 +349,13 @@ export async function listShowDocuments(showId: string): Promise<ShowDocumentRow
     data.map(async (d) => {
       let url = d.url;
       if (!url && d.path) {
-        const { data: signed } = await supabase.storage.from('documents').createSignedUrl(d.path, 3600);
+        const { data: signed } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(d.path, 3600);
         url = signed?.signedUrl ?? null;
       }
       return { id: d.id, name: d.name, url };
-    })
+    }),
   );
 }
 
@@ -419,9 +364,9 @@ export interface ScheduleEntry {
   rider: string;
   horse: string;
   draw: number;
-  /** Raw text column value — may be 'SCR'/'ELIM', not only a number. Rendered as-is, never suffixed with '%', matching `modules/announcements`'s own ResultRow. */
+
   finalPctRaw: string | null;
-  /** Parsed score, or null for an unscored ride and for non-numeric values (SCR/ELIM) — the latter never enter ranking, ported from showstaff-ops.html's loadRealPastShows(), which excludes them from `pct` the same way. */
+
   finalPctNum: number | null;
 }
 
@@ -434,13 +379,12 @@ export interface ScheduleClass {
   status: 'upcoming' | 'running' | 'done';
   entryCount: number;
   scoredCount: number;
-  /** In ride order — holding-queue entries excluded, matching `getRingStatus`'s "next up" convention. */
+
   entries: ScheduleEntry[];
-  /** Scored entries only, sorted by score, shared-ranked. */
+
   placings: (ScheduleEntry & { place: number })[];
 }
 
-/** The Schedule tab, ported from viewSchedule()/classResultsBlock(). */
 export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
   const supabase = await createServerClient();
 
@@ -458,7 +402,7 @@ export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
     .select('class_id, num, rider, horse, final_pct, status, ride_order, draw, holding')
     .in(
       'class_id',
-      classes.map((c) => c.id)
+      classes.map((c) => c.id),
     )
     .order('ride_order');
   if (entryError) throw entryError;
@@ -496,7 +440,7 @@ export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
     const placings = withSharedRank(
       scheduleEntries
         .filter((e) => e.finalPctNum != null)
-        .sort((a, b) => (b.finalPctNum ?? 0) - (a.finalPctNum ?? 0))
+        .sort((a, b) => (b.finalPctNum ?? 0) - (a.finalPctNum ?? 0)),
     );
 
     return {
