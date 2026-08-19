@@ -7,9 +7,18 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { readFileAsBase64 } from '@/modules/shows/utils/read-file-as-base64';
-import { useUploadVendorMap, useRemoveVendorMap } from '@/modules/shows/hooks/use-catalog-mutations';
+import {
+  useUploadVendorMap,
+  useRemoveVendorMap,
+} from '@/modules/shows/hooks/use-catalog-mutations';
 import type { RiderEntriesData } from '@/modules/shows/data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_GREEN_BTN, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_GREEN_BTN,
+  SM_GHOST_BTN,
+} from '@/modules/shows/ui/show-manager/tokens';
 
 export function VendorMapCard({ data }: { data: RiderEntriesData }) {
   const [file, setFile] = useState<File | null>(null);
@@ -46,7 +55,7 @@ export function VendorMapCard({ data }: { data: RiderEntriesData }) {
           ref={inputRef}
           type="file"
           accept="image/*,application/pdf"
-          className="h-auto w-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 cursor-pointer text-[12.5px] text-[#6E7C76] file:mr-3 file:cursor-pointer file:rounded-[9px] file:border file:border-[#D9E1DD] file:bg-white file:px-3.5 file:py-2 file:text-[12.5px] file:font-semibold file:text-forest hover:file:border-gold"
+          className="file:text-forest hover:file:border-gold h-auto w-auto min-w-0 cursor-pointer rounded-none border-0 bg-transparent px-0 py-0 text-[12.5px] text-[#6E7C76] file:mr-3 file:cursor-pointer file:rounded-[9px] file:border file:border-[#D9E1DD] file:bg-white file:px-3.5 file:py-2 file:text-[12.5px] file:font-semibold"
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
           }}

@@ -12,13 +12,6 @@ import {
 } from '@/modules/shows/ui/show-manager/tokens';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 
-/**
- * "Ticket Sales Window" — when riders may enter.
- *
- * Autosaves on blur like the rest of the Setup cards, and sends all three
- * fields together: the close date and time are one column, so committing one
- * without the other would write half a value.
- */
 export function TicketWindowCard({ data }: { data: SelectEventsData }) {
   const [open, setOpen] = useState(data.ticketOpen);
   const [closeDate, setCloseDate] = useState(data.ticketCloseDate);

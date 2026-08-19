@@ -5,11 +5,6 @@ import { DangerButton } from '@/shared/ui/organizer/buttons';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useDeleteShow } from '@/modules/shows/hooks/use-show-mutations';
 
-/**
- * "Delete" on a show row — Show Manager's picker and the Incomplete Shows
- * list both had this same button with a raw `window.confirm()`. Replaced
- * with the app's own dialog styling rather than the browser's native prompt.
- */
 export function DeleteShowButton({ showId, showName }: { showId: string; showName: string }) {
   const [open, setOpen] = useState(false);
   const { mutate, isPending } = useDeleteShow();
@@ -34,7 +29,11 @@ export function DeleteShowButton({ showId, showName }: { showId: string; showNam
         destructive
         pending={isPending}
         onConfirm={() => {
-          mutate(showId, { onSuccess: () => { setOpen(false); } });
+          mutate(showId, {
+            onSuccess: () => {
+              setOpen(false);
+            },
+          });
         }}
       />
     </>

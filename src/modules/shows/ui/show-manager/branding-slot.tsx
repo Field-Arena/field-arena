@@ -38,7 +38,7 @@ export function BrandingSlot({
         <Input
           type="file"
           accept="image/*"
-          className="h-auto sr-only"
+          className="sr-only h-auto"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -50,11 +50,6 @@ export function BrandingSlot({
         {upload.isPending ? (
           <Loader2Icon className="size-5 animate-spin text-[#6E7C76]" aria-hidden />
         ) : url ? (
-          // Plain <img>, not next/image: the branding is an arbitrary user upload
-          // (often an SVG) served from a public Supabase bucket. next/image blocks
-          // SVG by default and needs the storage host in images.remotePatterns, and
-          // buys nothing here since these are never optimized. max-w-full lets a
-          // wide banner fill its box while object-contain keeps every shape intact.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}

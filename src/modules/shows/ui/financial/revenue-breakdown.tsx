@@ -23,8 +23,6 @@ export function RevenueBreakdown({ pnl }: { pnl: ShowPnl }) {
             </div>
 
             {category.subs.map((sub) => {
-              // The legacy view hides a subcategory header when it would only
-              // repeat the category name it sits under.
               const showSubHeader = !(category.subs.length === 1 && sub.name === category.name);
 
               return (
@@ -63,9 +61,6 @@ export function RevenueBreakdown({ pnl }: { pnl: ShowPnl }) {
         <span>{formatMoneyExact(pnl.breakdownTotal)}</span>
       </div>
 
-      {/* The two numbers answer different questions and can legitimately
-          disagree — see ShowPnl.breakdownTotal. Saying so beats leaving an
-          organizer to spot the gap and doubt both. */}
       {Math.round(pnl.breakdownTotal * 100) !== Math.round(pnl.revenueTotal * 100) && (
         <p className="mt-1.5 text-[11.5px] text-[#98A29D]">
           Collected {formatMoneyExact(pnl.revenueTotal)} — the difference is discounts, comps or

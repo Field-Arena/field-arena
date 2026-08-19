@@ -1,11 +1,6 @@
 import { Card, Eyebrow } from '@/shared/ui/organizer/card';
 import type { ShowCompleteness } from '@/modules/shows/data/setup-queries';
 
-/**
- * "Setup readiness" — ported from the Admin Console design export's
- * ReadinessMeter.tsx, backed by getShowCompleteness's real per-section
- * checks instead of the export's own fake SETUP_SECTIONS/done flags.
- */
 export function ReadinessMeter({ completeness }: { completeness: ShowCompleteness }) {
   const totalCount = completeness.sections.length;
   const doneCount = completeness.sections.filter((s) => s.ok).length;

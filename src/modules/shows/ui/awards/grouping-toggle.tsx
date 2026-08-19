@@ -4,13 +4,6 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateScheduleRules } from '@/modules/shows/hooks/use-schedule-mutations';
 
-/**
- * By Test / By Division.
- *
- * The same show-wide setting Master Schedule's rules card writes, not a filter
- * local to this page — an organizer who flips it here has changed how the show
- * awards, and the schedule agrees.
- */
 export function GroupingToggle({ showId, byDivision }: { showId: string; byDivision: boolean }) {
   const save = useUpdateScheduleRules();
 

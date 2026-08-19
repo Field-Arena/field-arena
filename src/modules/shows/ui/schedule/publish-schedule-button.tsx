@@ -8,17 +8,6 @@ import { cn } from '@/shared/lib/utils';
 import { SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import { useApproveSchedule } from '@/modules/shows/hooks/use-run-show-mutations';
 
-/**
- * Approves the built schedule and pushes it live.
- *
- * Writes the same `runner_state.approved` flag the Run Show tab sets — one
- * value, two places to set it, because the decision "this schedule is right"
- * is made while looking at the schedule, not on a separate stage tracker.
- *
- * One-way, matching the runner's own stage progression: there is no unpublish.
- * That is why it asks first, and why the dialog says exactly who is about to
- * see it rather than a vague "are you sure".
- */
 export function PublishScheduleButton({
   showId,
   published,
@@ -57,9 +46,7 @@ export function PublishScheduleButton({
         open={confirming}
         onOpenChange={setConfirming}
         title="Publish this schedule?"
-        /* Names only the audiences that actually exist. The rider portal is not
-           built, so promising riders will see it would be a lie the organizer
-           only discovers when someone asks them for their ride time. */
+
         description="Judges and the announcer will see these ride times. You can still reorder rides and move classes afterwards — publishing does not freeze the schedule."
         confirmLabel={approve.isPending ? 'Publishing…' : 'Publish'}
         pending={approve.isPending}

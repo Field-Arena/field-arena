@@ -16,17 +16,6 @@ import {
   SM_SELECT,
 } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Show Details" — the first Setup card. Every field autosaves on blur/change
- * (see updateShowDetails in data/mutations.ts for why there is no Save
- * button); this component's local state is what's on screen, and a field
- * commit sends the *whole* card, matching showstaff.html's saveSmShowDetails.
- *
- * Org/club name is the one field with an explicit edit/view toggle in the
- * design — org.readonly by default, org.editing behind an "Edit" button —
- * because it is a free-text override of the account's org name, edited far
- * less often than the rest of the card.
- */
 export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
   const [name, setName] = useState(show.name);
   const [org, setOrg] = useState(show.org ?? '');

@@ -11,7 +11,7 @@ export function ClashGroup({
 }) {
   return (
     <div>
-      <div className="text-[12.5px] font-bold text-forest">
+      <div className="text-forest text-[12.5px] font-bold">
         {heading} · {rows.length}
       </div>
       <p className="mb-2 text-[12px] leading-[1.5] text-[#98A29D]">{blurb}</p>

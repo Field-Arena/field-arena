@@ -8,26 +8,6 @@ import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/cons
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 import { ShowSwitcher } from '@/modules/shows/ui/show-manager/show-switcher';
 
-/**
- * The "Show Manager sections" tab bar and page heading — the chrome every
- * Show Manager tab sits under, ported from showstaff.html's SM_SUBNAV_STEPS
- * and the design's `smTabs` header block. All seven tabs now have routes.
- *
- * Below the tabs, the design repeats the exact same lifecycle bar,
- * org/show switcher, and six-stat-card row the Dashboard shows — on every
- * Show Manager tab, not only Setup. It deliberately does NOT repeat the
- * ring/clock strip; see getShowManagerVitals's own comment for why.
- *
- * The design's fixed-overlay "smOpen" panel included its own "← Dashboard"
- * back button and org-name bar, because in that mock it takes over the
- * whole screen. Here it renders inside OrganizerShell, which already keeps
- * the sidebar and a real "Shows" nav item on screen at all times, so that
- * bar has no job left to do and isn't reproduced.
- *
- * Tab order/paths come from SHOW_MANAGER_SECTIONS (src/modules/shows/constants.ts)
- * rather than a local list — SectionFooter reads the same one, so the tab
- * bar and the "Continue to X" footers can't disagree about order or URLs.
- */
 const SM_TABS = SHOW_MANAGER_SECTIONS;
 
 export function ShowManagerShell({
@@ -43,7 +23,7 @@ export function ShowManagerShell({
 }: {
   showId: string;
   showName: string;
-  /** Which tab is current. Passed in rather than read from the pathname so the shell stays a Server Component. */
+
   activeTab?: ShowManagerTab;
   orgName: string;
   shows: ShowListItem[];

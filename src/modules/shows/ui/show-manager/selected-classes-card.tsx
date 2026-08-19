@@ -13,13 +13,6 @@ import { SM_CARD_PAD, SM_SECTION_HEAD } from '@/modules/shows/ui/show-manager/to
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 
-/**
- * "Selected Classes" — what checking groups above has actually put on the show.
- *
- * Grouped by division, because that is the unit the picker works in: showing
- * eighteen individual test rows for three checked levels would bury the fact
- * that the organizer made three decisions, not eighteen.
- */
 export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
   const groups = new Map<string, { count: number; fee: number; location: string | null }>();
   for (const cls of data.classes) {

@@ -29,21 +29,11 @@ import type {
   UploadVendorMapInput,
 } from '@/modules/shows/schemas';
 
-/**
- * The Rider Entries tab's three lists, plus branding and the vendor map.
- *
- * Add-ons and qualifications share updateCatalogItemSchema — same two editable
- * fields — so their edit hooks differ only in which Server Action they call.
- */
-
-/** Re-exported so every hook in this module reports the same way. */
 const message = readableError;
 
 interface Options {
   onSuccess?: () => void;
 }
-
-/* ── Add-ons ─────────────────────────────────────────────────────────────── */
 
 export function useCreateAddOn(options?: Options) {
   const router = useRouter();
@@ -89,8 +79,6 @@ export function useDeleteAddOn() {
     },
   });
 }
-
-/* ── Vendor spaces ───────────────────────────────────────────────────────── */
 
 export function useCreateVendorItem(options?: Options) {
   const router = useRouter();
@@ -143,13 +131,11 @@ export function useLoadStandardVendorSpaces() {
   return useMutation({
     mutationFn: (showId: string) => loadStandardVendorSpaces(showId),
     onSuccess: (rows) => {
-      // The action returns only the rows it actually inserted — it skips names
-      // the show already has, so a repeat click adds nothing.
       const added = rows.length;
       toast.success(
         added === 0
           ? 'Every standard space is already on this show'
-          : `${String(added)} standard ${added === 1 ? 'space' : 'spaces'} added`
+          : `${String(added)} standard ${added === 1 ? 'space' : 'spaces'} added`,
       );
       router.refresh();
     },
@@ -158,8 +144,6 @@ export function useLoadStandardVendorSpaces() {
     },
   });
 }
-
-/* ── Qualifications ──────────────────────────────────────────────────────── */
 
 export function useCreateQualType(options?: Options) {
   const router = useRouter();
@@ -205,8 +189,6 @@ export function useDeleteQualType() {
     },
   });
 }
-
-/* ── Branding and vendor map ─────────────────────────────────────────────── */
 
 export function useUploadShowBranding() {
   const router = useRouter();

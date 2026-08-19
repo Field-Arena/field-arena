@@ -8,12 +8,6 @@ import { useSaveWaiverText, useApproveWaiver } from '@/modules/shows/hooks/use-s
 import { WAIVER_TEXT_DEFAULT } from '@/modules/shows/schemas';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Waiver of Liability" — the one field setShowPublished already gates
- * Go Live on (waiver_approved_text === waiver_text). Approve sends the
- * textarea's current value, not a re-read of the saved row, so it can never
- * approve something the organizer hasn't actually looked at just now.
- */
 export function WaiverCard({
   showId,
   waiverText,

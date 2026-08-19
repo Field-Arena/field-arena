@@ -22,15 +22,6 @@ import { BrandingCard } from '@/modules/shows/ui/show-manager/branding-card';
 import { VendorMapCard } from '@/modules/shows/ui/show-manager/vendor-map-card';
 import { VendorSpacesCard } from '@/modules/shows/ui/show-manager/vendor-spaces-card';
 
-/**
- * Show Manager, Rider Entries tab.
- *
- * Despite the name this is not a list of entries — it is what riders can buy
- * alongside one: the show's branding, its add-ons, the vendor spaces and map,
- * and the qualifications a ride can count toward. The design's own Select
- * Events footer says as much ("Next: set up add-ons, vendor spaces, and
- * qualifications for riders to purchase").
- */
 export function RiderEntriesPanel({ data }: { data: RiderEntriesData }) {
   const createAddOn = useCreateAddOn();
   const updateAddOn = useUpdateAddOn();
@@ -74,7 +65,11 @@ export function RiderEntriesPanel({ data }: { data: RiderEntriesData }) {
           <Button
             type="button"
             variant="ghost"
-            className={cn(SM_GHOST_BTN, 'hover:bg-white', 'mb-3 h-auto max-w-full text-left whitespace-normal')}
+            className={cn(
+              SM_GHOST_BTN,
+              'hover:bg-white',
+              'mb-3 h-auto max-w-full text-left whitespace-normal',
+            )}
             disabled={loadStandard.isPending}
             onClick={() => {
               loadStandard.mutate(data.showId);

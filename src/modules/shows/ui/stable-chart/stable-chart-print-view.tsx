@@ -3,13 +3,6 @@
 import { truncateHorseName } from '@/modules/shows/utils/truncate-horse-name';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
 
-/**
- * A dedicated print view — one page per stable — ported from showstaff.html's
- * printStableChart (~14154). Always in the DOM (`hidden print:block`) rather
- * than rendered into a portal on demand: `window.print()` triggers the
- * browser's own print dialog against whatever's currently in the DOM, so
- * this only has to be visible during that dialog, not before.
- */
 export function StableChartPrintView({
   showName,
   chart,

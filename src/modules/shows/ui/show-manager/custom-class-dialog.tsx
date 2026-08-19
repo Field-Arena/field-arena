@@ -16,15 +16,29 @@ import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 import { useAddCustomClass } from '@/modules/shows/hooks/use-select-events-mutations';
-import { SM_LABEL, SM_INPUT, SM_SELECT, SM_GREEN_BTN, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_LABEL,
+  SM_INPUT,
+  SM_SELECT,
+  SM_GREEN_BTN,
+  SM_GHOST_BTN,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-export function CustomClassDialog({ data, onClose }: { data: SelectEventsData; onClose: () => void }) {
+export function CustomClassDialog({
+  data,
+  onClose,
+}: {
+  data: SelectEventsData;
+  onClose: () => void;
+}) {
   const [name, setName] = useState('');
   const [division, setDivision] = useState('');
   const [fee, setFee] = useState(String(DEFAULT_CLASS_FEE));
 
   const add = useAddCustomClass({ onSuccess: onClose });
-  const divisions = [...new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d))];
+  const divisions = [
+    ...new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d)),
+  ];
 
   return (
     <Dialog
@@ -96,7 +110,12 @@ export function CustomClassDialog({ data, onClose }: { data: SelectEventsData; o
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="ghost" className={cn('h-auto', SM_GHOST_BTN, 'hover:bg-white')} onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn('h-auto', SM_GHOST_BTN, 'hover:bg-white')}
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button

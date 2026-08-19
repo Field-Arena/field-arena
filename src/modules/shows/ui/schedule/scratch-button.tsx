@@ -6,7 +6,15 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { cn } from '@/shared/lib/utils';
 import { useScratchEntry } from '@/modules/shows/hooks/use-schedule-mutations';
 
-export function ScratchButton({ showId, entryId, num }: { showId: string; entryId: string; num: string }) {
+export function ScratchButton({
+  showId,
+  entryId,
+  num,
+}: {
+  showId: string;
+  entryId: string;
+  num: string;
+}) {
   const [open, setOpen] = useState(false);
   const scratch = useScratchEntry();
 
@@ -21,7 +29,7 @@ export function ScratchButton({ showId, entryId, num }: { showId: string; entryI
         }}
         className={cn(
           'h-auto rounded-[6px] border border-[#E4B5AC] bg-[#FDF0EE] px-2 py-0.5 text-[11px] font-semibold text-[#B4432F] transition-colors hover:border-[#B4432F]',
-          'hover:bg-transparent'
+          'hover:bg-transparent',
         )}
       >
         Scratch
@@ -36,7 +44,14 @@ export function ScratchButton({ showId, entryId, num }: { showId: string; entryI
         destructive
         pending={scratch.isPending}
         onConfirm={() => {
-          scratch.mutate({ showId, entryId }, { onSuccess: () => { setOpen(false); } });
+          scratch.mutate(
+            { showId, entryId },
+            {
+              onSuccess: () => {
+                setOpen(false);
+              },
+            },
+          );
         }}
       />
     </>

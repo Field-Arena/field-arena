@@ -8,7 +8,13 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useCreateVendorItem } from '@/modules/shows/hooks/use-catalog-mutations';
 import type { RiderEntriesData } from '@/modules/shows/data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_ROW_INPUT,
+  SM_GREEN_BTN,
+} from '@/modules/shows/ui/show-manager/tokens';
 import { VendorSpaceRow } from '@/modules/shows/ui/show-manager/vendor-space-row';
 
 export function VendorSpacesCard({

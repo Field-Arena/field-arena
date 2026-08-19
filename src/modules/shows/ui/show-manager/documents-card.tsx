@@ -15,13 +15,6 @@ import type { ShowDocumentRow } from '@/modules/shows/data/setup-queries';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
-/**
- * "Documents" — the file library an organizer publishes to competitors
- * (prize lists, maps, forms), ported from showstaff.html's renderDocuments /
- * renderShowDocList. Distinct from Setup's "Required Documents", which is
- * what riders must upload — these are files the show hands out, each
- * optionally attached to one or more classes.
- */
 export function DocumentsCard({
   showId,
   documents,
@@ -38,8 +31,6 @@ export function DocumentsCard({
   const assign = useUpdateDocumentEvents();
 
   function handleFiles(files: FileList) {
-    // The file object goes to the hook whole — it uploads straight to Storage
-    // against a signed URL, so nothing needs reading into memory here.
     for (const file of Array.from(files)) {
       upload.mutate({ showId, file });
     }
@@ -67,7 +58,7 @@ export function DocumentsCard({
             type="file"
             accept="application/pdf,image/*"
             multiple
-            className="h-auto hidden"
+            className="hidden h-auto"
             onChange={(e) => {
               const files = e.target.files;
               if (files?.length) handleFiles(files);
@@ -115,7 +106,7 @@ export function DocumentsCard({
                       onClick={() => {
                         setOpenDocId(open ? null : doc.id);
                       }}
-                      className="h-auto px-0 py-0 hover:bg-transparent hover:text-forest text-[13px] font-semibold text-[#5A6B63]"
+                      className="hover:text-forest h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                     >
                       {doc.eventIds.length > 0
                         ? `Attached to ${String(doc.eventIds.length)} ${doc.eventIds.length === 1 ? 'class' : 'classes'}`
@@ -127,7 +118,7 @@ export function DocumentsCard({
                       onClick={() => {
                         remove.mutate({ id: doc.id, showId });
                       }}
-                      className="h-auto px-0 py-0 hover:bg-transparent hover:text-status-danger text-[13px] font-semibold text-[#5A6B63]"
+                      className="hover:text-status-danger h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                     >
                       Remove
                     </Button>

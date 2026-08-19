@@ -17,34 +17,28 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { calcPlatformFee } from '@/shared/lib/fees';
-import { useUpdateClassReview, useRemoveClass } from '@/modules/shows/hooks/use-schedule-review-mutations';
+import {
+  useUpdateClassReview,
+  useRemoveClass,
+} from '@/modules/shows/hooks/use-schedule-review-mutations';
 import type { ScheduleReviewData } from '@/modules/shows/data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_ROW_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 const REVIEW_TABLE_HEAD =
   'px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
 
-/**
- * "Review" — every class on this show, editable in one table, ported from
- * showstaff.html's renderReviewView. Location stays read-only here: it's set
- * from the show's rings back in Select Events, not re-editable per class.
- * "Estimated entries per class" is the legacy view's own local-only
- * projection input (smReviewEntriesPerClass) — it drives the totals below but
- * has no backing column, same as the source.
- */
 export function ReviewCard({ data }: { data: ScheduleReviewData }) {
   const [rows, setRows] = useState(data.classes);
   const [entriesPerClass, setEntriesPerClass] = useState(5);
   const { mutate: update } = useUpdateClassReview();
   const { mutate: remove } = useRemoveClass();
 
-  /**
-   * Each field commits as its own request carrying only that one field — see
-   * updateClassReviewSchema's note on why a merged full-row payload here
-   * would let two fields blurring close together race and clobber each
-   * other's write.
-   */
   function commit(id: string, patch: Partial<(typeof rows)[number]>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     update({ classId: id, showId: data.showId, ...patch });
@@ -116,7 +110,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                 {rows.map((c) => (
                   <TableRow
                     key={c.id}
-                    className="border-b border-[#EEF2F0] transition-colors [&>td]:align-middle hover:bg-[#FAFBF8]"
+                    className="border-b border-[#EEF2F0] transition-colors hover:bg-[#FAFBF8] [&>td]:align-middle"
                   >
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       <span
@@ -129,8 +123,12 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                     <TableCell className="px-2.5 py-2 whitespace-nowrap">
                       <strong>{c.displayName ?? c.label}</strong>
                     </TableCell>
-                    <TableCell className="px-2.5 py-2 whitespace-nowrap">{c.division ?? '—'}</TableCell>
-                    <TableCell className="px-2.5 py-2 whitespace-nowrap">{c.location ?? '—'}</TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap">
+                      {c.division ?? '—'}
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap">
+                      {c.location ?? '—'}
+                    </TableCell>
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       <Input
                         defaultValue={c.arena ?? ''}
@@ -159,7 +157,11 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                         min={0}
                         step={1}
                         defaultValue={c.fee}
-                        className={cn('h-auto', SM_ROW_INPUT, 'w-[90px]! appearance-none text-right')}
+                        className={cn(
+                          'h-auto',
+                          SM_ROW_INPUT,
+                          'w-[90px]! appearance-none text-right',
+                        )}
                         onBlur={(e) => {
                           const n = Number.parseFloat(e.target.value);
                           commit(c.id, { fee: Number.isFinite(n) && n >= 0 ? n : 0 });
@@ -176,7 +178,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                         onClick={() => {
                           commitRemove(c.id);
                         }}
-                        className="h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent hover:text-status-danger"
+                        className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
                       >
                         Remove
                       </Button>

@@ -29,7 +29,6 @@ import { cn } from '@/shared/lib/utils';
 import { addManualHorseSchema, type AddManualHorseInput } from '@/modules/shows/schemas';
 import { useAddManualHorse } from '@/modules/shows/hooks/use-horses-mutations';
 
-/** The two "+ Add Horse" text fields — identical Label/Input/error shape, only the field differs. */
 const MANUAL_HORSE_FIELDS: {
   id: string;
   name: 'riderName' | 'horseName';
@@ -45,20 +44,6 @@ const MANUAL_HORSE_FIELDS: {
   { id: 'mh-horse-name', name: 'horseName', label: "Horse's name", placeholder: 'Horse name' },
 ];
 
-/**
- * "+ Add Horse" — for a horse with no real class entry behind it: the
- * organizer's own, or any staff member's if they're also riding. Ported from
- * showstaff.html's openManualHorseModal/submitManualHorse (~13596-13622).
- * Writes to shows.manual_horses, not a real horses/riders row — kept
- * intentionally lightweight (no rider account, no document uploads) for the
- * same reason legacy's own comment gives: forcing a full rider signup just to
- * appear on this list would be a much bigger ask than what's actually needed.
- *
- * Deliberately does not include the "🏠 Stable Chart" button legacy renders
- * on this same toolbar — that's a distinct, page-sized feature
- * (shows.stable_chart) that lives in horses-screen.tsx instead, not part of
- * a horses *list* dialog. See modules/shows/ui/stable-chart/.
- */
 export function AddHorseDialog({ showId }: { showId: string }) {
   const [open, setOpen] = useState(false);
 

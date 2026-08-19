@@ -16,17 +16,14 @@ import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE, FM_SETS } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 import { useCreateTocClass } from '@/modules/shows/hooks/use-select-events-mutations';
-import { SM_LABEL, SM_INPUT, SM_SELECT, SM_GREEN_BTN, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_LABEL,
+  SM_INPUT,
+  SM_SELECT,
+  SM_GREEN_BTN,
+  SM_GHOST_BTN,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Test of Choice" — the rider picks which test they ride from a shortlist the
- * organizer assembles here.
- *
- * The shortlist is drawn from the USEF/USDF set, which is what the legacy
- * build's TOC modal offered; the design's "Your test library" tab needs an
- * organization Test Builder library that does not exist yet, so only the
- * catalog side is offered rather than an empty tab that looks broken.
- */
 export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: () => void }) {
   const [name, setName] = useState('Test of Choice');
   const [division, setDivision] = useState('');
@@ -35,10 +32,12 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const create = useCreateTocClass({ onSuccess: onClose });
-  const divisions = [...new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d))];
+  const divisions = [
+    ...new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d)),
+  ];
 
   const options = FM_SETS['+ USEF/USDF'].flatMap((lv) =>
-    lv.tests.map((test) => `${lv.name} — ${test}`)
+    lv.tests.map((test) => `${lv.name} — ${test}`),
   );
   const filtered = options.filter((o) => o.toLowerCase().includes(query.trim().toLowerCase()));
 
@@ -147,7 +146,7 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
                         });
                       }}
                     />
-                    <span className="text-[12.5px] text-ink-deep">{option}</span>
+                    <span className="text-ink-deep text-[12.5px]">{option}</span>
                   </label>
                 ))}
               </div>
@@ -156,7 +155,12 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="ghost" className={cn('h-auto', SM_GHOST_BTN, 'hover:bg-white')} onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn('h-auto', SM_GHOST_BTN, 'hover:bg-white')}
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button

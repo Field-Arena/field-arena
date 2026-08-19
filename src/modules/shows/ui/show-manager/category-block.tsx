@@ -15,9 +15,6 @@ export function CategoryBlock({
   data: SelectEventsData;
   chosen: Set<string>;
 }) {
-  // Per category, matching the design's one "Default price ($)" box per block.
-  // Applied at the moment a group is added; changing it later does not reprice
-  // classes already created, which is what the per-class fee editor is for.
   const [fee, setFee] = useState(DEFAULT_CLASS_FEE);
 
   return (

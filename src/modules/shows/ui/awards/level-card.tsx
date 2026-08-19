@@ -2,7 +2,6 @@ import { Card } from '@/shared/ui/organizer/card';
 import type { AwardLevel } from '@/modules/shows/awards-engine';
 import { SectionBox } from '@/modules/shows/ui/awards/section-box';
 
-/** One card per level — a header row, then a grid of classes. */
 export function LevelCard({ level }: { level: AwardLevel }) {
   return (
     <Card className="overflow-hidden print:break-inside-avoid">

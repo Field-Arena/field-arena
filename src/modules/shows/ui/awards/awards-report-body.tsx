@@ -3,13 +3,6 @@ import type { AwardsReport } from '@/modules/shows/awards-engine';
 import { RibbonChips } from '@/modules/shows/ui/awards/ribbon-chips';
 import { LevelCard } from '@/modules/shows/ui/awards/level-card';
 
-/**
- * The report itself: the ribbons-to-bring summary, then one card per level.
- *
- * Shared by the screen and the printed sheet so the two can never drift into
- * different-looking documents — they differ only in which report they are
- * handed, filtered or whole.
- */
 export function AwardsReportBody({
   report,
   ribbonTotal,
@@ -27,9 +20,7 @@ export function AwardsReportBody({
           <span className="text-[31px] leading-none font-bold tracking-[-.028em] text-[#16261F]">
             {ribbonTotal}
           </span>
-          {/* "per class/pool" verbatim from the legacy summary row: ribbon
-              count is a per-class setting in Select Events, so there is no one
-              show-wide number this could be reporting instead. */}
+
           <span className="text-[12px] text-[#98A29D]">
             per class/pool, see below · grouped by {groupedByLabel}
           </span>

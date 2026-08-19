@@ -7,16 +7,13 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateContact } from '@/modules/shows/hooks/use-show-mutations';
 import { CONTACT_FIELDS } from '@/modules/shows/constants';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_LABEL, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_LABEL,
+  SM_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Contact" — three toggle-edit rows (design's smInfoRowHtml pattern, same
- * one Show Details uses for Organization / club name). showstaff.html
- * saves each field independently on its own onchange; this bundles all
- * three into one autosave call instead, same simplification Show Details
- * already makes — harmless since the other two are re-saved with their own
- * unchanged values each time.
- */
 export function ContactCard({
   showId,
   website,
@@ -68,8 +65,8 @@ export function ContactCard({
                     }}
                   />
                 ) : (
-                  <div className="truncate text-[14.5px] text-ink-deep">
-                    {values[field.key] || <span className="italic text-[#98A29D]">Not set</span>}
+                  <div className="text-ink-deep truncate text-[14.5px]">
+                    {values[field.key] || <span className="text-[#98A29D] italic">Not set</span>}
                   </div>
                 )}
               </div>

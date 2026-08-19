@@ -19,12 +19,6 @@ export function RingSchedule({
 }) {
   const days = [...new Set(arena.items.map((it) => it.day))].sort((a, b) => a - b);
 
-  /**
-   * "Riding now" is the first ride in this ring with no score yet, across every
-   * day — the ring's real progress runs through all of them, so scoping this to
-   * the day on screen would mark a second rider as current on Day 2 while Day 1
-   * was still going.
-   */
   const rides = arena.items.filter((it): it is ScheduleRide => it.type === 'ride');
   const currentEntryId = rides.find((r) => !data.finalPctByEntry[r.entryId])?.entryId ?? null;
 
@@ -43,7 +37,7 @@ export function RingSchedule({
             className="mb-6 rounded-[12px] border border-[#E9EDEB] bg-white p-5 print:break-after-page"
           >
             <header className="mb-3 border-b border-[#E9EDEB] pb-2.5">
-              <h2 className="font-[family-name:var(--font-nr)] text-[19px] font-semibold text-forest">
+              <h2 className="text-forest font-[family-name:var(--font-nr)] text-[19px] font-semibold">
                 {data.showName}
               </h2>
               <div className="text-[12.5px] text-[#7A8781]">
@@ -52,14 +46,14 @@ export function RingSchedule({
                   <span className="font-normal"> — times shown in {data.timezone}</span>
                 )}
               </div>
-              <div className="mt-0.5 text-[12.5px] font-semibold text-ink-deep">
+              <div className="text-ink-deep mt-0.5 text-[12.5px] font-semibold">
                 {days.length > 1
                   ? `Day ${String(day + 1)} of ${String(days.length)} — ${dayDate(data.startDate, day)}`
                   : dayDate(data.startDate, day)}
               </div>
             </header>
 
-            <div className="mb-3 text-[14px] font-bold text-forest">
+            <div className="text-forest mb-3 text-[14px] font-bold">
               {arena.ring}{' '}
               <span className="text-[12.5px] font-normal text-[#7A8781]">
                 — {RING_SIZE_LABEL[arena.ringSize] ?? RING_SIZE_LABEL.standard}

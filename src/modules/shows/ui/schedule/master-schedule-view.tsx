@@ -16,23 +16,6 @@ import { RingSchedule } from '@/modules/shows/ui/schedule/ring-schedule';
 import { riderDayFlags } from '@/modules/shows/utils/rider-day-flags';
 import { dayDate } from '@/modules/shows/utils/day-date';
 
-/**
- * The built master schedule, ported from showstaff.html's masterScheduleView.
- *
- * One page per ring per day. Everything on it that can change, changes in
- * place — ride time, which ring and day a class runs in, the order riders go,
- * and scratching — because those are decisions an organizer makes while reading
- * the schedule, not somewhere else.
- *
- * Each edit writes to what the schedule is *built from* (ride order, the class's
- * ring and date, its ride minutes) rather than to a stored schedule, so the
- * rebuild is automatic and the hard rider-conflict rule is re-applied every
- * time.
- *
- * A class that a break interrupted appears twice, the second time marked
- * "Continues" — nothing is atomic below a single ride, so a class genuinely can
- * pause and pick back up.
- */
 export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
   const { schedule } = data;
 
@@ -64,9 +47,6 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
       </div>
 
       <div className="print:hidden">
-        {/* The counts used to sit as bare text on the toolbar. They are the
-            headline of a real story — which riders clashed and what the
-            scheduler did — so they carry their own card now. */}
         <ScheduleClashesCard schedule={schedule} />
         <ScheduleRulesCard data={data} />
         <ScheduleKeyCard />

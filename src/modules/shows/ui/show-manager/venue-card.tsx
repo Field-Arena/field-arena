@@ -25,21 +25,6 @@ import {
   SM_ROW_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Venue" — ring/arena count, names, and sizes for this show, plus an
- * optional pick from the org's saved venue library.
- *
- * Scoped down from showstaff.html's own applySavedLocation: picking a saved
- * venue there also copies address/website/phone/contact into the show.
- * Venue and Contact are independently-edited cards here, so picking a venue
- * only copies its ring layout — see applySavedVenue and listVenuesForOrg in
- * data/*.ts for why that's a scope choice, not a data limitation.
- *
- * "Assign Judges" (per ring) opens AssignJudgesDialog — pick the head judge and
- * scribe and the classes they officiate; it writes the class panel that a
- * Judge/Scribe's My Assignments reads. "Open Stable Chart" links to the real
- * stable chart (modules/shows/ui/stable-chart/).
- */
 export function VenueCard({
   showId,
   venueId,

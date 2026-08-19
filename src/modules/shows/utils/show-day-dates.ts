@@ -1,6 +1,5 @@
 import { toIsoDate } from '@/modules/shows/utils/to-iso-date';
 
-/** One 'YYYY-MM-DD' per day in [start, end], inclusive. Falls back to a single "Day 1" when no dates are set yet — matches showstaff.html's effDays fallback in renderSetupView. */
 export function showDayDates(startDate: string, endDate: string): string[] {
   if (!startDate) return [];
   const start = new Date(`${startDate}T00:00:00`);

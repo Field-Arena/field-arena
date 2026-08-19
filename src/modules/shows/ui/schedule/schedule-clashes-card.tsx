@@ -8,20 +8,6 @@ import { SM_CARD_PAD } from '@/modules/shows/ui/show-manager/tokens';
 import type { MasterSchedule } from '@/modules/shows/schedule-engine';
 import { ClashGroup } from '@/modules/shows/ui/schedule/schedule-clash-group';
 
-/**
- * Every rider double-booking the scheduler ran into, and what it did about it.
- *
- * The counts were already on the toolbar; this is the detail behind them —
- * which rider, which horse, and which two classes in which two rings. Without
- * it "3 clashes avoided" is a number an organizer has to take on trust, and the
- * one question they actually have is "which of my riders was it?".
- *
- * These are resolved conflicts, not outstanding ones. Nothing in the built
- * schedule is double-booked: the hard rider rule is never violated, so a live
- * red CLASH badge on a ride would be reporting something that cannot happen.
- * What is worth showing is the work the scheduler did — a clash it moved out of
- * the way is a clash the organizer did not spend their evening finding.
- */
 export function ScheduleClashesCard({ schedule }: { schedule: MasterSchedule }) {
   const [open, setOpen] = useState(false);
 
@@ -40,13 +26,13 @@ export function ScheduleClashesCard({ schedule }: { schedule: MasterSchedule }) 
           setOpen((v) => !v);
         }}
         aria-expanded={open}
-        className="h-auto flex w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
+        className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
       >
         <span className="flex items-center gap-2.5">
           <span className="rounded-[4px] bg-[#FDF0EE] px-2 py-[3px] text-[10.5px] font-bold tracking-[.1em] text-[#B23A3A] uppercase">
             Clash
           </span>
-          <span className="font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest">
+          <span className="text-forest font-[family-name:var(--font-nr)] text-[17px] font-semibold">
             {total} rider {total === 1 ? 'clash' : 'clashes'} resolved
           </span>
         </span>

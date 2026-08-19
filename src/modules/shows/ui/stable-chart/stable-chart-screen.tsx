@@ -24,22 +24,6 @@ import { StallBox } from '@/modules/shows/ui/stable-chart/stall-box';
 import { StableChartPrintView } from '@/modules/shows/ui/stable-chart/stable-chart-print-view';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
 
-/**
- * "Stable Chart" — every barn and stall for one show: build the layout,
- * click a stall to rename it, assign horses (by hand or auto-assign), then
- * publish. Ported from showstaff.html's showStableChart and its supporting
- * functions (~13846-14147). Reached from, and returns to, the Horses screen —
- * see horses-screen.tsx's "🏠 Stable Chart" button.
- *
- * Every edit here is its own Server Action + `router.refresh()` (see
- * use-stable-chart-mutations.ts) rather than a client-held draft saved on
- * submit — legacy's own comment on this screen is explicit that a full
- * re-navigation on every keystroke-level edit read as "funky"/broken, and
- * that only the *first* open should scroll-to-top. `router.refresh()` is
- * this app's equivalent of legacy's in-place `list-view.innerHTML` patch: a
- * soft RSC re-fetch, not a URL navigation, so scroll position and the rest
- * of the page are left alone the same way.
- */
 export function StableChartScreen({ data }: { data: StableChartPageData }) {
   const { showId, showName, chart, savedLocations } = data;
 

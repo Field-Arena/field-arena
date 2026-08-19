@@ -1,8 +1,3 @@
-/**
- * The show's calendar date for a day index, or a plain "Day n" when undated.
- * Distinct from `dayLabel` (short weekday/month/day) — Master Schedule wants
- * the full weekday/month/day/year form for its printed header.
- */
 export function dayDate(startDate: string | null, day: number): string {
   if (!startDate) return `Day ${String(day + 1)}`;
   const date = new Date(`${startDate}T00:00:00`);

@@ -12,7 +12,6 @@ import {
   SM_GHOST_BTN,
 } from '@/modules/shows/ui/show-manager/tokens';
 
-/** The pill's wording and colour per state, from stripeConnectStatusPill(). */
 const STATUS_PILL: Record<StripeConnectStatus['status'], { label: string; className: string }> = {
   not_started: { label: 'Not connected', className: 'bg-[#FDF0EE] text-[#B4432F]' },
   onboarding: { label: 'Onboarding', className: 'bg-[#FDF6E3] text-[#8A6D1F]' },
@@ -21,13 +20,6 @@ const STATUS_PILL: Record<StripeConnectStatus['status'], { label: string; classN
   error: { label: 'Could not check', className: 'bg-[#F1F4F3] text-[#6E7C76]' },
 };
 
-/**
- * Stripe Connect onboarding and its live status.
- *
- * The button label follows what is actually left to do — start, finish, or
- * manage — because "Connect with Stripe" on a half-onboarded account reads as
- * though the earlier attempt was lost.
- */
 export function StripeConnectionCard({ connect }: { connect: StripeConnectStatus }) {
   const start = useStartStripeConnect();
   const pill = STATUS_PILL[connect.status];
@@ -56,8 +48,7 @@ export function StripeConnectionCard({ connect }: { connect: StripeConnectStatus
         <Button
           type="button"
           variant="ghost"
-          // Onboarding cannot complete without a secret key, so an environment
-          // without one says so rather than opening a flow that dead-ends.
+
           disabled={!connect.configured || start.isPending}
           title={connect.configured ? undefined : 'Stripe keys are not configured yet'}
           className={cn(

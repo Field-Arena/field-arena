@@ -11,14 +11,6 @@ import { SM_CARD_PAD, SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/token
 
 const TITLE = 'font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest';
 
-/**
- * "Schedule rules in effect" — the double-booking rule, stated and editable.
- *
- * Collapsed by default to one summary line, because the rule is usually just
- * being confirmed rather than changed. It lives here rather than in Setup: an
- * organizer decides how strict to be while looking at the schedule the rule
- * produced.
- */
 export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
   const [open, setOpen] = useState(false);
   const { rules } = data;
@@ -50,7 +42,7 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
           setOpen((v) => !v);
         }}
         aria-expanded={open}
-        className="h-auto flex w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
+        className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
       >
         <span className={TITLE}>Schedule rules in effect</span>
         <span className="text-[12px] whitespace-nowrap text-[#7A8781]">

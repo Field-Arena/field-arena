@@ -5,14 +5,6 @@ import { useState } from 'react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
-/**
- * Show Manager's own show switcher — distinct from the Dashboard's GET-form
- * version because Show Manager carries the show id in the route path
- * (/dashboard/shows/[showId]/tab), not a `?show=` query param, so switching
- * shows means navigating to a different URL rather than resubmitting a form.
- * `tabPath` is the current tab's own path suffix (e.g. '' for Setup,
- * '/schedule' for Schedule / Review) so switching shows keeps the same tab.
- */
 export function ShowSwitcher({
   shows,
   currentShowId,

@@ -5,16 +5,6 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { IconCheck, IconX, IconChevronRight } from '@/shared/ui/organizer/icons';
 import type { CompletenessSection } from '@/modules/shows/data/setup-queries';
 
-/**
- * Per-show breakdown behind the "INCOMPLETE" badge on the Incomplete Shows
- * list — real per-section completeness (see getShowCompleteness in
- * data/setup-queries.ts).
- *
- * Every section is a one-tap jump straight to the card that owns it: the six
- * Setup cards deep-link by anchor (#show-details, #venue, …, matching the
- * ids in shows/[showId]/page.tsx), Select Events and Staffing go to their own
- * pages. Unmapped names fall back to the Setup page.
- */
 export function MissingSectionsDialog({
   showId,
   showName,

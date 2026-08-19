@@ -92,8 +92,6 @@ export function HorseTableRow({
               variant="ghost"
               disabled={remind.isPending}
               onClick={() => {
-                // remindDisabledReason is only null once row.horseId is set — this branch is
-                // that "active" case — but the type isn't narrowed across the two variables.
                 if (row.horseId) remind.mutate({ showId, horseId: row.horseId });
               }}
               className={cn(

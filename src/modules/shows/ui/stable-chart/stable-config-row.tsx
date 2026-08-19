@@ -11,17 +11,6 @@ import {
 import { SM_LABEL, SM_ROW_INPUT, SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import type { StableChartStable } from '@/modules/shows/data/stable-chart-queries';
 
-/**
- * One stable's config row — name / stall count / row count + "Generate
- * stalls" (or "Update stalls" once it already has some), ported from
- * showstaff.html's per-stable row in `showStableChart` (~14068-14074).
- *
- * Fields save on blur (matching legacy's `onchange`, not a mutation per
- * keystroke) except the stall-count input, which "Generate stalls" reads
- * live off the DOM via `stallCountRef` rather than trusting the field's
- * last-committed value — see generateStableStallsSchema's doc comment for
- * why a blur-commit and a click can otherwise race.
- */
 export function StableConfigRow({ showId, stable }: { showId: string; stable: StableChartStable }) {
   const stallCountRef = useRef<HTMLInputElement>(null);
   const updateField = useUpdateStableField();

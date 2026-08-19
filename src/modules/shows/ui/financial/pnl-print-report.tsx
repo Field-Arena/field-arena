@@ -13,22 +13,6 @@ import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { PrintDate } from '@/shared/ui/print-date';
 import type { ShowPnl } from '@/modules/shows/data/setup-queries';
 
-/**
- * The printed Profit & Loss, ported from pnlGenerateReport.
- *
- * Rendered into the page but hidden until print, rather than assembled into a
- * scratch element on click the way the legacy build did — same output, and it
- * cannot drift from what the screen shows because both read one `pnl`.
- *
- * Revenue leads and is broken all the way down — business category (the big
- * subtotal) → subcategory (itemised, its own subtotal) → line items with qty —
- * ending in one "Total revenue" line. That order is the organizer's own stated
- * P&L format, not a flat revenue row with the detail buried underneath.
- *
- * The date is stamped by the browser at print time rather than on the server:
- * a server-rendered date would be the moment the page was fetched, which for a
- * cached render can be hours off what the person printing it expects.
- */
 export function PnlPrintReport({ pnl }: { pnl: ShowPnl }) {
   return (
     <div data-print-report className="hidden print:block">
@@ -146,7 +130,6 @@ export function PnlPrintReport({ pnl }: { pnl: ShowPnl }) {
         </TableFooter>
       </Table>
 
-      {/* The report's final number — revenue's grand total minus expenses'. */}
       <Table className="mt-4 w-full border-collapse text-[15px]">
         <TableFooter className="border-t-0 bg-transparent">
           <TableRow className="border-t-2 border-b-0 border-black/40 font-bold hover:bg-transparent">

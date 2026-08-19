@@ -24,13 +24,6 @@ import type { OrgBilling } from '@/modules/shows/data/queries';
 
 type BillingKind = (typeof BILLING_SECTIONS)[number]['kind'];
 
-/**
- * Charges, Payouts or Deposits in full.
- *
- * Charges and Deposits are the same paid orders framed two ways — what came in,
- * and what has landed in Field & Arena's account before the payout goes out —
- * which is exactly how the legacy endpoint served them.
- */
 export function BillingDetailDialog({
   kind,
   title,

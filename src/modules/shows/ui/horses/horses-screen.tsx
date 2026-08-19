@@ -26,13 +26,11 @@ import {
 
 type SortCol = 'horse' | 'stallion';
 
-/** The two sortable header buttons — identical shape, only the column and label differ. */
 const SORT_COLUMNS: { col: SortCol; label: string }[] = [
   { col: 'horse', label: 'Horse' },
   { col: 'stallion', label: 'Stallion' },
 ];
 
-/** The four fixed KPI tiles — identical StatCard shape, only icon/label/tint differ. */
 const HORSE_STAT_CARDS: {
   key: keyof typeof HORSE_STAT_TINTS & keyof HorseCounts;
   icon: ReactNode;
@@ -51,24 +49,12 @@ interface HorseCounts {
   cogginsExpired: number;
 }
 
-/**
- * "Horses" — every horse entered in the show, and what paperwork is still
- * outstanding. Ported from showstaff.html's showHorsesList() (~13638-13802):
- * 4 KPI tiles, a table sortable by Horse/Stallion, one Documents cell per
- * document requirement (label, status, View Doc, verify checkbox), a big
- * check/✗ completeness column, and a per-row "✉ Remind" action.
- *
- * See modules/shows/data/horses-queries.ts for how rows are built (entry
- * roster + shows.manual_horses, cross-referenced against
- * shows.document_requirements) and horses-mutations.ts for the three writes
- * this screen makes.
- */
 export function HorsesScreen({
   data,
   stableChartSummary,
 }: {
   data: HorsesPageData;
-  /** Null once no stable chart has been built yet — see stable-chart-queries.ts's summarizeStableChart. */
+
   stableChartSummary: StableChartSummary | null;
 }) {
   const { showId, showName, requirements, rows } = data;

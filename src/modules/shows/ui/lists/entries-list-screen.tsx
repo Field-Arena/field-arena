@@ -9,14 +9,6 @@ import { formatMoney } from '@/shared/lib/format/currency';
 import { groupEntriesByClass } from '@/modules/shows/utils/group-entries-by-class';
 import type { ShowEntries } from '@/modules/shows/data/setup-queries';
 
-/**
- * Entries — every class entry sold, ported from showTicketsList.
- *
- * Grouped by class with a count and subtotal per group, because the question
- * "Entries sold" gets clicked to answer is how full each class is, not "list
- * every entry". The class filter narrows to the one class someone is actually
- * asking about — building a start list at the in-gate.
- */
 export function EntriesListScreen({
   data,
   canViewMoney,
@@ -65,7 +57,6 @@ export function EntriesListScreen({
         </span>
       </div>
 
-      {/* Nothing to narrow when there is only one class. */}
       {data.classes.length > 1 && (
         <select
           value={classFilter}

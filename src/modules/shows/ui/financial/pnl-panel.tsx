@@ -13,16 +13,6 @@ import { ExpenseEditor } from '@/modules/shows/ui/financial/expense-editor';
 
 const TITLE = 'font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest';
 
-/**
- * Revenue → Expenses → Net, ported from showstaff.html's billingPnlHtml.
- *
- * Two accordions and a card. Revenue opens by default and Expenses does not —
- * the legacy defaults (`pnlRevenueOpen = true`, `pnlExpensesOpen = false`),
- * because revenue is the number an organizer checks first and expenses are
- * something they come back to edit.
- *
- * Net sits in its own card below both, visible whichever accordion is open.
- */
 export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: boolean }) {
   const [revenueOpen, setRevenueOpen] = useState(true);
   const [expensesOpen, setExpensesOpen] = useState(false);
@@ -104,8 +94,6 @@ export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: bo
           </b>
         </div>
 
-        {/* Matches pnlGenerateReport's own guard: a ShowAdmin without money
-            permission is refused the report rather than shown a blank one. */}
         {canViewMoney && (
           <Button
             type="button"

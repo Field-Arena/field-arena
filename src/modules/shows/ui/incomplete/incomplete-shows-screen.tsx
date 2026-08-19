@@ -17,14 +17,6 @@ export interface IncompleteShowRow {
   completeness: ShowCompleteness;
 }
 
-/**
- * "Incomplete Shows" — every unpublished show for the org, ported from the
- * design export's IncompleteShows.tsx. The export's rows were WS_SHOWS demo
- * data with a `live` branch (a green "Live" pill in place of Setup/Delete)
- * driven by a hardcoded show name; there's no such branch here because this
- * list is already scoped to `published = false` (see
- * listIncompleteShowsForOrg) — nothing in it can be live.
- */
 export function IncompleteShowsScreen({
   orgName,
   rows,

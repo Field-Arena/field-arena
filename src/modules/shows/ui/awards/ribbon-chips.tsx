@@ -1,17 +1,6 @@
 import { RIBBONS, ribbonFor } from '@/modules/shows/constants';
 import { RibbonChip } from '@/modules/shows/ui/awards/ribbon-chip';
 
-/**
- * How many of each colour to pull before the first class, as pill chips.
- *
- * Runs to the most places any one unit awards — a show where nothing awards
- * more than four places has no reason to list six. Six is the floor, matching
- * the legacy's `maxPlacesSeen || 6`, so the strip is never empty.
- *
- * Standard colours only, even where a class overrides them: this is the count
- * for the ribbon box, and a class's own championship ribbons are counted under
- * their own name by the tally.
- */
 export function RibbonChips({
   maxPlaces,
   tally,
@@ -21,8 +10,6 @@ export function RibbonChips({
 }) {
   const places = Array.from({ length: maxPlaces || 6 }, (_, i) => ribbonFor(i));
 
-  // A class carrying custom colours contributes names the standard list has no
-  // row for; they would otherwise be tallied and never shown.
   const standard = new Set(RIBBONS.map((r) => r.name));
   const custom = Object.keys(tally)
     .filter((name) => name && !standard.has(name as (typeof RIBBONS)[number]['name']))

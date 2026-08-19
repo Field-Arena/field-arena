@@ -17,22 +17,6 @@ export interface ShowPickerRow {
   completeness: ShowCompleteness;
 }
 
-/**
- * Show Manager's landing screen — pick which show to work on.
- *
- * Show Manager is per-show from the first tab onward, so it needs somewhere to
- * choose one. Previously this route rendered the classes-and-divisions table for
- * whichever show happened to be focused, which is Select Events' job and left an
- * organizer with several shows no way to switch between them.
- *
- * A published show shows its actual lifecycle stage as a pill (Ticket sales
- * open/closed, Live, Complete) instead of Setup/Delete — it is running, so the
- * destructive action has no business being one click away, and "Setup" reads
- * as unfinished when it is not. The pill used to always say "Live" for any
- * published show, which was wrong from the moment ticket sales opened —
- * several stages before the show is actually live; it now shows the same
- * stage Show Manager's own lifecycle bar would.
- */
 export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: ShowPickerRow[] }) {
   const [openShowId, setOpenShowId] = useState<string | null>(null);
   const openRow = rows.find((r) => r.show.id === openShowId);
@@ -56,9 +40,6 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
 
       <div className="flex flex-col gap-2.5">
         {rows.map(({ show, completeness }) => {
-          // getShowCompleteness's own flag — it deliberately ignores the
-          // sections this app cannot check, so recomputing it here would mark
-          // every show incomplete forever.
           const complete = completeness.complete;
 
           return (

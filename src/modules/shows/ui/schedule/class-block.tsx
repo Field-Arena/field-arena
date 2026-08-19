@@ -43,7 +43,7 @@ export function ClassBlock({
   return (
     <div className="mb-4">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2.5">
-        <span className="text-[13.5px] font-bold text-ink-deep">
+        <span className="text-ink-deep text-[13.5px] font-bold">
           {block.label}
           {block.continues && <span className="ml-1.5 font-normal text-[#7A8781]">Continues</span>}
           <span className="ml-1.5 text-[12px] font-normal text-[#7A8781]">
@@ -69,7 +69,6 @@ export function ClassBlock({
             min
           </label>
 
-          {/* Only worth offering when there is somewhere else to go. */}
           {(data.rings.length > 1 || totalDays > 1) && (
             <select
               aria-label={`Move ${block.label}`}
@@ -90,7 +89,7 @@ export function ClassBlock({
                   <option key={`${r}|${String(d)}`} value={`${r}|${String(d)}`}>
                     {r}, Day {d + 1}
                   </option>
-                ))
+                )),
               )}
             </select>
           )}
@@ -108,9 +107,7 @@ export function ClassBlock({
             const isCurrent = ride.entryId === currentEntryId;
             const score = data.finalPctByEntry[ride.entryId];
             const flag = flags.get(`${ride.num}|${String(ride.day)}`);
-            // A rider stays movable right up until their own ride has happened —
-            // not gated on the show being live, so the last ride of the last day
-            // is still movable while nobody has judged it.
+
             const movable = !scratched && !score;
 
             return (
@@ -140,7 +137,7 @@ export function ClassBlock({
                   'border-b border-[#F1F4F3] hover:bg-transparent',
                   scratched && 'text-[#98A29D] line-through',
                   isCurrent && 'bg-[#FCF3E4]',
-                  movable && 'cursor-grab'
+                  movable && 'cursor-grab',
                 )}
               >
                 <TableCell className="w-[112px] py-1.5 font-semibold whitespace-normal">
@@ -166,13 +163,13 @@ export function ClassBlock({
                     className={cn(
                       flag && flag.count > 1 && 'font-bold text-[#8A6D14]',
                       flag && flag.count <= 1 && flag.horses.size > 1 && 'font-bold text-[#2F6FB0]',
-                      flag && flag.horses.size > 1 && 'underline decoration-dotted'
+                      flag && flag.horses.size > 1 && 'underline decoration-dotted',
                     )}
                   >
                     {ride.name}
                   </span>
                 </TableCell>
-                <TableCell className="w-[70px] py-1.5 text-[#7A8781] whitespace-normal">
+                <TableCell className="w-[70px] py-1.5 whitespace-normal text-[#7A8781]">
                   {ride.division !== 'O' && ride.division}
                   {ride.qualifying && (
                     <span

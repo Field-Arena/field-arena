@@ -21,8 +21,8 @@ export function DayButton({
         'h-auto rounded-[9px] border px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors',
         active
           ? 'border-forest bg-forest text-white'
-          : 'border-[#D9E1DD] bg-white text-forest hover:border-gold',
-        'hover:bg-transparent'
+          : 'text-forest hover:border-gold border-[#D9E1DD] bg-white',
+        'hover:bg-transparent',
       )}
     >
       {children}

@@ -13,11 +13,6 @@ import { BillingDetailDialog } from '@/modules/shows/ui/financial/billing-detail
 
 type BillingKind = (typeof BILLING_SECTIONS)[number]['kind'];
 
-/**
- * The three blocks above the P&L, ported from renderBilling: the confirmed
- * payout architecture, the Stripe connection, and the Charges / Payouts /
- * Deposits cards.
- */
 export function BillingBlocks({
   connect,
   billing,

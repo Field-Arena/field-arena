@@ -41,15 +41,6 @@ interface Draft {
 
 const EMPTY_DRAFT: Draft = { name: '', level: '', movements: [], collectives: [] };
 
-/**
- * "Test Builder" — an organization's own dressage test library, ported from
- * showstaff.html's Test Builder tab. Real movements/collective marks saved to
- * test_templates, reusable across shows. Each template also gets a "Use for
- * a class" picker — the legacy comment's own name for this hand-off — which
- * copies its movements/collectives into that class's class_tests row so the
- * live-scoring screen (`modules/scoring`) resolves a real test instead of
- * showing "Not a real test."
- */
 export function TestBuilderCard({
   orgId,
   templates,
@@ -116,11 +107,7 @@ export function TestBuilderCard({
       movements: draft.movements,
       collectives: draft.collectives,
     };
-    // Validate here so the toast names the actual problem field ("Collective
-    // mark needs a label", "Coefficient must be between 1 and 10", "Name this
-    // test", …) instead of the server's generic "Could not save this test"
-    // (BUG-TESTBUILDER-001). The same schema still runs server-side as the
-    // real gate — this only moves the message somewhere the user can act on.
+
     const parsed = saveTestTemplateSchema.safeParse(input);
     if (!parsed.success) {
       toast.error(

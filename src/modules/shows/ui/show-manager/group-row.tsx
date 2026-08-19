@@ -28,8 +28,7 @@ export function GroupRow({
   selected: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  // Seeded from a class this group already created, so the dropdown shows what
-  // was actually saved rather than resetting to "No location set" on reload.
+
   const [location, setLocation] = useState(
     data.classes.find((c) => c.division === group)?.location ?? '',
   );

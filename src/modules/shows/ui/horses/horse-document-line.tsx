@@ -5,12 +5,6 @@ import { formatDateShort } from '@/shared/lib/format/date';
 import { useVerifyHorseDocument } from '@/modules/shows/hooks/use-horses-mutations';
 import type { HorseDocumentStatus } from '@/modules/shows/data/horses-queries';
 
-/**
- * One document requirement's status for one horse. Color is the actual
- * signal, matching showstaff.html's horseDocCellHtml: red for anything wrong
- * (not uploaded, or uploaded but expired), amber for uploaded-and-current-
- * but-still-needs-a-human-look, green once it's actually cleared.
- */
 export function HorseDocumentLine({
   doc,
   showId,

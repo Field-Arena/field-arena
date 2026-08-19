@@ -7,21 +7,12 @@ import type { ShowExpense } from '@/modules/shows/data/setup-queries';
 import { useSaveShowExpenses } from '@/modules/shows/hooks/use-expense-mutations';
 import { SM_ROW_INPUT, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * The editable cost lines.
- *
- * Every change rewrites the whole list — shows.expenses is a jsonb array, so
- * there is no element-level update to make. Local state is what is on screen;
- * a commit sends the list it produces.
- */
 export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: ShowExpense[] }) {
   const [rows, setRows] = useState(expenses);
   const [draft, setDraft] = useState('');
 
   const save = useSaveShowExpenses();
-  // Ids only have to be unique within this list. The legacy expenseId() used a
-  // timestamp, which cannot be generated during render without breaking
-  // hydration, so a counter that starts past the seeded rows does the job.
+
   const nextId = useRef(0);
 
   function commit(next: ShowExpense[]) {
@@ -29,13 +20,6 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
     save.mutate({ showId, expenses: next });
   }
 
-  /**
-   * Adds the typed line, or an empty one to name in place.
-   *
-   * An empty add is deliberate, matching addSmExpense: pressing the button with
-   * nothing typed gives a blank row to fill in directly, which is how someone
-   * adding several lines in a row actually works.
-   */
   function add() {
     nextId.current += 1;
     const id = `exp-new-${String(nextId.current)}`;
@@ -63,8 +47,6 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
                 setRows(next);
               }}
               onBlur={() => {
-                // Trimmed on save, as updateSmExpenseLabel does — a stray space
-                // is not a rename worth storing.
                 commit(rows.map((r) => ({ ...r, label: r.label.trim() })));
               }}
               aria-label={`${row.label} name`}

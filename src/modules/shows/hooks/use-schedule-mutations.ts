@@ -19,14 +19,6 @@ import type {
   UpdateScheduleRulesInput,
 } from '@/modules/shows/schemas';
 
-/**
- * Master Schedule's in-place edits.
- *
- * Every one of these changes an input the schedule is built from, so the page
- * refresh that follows is what rebuilds it — there is no stored schedule to
- * invalidate.
- */
-
 const message = readableError;
 
 export function useUpdateScheduleRules() {

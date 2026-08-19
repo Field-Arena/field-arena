@@ -14,17 +14,6 @@ const PILL =
   'rounded-full border border-[#D9E1DD] bg-white px-[15px] py-2 text-[12.5px] font-semibold ' +
   'text-[#16261F] transition-colors hover:border-[#16261F] disabled:opacity-60';
 
-/**
- * The two button rows above the catalog.
- *
- * The first row is how classes get onto a show by a route other than the
- * catalog below: a governing body's published set, a Test of Choice, or one
- * typed by hand. The second adds a qualifying fee.
- *
- * "+ Independent" opens with nothing in it and says so, rather than being
- * hidden — those tests come from an organization's Test Builder library, and
- * the design states the empty case outright.
- */
 export function EventSourceButtons({ data }: { data: SelectEventsData }) {
   const [fmSet, setFmSet] = useState<FmSetName | null>(null);
   const [tocOpen, setTocOpen] = useState(false);

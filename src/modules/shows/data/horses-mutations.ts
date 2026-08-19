@@ -13,24 +13,6 @@ import { HORSES_PATH } from '@/modules/shows/constants';
 import type { ManualHorseEntry } from '@/modules/shows/data/horses-queries';
 import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
 
-/**
- * Horses screen writes: the "+ Add Horse" manual entry, the per-document
- * verify checkbox, and the missing-documents reminder email.
- *
- * The first two go through the caller's own client — RLS is the security
- * boundary (architecture.md) — same as every other show mutation in this
- * module. The reminder's actual send has no RLS concept at all: it is a
- * direct call to Resend's REST API.
- */
-
-/**
- * "+ Add Horse" — a horse with no real class entry behind it: the
- * organizer's own, or any staff member's if they're also riding. Writes to
- * shows.manual_horses (`[{id, riderName, horseName, isStallion, addedAt}]`
- * per that column's own comment), not a real horses/riders row — see
- * horses-queries.ts's module doc comment for why. Ported from
- * showstaff.html's submitManualHorse (~13608-13619).
- */
 export async function addManualHorse(input: unknown): Promise<{ id: string }> {
   const parsed = addManualHorseSchema.parse(input);
   const supabase = await createServerClient();
@@ -66,12 +48,6 @@ export async function addManualHorse(input: unknown): Promise<{ id: string }> {
   return { id: entry.id };
 }
 
-/**
- * The per-document verify checkbox — read-modify-write on the one matching
- * entry in horses.document_uploads. Un-verifying is just as real a call as
- * verifying, matching showstaff.html's realVerifyHorseDocFromHorsesList
- * (~13555-13564), which always sends the checkbox's actual state.
- */
 export async function verifyHorseDocument(input: unknown): Promise<void> {
   const parsed = verifyHorseDocumentSchema.parse(input);
   const supabase = await createServerClient();
@@ -83,9 +59,12 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
     .single();
   if (readError) throw new Error(readError.message);
 
-  const uploads = (horse.document_uploads ?? []) as { requirementId?: string; verified?: boolean }[];
+  const uploads = (horse.document_uploads ?? []) as {
+    requirementId?: string;
+    verified?: boolean;
+  }[];
   const next = uploads.map((u) =>
-    u.requirementId === parsed.requirementId ? { ...u, verified: parsed.verified } : u
+    u.requirementId === parsed.requirementId ? { ...u, verified: parsed.verified } : u,
   );
 
   const { error } = await supabase
@@ -97,16 +76,6 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
   revalidatePath(HORSES_PATH);
 }
 
-/**
- * Sends the missing-documents reminder — a direct call to Resend's REST API,
- * from `notifications@field-arena.com`, the same verified domain the
- * Supabase Auth SMTP invite path already sends from. There is no generic
- * email infrastructure in this codebase yet (no src/shared/lib/emails/); this
- * is deliberately a one-off, not a template system for a single email.
- *
- * Not exported — 'use server' files may only export async functions
- * (layers.md), so this stays a private helper for remindHorseDocuments below.
- */
 async function sendReminderEmail(params: {
   to: string;
   riderName: string;
@@ -139,25 +108,17 @@ async function sendReminderEmail(params: {
   }
 }
 
-/**
- * "✉ Remind" — one click, listing exactly which documents are still missing
- * for one horse. Ported from api/shows/[id]/[resource].js's
- * 'remind-documents' POST (~678-713), with the missing-document list
- * recomputed here from the horse's own record rather than trusted from the
- * client — a real difference from the legacy route, which took
- * riderEmail/riderName/horseName/missingLabels straight from the request
- * body. Only a horse with a real horses row can be reminded: a roster entry
- * or manually-added horse has no document_uploads to check missing docs
- * against in the first place (see horses-queries.ts's module doc comment),
- * which the UI reflects by disabling the button rather than this throwing.
- */
 export async function remindHorseDocuments(input: unknown): Promise<{ ok: true }> {
   const parsed = remindHorseDocumentsSchema.parse(input);
   const supabase = await createServerClient();
 
   const [showResult, horseResult] = await Promise.all([
     supabase.from('shows').select('name, document_requirements').eq('id', parsed.showId).single(),
-    supabase.from('horses').select('name, document_uploads, rider_id').eq('id', parsed.horseId).single(),
+    supabase
+      .from('horses')
+      .select('name, document_uploads, rider_id')
+      .eq('id', parsed.horseId)
+      .single(),
   ]);
   if (showResult.error) throw new Error(showResult.error.message);
   if (horseResult.error) throw new Error(horseResult.error.message);
@@ -177,7 +138,7 @@ export async function remindHorseDocuments(input: unknown): Promise<{ ok: true }
     []) as unknown as DocumentRequirement[];
   const uploads = (horse.document_uploads ?? []) as { requirementId?: string }[];
   const missing = requirements.filter(
-    (r) => r.label.trim() && !uploads.some((u) => u.requirementId === r.id)
+    (r) => r.label.trim() && !uploads.some((u) => u.requirementId === r.id),
   );
   if (missing.length === 0) throw new Error('Nothing missing to remind about.');
 

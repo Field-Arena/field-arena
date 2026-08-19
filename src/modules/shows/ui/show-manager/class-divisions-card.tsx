@@ -12,9 +12,14 @@ import {
   useDeleteDivision,
 } from '@/modules/shows/hooks/use-show-mutations';
 import type { DivisionRow } from '@/modules/shows/data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_ROW_INPUT,
+  SM_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-/** "Class divisions" — createDivision already existed (used elsewhere); this card adds rename/remove and the Setup-tab UI around all three. */
 export function ClassDivisionsCard({
   showId,
   divisions,
@@ -73,7 +78,7 @@ export function ClassDivisionsCard({
               onClick={() => {
                 commitRemove(d.id);
               }}
-              className="h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent hover:text-status-danger"
+              className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
             >
               Remove
             </Button>
@@ -97,7 +102,7 @@ export function ClassDivisionsCard({
           }}
         />
         <PrimaryButton
-          className="whitespace-nowrap rounded-[9px]"
+          className="rounded-[9px] whitespace-nowrap"
           disabled={creating || !newName.trim()}
           onClick={add}
         >

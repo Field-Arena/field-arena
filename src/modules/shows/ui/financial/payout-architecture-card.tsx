@@ -7,12 +7,6 @@ import { cn } from '@/shared/lib/utils';
 import { STRIPE_PAYOUT_DECISIONS } from '@/modules/shows/constants';
 import { SM_CARD_PAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "✓ Payout architecture — confirmed".
- *
- * Open by default, matching the legacy's own `billingNotesOpen = true` and the
- * reason it gives: these are load-bearing decisions, not settled reference.
- */
 export function PayoutArchitectureCard() {
   const [open, setOpen] = useState(true);
 

@@ -8,7 +8,6 @@ import { useUpdateScheduleRules } from '@/modules/shows/hooks/use-schedule-mutat
 const BASE =
   'h-auto rounded-none px-3 py-1.5 text-[12.5px] font-semibold transition-colors first:rounded-l-[9px] last:rounded-r-[9px] hover:bg-transparent';
 
-/** "Awards grouping" — By Test or By Division, flipped from the schedule. */
 export function AwardsGroupingToggle({ data }: { data: MasterScheduleData }) {
   const save = useUpdateScheduleRules();
   const byDivision = data.rules.awardsByDivision;
@@ -18,7 +17,7 @@ export function AwardsGroupingToggle({ data }: { data: MasterScheduleData }) {
       <Button
         type="button"
         variant="ghost"
-        className={cn(BASE, byDivision ? 'bg-white text-forest' : 'bg-forest text-white')}
+        className={cn(BASE, byDivision ? 'text-forest bg-white' : 'bg-forest text-white')}
         onClick={() => {
           if (byDivision) save.mutate({ showId: data.showId, awardsByDivision: false });
         }}
@@ -29,7 +28,7 @@ export function AwardsGroupingToggle({ data }: { data: MasterScheduleData }) {
         type="button"
         variant="ghost"
         title="Splits ribbons per division within a class — e.g. Young Rider, Adult Amateur, Open each place separately."
-        className={cn(BASE, byDivision ? 'bg-forest text-white' : 'bg-white text-forest')}
+        className={cn(BASE, byDivision ? 'bg-forest text-white' : 'text-forest bg-white')}
         onClick={() => {
           if (!byDivision) save.mutate({ showId: data.showId, awardsByDivision: true });
         }}

@@ -7,7 +7,6 @@ import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import type { ShowAwards } from '@/modules/shows/data/setup-queries';
 import { GroupingToggle } from '@/modules/shows/ui/awards/grouping-toggle';
 
-/** Show picker, discipline filter, By Test / By Division grouping, and print. */
 export function AwardsToolbar({
   awards,
   shows,
@@ -20,9 +19,6 @@ export function AwardsToolbar({
   const router = useRouter();
   const params = useSearchParams();
 
-  // Both selections live in the URL so a particular view ("this show, FEI
-  // only") is linkable and survives the refresh that follows any scoring
-  // change.
   function setParam(key: string, value: string, clearWhen: string) {
     const next = new URLSearchParams(params.toString());
     if (value === clearWhen) next.delete(key);
@@ -36,17 +32,6 @@ export function AwardsToolbar({
 
   return (
     <>
-      {/*
-        The show picker the legacy awards toolbar carried. This screen is a
-        full-page overlay rather than a WorkspacePage, so it does not inherit
-        the workspace header's own switcher — without this an organizer who
-        arrived from the dashboard could not reach another show's ribbons
-        without going back.
-
-        Switching show drops the discipline filter: levels are derived from
-        class names, so the level picked on one show usually does not exist on
-        the next, and keeping it would silently show an empty list.
-      */}
       {shows.length > 1 && (
         <label className="flex min-w-[200px] flex-col gap-2">
           <Eyebrow>Show</Eyebrow>

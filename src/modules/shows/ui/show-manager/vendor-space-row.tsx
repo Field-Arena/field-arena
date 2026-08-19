@@ -4,7 +4,10 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
-import { useUpdateVendorItem, useDeleteVendorItem } from '@/modules/shows/hooks/use-catalog-mutations';
+import {
+  useUpdateVendorItem,
+  useDeleteVendorItem,
+} from '@/modules/shows/hooks/use-catalog-mutations';
 import type { VendorSpaceItem } from '@/modules/shows/data/setup-queries';
 import { SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 

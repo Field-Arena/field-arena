@@ -1,4 +1,3 @@
-/** Server Actions take file bytes as base64, matching the superadmin upload path. */
 export function readFileAsBase64(file: File): Promise<{ dataBase64: string; contentType: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

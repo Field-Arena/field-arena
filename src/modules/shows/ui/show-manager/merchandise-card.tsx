@@ -73,14 +73,17 @@ export function MerchandiseCard({
       {enabled && (
         <div className="flex flex-col gap-2.5">
           {items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_100px_auto] items-center gap-3">
+            <div
+              key={item.id}
+              className="grid grid-cols-[minmax(0,1fr)_100px_auto] items-center gap-3"
+            >
               <Input
                 value={item.name}
                 className={cn('h-auto', SM_ROW_INPUT)}
                 onChange={(e) => {
                   commit(
                     enabled,
-                    items.map((m) => (m.id === item.id ? { ...m, name: e.target.value } : m))
+                    items.map((m) => (m.id === item.id ? { ...m, name: e.target.value } : m)),
                   );
                 }}
               />
@@ -92,7 +95,9 @@ export function MerchandiseCard({
                 onChange={(e) => {
                   commit(
                     enabled,
-                    items.map((m) => (m.id === item.id ? { ...m, price: Number(e.target.value) } : m))
+                    items.map((m) =>
+                      m.id === item.id ? { ...m, price: Number(e.target.value) } : m,
+                    ),
                   );
                 }}
               />
@@ -100,9 +105,12 @@ export function MerchandiseCard({
                 type="button"
                 variant="ghost"
                 onClick={() => {
-                  commit(enabled, items.filter((m) => m.id !== item.id));
+                  commit(
+                    enabled,
+                    items.filter((m) => m.id !== item.id),
+                  );
                 }}
-                className="h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent hover:text-status-danger"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
               >
                 Remove
               </Button>
@@ -128,7 +136,7 @@ export function MerchandiseCard({
                 setNewPrice(e.target.value);
               }}
             />
-            <PrimaryButton className="whitespace-nowrap rounded-[9px]" onClick={add}>
+            <PrimaryButton className="rounded-[9px] whitespace-nowrap" onClick={add}>
               + Add item
             </PrimaryButton>
           </div>

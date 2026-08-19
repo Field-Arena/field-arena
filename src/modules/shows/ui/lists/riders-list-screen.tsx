@@ -20,13 +20,6 @@ import { formatDayDate } from '@/modules/shows/utils/format-day-date';
 import type { ShowRiders } from '@/modules/shows/data/setup-queries';
 import { DayButton } from '@/modules/shows/ui/lists/day-button';
 
-/**
- * Riders — everyone registered for a show, ported from showRidersList.
- *
- * A dense table rather than a card per rider: a hundred-rider show fits on a
- * screen or two instead of a long scroll of expandable boxes, and this is a
- * list people read at a busy check-in desk.
- */
 export function RidersListScreen({
   data,
   canViewMoney,
@@ -43,8 +36,7 @@ export function RidersListScreen({
   const rows = data.riders.filter((r) => {
     if (onSite && !onSite.has(r.num)) return false;
     if (!term) return true;
-    // Name, number and horse — how a front-desk volunteer is actually asked
-    // for someone ("do you have a #42?", "the horse is called Comet").
+
     return (
       r.name.toLowerCase().includes(term) ||
       r.horse.toLowerCase().includes(term) ||
@@ -94,7 +86,6 @@ export function RidersListScreen({
         className="focus-visible:border-gold mb-3 h-auto w-full max-w-[340px] rounded-[6px] border border-[#D9E1DD] px-3 py-2 text-[13.5px] outline-none focus-visible:ring-0 print:hidden"
       />
 
-      {/* Only once a schedule exists to compute "who's riding that day" from. */}
       {data.totalDays > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5 print:hidden">
           <DayButton

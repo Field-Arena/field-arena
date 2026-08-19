@@ -7,17 +7,10 @@ export interface DayBlock {
   rides: ScheduleRide[];
 }
 
-/**
- * Groups one ring-day's ride/break items into class blocks. A class that a
- * break interrupted appears as two blocks, the second marked `continues` —
- * nothing is atomic below a single ride, so a class genuinely can pause and
- * pick back up.
- */
 export function groupDayItemsIntoBlocks(items: ScheduleItem[]): DayBlock[] {
   const blocks: DayBlock[] = [];
   const seen = new Set<string>();
-  // Tracked by index rather than a nullable reference: a break resets it to -1,
-  // and an index keeps both the null check and the append in one expression.
+
   let openIndex = -1;
 
   for (const item of items) {

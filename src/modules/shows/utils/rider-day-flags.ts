@@ -1,13 +1,8 @@
 import type { Arena } from '@/modules/shows/schedule-engine';
 
-/**
- * Which riders are doing more than one thing on a given day.
- *
- * Two separate facts, because they mean different things to whoever runs the
- * day: riding several events, and riding more than one horse. The legacy view
- * marks each with its own colour, and both together with both.
- */
-export function riderDayFlags(arenas: Arena[]): Map<string, { count: number; horses: Set<string> }> {
+export function riderDayFlags(
+  arenas: Arena[],
+): Map<string, { count: number; horses: Set<string> }> {
   const flags = new Map<string, { count: number; horses: Set<string> }>();
 
   for (const arena of arenas) {

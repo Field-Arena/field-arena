@@ -2,7 +2,6 @@ import { cn } from '@/shared/lib/utils';
 import { ribbonFor } from '@/modules/shows/constants';
 import type { AwardSection } from '@/modules/shows/awards-engine';
 
-/** One class (or pooled unit) within a level — name, placed count, numbered rows. */
 export function SectionBox({ section }: { section: AwardSection }) {
   return (
     <div className="-ml-px min-w-0 border-t border-l border-[#EEF2F0] px-5 py-4 pb-[18px] print:break-inside-avoid">

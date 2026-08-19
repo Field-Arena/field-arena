@@ -17,20 +17,6 @@ import {
   SM_SELECT,
 } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Schedule preferences" — the last of the three Setup cards this batch
- * builds. Autosaves on blur/change, same as Show Details; see
- * updateSchedulePrefs in data/mutations.ts.
- *
- * One simplification from the design: "Latest finish" and each day's
- * start/stop are native <input type="time"> here rather than the design's
- * custom popover (preset chips + H:M:AP selects). showstaff.html — the real
- * functionality source — uses a plain <input type="time"> for these too;
- * the popover is a design-file-only flourish with no functional
- * counterpart, so this keeps the exact field set, labels, defaults, and
- * min/max, and trades only the picker widget for time (out of scope to
- * build a bespoke popover for one field).
- */
 export function SchedulePreferencesCard({
   showId,
   startDate,

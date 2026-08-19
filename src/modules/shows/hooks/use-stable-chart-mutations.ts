@@ -25,19 +25,6 @@ import type {
   ApplySavedLocationStablesInput,
 } from '@/modules/shows/schemas';
 
-/**
- * Mutation hooks for the Stable Chart screen. Every action revalidates
- * server-side; router.refresh() pulls the re-rendered chart back into this
- * view — same pattern as use-horses-mutations.ts / use-venue-mutations.ts.
- *
- * Frequent, low-stakes edits (resizing the stable count, renaming a field,
- * opening/closing one stall) stay silent on success — only an error toasts —
- * matching useVerifyHorseDocument's cadence. The four more deliberate,
- * one-shot actions (generate/update stalls, publish toggle, auto-assign,
- * apply a saved location) each confirm with a toast, matching
- * useAddManualHorse / useDeleteVenue.
- */
-
 export function useSetStableCount() {
   const router = useRouter();
   return useMutation({

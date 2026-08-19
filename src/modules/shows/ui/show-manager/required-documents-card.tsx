@@ -8,15 +8,14 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateDocumentRequirements } from '@/modules/shows/hooks/use-show-mutations';
 import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_ROW_INPUT,
+  SM_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Required Documents" — no "Needed"/skip toggle: showstaff.html's version
- * of that switch reads a documentRequirementsSkipped column this schema
- * doesn't have (see getShowCompleteness's own note on the same gap). An
- * empty list here just means nothing has been added yet, same as it would
- * read without the toggle in the source.
- */
 export function RequiredDocumentsCard({
   showId,
   documentRequirements,
@@ -36,7 +35,10 @@ export function RequiredDocumentsCard({
   function add() {
     const label = newLabel.trim();
     if (!label) return;
-    commit([...rows, { id: crypto.randomUUID(), label, requiresExpiration: false, requiresApproval: false }]);
+    commit([
+      ...rows,
+      { id: crypto.randomUUID(), label, requiresExpiration: false, requiresApproval: false },
+    ]);
     setNewLabel('');
   }
 
@@ -49,7 +51,7 @@ export function RequiredDocumentsCard({
       </p>
 
       {rows.length === 0 ? (
-        <p className="mb-4 text-[13px] italic text-[#98A29D]">
+        <p className="mb-4 text-[13px] text-[#98A29D] italic">
           No requirements yet — add whatever this show needs on file
         </p>
       ) : (
@@ -71,8 +73,8 @@ export function RequiredDocumentsCard({
                   onChange={(e) => {
                     commit(
                       rows.map((d) =>
-                        d.id === doc.id ? { ...d, requiresExpiration: e.target.checked } : d
-                      )
+                        d.id === doc.id ? { ...d, requiresExpiration: e.target.checked } : d,
+                      ),
                     );
                   }}
                 />
@@ -86,8 +88,8 @@ export function RequiredDocumentsCard({
                   onChange={(e) => {
                     commit(
                       rows.map((d) =>
-                        d.id === doc.id ? { ...d, requiresApproval: e.target.checked } : d
-                      )
+                        d.id === doc.id ? { ...d, requiresApproval: e.target.checked } : d,
+                      ),
                     );
                   }}
                 />
@@ -99,7 +101,7 @@ export function RequiredDocumentsCard({
                 onClick={() => {
                   commit(rows.filter((d) => d.id !== doc.id));
                 }}
-                className="h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent hover:text-status-danger"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
               >
                 Remove
               </Button>
@@ -124,7 +126,7 @@ export function RequiredDocumentsCard({
           }}
         />
         <PrimaryButton
-          className="whitespace-nowrap rounded-[9px]"
+          className="rounded-[9px] whitespace-nowrap"
           disabled={isPending || !newLabel.trim()}
           onClick={add}
         >

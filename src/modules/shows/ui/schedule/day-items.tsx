@@ -43,7 +43,7 @@ export function DayItems({
             flags={flags}
             currentEntryId={currentEntryId}
           />
-        )
+        ),
       )}
     </>
   );

@@ -13,17 +13,6 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { PromptDialog } from '@/shared/ui/prompt-dialog';
 import type { StableChartStall } from '@/modules/shows/data/stable-chart-queries';
 
-/**
- * One stall — ported from showstaff.html's `stallBoxHtml` (~14008). Click to
- * rename (unless closed), a self-contained Open/Closed pill that toggles
- * without triggering the rename click (`stopPropagation`, same as legacy).
- *
- * Rename and the closing-an-occupied-stall warning both use this app's own
- * dialogs (PromptDialog / ConfirmDialog) rather than `window.prompt()` and
- * `window.confirm()`. The native ones announce "localhost:3000 says", cannot
- * be styled, and block the tab — every confirm across this app was moved off
- * them for the same reason.
- */
 export function StallBox({
   showId,
   stableId,
@@ -49,8 +38,7 @@ export function StallBox({
 
   function handleToggleClosed(event: MouseEvent) {
     event.stopPropagation();
-    // Only closing an occupied stall needs a warning — it clears the horse's
-    // assignment. Reopening one takes nothing away.
+
     if (!closed && occupied) {
       setConfirmClose(true);
       return;
