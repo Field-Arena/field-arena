@@ -1,12 +1,6 @@
 import { errorDeduction } from '@/modules/scoring/scoring-engine';
 import type { TestDefinition } from '@/modules/scoring/types';
 
-/**
- * The running error-of-course count, where each one happened, and its
- * deduction under the applicable schedule — ported from legacy's
- * `errorControls` (showrunner-scoring.html), which shows "at movement(s)
- * N, M" next to the count rather than an abstract number with no location.
- */
 export function ErrorOfCoursePanel({
   errors,
   errorAt,
@@ -36,7 +30,7 @@ export function ErrorOfCoursePanel({
       <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
         Errors of course
       </span>
-      <span className="text-[15px] font-bold text-ink-deep">{errors}</span>
+      <span className="text-ink-deep text-[15px] font-bold">{errors}</span>
       {movements.length > 0 && (
         <span className="text-[12.5px] text-[#7A8781]">
           at movement{movements.length > 1 ? 's' : ''} {movements.join(', ')}

@@ -7,13 +7,6 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { MARK_DEFAULT, MARK_MAX, MARK_MIN, MARK_STEP } from '@/modules/scoring/constants';
 import { clampMark } from '@/modules/scoring/scoring-engine';
 
-/**
- * ▲▼ / scroll-wheel / arrow-key / type-in mark entry, ported from
- * showrunner-scoring.html's `markStepperHtml`. A blank mark defaults to 6
- * the first time it's touched (`MARK_DEFAULT`), not 0 — a judge nudging a
- * fresh mark up or down from nothing should land near where dressage marks
- * actually cluster.
- */
 export function MarkStepper({
   value,
   enteredBy,
@@ -26,9 +19,7 @@ export function MarkStepper({
   onChange: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(value === null ? '' : String(value));
-  // Adjusting state from a prop change during render (not an effect) — React's
-  // own documented pattern for this, since the poll updates `value` and the
-  // draft text should follow it unless the field is mid-edit.
+
   const [lastValue, setLastValue] = useState(value);
   if (value !== lastValue) {
     setLastValue(value);
@@ -87,9 +78,9 @@ export function MarkStepper({
           step={MARK_STEP}
           className={cn(
             'h-auto px-0 py-0',
-            'h-9 w-16 rounded-[8px] border border-[#D9E1DD] text-center text-[15px] font-semibold text-ink-deep',
-            'outline-none focus-visible:border-gold',
-            'disabled:bg-[#F1F4F3] disabled:text-[#8B9591] disabled:opacity-100'
+            'text-ink-deep h-9 w-16 rounded-[8px] border border-[#D9E1DD] text-center text-[15px] font-semibold',
+            'focus-visible:border-gold outline-none',
+            'disabled:bg-[#F1F4F3] disabled:text-[#8B9591] disabled:opacity-100',
           )}
         />
       </span>
@@ -103,7 +94,7 @@ export function MarkStepper({
             step(MARK_STEP);
           }}
           aria-label="Increase mark"
-          className="h-auto grid size-5 place-items-center rounded-[4px] border border-[#D9E1DD] px-0 py-0 text-[10px] leading-none font-normal text-ink-deep hover:border-gold hover:bg-transparent disabled:opacity-40"
+          className="text-ink-deep hover:border-gold grid size-5 h-auto place-items-center rounded-[4px] border border-[#D9E1DD] px-0 py-0 text-[10px] leading-none font-normal hover:bg-transparent disabled:opacity-40"
         >
           ▲
         </Button>
@@ -115,7 +106,7 @@ export function MarkStepper({
             step(-MARK_STEP);
           }}
           aria-label="Decrease mark"
-          className="h-auto grid size-5 place-items-center rounded-[4px] border border-[#D9E1DD] px-0 py-0 text-[10px] leading-none font-normal text-ink-deep hover:border-gold hover:bg-transparent disabled:opacity-40"
+          className="text-ink-deep hover:border-gold grid size-5 h-auto place-items-center rounded-[4px] border border-[#D9E1DD] px-0 py-0 text-[10px] leading-none font-normal hover:bg-transparent disabled:opacity-40"
         >
           ▼
         </Button>

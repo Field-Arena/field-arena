@@ -10,12 +10,6 @@ import {
 } from '@/modules/scoring/hooks/use-scoring-mutations';
 import type { RideEntry } from '@/modules/scoring/types';
 
-/**
- * Emergency/late riders, independent of the normal draw — ported from
- * showrunner-scoring.html's holding-queue block. "Work in" doesn't touch
- * `scoringPos`, so the normal order resumes exactly where it left off once
- * the worked-in ride is scored/scratched/DQ'd.
- */
 export function HoldingQueuePanel({
   classId,
   holdingEntries,
@@ -48,8 +42,11 @@ export function HoldingQueuePanel({
       ) : (
         <div className="mb-3 flex flex-col gap-2">
           {holdingEntries.map((e) => (
-            <div key={e.id} className="flex items-center gap-3 rounded-lg border border-[#E9EDEB] p-2.5">
-              <span className="flex-1 text-[13.5px] text-ink-deep">
+            <div
+              key={e.id}
+              className="flex items-center gap-3 rounded-lg border border-[#E9EDEB] p-2.5"
+            >
+              <span className="text-ink-deep flex-1 text-[13.5px]">
                 #{e.num} {e.rider ?? '—'} {e.horse ? `· ${e.horse}` : ''}
               </span>
               {canManage && (
@@ -90,14 +87,19 @@ export function HoldingQueuePanel({
             e.preventDefault();
             if (!num.trim()) return;
             add.mutate(
-              { classId, num: num.trim(), rider: rider.trim() || undefined, horse: horse.trim() || undefined },
+              {
+                classId,
+                num: num.trim(),
+                rider: rider.trim() || undefined,
+                horse: horse.trim() || undefined,
+              },
               {
                 onSuccess: () => {
                   setNum('');
                   setRider('');
                   setHorse('');
                 },
-              }
+              },
             );
           }}
         >

@@ -4,16 +4,6 @@ import {
   type PermissionKey,
 } from '@/shared/constants/permissions';
 
-/**
- * Resolves a staff_assignments row's effective permissions. Mirrors
- * `has_show_permission()` in the RLS migration; reimplemented locally rather
- * than imported from `modules/staff/utils.ts` because a module may not reach
- * into another module's internals — this is a third copy of the same merge
- * logic, following the precedent that file's own doc comment already
- * establishes (a second copy already exists in `modules/superadmin/utils.ts`
- * for the same reason). Postgres remains the real security boundary; this
- * only decides which buttons render.
- */
 export function resolveScoringPermissions(input: {
   role: string;
   permissions: unknown;

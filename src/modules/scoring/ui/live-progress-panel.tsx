@@ -3,7 +3,14 @@
 import { Fragment, useState } from 'react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { scoreLabel, sheetPct } from '@/modules/scoring/scoring-engine';
 import { toSheet } from '@/modules/scoring/utils/to-sheet';
 import {
@@ -16,15 +23,12 @@ import {
 import { ReasonModal } from '@/modules/scoring/ui/reason-modal';
 import type { PanelSeat, RideEntry, ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
-type RowActionTarget = { entryId: string; kind: 'correct' | 'disqualify' | 'reopen'; seatId?: string } | null;
+type RowActionTarget = {
+  entryId: string;
+  kind: 'correct' | 'disqualify' | 'reopen';
+  seatId?: string;
+} | null;
 
-/**
- * Admin's every-ride grid, ported from showrunner-scoring.html's
- * `liveProgressTable()`: one row per entry, one column per panel seat's
- * sheet state, and row actions that vary by whether the ride is already
- * confirmed (Correct/Reopen) or not (Skip/Scratch/Disqualify) — operating
- * on any row, not just the current ride.
- */
 export function LiveProgressPanel({
   classId,
   entries,
@@ -101,120 +105,142 @@ export function LiveProgressPanel({
 
             return (
               <Fragment key={entry.id}>
-              <TableRow className="border-t border-b-0 border-[#E9EDEB] align-top hover:bg-transparent">
-                <TableCell className="p-2 align-top whitespace-normal">{entry.draw ?? '—'}</TableCell>
-                <TableCell className="p-2 align-top whitespace-normal font-semibold text-ink-deep">
-                  {entry.rider ?? '—'}
-                </TableCell>
-                <TableCell className="p-2 align-top whitespace-normal">{entry.horse ?? '—'}</TableCell>
-                {panel.map((seat) => {
-                  const score = scores.find((s) => s.entryId === entry.id && s.seatId === seat.seatId);
-                  if (!score) {
+                <TableRow className="border-t border-b-0 border-[#E9EDEB] align-top hover:bg-transparent">
+                  <TableCell className="p-2 align-top whitespace-normal">
+                    {entry.draw ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-ink-deep p-2 align-top font-semibold whitespace-normal">
+                    {entry.rider ?? '—'}
+                  </TableCell>
+                  <TableCell className="p-2 align-top whitespace-normal">
+                    {entry.horse ?? '—'}
+                  </TableCell>
+                  {panel.map((seat) => {
+                    const score = scores.find(
+                      (s) => s.entryId === entry.id && s.seatId === seat.seatId,
+                    );
+                    if (!score) {
+                      return (
+                        <TableCell
+                          key={seat.seatId}
+                          className="p-2 align-top whitespace-normal text-[#B4BFB9]"
+                        >
+                          —
+                        </TableCell>
+                      );
+                    }
+                    if (!score.submitted) {
+                      return (
+                        <TableCell
+                          key={seat.seatId}
+                          className="p-2 align-top whitespace-normal text-[#7A8781]"
+                        >
+                          …
+                        </TableCell>
+                      );
+                    }
+                    const pct = test ? sheetPct(toSheet(score), test) : null;
                     return (
-                      <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal text-[#B4BFB9]">
-                        —
+                      <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-ink-deep font-mono font-semibold">
+                            {pct !== null ? scoreLabel(pct) : '—'}
+                          </span>
+                          {!entry.advancedPast && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => {
+                                setTarget({
+                                  entryId: entry.id,
+                                  kind: 'reopen',
+                                  seatId: seat.seatId,
+                                });
+                              }}
+                              className="hover:text-gold h-auto rounded-none px-0 py-0 text-[11px] font-semibold text-[#5A6B63] underline hover:bg-transparent"
+                            >
+                              Reopen
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     );
-                  }
-                  if (!score.submitted) {
-                    return (
-                      <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal text-[#7A8781]">
-                        …
-                      </TableCell>
-                    );
-                  }
-                  const pct = test ? sheetPct(toSheet(score), test) : null;
-                  return (
-                    <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-semibold text-ink-deep">
-                          {pct !== null ? scoreLabel(pct) : '—'}
-                        </span>
-                        {!entry.advancedPast && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => {
-                              setTarget({ entryId: entry.id, kind: 'reopen', seatId: seat.seatId });
-                            }}
-                            className="h-auto px-0 py-0 rounded-none text-[11px] font-semibold text-[#5A6B63] underline hover:bg-transparent hover:text-gold"
-                          >
-                            Reopen
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="p-2 align-top whitespace-normal text-right font-mono font-semibold text-ink-deep">
-                  {entry.finalPct ?? '—'}
-                </TableCell>
-                <TableCell className="p-2 align-top whitespace-normal">{status}</TableCell>
-                <TableCell className="p-2 align-top whitespace-normal">
-                  {entry.advancedPast ? (
-                    <GhostButton
-                      type="button"
-                      onClick={() => {
-                        setTarget({ entryId: entry.id, kind: 'correct' });
-                      }}
-                    >
-                      Correct
-                    </GhostButton>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
+                  })}
+                  <TableCell className="text-ink-deep p-2 text-right align-top font-mono font-semibold whitespace-normal">
+                    {entry.finalPct ?? '—'}
+                  </TableCell>
+                  <TableCell className="p-2 align-top whitespace-normal">{status}</TableCell>
+                  <TableCell className="p-2 align-top whitespace-normal">
+                    {entry.advancedPast ? (
                       <GhostButton
                         type="button"
-                        disabled={skip.isPending}
                         onClick={() => {
-                          skip.mutate({ classId, entryId: entry.id });
+                          setTarget({ entryId: entry.id, kind: 'correct' });
                         }}
                       >
-                        Skip
+                        Correct
                       </GhostButton>
-                      <GhostButton
-                        type="button"
-                        disabled={scratch.isPending}
-                        onClick={() => {
-                          if (
-                            !window.confirm(
-                              `Scratch #${entry.num}? They'll stay on the running order, marked as scratched.`
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        <GhostButton
+                          type="button"
+                          disabled={skip.isPending}
+                          onClick={() => {
+                            skip.mutate({ classId, entryId: entry.id });
+                          }}
+                        >
+                          Skip
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          disabled={scratch.isPending}
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                `Scratch #${entry.num}? They'll stay on the running order, marked as scratched.`,
+                              )
                             )
-                          )
-                            return;
-                          scratch.mutate({ classId, entryId: entry.id });
-                        }}
-                      >
-                        Scratch
-                      </GhostButton>
-                      <GhostButton
-                        type="button"
-                        className="border-[#E3B8B8] text-[#B23A3A] hover:border-[#B23A3A]"
-                        onClick={() => {
-                          setTarget({ entryId: entry.id, kind: 'disqualify' });
-                        }}
-                      >
-                        Disqualify
-                      </GhostButton>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-              {entry.correction && (
-                <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
-                  <TableCell className="p-2 whitespace-normal"></TableCell>
-                  <TableCell className="p-2 whitespace-normal text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
-                    Corrected · {entry.correction}
+                              return;
+                            scratch.mutate({ classId, entryId: entry.id });
+                          }}
+                        >
+                          Scratch
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          className="border-[#E3B8B8] text-[#B23A3A] hover:border-[#B23A3A]"
+                          onClick={() => {
+                            setTarget({ entryId: entry.id, kind: 'disqualify' });
+                          }}
+                        >
+                          Disqualify
+                        </GhostButton>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
-              )}
-              {entry.reason && (
-                <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
-                  <TableCell className="p-2 whitespace-normal"></TableCell>
-                  <TableCell className="p-2 whitespace-normal text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
-                    Eliminated · {entry.reason}
-                  </TableCell>
-                </TableRow>
-              )}
+                {entry.correction && (
+                  <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                    <TableCell className="p-2 whitespace-normal"></TableCell>
+                    <TableCell
+                      className="p-2 text-[12px] whitespace-normal text-[#7A8781]"
+                      colSpan={noteColSpan}
+                    >
+                      Corrected · {entry.correction}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {entry.reason && (
+                  <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                    <TableCell className="p-2 whitespace-normal"></TableCell>
+                    <TableCell
+                      className="p-2 text-[12px] whitespace-normal text-[#7A8781]"
+                      colSpan={noteColSpan}
+                    >
+                      Eliminated · {entry.reason}
+                    </TableCell>
+                  </TableRow>
+                )}
               </Fragment>
             );
           })}
@@ -234,7 +260,11 @@ export function LiveProgressPanel({
           if (!target) return;
           correct.mutate(
             { classId, entryId: target.entryId, note },
-            { onSuccess: () => { setTarget(null); } }
+            {
+              onSuccess: () => {
+                setTarget(null);
+              },
+            },
           );
         }}
       />
@@ -252,7 +282,11 @@ export function LiveProgressPanel({
           if (!target) return;
           disqualify.mutate(
             { classId, entryId: target.entryId, reason },
-            { onSuccess: () => { setTarget(null); } }
+            {
+              onSuccess: () => {
+                setTarget(null);
+              },
+            },
           );
         }}
       />
@@ -270,7 +304,11 @@ export function LiveProgressPanel({
           if (!target?.seatId) return;
           reopen.mutate(
             { classId, entryId: target.entryId, seatId: target.seatId, reason },
-            { onSuccess: () => { setTarget(null); } }
+            {
+              onSuccess: () => {
+                setTarget(null);
+              },
+            },
           );
         }}
       />

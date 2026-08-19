@@ -1,25 +1,15 @@
 'use server';
 
-/**
- * `revalidatePath` is deliberately NOT called from the high-frequency,
- * per-field mutations here (setMark, setCollective, setRemark,
- * setFinalRemarks, toggleErrorAt). Calling it triggers a Next.js router
- * refresh that re-renders the Server Component tree — which remounts
- * `ScoringScreen`, a Client Component, discarding whatever local state
- * (marks not yet echoed back from the poll, an in-progress keystroke) it
- * was holding. On a screen where a judge fires one of these writes every
- * few seconds, that's a real, observed bug: mid-entry marks getting wiped
- * out from under the person typing them. `useScoringState`'s own 4s poll
- * already keeps the screen current without this. The infrequent, terminal
- * actions below (submit, scratch, disqualify, skip, undo, holding queue,
- * open/close, publish) keep `revalidatePath` — a fresh reload there is
- * expected, not disruptive.
- */
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getMySeat, getTestForClass } from '@/modules/scoring/data/queries';
-import { averagePct, clampMark, collectivesTotal, sheetPct } from '@/modules/scoring/scoring-engine';
+import {
+  averagePct,
+  clampMark,
+  collectivesTotal,
+  sheetPct,
+} from '@/modules/scoring/scoring-engine';
 import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
 import { asStringMap } from '@/modules/scoring/utils/as-string-map';
 import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
@@ -55,13 +45,6 @@ import {
 
 const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
 
-/**
- * The caller must hold the exact seat they're claiming to write as — not
- * just "be a Judge/Scribe somewhere on this show." Org-level roles (who
- * hold no seat at all) bypass this, matching legacy's own admin/testing
- * path. Throws rather than returning a boolean so every call site fails
- * loudly instead of silently no-op'ing.
- */
 async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judge' | 'scribe') {
   const profile = await getStaffProfile();
   if (profile?.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) {
@@ -78,12 +61,12 @@ async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judg
 async function getScoreRow(
   supabase: Awaited<ReturnType<typeof createServerClient>>,
   entryId: string,
-  seatId: string
+  seatId: string,
 ) {
   const { data, error } = await supabase
     .from('scores')
     .select(
-      'id, class_id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted'
+      'id, class_id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted',
     )
     .eq('entry_id', entryId)
     .eq('seat_id', seatId)
@@ -92,20 +75,6 @@ async function getScoreRow(
   return data;
 }
 
-/**
- * One judge-locks-scribe-guarded mark write, shared by setMark/setCollective.
- *
- * The actual write goes through `merge_score_json` — a single atomic
- * `jsonb || patch` UPDATE — rather than reading the row, merging in JS, and
- * upserting the whole column back. That read-modify-write shape has a real
- * race: a judge filling out several marks in quick succession fires
- * multiple writes to the SAME `movements`/`collectives` column, and two
- * requests can each read the row before the other's write lands, silently
- * dropping whichever key isn't in the last one to commit. The lock check
- * below still reads first (it's a permission decision, not the write
- * payload), but the write itself only ever patches the one key changing,
- * so it can never clobber a sibling key regardless of ordering.
- */
 async function writeMark(params: {
   classId: string;
   entryId: string;
@@ -139,7 +108,6 @@ async function writeMark(params: {
   });
   if (mergeError) throw mergeError;
 
-  // A late correction can't silently ride along as still-confirmed.
   if (existing?.submitted) {
     const { error } = await supabase
       .from('scores')
@@ -181,7 +149,11 @@ export async function setCollective(input: unknown) {
 
 export async function setRemark(input: unknown) {
   const parsed = setRemarkSchema.parse(input);
-  await assertSeatAccess(parsed.classId, parsed.seatId, await seatRoleFor(parsed.classId, parsed.seatId));
+  await assertSeatAccess(
+    parsed.classId,
+    parsed.seatId,
+    await seatRoleFor(parsed.classId, parsed.seatId),
+  );
 
   const supabase = await createServerClient();
   const patch = { [String(parsed.movementNum)]: parsed.text } as unknown as Json;
@@ -198,7 +170,11 @@ export async function setRemark(input: unknown) {
 
 export async function setFinalRemarks(input: unknown) {
   const parsed = setFinalRemarksSchema.parse(input);
-  await assertSeatAccess(parsed.classId, parsed.seatId, await seatRoleFor(parsed.classId, parsed.seatId));
+  await assertSeatAccess(
+    parsed.classId,
+    parsed.seatId,
+    await seatRoleFor(parsed.classId, parsed.seatId),
+  );
 
   const supabase = await createServerClient();
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
@@ -211,14 +187,18 @@ export async function setFinalRemarks(input: unknown) {
       seat_id: parsed.seatId,
       final_remarks: parsed.text,
     },
-    { onConflict: 'entry_id,seat_id' }
+    { onConflict: 'entry_id,seat_id' },
   );
   if (error) throw error;
 }
 
 export async function toggleErrorAt(input: unknown) {
   const parsed = toggleErrorAtSchema.parse(input);
-  await assertSeatAccess(parsed.classId, parsed.seatId, await seatRoleFor(parsed.classId, parsed.seatId));
+  await assertSeatAccess(
+    parsed.classId,
+    parsed.seatId,
+    await seatRoleFor(parsed.classId, parsed.seatId),
+  );
 
   const supabase = await createServerClient();
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
@@ -246,7 +226,6 @@ export async function toggleErrorAt(input: unknown) {
   if (error) throw error;
 }
 
-/** Judges sign; scribes cannot — enforced here regardless of what the client sends. */
 export async function submitScoresheet(input: unknown) {
   const parsed = submitScoresheetSchema.parse(input);
 
@@ -268,7 +247,6 @@ export async function submitScoresheet(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/** Admin-only: clears submitted/signed state and leaves an audit trail on the entry. */
 export async function reopenScoresheet(input: unknown) {
   const parsed = reopenScoresheetSchema.parse(input);
   const supabase = await createServerClient();
@@ -301,7 +279,6 @@ export async function reopenScoresheet(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/** Admin free-text note on an already-confirmed ride — a plain overwrite, unlike reopen's append-with-timestamp. */
 export async function correctEntry(input: unknown) {
   const parsed = correctEntrySchema.parse(input);
   const supabase = await createServerClient();
@@ -315,11 +292,6 @@ export async function correctEntry(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/**
- * Every panel seat has submitted for this ride: compute the final numbers
- * and move on. For a holding-queue ride this only clears workingInEntryId —
- * scoringPos, which tracks the normal draw, is untouched.
- */
 export async function advanceRide(input: unknown) {
   const parsed = advanceRideSchema.parse(input);
   const supabase = await createServerClient();
@@ -354,11 +326,13 @@ export async function advanceRide(input: unknown) {
     perSeatScores.push({ row, pct });
   }
 
-  const finalPct = averagePct(perSeatScores.map((s) => (typeof s.pct === 'number' || s.pct === 'ELIM' ? s.pct : null)));
+  const finalPct = averagePct(
+    perSeatScores.map((s) => (typeof s.pct === 'number' || s.pct === 'ELIM' ? s.pct : null)),
+  );
   const ctot = test
     ? collectivesTotal(
         perSeatScores.map((s) => toSheet(toPlainSheetInput(s.row))),
-        test
+        test,
       )
     : null;
 
@@ -394,7 +368,7 @@ async function setTerminalStatus(
   classId: string,
   entryId: string,
   status: 'scratched' | 'disqualified',
-  reason: string | null
+  reason: string | null,
 ) {
   const supabase = await createServerClient();
 
@@ -422,11 +396,6 @@ async function setTerminalStatus(
   revalidatePath(`/dashboard/scoring/${classId}`);
 }
 
-/**
- * Reverses the last scratch/disqualify — the single-level, 20s-window undo.
- * Blocked unless the entry is currently scratched/disqualified, matching
- * legacy: skip has its own dedicated reversal, `unskipRide` below.
- */
 export async function unfinishRide(input: unknown) {
   const parsed = unfinishRideSchema.parse(input);
   const supabase = await createServerClient();
@@ -465,14 +434,12 @@ export async function unfinishRide(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/** Swaps this rider with whoever's immediately next in the running order. */
 export async function skipRide(input: unknown) {
   const parsed = skipRideSchema.parse(input);
   await swapRideOrder(parsed.classId, parsed.entryId, 1);
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/** Reverses a skip — swaps with whoever's immediately before, the exact mirror. */
 export async function unskipRide(input: unknown) {
   const parsed = unskipRideSchema.parse(input);
   await swapRideOrder(parsed.classId, parsed.entryId, -1);
@@ -552,7 +519,6 @@ export async function removeHoldingEntry(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/** Works one holding-queue rider in without disturbing the normal draw's scoringPos. */
 export async function workInEntry(input: unknown) {
   const parsed = workInEntrySchema.parse(input);
   const supabase = await createServerClient();
@@ -566,18 +532,17 @@ export async function workInEntry(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/**
- * Live in-scoring-screen panel edit — upserts one seat's judge/scribe/
- * position, distinct from `judging/data/mutations.ts`'s
- * assignJudgeToClasses/assignScribeToClasses (the pre-show "+ Add User"
- * bulk checklist writers, which stay as they are). Only the fields present
- * in the input are written — omitted fields keep their existing value.
- */
 export async function upsertPanelSeat(input: unknown) {
   const parsed = upsertPanelSeatSchema.parse(input);
   const supabase = await createServerClient();
 
-  const row: { class_id: string; seat_id: string; position?: string | null; judge_staff_id?: string | null; scribe_staff_id?: string | null } = {
+  const row: {
+    class_id: string;
+    seat_id: string;
+    position?: string | null;
+    judge_staff_id?: string | null;
+    scribe_staff_id?: string | null;
+  } = {
     class_id: parsed.classId,
     seat_id: parsed.seatId,
   };
@@ -585,7 +550,9 @@ export async function upsertPanelSeat(input: unknown) {
   if (parsed.judgeStaffId !== undefined) row.judge_staff_id = parsed.judgeStaffId;
   if (parsed.scribeStaffId !== undefined) row.scribe_staff_id = parsed.scribeStaffId;
 
-  const { error } = await supabase.from('class_panel').upsert(row, { onConflict: 'class_id,seat_id' });
+  const { error } = await supabase
+    .from('class_panel')
+    .upsert(row, { onConflict: 'class_id,seat_id' });
   if (error) throw error;
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
@@ -605,10 +572,6 @@ export async function removePanelSeat(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/**
- * No UI reaches this in legacy either — see the doc comment on
- * `setClassTestSchema`. Kept callable for code-level parity only.
- */
 export async function setClassTest(input: unknown) {
   const parsed = setClassTestSchema.parse(input);
   const supabase = await createServerClient();
@@ -621,24 +584,21 @@ export async function setClassTest(input: unknown) {
       movements: parsed.movements,
       collectives: parsed.collectives,
     },
-    { onConflict: 'class_id' }
+    { onConflict: 'class_id' },
   );
   if (error) throw error;
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
-/**
- * Wipes and replaces the whole roster (and every score tied to it) — exactly
- * as destructive as legacy's own `setEntries` action. No UI reaches this in
- * legacy either — see the doc comment on `setClassEntriesSchema`. Kept
- * callable for code-level parity only.
- */
 export async function setClassEntries(input: unknown) {
   const parsed = setClassEntriesSchema.parse(input);
   const supabase = await createServerClient();
 
-  const { error: deleteScoresError } = await supabase.from('scores').delete().eq('class_id', parsed.classId);
+  const { error: deleteScoresError } = await supabase
+    .from('scores')
+    .delete()
+    .eq('class_id', parsed.classId);
   if (deleteScoresError) throw deleteScoresError;
 
   const { error: deleteEntriesError } = await supabase
@@ -658,7 +618,7 @@ export async function setClassEntries(input: unknown) {
         ride_order: i + 1,
         status: 'scheduled',
         holding: false,
-      }))
+      })),
     );
     if (insertError) throw insertError;
   }
@@ -709,16 +669,10 @@ export async function unpublishResults(input: unknown) {
   revalidatePath(JUDGING_HISTORY_PATH);
 }
 
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
-
 async function seatRoleFor(classId: string, seatId: string): Promise<'judge' | 'scribe'> {
   const mySeat = await getMySeat(classId);
   if (mySeat?.seatId === seatId) return mySeat.role;
-  // Org-level caller with no seat of their own — assertSeatAccess still runs
-  // and will accept them; default to 'judge' only for the mark-lock check's
-  // sake, since an org-level write should never be blocked by that rule.
+
   return 'judge';
 }
 
@@ -744,7 +698,7 @@ async function advanceClassPointer(
   supabase: Awaited<ReturnType<typeof createServerClient>>,
   classId: string,
   entry: { ride_order: number; holding: boolean | null },
-  classRow: { scoring_pos: number | null; working_in_entry_id: string | null }
+  classRow: { scoring_pos: number | null; working_in_entry_id: string | null },
 ) {
   if (entry.holding || classRow.working_in_entry_id) {
     const { error } = await supabase

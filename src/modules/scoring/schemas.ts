@@ -88,12 +88,6 @@ export type RemovePanelSeatInput = z.infer<typeof removePanelSeatSchema>;
 const testMovementSchema = z.object({ num: z.number().int(), text: z.string(), coef: z.number() });
 const testCollectiveSchema = z.object({ key: z.string(), label: z.string(), coef: z.number() });
 
-/**
- * No UI calls this in legacy either (`api/shows/[id]/[resource].js`'s
- * `setTest` action has zero client call sites) — kept at code-level parity
- * only, matching legacy's own unreachable shape rather than inventing a
- * live test editor legacy users never had.
- */
 export const setClassTestSchema = z.object({
   classId: z.uuid(),
   name: z.string().trim().min(1),
@@ -103,13 +97,6 @@ export const setClassTestSchema = z.object({
 });
 export type SetClassTestInput = z.infer<typeof setClassTestSchema>;
 
-/**
- * Legacy's only caller is `showrunner-scoring.html`'s own demo-data bootstrap
- * (seeds sample entries when no real test resolved) — not a real admin
- * "replace the roster" feature. Kept at code-level parity only; deliberately
- * not wired to any UI or to that fallback, which would inject fake rider
- * names into a real class.
- */
 export const setClassEntriesSchema = z.object({
   classId: z.uuid(),
   entries: z.array(
@@ -118,7 +105,7 @@ export const setClassEntriesSchema = z.object({
       num: z.string().trim().min(1),
       rider: z.string().trim().nullable().optional(),
       horse: z.string().trim().nullable().optional(),
-    })
+    }),
   ),
 });
 export type SetClassEntriesInput = z.infer<typeof setClassEntriesSchema>;
