@@ -6,14 +6,6 @@ import { MasterScheduleView } from '@/modules/shows/ui/schedule/master-schedule-
 
 export const metadata: Metadata = { title: 'Master Schedule — Field & Arena' };
 
-/**
- * Master Schedule — the built ride-by-ride schedule for the focused show,
- * ported from showstaff.html's renderScheduleNavView.
- *
- * The schedule is derived, not stored: it is rebuilt from the show's classes,
- * entries, rings and scheduling rules on every read, so changing a ride time
- * or adding an entry is reflected without anything to regenerate by hand.
- */
 export default async function MasterSchedulePage({
   searchParams,
 }: {

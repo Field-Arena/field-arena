@@ -14,12 +14,6 @@ import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview
 
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
-/**
- * The Judge and Scribe workspace's "My Assignments" tab, rebuilt to match
- * Judge Workspace.dc.html — today's ring times, then everything upcoming.
- * Not scoped to one show, unlike the organizer pages: an official works
- * across organizations and needs one list of everything they are booked on.
- */
 export default async function JudgingPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realPanelContacts] = await Promise.all([

@@ -11,11 +11,6 @@ import { ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
-/**
- * General rule references, ported from Judge Workspace.dc.html's Documents
- * tab layout, with real external hrefs from legacy judge-scribe.html's
- * DOCS array (USDF/USEF sources) — see JUDGING_REFERENCE_DOCS.
- */
 export default async function JudgingDocumentsPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realContacts] = await Promise.all([

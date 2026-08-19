@@ -11,7 +11,6 @@ import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 
 export const metadata: Metadata = { title: 'Panel & Contacts — Field & Arena' };
 
-/** Who else is seated on a panel with this person, across every class they're on. */
 export default async function JudgingPanelPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realContacts] = await Promise.all([

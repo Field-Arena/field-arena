@@ -6,11 +6,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Contacts — Field & Arena' };
 
-/**
- * "Contacts" — ported from announcer.html's Contacts tab: the judges,
- * scribes, and show secretary an announcer may need to reach mid-show.
- * Was missing entirely from the migrated Announcer dashboard until now.
- */
 export default async function AnnouncingContactsPage({
   searchParams,
 }: {

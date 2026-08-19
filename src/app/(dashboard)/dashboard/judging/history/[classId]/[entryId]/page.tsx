@@ -8,11 +8,6 @@ import { CollectivesMarksTable } from '@/modules/judging/ui/collectives-marks-ta
 
 export const metadata: Metadata = { title: 'Scorecard — Field & Arena' };
 
-/**
- * History drill-down, level 3: one rider's full per-movement scorecard,
- * marks averaged across every seat that scored them. Ported from
- * judge-scribe.html's `historyView()` rider-detail state.
- */
 export default async function HistoryScorecardPage({
   params,
 }: {
@@ -27,7 +22,7 @@ export default async function HistoryScorecardPage({
       <div className="mb-[22px]">
         <Link
           href={`/dashboard/judging/history/${classId}`}
-          className="mb-2 inline-block text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+          className="hover:text-gold mb-2 inline-block text-[13px] font-semibold text-[#5A6B63]"
         >
           ← Back to placings
         </Link>
@@ -40,7 +35,9 @@ export default async function HistoryScorecardPage({
       </div>
 
       {!card.test ? (
-        <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">No test definition on file for this ride.</Card>
+        <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
+          No test definition on file for this ride.
+        </Card>
       ) : (
         <div className="flex flex-col gap-4">
           <MovementsMarksTable
@@ -50,7 +47,10 @@ export default async function HistoryScorecardPage({
           />
 
           {card.test.collectives.length > 0 && (
-            <CollectivesMarksTable collectives={card.test.collectives} marks={card.collectiveMarks} />
+            <CollectivesMarksTable
+              collectives={card.test.collectives}
+              marks={card.collectiveMarks}
+            />
           )}
         </div>
       )}

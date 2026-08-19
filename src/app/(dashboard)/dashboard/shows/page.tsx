@@ -10,23 +10,12 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
-/**
- * Show Manager's landing screen: pick a show.
- *
- * Every tab from here on is scoped to one show, so this route's job is the
- * choice itself. It previously rendered the classes-and-divisions table for
- * whichever show was focused — that content now lives on the Select Events tab,
- * where it is edited rather than only listed.
- */
 export default async function ShowManagerPage() {
   const context = await getOrganizerContext();
 
   if (!context.orgId) {
     return (
-      <EmptyPanel
-        title="No organization"
-        note="This account is not attached to an organization."
-      />
+      <EmptyPanel title="No organization" note="This account is not attached to an organization." />
     );
   }
 
@@ -35,7 +24,7 @@ export default async function ShowManagerPage() {
     shows.map(async (show) => ({
       show,
       completeness: await getShowCompleteness(show.id),
-    }))
+    })),
   );
 
   return <ShowPickerScreen orgName={context.orgName} rows={rows} />;

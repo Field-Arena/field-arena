@@ -13,7 +13,6 @@ import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 
 export const metadata: Metadata = { title: 'History — Field & Arena' };
 
-/** Classes this person has completed — published results, or dates already past. */
 export default async function JudgingHistoryPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, assignments, realContacts] = await Promise.all([
@@ -22,10 +21,7 @@ export default async function JudgingHistoryPage() {
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
-  // Only the status card's ring/panel strip borrows the demo data, for the
-  // same "Ring 1" consistency the design shows on every tab — the History
-  // list itself stays real (and so, for a SuperAdmin, empty): neither the
-  // design nor legacy's own demo judge ever had completed classes to show.
+
   const snapshotAssignments = isSuperAdminPreview ? buildDemoAssignments(todayIso) : assignments;
   const snapshotContacts = isSuperAdminPreview ? buildDemoPanelContacts() : realContacts;
   const snapshot = buildTodaySnapshot(snapshotAssignments, snapshotContacts, todayIso);

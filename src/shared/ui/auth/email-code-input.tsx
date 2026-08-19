@@ -3,21 +3,6 @@
 import { useRef, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
 
-/**
- * The six single-character boxes for the emailed confirmation code.
- *
- * Three behaviours are what make this usable rather than infuriating, and all
- * three are easy to omit:
- *
- *  - Pasting the whole code into any box fills the rest. People paste codes from
- *    their mail client; without this, only the first digit lands.
- *  - Backspace in an empty box clears and focuses the previous one, so holding
- *    it deletes the code rather than stalling on the first empty box.
- *  - Arrow keys move between boxes.
- *
- * The value is held by the parent as one string, so the form validates a single
- * field rather than six.
- */
 export function EmailCodeInput({
   value,
   onChange,
@@ -43,8 +28,7 @@ export function EmailCodeInput({
     if (!typed) return;
 
     const chars = digits.map((d) => (d === ' ' ? '' : d));
-    // More than one character means a paste — spread it across the remaining
-    // boxes instead of dropping everything after the first.
+
     typed.split('').forEach((digit, offset) => {
       if (index + offset < EMAIL_CODE_LENGTH) chars[index + offset] = digit;
     });
@@ -77,7 +61,6 @@ export function EmailCodeInput({
     <div className="flex gap-2.5">
       {digits.map((digit, index) => (
         <input
-          // Index is the identity here — these are fixed positions, not a list.
           key={index}
           ref={(element) => {
             inputs.current[index] = element;
@@ -97,7 +80,7 @@ export function EmailCodeInput({
             onPaste(index, event);
           }}
           aria-label={`Digit ${String(index + 1)}`}
-          className="h-[62px] w-full rounded-[10px] border border-field bg-white text-center font-[family-name:var(--font-nr)] text-[28px] font-medium text-forest outline-none transition-shadow focus:border-gold focus:shadow-[0_0_0_3px_rgba(201,162,39,.16)] disabled:opacity-60"
+          className="border-field text-forest focus:border-gold h-[62px] w-full rounded-[10px] border bg-white text-center font-[family-name:var(--font-nr)] text-[28px] font-medium transition-shadow outline-none focus:shadow-[0_0_0_3px_rgba(201,162,39,.16)] disabled:opacity-60"
         />
       ))}
     </div>

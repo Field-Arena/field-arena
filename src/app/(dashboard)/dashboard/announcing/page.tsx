@@ -8,15 +8,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Up Next — Field & Arena' };
 
-/**
- * The announcer dashboard, ported from announcer.html: active rings, who's
- * actually in the ring right now, and who rides next. Live results (every
- * score as it's confirmed) live on their own page — see
- * `/dashboard/announcing/results`.
- *
- * Read-only throughout, matching the permission model — an Announcer's defaults
- * are empty, because they call what is happening rather than change it.
- */
 export default async function AnnouncingPage({
   searchParams,
 }: {
@@ -64,7 +55,10 @@ export default async function AnnouncingPage({
         <AllRingsTable rings={rings} />
 
         <p style={{ marginTop: 26 }}>
-          <a href={`${ANNOUNCING_RESULTS_PATH}?show=${currentShow.id}`} className="dash-btn dash-btn-outline">
+          <a
+            href={`${ANNOUNCING_RESULTS_PATH}?show=${currentShow.id}`}
+            className="dash-btn dash-btn-outline"
+          >
             View results — live →
           </a>
         </p>

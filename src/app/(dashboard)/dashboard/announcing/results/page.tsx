@@ -6,15 +6,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Results — Live — Field & Arena' };
 
-/**
- * "Results — Live" — the Announcer rail's second nav item
- * (`ROLE_NAV.Announcer`, `modules/staff/constants.ts`), which pointed here
- * with no page behind it until now. This table used to live inline on the
- * "Up Next" page instead; it now has the route the nav item always promised,
- * and the "Up Next" page links here rather than duplicating it. See
- * `getLiveResults`'s doc comment for why this shows every confirmed score,
- * not just classes the organizer has explicitly published.
- */
 export default async function AnnouncingResultsPage({
   searchParams,
 }: {

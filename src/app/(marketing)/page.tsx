@@ -26,20 +26,7 @@ export const metadata: Metadata = {
     'Entries, payments, scheduling, officials, show-day operations, scoring, results, vendors, and volunteers — connected in one system built for equestrian competition.',
 };
 
-/**
- * The marketing landing page, entirely server-rendered.
- *
- * The design reference ships no JavaScript at all — the discipline marquee and
- * the pulsing status dots are CSS animations, and everything else is a hover
- * state. The one client component is the mobile nav drawer inside LandingNav,
- * which needs open/closed state that the desktop-only reference never had.
- */
 export default async function LandingPage() {
-  // A signed-in user who lands on the marketing home is sent straight to their
-  // own workspace — clicking the domain again after logging in should reopen the
-  // app, not the public brochure. Resolved per role so a Super Admin lands on the
-  // console and a rider on their portal, not a one-size dashboard. Anonymous
-  // visitors (both lookups null) fall through to the landing below.
   const staff = await getStaffProfile();
   if (staff) {
     const workspace = staff.platform_role ? ROLE_WORKSPACES[staff.platform_role] : undefined;
@@ -51,7 +38,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="fa-public bg-paper font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="fa-public bg-paper text-ink-deep font-[family-name:var(--font-ar)]">
       <LandingNav />
       <main>
         <LandingHero />

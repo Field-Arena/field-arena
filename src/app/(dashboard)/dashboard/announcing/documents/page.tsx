@@ -6,15 +6,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
-/**
- * "Documents" — ported from announcer.html's Documents section: the show's
- * real document library (rider pronunciation guides, sponsor read copy, PA
- * quick-start sheets), previously previewed inline via an iframe. Was
- * missing entirely from the migrated Announcer dashboard until now — opens
- * in a new tab rather than an inline iframe preview, matching how documents
- * are already opened elsewhere in this app (e.g. `modules/judging`'s
- * reference docs) rather than introducing a one-off inline-preview pattern.
- */
 export default async function AnnouncingDocumentsPage({
   searchParams,
 }: {

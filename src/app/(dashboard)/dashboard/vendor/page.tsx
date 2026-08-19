@@ -12,29 +12,16 @@ import { previewAmountDue } from '@/modules/vendors/utils/preview-amount-due';
 
 export const metadata: Metadata = { title: 'My Bookings — Field & Arena' };
 
-/**
- * "My Bookings" — ported from vendor.html's first tab: booth space reserved
- * across every organizer and show. Booth browsing/applying moved to its own
- * page at /dashboard/vendor/discover, matching this workspace's nav (each
- * ROLE_NAV entry is its own route, same as Judge/Announcer's split).
- *
- * `?booking=<id>&checkoutSession=<id>` (Stripe's success_url, set in
- * createVendorCheckoutSession) short-circuits the page into a confirmation
- * view, resolved server-side — same pattern as
- * app/rider/shows/[showId]/page.tsx's own return-from-Stripe handling.
- * `?checkoutCanceled=1` (Stripe's cancel_url) is a quieter notice on top of
- * the normal bookings list, not a separate screen.
- *
- * A vendor's identity is platform-wide rather than tied to one organizer, so
- * this is not scoped to an organization.
- */
 export default async function VendorPage({
   searchParams,
 }: {
   searchParams: Promise<{ booking?: string; checkoutSession?: string; checkoutCanceled?: string }>;
 }) {
-  const { booking: confirmBookingId, checkoutSession: checkoutSessionId, checkoutCanceled } =
-    await searchParams;
+  const {
+    booking: confirmBookingId,
+    checkoutSession: checkoutSessionId,
+    checkoutCanceled,
+  } = await searchParams;
 
   if (confirmBookingId && checkoutSessionId) {
     const result = await confirmVendorCheckoutSession({
@@ -155,9 +142,6 @@ export default async function VendorPage({
                   {booking.status === 'approved' && (
                     <div style={{ marginTop: 8 }}>
                       {booking.agreementSignedAt ? (
-                        // Mirrors legacy's own waiver-style gate (vendor.html's
-                        // openRealPay): a vendor must sign the booth agreement
-                        // before payment is offered.
                         <VendorPayButton
                           bookingId={booking.id}
                           amountDue={previewAmountDue(booking.items)}

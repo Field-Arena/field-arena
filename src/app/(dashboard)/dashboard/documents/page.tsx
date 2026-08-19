@@ -7,15 +7,6 @@ import { formatTimestamp } from '@/shared/lib/format/date';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
-/**
- * Two different things share this page, as they did in the legacy view.
- *
- * Document *requirements* are what a rider must upload before their horse counts
- * as compliant — Coggins, vaccination records. Document *library* files are what
- * the organizer publishes to competitors: prize lists, maps, schedules. They are
- * unrelated apart from both being paperwork, so they are labelled distinctly
- * rather than merged into one list.
- */
 export default async function DocumentsPage({
   searchParams,
 }: {

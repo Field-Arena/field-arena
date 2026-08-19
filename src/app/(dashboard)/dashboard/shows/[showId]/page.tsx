@@ -26,27 +26,6 @@ import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
-/**
- * Show Manager, Setup tab: /dashboard/shows/[showId].
- *
- * A readiness meter (real per-section checks from getShowCompleteness), then
- * all eight of the design's Setup cards, in the design's own order: Show
- * Details, Venue, Contact, Prize list, Class divisions, Required Documents
- * + Merchandise Sales (side by side), Waiver of Liability, Schedule
- * preferences.
- *
- * getShowSetupDetail is called directly rather than through
- * getOrganizerContext(showId) — that helper falls back to the caller's
- * first show when the requested id isn't found (right for the `?show=`
- * picker pages it was built for, wrong here: silently landing on a
- * different show than the one in the URL would be confusing at best). A
- * missing/RLS-blocked id renders the not-found panel below instead.
- *
- * The isUuid check comes first because a malformed id (e.g. a stale
- * "/shows/new" link, now shadowed by this dynamic segment since that route
- * was replaced by an instant-create button) is not "not found" to Postgres —
- * it is a raw invalid-input-syntax error, uncaught unless ruled out here.
- */
 export default async function ShowManagerPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const show = isUuid(showId) ? await getShowSetupDetail(showId) : null;

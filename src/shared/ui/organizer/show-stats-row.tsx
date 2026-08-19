@@ -5,18 +5,6 @@ import { IconHorse } from './icons';
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { ShowStats } from '@/modules/shows/data/queries';
 
-/**
- * The six-stat-card row from the Admin Console design's Dashboard — riders,
- * entries, horses, vendor spaces, tests offered, revenue — reused verbatim
- * on every Show Manager tab. The design repeats this exact row (plus the
- * lifecycle bar) above every tab's own content, not only on the Dashboard;
- * see ShowManagerShell for where the rest of that header lives.
- *
- * Extracted to shared/ rather than living in one module because both the
- * staff module's DashboardOverview and the shows module's ShowManagerShell
- * need the identical row and neither may import the other's internals.
- */
-/** The design's own per-card tints, verbatim from its wsStats definitions. */
 const STAT_TINTS = [
   { bg: '#EEF0FB', fg: '#5B67C7' }, // riders
   { bg: '#E9F1FB', fg: '#2F6FB0' }, // entries
@@ -33,13 +21,9 @@ export function ShowStatsRow({
 }: {
   stats: ShowStats;
   canViewMoney: boolean;
-  /** Enables the design's "view list →" links, which are all show-scoped. */
+
   showId?: string;
 }) {
-  /**
-   * Where each card's "view list →" goes. Revenue has no destination — it is
-   * static in the design too.
-   */
   const links: Record<string, string | undefined> = showId
     ? {
         'Total riders': `/dashboard/riders?show=${showId}`,
@@ -51,11 +35,31 @@ export function ShowStatsRow({
     : {};
 
   const statCards = [
-    { icon: <Users className="size-[18px]" aria-hidden />, label: 'Total riders', value: stats.riders, note: 'this show' },
-    { icon: <ClipboardList className="size-[18px]" aria-hidden />, label: 'Entries sold', value: stats.entries, note: 'this show' },
+    {
+      icon: <Users className="size-[18px]" aria-hidden />,
+      label: 'Total riders',
+      value: stats.riders,
+      note: 'this show',
+    },
+    {
+      icon: <ClipboardList className="size-[18px]" aria-hidden />,
+      label: 'Entries sold',
+      value: stats.entries,
+      note: 'this show',
+    },
     { icon: <IconHorse size={18} />, label: 'Horses', value: stats.horses, note: 'this show' },
-    { icon: <Tent className="size-[18px]" aria-hidden />, label: 'Vendor spaces', value: stats.vendorSpaces, note: 'booths sold' },
-    { icon: <FileText className="size-[18px]" aria-hidden />, label: 'Tests offered', value: stats.testsOffered, note: 'this show' },
+    {
+      icon: <Tent className="size-[18px]" aria-hidden />,
+      label: 'Vendor spaces',
+      value: stats.vendorSpaces,
+      note: 'booths sold',
+    },
+    {
+      icon: <FileText className="size-[18px]" aria-hidden />,
+      label: 'Tests offered',
+      value: stats.testsOffered,
+      note: 'this show',
+    },
     ...(canViewMoney
       ? [
           {
@@ -81,8 +85,7 @@ export function ShowStatsRow({
             icon={card.icon}
             value={value}
             label={card.label}
-            // The design appends "· view list →" only to the cards that lead
-            // somewhere; Revenue is static there and stays static here.
+
             note={href ? `${card.note} · view list →` : card.note}
             tintBg={tint.bg}
             tintFg={tint.fg}
@@ -90,8 +93,6 @@ export function ShowStatsRow({
         );
 
         return href ? (
-          // Wrapped rather than given an onClick: it is a navigation, so it
-          // should middle-click, open in a tab, and show its target on hover.
           <Link key={card.label} href={href} className="contents">
             {stat}
           </Link>
