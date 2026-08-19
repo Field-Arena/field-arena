@@ -4,16 +4,6 @@ import {
   type PermissionKey,
 } from '@/shared/constants/permissions';
 
-/**
- * Resolves a staff_assignments row's effective permissions for the ShowStaff
- * operations module. Reimplemented locally rather than imported from
- * `modules/staff/utils.ts` or `modules/scoring/utils.ts` because a module may
- * not reach into another module's internals — this is another copy of the
- * same merge logic. Postgres RLS remains the real security boundary; this
- * only decides which panels render — specifically the Vendors tab, gated on
- * `canViewMoney` exactly as the legacy `/api/shows/:id/vendors` endpoint
- * gated it server-side.
- */
 export function resolveOperationsPermissions(input: {
   role: string;
   permissions: unknown;

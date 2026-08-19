@@ -8,12 +8,6 @@ import { classStatusLabel } from '@/modules/operations/utils/class-status-label'
 import { fmtTimeLabel } from '@/modules/operations/utils/fmt-time-label';
 import { ClassResultsBlock } from '@/modules/operations/ui/class-results-block';
 
-/**
- * The Schedule tab, ported from viewSchedule()/classResultsBlock(). Grouped
- * by day, one expandable row per class — clicking a row reveals its
- * placings (once anything is scored) and its full ride order, same as
- * legacy's toggleSched().
- */
 export function ScheduleList({ classes }: { classes: ScheduleClass[] }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -36,7 +30,9 @@ export function ScheduleList({ classes }: { classes: ScheduleClass[] }) {
     <div>
       {days.map(([date, dayClasses]) => (
         <div key={date} style={{ marginBottom: 22 }}>
-          <h2 className="show-detail-title">{date === 'unscheduled' ? 'Unscheduled' : formatShowDate(date)}</h2>
+          <h2 className="show-detail-title">
+            {date === 'unscheduled' ? 'Unscheduled' : formatShowDate(date)}
+          </h2>
           <div style={{ overflowX: 'auto' }}>
             <table>
               <thead>
@@ -58,13 +54,17 @@ export function ScheduleList({ classes }: { classes: ScheduleClass[] }) {
                       }}
                       style={{ cursor: 'pointer' }}
                     >
-                      <td style={{ color: 'var(--fa-muted)', width: 20 }}>{expanded[c.id] ? '▾' : '▸'}</td>
+                      <td style={{ color: 'var(--fa-muted)', width: 20 }}>
+                        {expanded[c.id] ? '▾' : '▸'}
+                      </td>
                       <td>{fmtTimeLabel(c.time)}</td>
                       <td>{c.ring ?? '—'}</td>
                       <td>{c.label}</td>
                       <td className="r">{c.entryCount}</td>
                       <td className="r">
-                        <StatusBadge tone={statusTone(c.status)}>{classStatusLabel(c.status)}</StatusBadge>
+                        <StatusBadge tone={statusTone(c.status)}>
+                          {classStatusLabel(c.status)}
+                        </StatusBadge>
                       </td>
                     </tr>
                     {expanded[c.id] && (

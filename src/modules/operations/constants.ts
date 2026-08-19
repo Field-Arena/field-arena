@@ -1,10 +1,7 @@
-/** Revalidated after ShowStaff's one write path — uploading a document. */
 export const OPERATIONS_DOCUMENTS_PATH = '/dashboard/operations/documents';
 
-/** Platform/org-level roles that hold every operations permission implicitly — they're never a staff_assignments row at all. */
 export const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
 
-/** Ported from showstaff-ops.html's RIBBONS/ribbon()/ribBorder() — colors for 1st through 8th place. */
 export const RIBBONS: { bg: string; fg: string; name: string }[] = [
   { bg: '#1E5AA8', fg: '#ffffff', name: 'Blue' },
   { bg: '#C0392B', fg: '#ffffff', name: 'Red' },

@@ -2,7 +2,6 @@ import type { ScheduleClass } from '@/modules/operations/data/queries';
 import { RibbonSwatch } from '@/modules/operations/ui/ribbon-swatch';
 import { RideOrderTable } from '@/modules/operations/ui/ride-order-table';
 
-/** The expanded row content under a class in ScheduleList — placings (once scored) plus the full ride order. */
 export function ClassResultsBlock({ cls }: { cls: ScheduleClass }) {
   return (
     <div style={{ padding: '10px 4px 14px' }}>
@@ -16,7 +15,14 @@ export function ClassResultsBlock({ cls }: { cls: ScheduleClass }) {
 
       {cls.placings.length > 0 && (
         <>
-          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 14, color: 'var(--hunter-deep)', margin: '0 0 6px' }}>
+          <h3
+            style={{
+              fontFamily: 'var(--serif)',
+              fontSize: 14,
+              color: 'var(--hunter-deep)',
+              margin: '0 0 6px',
+            }}
+          >
             Placings
           </h3>
           <table>

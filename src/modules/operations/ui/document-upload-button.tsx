@@ -3,12 +3,6 @@ import type { ChangeEvent } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
 import { useUploadShowDocument } from '@/modules/operations/hooks/use-document-mutations';
 
-/**
- * "+ Upload PDF", ported from viewDocuments()'s hidden file input. Loops over
- * every selected file, silently skips anything that isn't a PDF (same as
- * legacy), and reads each one to base64 client-side before handing it to the
- * upload Server Action.
- */
 export function DocumentUploadButton({ showId }: { showId: string }) {
   const { mutate, isPending } = useUploadShowDocument();
 

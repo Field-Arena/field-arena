@@ -4,7 +4,6 @@ import { Input } from '@/shared/ui/shadcn/input';
 import type { HorseDirectoryRow } from '@/modules/operations/data/queries';
 import { searchStyle } from '@/modules/operations/ui/directory-styles';
 
-/** "Horses" — ported from showstaff-ops.html's viewHorses()/horsesRows(). */
 export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {
   const [term, setTerm] = useState('');
 
@@ -12,7 +11,7 @@ export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {
     const q = term.trim().toLowerCase();
     if (!q) return horses;
     return horses.filter(
-      (h) => h.horseName.toLowerCase().includes(q) || h.riderName.toLowerCase().includes(q)
+      (h) => h.horseName.toLowerCase().includes(q) || h.riderName.toLowerCase().includes(q),
     );
   }, [term, horses]);
 

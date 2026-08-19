@@ -1,7 +1,8 @@
 import type { ScheduleEntry } from '@/modules/operations/data/queries';
 
 export function RideOrderTable({ entries }: { entries: ScheduleEntry[] }) {
-  if (entries.length === 0) return <p style={{ color: 'var(--fa-muted)', fontSize: 13 }}>No entries.</p>;
+  if (entries.length === 0)
+    return <p style={{ color: 'var(--fa-muted)', fontSize: 13 }}>No entries.</p>;
   return (
     <table>
       <thead>

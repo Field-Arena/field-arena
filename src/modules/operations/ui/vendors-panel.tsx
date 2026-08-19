@@ -1,13 +1,13 @@
 'use client';
 import type { VendorRow } from '@/modules/operations/data/queries';
 
-/**
- * "Vendors" — ported from showstaff-ops.html's viewVendors(). `vendors` is
- * already an empty array by the time this renders unless the caller was
- * granted `canViewMoney` (see the page component) — matching legacy's
- * server-side 403 on the whole resource, not just a render-time hide.
- */
-export function VendorsPanel({ vendors, canViewVendors }: { vendors: VendorRow[]; canViewVendors: boolean }) {
+export function VendorsPanel({
+  vendors,
+  canViewVendors,
+}: {
+  vendors: VendorRow[];
+  canViewVendors: boolean;
+}) {
   return (
     <div className="dash-card">
       <h2 style={{ fontSize: 17, color: 'var(--hunter-deep)', margin: '0 0 4px' }}>
@@ -22,7 +22,10 @@ export function VendorsPanel({ vendors, canViewVendors }: { vendors: VendorRow[]
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
           {vendors.map((v) => (
-            <div key={v.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+            <div
+              key={v.id}
+              style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}
+            >
               <div style={{ fontWeight: 700, color: 'var(--hunter-deep)' }}>{v.name}</div>
               <div
                 style={{
@@ -37,7 +40,8 @@ export function VendorsPanel({ vendors, canViewVendors }: { vendors: VendorRow[]
                 {v.productsOffered ?? v.status}
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--fa-muted)', lineHeight: 1.5 }}>
-                {v.itemCount} space{v.itemCount === 1 ? '' : 's'} · {v.contact ?? v.contactName ?? v.phone ?? '—'}
+                {v.itemCount} space{v.itemCount === 1 ? '' : 's'} ·{' '}
+                {v.contact ?? v.contactName ?? v.phone ?? '—'}
               </div>
             </div>
           ))}

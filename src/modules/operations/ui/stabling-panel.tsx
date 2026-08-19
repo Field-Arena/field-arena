@@ -2,7 +2,6 @@
 import { useMemo } from 'react';
 import type { StablingData } from '@/modules/operations/data/queries';
 
-/** "Stabling" — ported from showstaff-ops.html's viewStabling(). */
 export function StablingPanel({ stabling }: { stabling: StablingData }) {
   const byStable = useMemo(() => {
     const map = new Map<string, StablingData['stalls']>();
@@ -36,7 +35,10 @@ export function StablingPanel({ stabling }: { stabling: StablingData }) {
                 margin: '10px 0 6px',
               }}
             >
-              {stable} <span style={{ fontWeight: 400, color: 'var(--fa-muted)' }}>({stalls.length} stalls)</span>
+              {stable}{' '}
+              <span style={{ fontWeight: 400, color: 'var(--fa-muted)' }}>
+                ({stalls.length} stalls)
+              </span>
             </h3>
             <div style={{ overflowX: 'auto' }}>
               <table>
