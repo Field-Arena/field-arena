@@ -1,7 +1,7 @@
 'use client';
 
-import { useEntryCartStore } from '../store';
-import type { ClassWithCapacity, HorseWithDocumentUrls } from '../types';
+import { useEntryCartStore } from '@/modules/riders/store';
+import type { ClassWithCapacity, HorseWithDocumentUrls } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Button } from '@/shared/ui/shadcn/button';
 
@@ -80,15 +80,16 @@ export function ClassHorseAssignment({
                   </div>
                 ))}
               </div>
-              <button
+              <Button
                 type="button"
-                className="mt-1.5 text-xs font-medium text-forest underline-offset-2 hover:underline"
+                variant="ghost"
+                className="h-auto rounded-none px-0 py-0 text-xs font-medium text-forest underline-offset-2 hover:bg-transparent hover:underline"
                 onClick={() => {
                   addClassHorseSlot(cls.id);
                 }}
               >
                 + Enter this class on another horse too
-              </button>
+              </Button>
             </div>
           );
         })}

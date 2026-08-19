@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RIDER_CATEGORIES } from './constants';
+import { RIDER_CATEGORIES } from '@/modules/riders/constants';
 
 /**
  * Self-service rider account creation — the "buy first, account second" entry

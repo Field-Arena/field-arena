@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { FinalizeOrderResult } from '../types';
+import type { FinalizeOrderResult } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 
 /**

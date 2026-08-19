@@ -5,7 +5,7 @@ import {
   HORSE_DOCUMENTS_BUCKET,
   HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS,
   NON_CAPPED_ENTRY_STATUS,
-} from '../constants';
+} from '@/modules/riders/constants';
 import type {
   AddOnWithRemaining,
   ClassEntryStatus,
@@ -21,7 +21,7 @@ import type {
   RiderScorecard,
   RiderScorecardCard,
   WaiverSignatureRow,
-} from '../types';
+} from '@/modules/riders/types';
 
 /**
  * The signed-in rider's own profile, or null.

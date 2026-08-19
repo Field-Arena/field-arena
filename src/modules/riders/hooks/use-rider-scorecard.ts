@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { RiderScorecard } from '../types';
+import type { RiderScorecard } from '@/modules/riders/types';
 
 type ScorecardState =
   | { status: 'idle' }

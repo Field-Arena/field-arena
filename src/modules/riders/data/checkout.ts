@@ -6,9 +6,15 @@ import { env } from '@/shared/lib/env';
 import { UserFacingError } from '@/shared/lib/action-result';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { Json } from '@/shared/types/database.types';
-import { NON_CAPPED_ENTRY_STATUS } from '../constants';
-import { parseTicketWindow, getTicketWindowStatus, riderCategoryToDivisionCode } from '../utils';
-import type { CheckoutAddOnLine, CheckoutCartLine } from '../schemas';
+import {
+  DEFAULT_STARTING_RIDER_NUMBER,
+  NON_CAPPED_ENTRY_STATUS,
+  RIDER_NUMBER_PAD_WIDTH,
+} from '@/modules/riders/constants';
+import { parseTicketWindow } from '@/modules/riders/utils/parse-ticket-window';
+import { getTicketWindowStatus } from '@/modules/riders/utils/get-ticket-window-status';
+import { riderCategoryToDivisionCode } from '@/modules/riders/utils/rider-category-to-division-code';
+import type { CheckoutAddOnLine, CheckoutCartLine } from '@/modules/riders/schemas';
 import type {
   ClassEntryRow,
   FinalizeOrderResult,
@@ -16,7 +22,7 @@ import type {
   OrderRow,
   PricedCart,
   RiderRow,
-} from '../types';
+} from '@/modules/riders/types';
 
 /**
  * The real backend for the rider checkout flow — cart pricing, Stripe
@@ -365,7 +371,7 @@ async function nextRiderNumberForShow(
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
-  const base = show?.starting_rider_number ?? 101;
+  const base = show?.starting_rider_number ?? DEFAULT_STARTING_RIDER_NUMBER;
 
   const { data: classRows, error: classError } = await admin
     .from('classes')
@@ -373,7 +379,7 @@ async function nextRiderNumberForShow(
     .eq('show_id', showId);
   if (classError) throw classError;
   const classIds = classRows.map((c) => c.id);
-  if (!classIds.length) return String(base).padStart(4, '0');
+  if (!classIds.length) return String(base).padStart(RIDER_NUMBER_PAD_WIDTH, '0');
 
   const { data: mine, error: mineError } = await admin
     .from('class_entries')
@@ -392,7 +398,7 @@ async function nextRiderNumberForShow(
     .not('rider_id', 'is', null);
   if (distinctError) throw distinctError;
   const distinctRiderCount = new Set(distinctRows.map((r) => r.rider_id)).size;
-  return String(base + distinctRiderCount).padStart(4, '0');
+  return String(base + distinctRiderCount).padStart(RIDER_NUMBER_PAD_WIDTH, '0');
 }
 
 /**

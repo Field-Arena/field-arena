@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSignWaiver } from '../hooks/use-waiver-mutations';
-import type { WaiverSignatureRow } from '../types';
+import { useSignWaiver } from '@/modules/riders/hooks/use-waiver-mutations';
+import type { WaiverSignatureRow } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';

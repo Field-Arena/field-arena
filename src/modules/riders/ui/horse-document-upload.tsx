@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useDeleteHorseDocument, useUploadHorseDocument } from '../hooks/use-horse-mutations';
-import type { DocumentRequirement, HorseDocumentUploadWithUrl } from '../types';
+import { useDeleteHorseDocument, useUploadHorseDocument } from '@/modules/riders/hooks/use-horse-mutations';
+import type { DocumentRequirement, HorseDocumentUploadWithUrl } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 
@@ -92,7 +92,7 @@ export function HorseDocumentUpload({
         </div>
       )}
 
-      <input
+      <Input
         ref={fileInputRef}
         type="file"
         accept="image/*,application/pdf"

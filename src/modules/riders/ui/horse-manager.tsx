@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useCreateHorse, useDeleteHorse, useUpdateHorse } from '../hooks/use-horse-mutations';
-import { HorseDocumentUpload } from './horse-document-upload';
-import type { DocumentRequirement, HorseWithDocumentUrls } from '../types';
+import { useCreateHorse, useDeleteHorse, useUpdateHorse } from '@/modules/riders/hooks/use-horse-mutations';
+import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
+import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';

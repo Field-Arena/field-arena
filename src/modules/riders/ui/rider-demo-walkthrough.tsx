@@ -3,19 +3,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { StepPillNav, type StepPillNavStep } from '@/shared/ui/step-pill-nav';
-import { useEntryCartStore } from '../store';
-import { ClassPicker } from './class-picker';
-import { AddOnPicker } from './addon-picker';
-import { RiderDemoAccountStep } from './rider-demo-account-step';
-import { RiderDemoDetailsStep } from './rider-demo-details-step';
-import { RiderDemoPaymentStep } from './rider-demo-payment-step';
-import { CheckoutConfirmation } from './checkout-confirmation';
+import { SUPERADMIN_CONSOLE_ROUTE } from '@/modules/riders/constants';
+import { useEntryCartStore } from '@/modules/riders/store';
+import { ClassPicker } from '@/modules/riders/ui/class-picker';
+import { AddOnPicker } from '@/modules/riders/ui/addon-picker';
+import { RiderDemoAccountStep } from '@/modules/riders/ui/rider-demo-account-step';
+import { RiderDemoDetailsStep } from '@/modules/riders/ui/rider-demo-details-step';
+import { RiderDemoPaymentStep } from '@/modules/riders/ui/rider-demo-payment-step';
+import { CheckoutConfirmation } from '@/modules/riders/ui/checkout-confirmation';
 import type {
   AddOnWithRemaining,
   ClassWithCapacity,
   FinalizeOrderResult,
   QualTypeRow,
-} from '../types';
+} from '@/modules/riders/types';
 
 const DEMO_SHOW_ID = 'demo-show';
 
@@ -182,7 +183,7 @@ export function RiderDemoWalkthrough({
       {showBackToConsole && (
         <div className="flex items-center border-b border-[#E9EDEB] bg-white px-5 py-2.5">
           <Link
-            href="/dashboard/superadmin"
+            href={SUPERADMIN_CONSOLE_ROUTE}
             className="text-forest hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
           >
             ← Back to console

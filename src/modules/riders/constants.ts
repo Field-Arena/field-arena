@@ -44,3 +44,27 @@ export const HORSE_DOCUMENTS_BUCKET = 'horse-documents';
  * (listRiderHorses), not cached long-term.
  */
 export const HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS = 60 * 10;
+
+/**
+ * Fallback rider-facing max for an add-on quantity input when the add-on has
+ * no configured `qty` cap (`remaining` is null, i.e. unlimited) — the input
+ * still needs SOME upper bound. Not a real inventory limit, just a sane stop
+ * on the number field (see ui/addon-picker.tsx).
+ */
+export const UNLIMITED_ADD_ON_QUANTITY_INPUT_MAX = 50;
+
+/** `shows.starting_rider_number`'s fallback when an organizer never set one — see data/checkout.ts's nextRiderNumberForShow. */
+export const DEFAULT_STARTING_RIDER_NUMBER = 101;
+
+/** Rider numbers are always rendered zero-padded to this width — see data/checkout.ts's nextRiderNumberForShow. */
+export const RIDER_NUMBER_PAD_WIDTH = 4;
+
+/**
+ * The SuperAdmin console's own route — not in shared/constants/routes.ts's
+ * ROUTES (that file has no `superadmin` entry today), so kept as a local
+ * constant rather than a cross-module reach-in. Used by
+ * ui/rider-demo-walkthrough.tsx's "Back to console" link, shown only when a
+ * SuperAdmin reached the demo from there. Flagged for the owning team: this
+ * probably belongs in ROUTES if/when another module needs it too.
+ */
+export const SUPERADMIN_CONSOLE_ROUTE = '/dashboard/superadmin';

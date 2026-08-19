@@ -2,10 +2,10 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { RIDER_CATEGORIES } from '../constants';
-import { riderDetailsFormSchema, type RiderDetailsFormInput } from '../schemas';
-import { useUpdateRiderProfile } from '../hooks/use-rider-profile-mutations';
-import type { RiderRow } from '../types';
+import { RIDER_CATEGORIES } from '@/modules/riders/constants';
+import { riderDetailsFormSchema, type RiderDetailsFormInput } from '@/modules/riders/schemas';
+import { useUpdateRiderProfile } from '@/modules/riders/hooks/use-rider-profile-mutations';
+import type { RiderRow } from '@/modules/riders/types';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthSubmit } from '@/shared/ui/auth/auth-primitives';
 

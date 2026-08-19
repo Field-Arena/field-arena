@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { useSaveStablingDates } from '../hooks/use-stabling-mutations';
-import { classSubtitle, computeStablingSummary, feeForEntry, summarizePurchases } from '../utils';
+import { useSaveStablingDates } from '@/modules/riders/hooks/use-stabling-mutations';
+import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
+import { computeStablingSummary } from '@/modules/riders/utils/compute-stabling-summary';
+import { feeForEntry } from '@/modules/riders/utils/fee-for-entry';
+import { summarizePurchases } from '@/modules/riders/utils/summarize-purchases';
 import {
   LEGACY_COLOR,
   LegacySecTitle,
@@ -13,8 +16,8 @@ import {
   legacyTableCellStyle,
   legacyTableHeadCellStyle,
   legacyTableStyle,
-} from './legacy-theme';
-import type { AddOnWithRemaining, OrderRow, RiderEntryDetail, RiderRow, ShowRow } from '../types';
+} from '@/modules/riders/ui/legacy-theme';
+import type { AddOnWithRemaining, OrderRow, RiderEntryDetail, RiderRow, ShowRow } from '@/modules/riders/types';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 
 function classDisplayName(cls: { label: string; displayName: string | null }): string {

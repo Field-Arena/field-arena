@@ -9,9 +9,9 @@ import {
   signOutRider,
   signUpRider,
   verifyRiderSignUpCode,
-} from '../data/mutations';
-import type { RiderResendCodeInput, RiderSignUpInput, RiderVerifyInput } from '../schemas';
-import type { RiderResendOutcome, RiderSignUpOutcome, RiderVerifyOutcome } from '../types';
+} from '@/modules/riders/data/mutations';
+import type { RiderResendCodeInput, RiderSignUpInput, RiderVerifyInput } from '@/modules/riders/schemas';
+import type { RiderResendOutcome, RiderSignUpOutcome, RiderVerifyOutcome } from '@/modules/riders/types';
 
 /**
  * Every outcome here is DATA, not a thrown error — see RiderSignUpOutcome.

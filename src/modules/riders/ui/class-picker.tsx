@@ -1,9 +1,10 @@
 'use client';
 
-import { useEntryCartStore } from '../store';
-import { classSubtitle } from '../utils';
-import type { ClassWithCapacity, QualTypeRow } from '../types';
+import { useEntryCartStore } from '@/modules/riders/store';
+import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
+import type { ClassWithCapacity, QualTypeRow } from '@/modules/riders/types';
 import { Badge } from '@/shared/ui/shadcn/badge';
+import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 
 /**
@@ -46,13 +47,14 @@ export function ClassPicker({
           });
           return (
             <div key={cls.id} className="rounded-lg border border-line">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 disabled={isFull}
                 onClick={() => {
                   toggleClass(cls.id);
                 }}
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-auto w-full items-center justify-between gap-3 rounded-none px-3 py-2 text-left hover:bg-transparent disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div>
                   <div className="text-sm font-medium text-forest">
@@ -71,7 +73,7 @@ export function ClassPicker({
                     {cls.fee != null ? `$${cls.fee.toFixed(2)}` : '—'}
                   </span>
                 </div>
-              </button>
+              </Button>
 
               {isSelected && qualTypes.length > 0 && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-line px-3 py-2">

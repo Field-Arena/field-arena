@@ -1,14 +1,14 @@
 'use client';
 
-import { useRiderScorecard } from '../hooks/use-rider-scorecard';
+import { useRiderScorecard } from '@/modules/riders/hooks/use-rider-scorecard';
 import {
   LEGACY_COLOR,
   LEGACY_GEORGIA,
   legacyTableCellStyle,
   legacyTableHeadCellStyle,
   legacyTableStyle,
-} from './legacy-theme';
-import type { RiderScorecard, RiderScorecardCard } from '../types';
+} from '@/modules/riders/ui/legacy-theme';
+import type { RiderScorecard, RiderScorecardCard } from '@/modules/riders/types';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/ui/shadcn/dialog';
 

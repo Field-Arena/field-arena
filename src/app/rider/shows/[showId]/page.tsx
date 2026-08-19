@@ -12,7 +12,7 @@ import {
   listRiderOrdersForShow,
 } from '@/modules/riders/data/queries';
 import { confirmCheckoutSession } from '@/modules/riders/data/mutations';
-import { parseDocumentRequirements } from '@/modules/riders/utils';
+import { parseDocumentRequirements } from '@/modules/riders/utils/parse-document-requirements';
 import { ShowTicketDetail } from '@/modules/riders/ui/show-ticket-detail';
 import { WaiverForm } from '@/modules/riders/ui/waiver-form';
 import { RiderDetailsForm } from '@/modules/riders/ui/rider-details-form';

@@ -4,7 +4,7 @@ import type {
   ORDER_LINE_ITEM_KINDS,
   ORDER_STATUSES,
   RIDER_CATEGORIES,
-} from './constants';
+} from '@/modules/riders/constants';
 
 export type RiderRow = Database['public']['Tables']['riders']['Row'];
 export type HorseRow = Database['public']['Tables']['horses']['Row'];

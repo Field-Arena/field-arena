@@ -1,4 +1,4 @@
-import { ScorecardLink } from './scorecard-modal';
+import { ScorecardLink } from '@/modules/riders/ui/scorecard-modal';
 import {
   LEGACY_COLOR,
   LegacySecTitle,
@@ -14,10 +14,10 @@ import {
   legacyTableCellStyle,
   legacyTableHeadCellStyle,
   legacyTableStyle,
-} from './legacy-theme';
-import { classSubtitle } from '../utils';
+} from '@/modules/riders/ui/legacy-theme';
+import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { formatDateRange } from '@/shared/lib/format/date';
-import type { ClassWithCapacity, RiderEntryDetail, ShowRow } from '../types';
+import type { ClassWithCapacity, RiderEntryDetail, ShowRow } from '@/modules/riders/types';
 
 function entryClassName(cls: { label: string; displayName: string | null }): string {
   return (cls.displayName?.trim() ?? '') || cls.label;

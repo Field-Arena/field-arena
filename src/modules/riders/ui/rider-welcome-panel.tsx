@@ -1,8 +1,8 @@
 'use client';
 
-import { useSignOutRider } from '../hooks/use-rider-auth-mutations';
-import { LEGACY_COLOR, LEGACY_GEORGIA, legacyButtonGhostStyle } from './legacy-theme';
-import type { RiderRow } from '../types';
+import { useSignOutRider } from '@/modules/riders/hooks/use-rider-auth-mutations';
+import { LEGACY_COLOR, LEGACY_GEORGIA, legacyButtonGhostStyle } from '@/modules/riders/ui/legacy-theme';
+import type { RiderRow } from '@/modules/riders/types';
 
 /**
  * The signed-in rider's landing state on the bare `/rider` route (no show

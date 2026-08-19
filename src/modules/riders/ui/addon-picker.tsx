@@ -1,7 +1,8 @@
 'use client';
 
-import { useEntryCartStore } from '../store';
-import type { AddOnWithRemaining } from '../types';
+import { useEntryCartStore } from '@/modules/riders/store';
+import { UNLIMITED_ADD_ON_QUANTITY_INPUT_MAX } from '@/modules/riders/constants';
+import type { AddOnWithRemaining } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
 
@@ -24,7 +25,7 @@ export function AddOnPicker({ addOns }: { addOns: AddOnWithRemaining[] }) {
       </CardHeader>
       <CardContent className="space-y-2">
         {addOns.map((addOn) => {
-          const max = addOn.remaining ?? 50;
+          const max = addOn.remaining ?? UNLIMITED_ADD_ON_QUANTITY_INPUT_MAX;
           const soldOut = addOn.remaining != null && addOn.remaining <= 0;
           return (
             <div

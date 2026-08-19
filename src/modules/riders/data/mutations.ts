@@ -8,7 +8,7 @@ import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { run, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import type { Database, Json } from '@/shared/types/database.types';
-import { HORSE_DOCUMENTS_BUCKET } from '../constants';
+import { HORSE_DOCUMENTS_BUCKET } from '@/modules/riders/constants';
 import {
   buildStripeLineItems,
   createOrderStripeCustomer,
@@ -16,7 +16,7 @@ import {
   itemsToJson,
   priceCart,
   saveOffSessionCard,
-} from './checkout';
+} from '@/modules/riders/data/checkout';
 import {
   confirmCheckoutSessionSchema,
   createCheckoutSessionSchema,
@@ -31,7 +31,7 @@ import {
   riderVerifySchema,
   stablingSaveSchema,
   waiverSignSchema,
-} from '../schemas';
+} from '@/modules/riders/schemas';
 import type {
   CheckoutSessionResult,
   FinalizeOrderResult,
@@ -44,7 +44,7 @@ import type {
   RiderSignUpOutcome,
   RiderVerifyOutcome,
   WaiverSignatureRow,
-} from '../types';
+} from '@/modules/riders/types';
 
 type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
 

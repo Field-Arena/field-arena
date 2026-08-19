@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useSignOutRider } from '../hooks/use-rider-auth-mutations';
-import { HorseTabView } from './horse-tab-view';
-import { LEGACY_COLOR, LEGACY_GEORGIA } from './legacy-theme';
-import { ProfileTab } from './profile-tab';
-import { PurchasesTab } from './purchases-tab';
-import { ResultsView } from './results-view';
-import { ScheduleTab } from './schedule-tab';
+import { useSignOutRider } from '@/modules/riders/hooks/use-rider-auth-mutations';
+import { HorseTabView } from '@/modules/riders/ui/horse-tab-view';
+import { LEGACY_COLOR, LEGACY_GEORGIA } from '@/modules/riders/ui/legacy-theme';
+import { ProfileTab } from '@/modules/riders/ui/profile-tab';
+import { PurchasesTab } from '@/modules/riders/ui/purchases-tab';
+import { ResultsView } from '@/modules/riders/ui/results-view';
+import { ScheduleTab } from '@/modules/riders/ui/schedule-tab';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
 import type {
@@ -19,7 +19,7 @@ import type {
   RiderEntryDetail,
   RiderRow,
   ShowRow,
-} from '../types';
+} from '@/modules/riders/types';
 
 type DashTab = 'schedule' | 'profile' | 'horse' | 'purchases' | 'results';
 

@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { useUpdateRiderProfile } from '../hooks/use-rider-profile-mutations';
+import { useUpdateRiderProfile } from '@/modules/riders/hooks/use-rider-profile-mutations';
 import {
   LEGACY_COLOR,
   LegacySecTitle,
   legacyBlockTitleStyle,
   legacyButtonGhostStyle,
   legacyCardStyle,
-} from './legacy-theme';
-import type { RiderProfileUpdateInput } from '../schemas';
-import type { RiderRow } from '../types';
+} from '@/modules/riders/ui/legacy-theme';
+import type { RiderProfileUpdateInput } from '@/modules/riders/schemas';
+import type { RiderRow } from '@/modules/riders/types';
 
 type EditableField = keyof RiderProfileUpdateInput;
 

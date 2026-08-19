@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { useCreateHorse, useDeleteHorse, useUpdateHorse } from '../hooks/use-horse-mutations';
-import { HorseDocumentUpload } from './horse-document-upload';
-import { LEGACY_COLOR, LegacySecTitle, legacyButtonGhostStyle, legacyCardStyle } from './legacy-theme';
-import type { DocumentRequirement, HorseWithDocumentUrls } from '../types';
+import { useCreateHorse, useDeleteHorse, useUpdateHorse } from '@/modules/riders/hooks/use-horse-mutations';
+import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
+import { LEGACY_COLOR, LegacySecTitle, legacyButtonGhostStyle, legacyCardStyle } from '@/modules/riders/ui/legacy-theme';
+import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
 
 const fieldInputStyle: CSSProperties = {
   fontFamily: 'inherit',

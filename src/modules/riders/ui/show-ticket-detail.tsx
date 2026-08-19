@@ -1,5 +1,7 @@
-import { classSubtitle, getTicketWindowStatus, parseTicketWindow } from '../utils';
-import type { PublicShowDetail } from '../types';
+import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
+import { getTicketWindowStatus } from '@/modules/riders/utils/get-ticket-window-status';
+import { parseTicketWindow } from '@/modules/riders/utils/parse-ticket-window';
+import type { PublicShowDetail } from '@/modules/riders/types';
 import { Badge } from '@/shared/ui/shadcn/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 

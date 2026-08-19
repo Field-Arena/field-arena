@@ -1,9 +1,10 @@
 'use client';
 
-import { calcPlatformFee, calcPlatformFeeFlat8 } from '@/shared/lib/fees';
-import { useEntryCartStore } from '../store';
-import { useCreateCheckoutSession } from '../hooks/use-checkout-mutations';
-import type { AddOnWithRemaining, ClassWithCapacity, QualTypeRow } from '../types';
+import { useEntryCartStore } from '@/modules/riders/store';
+import { useCreateCheckoutSession } from '@/modules/riders/hooks/use-checkout-mutations';
+import { buildCheckoutCartPayload } from '@/modules/riders/utils/build-checkout-cart-payload';
+import { computeCartPreview } from '@/modules/riders/utils/compute-cart-preview';
+import type { AddOnWithRemaining, ClassWithCapacity, QualTypeRow } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 
@@ -47,42 +48,15 @@ export function CheckoutSummary({
   const addOnQuantities = useEntryCartStore((state) => state.addOnQuantities);
   const createSession = useCreateCheckoutSession();
 
-  const classById = new Map(classes.map((cls) => [cls.id, cls]));
-  const qualById = new Map(qualTypes.map((qual) => [qual.id, qual]));
-  const addOnById = new Map(addOns.map((addOn) => [addOn.id, addOn]));
-
-  let total = 0;
-  let lineCount = 0;
-  for (const classId of selectedClassIds) {
-    const cls = classById.get(classId);
-    if (!cls) continue;
-    const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string => Boolean(id));
-    const qualTotal = [...(qualSelections[classId] ?? [])].reduce((sum, qualId) => {
-      const qual = qualById.get(qualId);
-      const price = qual?.price ?? 0;
-      return qual ? sum + price + calcPlatformFeeFlat8(price) : sum;
-    }, 0);
-    const classFee = cls.fee ?? 0;
-    total += horseIds.length * (classFee + calcPlatformFee(classFee, null) + qualTotal);
-    lineCount += horseIds.length;
-  }
-  for (const [addOnId, qty] of Object.entries(addOnQuantities)) {
-    if (qty <= 0) continue;
-    const addOn = addOnById.get(addOnId);
-    if (!addOn) continue;
-    const price = addOn.price ?? 0;
-    total += qty * (price + calcPlatformFeeFlat8(price));
-  }
-
-  const hasAddOns = Object.values(addOnQuantities).some((qty) => qty > 0);
-  const canCheckout = lineCount > 0 || hasAddOns;
-  // Every selected class needs at least one horse assigned before this is a
-  // real cart — the narrower version of legacy's realValidateDetails gate,
-  // since rider details and the waiver are already required earlier on this
-  // page rather than at this final step.
-  const everyClassAssigned = [...selectedClassIds].every((classId) =>
-    (classHorseAssignments[classId] ?? []).some(Boolean)
-  );
+  const { total, canCheckout, everyClassAssigned } = computeCartPreview({
+    classes,
+    addOns,
+    qualTypes,
+    selectedClassIds,
+    classHorseAssignments,
+    qualSelections,
+    addOnQuantities,
+  });
 
   return (
     <Card>
@@ -110,17 +84,13 @@ export function CheckoutSummary({
           className="w-full"
           disabled={!canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending}
           onClick={() => {
-            const cart = [...selectedClassIds].flatMap((classId) => {
-              const horseIds = (classHorseAssignments[classId] ?? []).filter(
-                (id): id is string => Boolean(id)
-              );
-              const qualTypeIds = [...(qualSelections[classId] ?? [])];
-              return horseIds.map((horseId) => ({ classId, horseId, qualTypeIds }));
+            const payload = buildCheckoutCartPayload({
+              selectedClassIds,
+              classHorseAssignments,
+              qualSelections,
+              addOnQuantities,
             });
-            const addOnLines = Object.entries(addOnQuantities)
-              .filter(([, qty]) => qty > 0)
-              .map(([addOnId, qty]) => ({ addOnId, qty }));
-            createSession.mutate({ showId, cart, addOns: addOnLines });
+            createSession.mutate({ showId, cart: payload.cart, addOns: payload.addOns });
           }}
         >
           {createSession.isPending ? 'Redirecting to checkout…' : 'Proceed to payment'}
