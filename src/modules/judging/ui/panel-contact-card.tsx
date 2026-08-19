@@ -1,4 +1,4 @@
-import type { PanelContact } from '../data/queries';
+import type { PanelContact } from '@/modules/judging/data/queries';
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -7,11 +7,12 @@ function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
-/** One row of the Panel & Contacts tab, ported from Judge Workspace.dc.html's `pc` card. */
 export function PanelContactCard({ contact }: { contact: PanelContact }) {
   const roleLabel = contact.role === 'judge' ? 'Judge' : 'Scribe';
   const detail = [
-    contact.role === 'judge' && contact.position ? `${roleLabel} at ${contact.position}` : roleLabel,
+    contact.role === 'judge' && contact.position
+      ? `${roleLabel} at ${contact.position}`
+      : roleLabel,
     contact.showName,
   ].join(' · ');
 
@@ -21,7 +22,7 @@ export function PanelContactCard({ contact }: { contact: PanelContact }) {
         {initials(contact.name)}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-[Newsreader,serif] text-lg font-semibold text-ink-deep">
+        <span className="text-ink-deep block font-[Newsreader,serif] text-lg font-semibold">
           {contact.name}
         </span>
         <span className="mt-[3px] block text-[13.5px] text-[#5A6B63]">{detail}</span>
