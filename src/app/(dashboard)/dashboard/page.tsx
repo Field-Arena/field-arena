@@ -10,15 +10,6 @@ import {
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 
-/**
- * The organizer overview, and the generic landing path that both the proxy and
- * the login form redirect to.
- *
- * A role with its own workspace is forwarded there — unless a SuperAdmin is
- * impersonating, in which case this IS their workspace. Without that exception
- * the redirect fires while the layout renders the organizer shell, producing
- * console content inside organizer chrome.
- */
 export default async function DashboardPage({
   searchParams,
 }: {
