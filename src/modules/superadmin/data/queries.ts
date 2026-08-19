@@ -1,45 +1,27 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import type { PermissionKey } from '@/shared/constants/permissions';
-import { resolveStaffPermissions, countEnabledPermissions } from '../utils';
-
-/**
- * SuperAdmin console reads.
- *
- * Every query here goes through the *user's* client, not the service-role
- * client, so RLS applies and SuperAdmin's access is proven rather than assumed.
- * Using the admin client would bypass the policies and mean a broken policy
- * would never surface here.
- *
- * Note the explicit column lists on organizations. `select('*')` fails for an
- * authenticated role, because the RLS migration revokes column-level SELECT on
- * stripe_connect_account_id from `authenticated` — a payment identifier only
- * server-side code holding the service key should read. PostgREST asks for every
- * column when given '*', so the whole request is rejected with a permission
- * error rather than silently omitting the column.
- */
-
-export interface PlatformStats {
-  organizations: number;
-  activeOrganizations: number;
-  shows: number;
-  publishedShows: number;
-  classes: number;
-  entries: number;
-  riders: number;
-  staff: number;
-  revenue: number;
-  paidOrders: number;
-}
+import { resolveStaffPermissions } from '@/modules/superadmin/utils/resolve-staff-permissions';
+import { countEnabledPermissions } from '@/modules/superadmin/utils/count-enabled-permissions';
+import type {
+  PlatformStats,
+  OrganizationSummary,
+  LeadRow,
+  CatalogSheetRow,
+  ScoringSheet,
+  CatalogDocument,
+  PlatformAccount,
+  DirectoryStaff,
+  DirectoryOrganizer,
+  BillingSummary,
+  OrganizationBilling,
+  ShowBilling,
+  OrganizationBillingDetail,
+} from '@/modules/superadmin/types';
 
 export async function getPlatformStats(): Promise<PlatformStats> {
   const supabase = await createServerClient();
 
-  // head:true with an exact count returns only the count, no rows over the wire.
-  // Written out per table rather than through a helper taking a table name: the
-  // generated Database types make `from()` accept only a literal union of table
-  // names, so a `(table: string)` helper cannot typecheck.
   const [orgs, activeOrgs, shows, published, classes, entries, riders, staff, paid] =
     await Promise.all([
       supabase.from('organizations').select('id', { count: 'exact', head: true }),
@@ -57,8 +39,6 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       supabase.from('orders').select('amount_total').eq('status', 'paid'),
     ]);
 
-  // amount_total is NOT NULL and the generated types map numeric to number, so
-  // no coercion or fallback is needed here.
   const revenue = (paid.data ?? []).reduce((sum, row) => sum + row.amount_total, 0);
 
   return {
@@ -75,77 +55,23 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   };
 }
 
-export interface OrganizationSummary {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  currency: string | null;
-  locale: string | null;
-  suspended: boolean;
-  isDemo: boolean;
-  deletedAt: string | null;
-  feeModel: string;
-  showCount: number;
-  entryCount: number;
-  riderCount: number;
-  /**
-   * entries x avg_entry_value, matching the legacy console's "Revenue (est.)"
-   * column. It is an estimate and labelled as one: the legacy ARCHITECTURE note
-   * is explicit that these figures were never Stripe data. Settled revenue comes
-   * from paid orders and is reported separately on the billing page.
-   */
-  revenueEstimate: number;
-  /**
-   * Whether the Organizer owner has actually signed in for this organization.
-   * Drives the Onboard/Pending pill: an organization can exist with shows
-   * configured while its owner has never signed in, which is precisely the state
-   * the "Resend invite" action exists for.
-   */
-  onboarded: boolean;
-}
-
-/**
- * The organization tree the console opens on. Show and entry counts are derived
- * per organization rather than stored, so they cannot go stale — the legacy
- * schema kept a shows.entries_count column and its own comment flagged it as a
- * placeholder to be replaced by a computed count.
- */
 export async function listOrganizations(): Promise<OrganizationSummary[]> {
   const supabase = await createServerClient();
 
   const { data: orgs, error } = await supabase
     .from('organizations')
     .select(
-      'id, name, city, region, currency, locale, suspended, is_demo, deleted_at, fee_model, avg_entry_value, created_at'
+      'id, name, city, region, currency, locale, suspended, is_demo, deleted_at, fee_model, avg_entry_value, created_at',
     )
     .order('name');
   if (error) throw error;
 
-  /**
-   * Onboard vs pending, adapted from api/organizations.js line 461: that legacy
-   * version read an `invites.accepted_at` bookkeeping row, but nothing in this
-   * app ever writes that column (there is no separate accept-invite step —
-   * createOrganization/resendOrganizerInvite provision the `users` row eagerly,
-   * same as addSuperAdmin/addOrgStaff), so "an outstanding invite" is really
-   * "an owner account that has never signed in." last_sign_in_at lives on
-   * auth.users, unreachable through RLS, hence the one admin-client call here —
-   * same reasoning as listPlatformAccounts below.
-   *
-   *   a signed-in Organizer account       → onboard
-   *   an Organizer account, never signed in → pending
-   *   otherwise the org has shows         → onboard
-   *   otherwise                           → pending
-   *
-   * The third tier is load-bearing and easy to miss. Organizations that predate
-   * the invite flow have no account at all, but they have shows and are plainly
-   * in business — the legacy comment calls them out as "legacy seed orgs (no
-   * status field) count as onboard". Checking only for a signed-in account marks
-   * every one of them Pending and offers a Resend-invite button for an owner
-   * account that was never created.
-   */
   const [organizerAccounts, authList] = await Promise.all([
-    supabase.from('users').select('id, org_id').eq('platform_role', 'Organizer').not('org_id', 'is', null),
+    supabase
+      .from('users')
+      .select('id, org_id')
+      .eq('platform_role', 'Organizer')
+      .not('org_id', 'is', null),
     createAdminClient().auth.admin.listUsers({ page: 1, perPage: 200 }),
   ]);
   if (organizerAccounts.error) throw organizerAccounts.error;
@@ -154,38 +80,17 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
   const signedInById = new Map(authList.data.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]));
   const accountOrgs = new Set(organizerAccounts.data.map((row) => row.org_id));
   const signedInOrgs = new Set(
-    organizerAccounts.data.filter((row) => signedInById.get(row.id)).map((row) => row.org_id)
+    organizerAccounts.data.filter((row) => signedInById.get(row.id)).map((row) => row.org_id),
   );
 
-  // One round trip for every show, then counted in memory. With a handful of
-  // organizations this beats a query per organization, which is the N+1 the
-  // legacy codebase had a dedicated regression test for
-  // (tests/showstaff-vendors-n-plus-1.spec.ts).
-  const { data: shows, error: showsError } = await supabase
-    .from('shows')
-    .select('id, org_id');
+  const { data: shows, error: showsError } = await supabase.from('shows').select('id, org_id');
   if (showsError) throw showsError;
 
-  /**
-   * Two flat selects joined in memory, deliberately not a PostgREST embed.
-   *
-   * `class_entries.select('classes!inner(show_id)')` fails with PGRST201:
-   * there are two foreign keys between these tables — class_entries.class_id →
-   * classes.id, and the holding-queue classes.working_in_entry_id →
-   * class_entries.id — so the embed is ambiguous and has to be disambiguated by
-   * constraint name. Selecting the two id columns and joining here needs no
-   * constraint names in application code, and stays correct if either FK is
-   * renamed.
-   */
   const { data: classRows, error: classError } = await supabase
     .from('classes')
     .select('id, show_id');
   if (classError) throw classError;
 
-  // `rider` comes along so distinct competitors can be counted per organization.
-  // It is the display name rather than a rider_id because an organizer-imported
-  // roster has no rider accounts behind it — the legacy schema documents that
-  // text field as "the universal display source".
   const { data: entries, error: entriesError } = await supabase
     .from('class_entries')
     .select('id, class_id, rider');
@@ -209,9 +114,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
   }
 
   const entriesByShow = new Map<string, number>();
-  // Distinct competitors per organization. A rider entered in three classes at
-  // two of an organization's shows is one competitor, so this is a Set per
-  // organization rather than a running count.
+
   const ridersByOrg = new Map<string, Set<string>>();
 
   for (const entry of entries) {
@@ -257,7 +160,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
 const LEAD_COLUMNS =
   'id, org_name, contact_name, email, phone, website, shows_per_year, status, cost_per_event, avg_revenue_per_show, notes, calendly_event_uri, demo_at, onboarding_at, onboarding_checklist, onboarding_email_sent_at, created_at, updated_at';
 
-export async function listLeads() {
+export async function listLeads(): Promise<LeadRow[]> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('leads')
@@ -267,16 +170,18 @@ export async function listLeads() {
   return data;
 }
 
-export type LeadRow = Awaited<ReturnType<typeof listLeads>>[number];
-
 export async function getLead(id: string): Promise<LeadRow | null> {
   const supabase = await createServerClient();
-  const { data, error } = await supabase.from('leads').select(LEAD_COLUMNS).eq('id', id).maybeSingle();
+  const { data, error } = await supabase
+    .from('leads')
+    .select(LEAD_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-export async function listScoringCatalog() {
+export async function listScoringCatalog(): Promise<CatalogSheetRow[]> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('scoring_catalog')
@@ -286,14 +191,12 @@ export async function listScoringCatalog() {
   return data;
 }
 
-export type CatalogSheetRow = Awaited<ReturnType<typeof listScoringCatalog>>[number];
-
-export async function getScoringSheet(id: string) {
+export async function getScoringSheet(id: string): Promise<ScoringSheet | null> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from('scoring_catalog')
     .select(
-      'id, title, level, discipline, family, source, source_file, governing_body, def, created_at, updated_at'
+      'id, title, level, discipline, family, source, source_file, governing_body, def, created_at, updated_at',
     )
     .eq('id', id)
     .maybeSingle();
@@ -301,24 +204,6 @@ export async function getScoringSheet(id: string) {
   return data;
 }
 
-export type ScoringSheet = NonNullable<Awaited<ReturnType<typeof getScoringSheet>>>;
-
-export interface CatalogDocument {
-  id: string;
-  folder: string;
-  name: string;
-  url: string | null;
-  createdAt: string;
-}
-
-/**
- * Every platform document, each with a fresh signed download URL.
- *
- * All through the caller's own client: catalog_documents_select and the
- * fa_catalog_docs_read storage policy both resolve SuperAdmin, so no admin
- * client is needed. The bucket is private, so a one-hour signed URL is minted
- * per row for the "View / Download" link.
- */
 export async function listCatalogDocuments(): Promise<CatalogDocument[]> {
   const supabase = await createServerClient();
   const { data: rows, error } = await supabase
@@ -337,7 +222,7 @@ export async function listCatalogDocuments(): Promise<CatalogDocument[]> {
         url: data?.signedUrl ?? null,
         createdAt: row.created_at,
       };
-    })
+    }),
   );
 }
 
@@ -352,31 +237,6 @@ export async function listPlatformUsers() {
   return data;
 }
 
-export interface PlatformAccount {
-  id: string;
-  name: string;
-  email: string;
-  role: string | null;
-  createdAt: string;
-  /**
-   * `pending` means the account was provisioned but the person has never signed
-   * in — they still owe the set-password step from their invite email. Legacy
-   * drew the same line as "Active" vs "Invite pending".
-   */
-  status: 'active' | 'pending';
-}
-
-/**
- * Every staff-side login on the platform — Super Admins, Organizers, and every
- * per-show role — with whether they have actually signed in yet.
- *
- * The role list comes through the caller's own client (RLS lets a SuperAdmin
- * read every users row). The signed-in-yet flag does not: `last_sign_in_at`
- * lives on auth.users, which the authenticated role cannot read through PostgREST
- * at all, so it can only come from the auth admin API. That single admin call is
- * the one deviation from this file's "user client only" rule, and it is
- * unavoidable — there is no RLS path to auth session metadata.
- */
 export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
   const supabase = await createServerClient();
   const { data: rows, error } = await supabase
@@ -405,39 +265,6 @@ export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
   }));
 }
 
-export interface DirectoryStaff {
-  id: string;
-  name: string;
-  email: string | null;
-  role: string;
-  showId: string;
-  showName: string;
-  status: string | null;
-  permissions: Record<PermissionKey, boolean>;
-  permissionCount: number;
-}
-
-export interface DirectoryOrganizer {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  showCount: number;
-  /** For the "Add a user" show picker — only this org's shows. */
-  shows: { id: string; name: string }[];
-  staff: DirectoryStaff[];
-}
-
-/**
- * The "Organizer Staff Directory": every organizer, each with its shows and the
- * staff working across them. Ported from the legacy /all-staff view.
- *
- * All reads go through the caller's own client. A SuperAdmin passes can_view_show
- * for every show (is_super_admin short-circuits it), so staff_assignments returns
- * every row — no admin client needed. Three flat selects joined in memory rather
- * than a PostgREST embed: staff_assignments → shows has one FK, but grouping and
- * the per-org show list are both needed anyway, so one pass builds both.
- */
 export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[]> {
   const supabase = await createServerClient();
 
@@ -451,7 +278,7 @@ export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[
     supabase
       .from('staff_assignments')
       .select(
-        'id, show_id, name, email, role, status, permissions, can_scratch_skip_dq, can_view_money'
+        'id, show_id, name, email, role, status, permissions, can_scratch_skip_dq, can_view_money',
       ),
   ]);
   if (orgsRes.error) throw orgsRes.error;
@@ -502,58 +329,6 @@ export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[
   });
 }
 
-// ── Billing ────────────────────────────────────────────────────────────────
-
-export interface BillingSummary {
-  /** Everything riders have actually paid, across every organization. */
-  grossPaid: number;
-  /** The platform's cut of that, fixed at order creation and never refundable. */
-  platformFees: number;
-  refunded: number;
-  /** What organizers are owed: gross, less the platform's cut and refunds. */
-  netToOrganizers: number;
-  paidOrders: number;
-  pendingOrders: number;
-  failedOrders: number;
-}
-
-export interface OrganizationBilling {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  feeModel: string;
-  currency: string | null;
-  locale: string | null;
-  paidOrders: number;
-  gross: number;
-  platformFee: number;
-  refunded: number;
-  net: number;
-  /**
-   * Whether a Stripe Connect account is attached. A BOOLEAN, never the id.
-   *
-   * The RLS migration revokes column-level SELECT on stripe_connect_account_id
-   * from authenticated and anon, so this cannot be read with the user's client at
-   * all — it is fetched with the service key and reduced to a flag here, so the
-   * payment identifier never leaves the server even in a props payload.
-   */
-  stripeConnected: boolean;
-}
-
-/**
- * Platform billing, computed from paid orders.
- *
- * fee_total is READ, never recalculated. It is written once when the order is
- * created and is the figure the refund cap is enforced against
- * (orders_refund_within_cap). Recomputing it here from today's fee model would
- * silently disagree with what was actually charged the moment an organization's
- * model changes.
- *
- * Only 'paid' orders count toward money. Pending and failed rows are reported as
- * counts because they say something operational — a wall of pending orders means
- * checkout is breaking — but they are not revenue.
- */
 export async function getBillingSummary(): Promise<BillingSummary> {
   const supabase = await createServerClient();
 
@@ -579,17 +354,6 @@ export async function getBillingSummary(): Promise<BillingSummary> {
   };
 }
 
-/**
- * Per-organization billing.
- *
- * Orders reach an organization through their show, so the org id is embedded off
- * shows rather than stored on the order — there is no orders.org_id to read, and
- * adding one would be a second source of truth for something the show already
- * answers.
- *
- * Organizations are listed with explicit columns for the reason given at the top
- * of this file: '*' is rejected outright for an authenticated role.
- */
 export async function listOrganizationBilling(): Promise<OrganizationBilling[]> {
   const supabase = await createServerClient();
 
@@ -613,7 +377,7 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
   if (connect.error) throw connect.error;
 
   const connected = new Set(
-    connect.data.filter((row) => row.stripe_connect_account_id).map((row) => row.id)
+    connect.data.filter((row) => row.stripe_connect_account_id).map((row) => row.id),
   );
 
   const byOrg = new Map<string, { count: number; gross: number; fee: number; refunded: number }>();
@@ -648,44 +412,8 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
   });
 }
 
-export interface ShowBilling {
-  id: string;
-  name: string;
-  startDate: string | null;
-  endDate: string | null;
-  volume: number;
-  platformFee: number;
-  net: number;
-}
-
-export interface OrganizationBillingDetail {
-  id: string;
-  name: string;
-  city: string | null;
-  region: string | null;
-  currency: string | null;
-  locale: string | null;
-  feeModel: string;
-  payoutCadence: string;
-  holdbackPercent: number | null;
-  /** Boolean only — never the account id. See OrganizationBilling. */
-  stripeConnected: boolean;
-  volume: number;
-  platformFee: number;
-  net: number;
-  shows: ShowBilling[];
-}
-
-/**
- * One organizer's billing: their Connect status, settlement settings, and what
- * every show of theirs has taken.
- *
- * Shows with no paid orders are still listed at zero. A show that sold nothing is
- * a real and interesting state on a reconciliation screen — omitting it would
- * make the page look like the show does not exist.
- */
 export async function getOrganizationBillingDetail(
-  orgId: string
+  orgId: string,
 ): Promise<OrganizationBillingDetail | null> {
   const supabase = await createServerClient();
   const admin = createAdminClient();
@@ -693,7 +421,9 @@ export async function getOrganizationBillingDetail(
   const [org, shows, connect] = await Promise.all([
     supabase
       .from('organizations')
-      .select('id, name, city, region, currency, locale, fee_model, payout_cadence, holdback_percent')
+      .select(
+        'id, name, city, region, currency, locale, fee_model, payout_cadence, holdback_percent',
+      )
       .eq('id', orgId)
       .maybeSingle(),
     supabase
@@ -701,11 +431,7 @@ export async function getOrganizationBillingDetail(
       .select('id, name, start_date, end_date')
       .eq('org_id', orgId)
       .order('start_date', { ascending: false }),
-    admin
-      .from('organizations')
-      .select('stripe_connect_account_id')
-      .eq('id', orgId)
-      .maybeSingle(),
+    admin.from('organizations').select('stripe_connect_account_id').eq('id', orgId).maybeSingle(),
   ]);
 
   if (org.error) throw org.error;
@@ -715,8 +441,6 @@ export async function getOrganizationBillingDetail(
 
   const showIds = shows.data.map((show) => show.id);
 
-  // `in` with an empty list is a syntax error in PostgREST, so the query is
-  // skipped entirely for an organizer that has not built a show yet.
   const orders = showIds.length
     ? await supabase
         .from('orders')
@@ -757,8 +481,7 @@ export async function getOrganizationBillingDetail(
     currency: org.data.currency,
     locale: org.data.locale,
     feeModel: org.data.fee_model,
-    // Nullable in the generated type despite the column default, so the
-    // fallback is real rather than defensive.
+
     payoutCadence: org.data.payout_cadence ?? 'weekly',
     holdbackPercent: org.data.holdback_percent,
     stripeConnected: Boolean(connect.data?.stripe_connect_account_id),
