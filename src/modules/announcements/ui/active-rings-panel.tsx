@@ -2,7 +2,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import type { RingRow } from '@/modules/announcements/data/queries';
 
-/** The "Active rings" section of the announcer's Up Next page — cards for every ring currently scoring. */
 export function ActiveRingsPanel({ liveRings }: { liveRings: RingRow[] }) {
   return (
     <>

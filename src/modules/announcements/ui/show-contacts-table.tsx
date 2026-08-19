@@ -1,7 +1,6 @@
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import type { ShowContact } from '@/modules/announcements/data/queries';
 
-/** The judges/scribes/show-admin table on the announcer's Contacts page. */
 export function ShowContactsTable({ contacts }: { contacts: ShowContact[] }) {
   if (contacts.length === 0) {
     return (

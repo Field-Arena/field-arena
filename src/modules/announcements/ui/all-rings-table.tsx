@@ -1,7 +1,6 @@
 import { StatusBadge } from '@/shared/ui/status-badge';
 import type { RingRow } from '@/modules/announcements/data/queries';
 
-/** The "All rings" table on the announcer's Up Next page — every class and its ring state. */
 export function AllRingsTable({ rings }: { rings: RingRow[] }) {
   return (
     <>

@@ -1,11 +1,12 @@
 import type { AnnouncerShow } from '@/modules/announcements/data/queries';
 
-/**
- * The show-picker bar shared by every announcer tab: the current show's name,
- * plus a `<select>` + Switch button when the announcer is staffed on more
- * than one show. Ported from announcer.html's showbar.
- */
-export function ShowSwitcher({ currentShow, shows }: { currentShow: AnnouncerShow; shows: AnnouncerShow[] }) {
+export function ShowSwitcher({
+  currentShow,
+  shows,
+}: {
+  currentShow: AnnouncerShow;
+  shows: AnnouncerShow[];
+}) {
   return (
     <div className="showbar">
       <span className="showbar-org">{currentShow.name}</span>

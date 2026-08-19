@@ -1,7 +1,6 @@
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import type { ResultRow } from '@/modules/announcements/data/queries';
 
-/** The scored-rides table on the announcer's Results — Live page. */
 export function LiveResultsTable({ results }: { results: ResultRow[] }) {
   if (results.length === 0) {
     return (

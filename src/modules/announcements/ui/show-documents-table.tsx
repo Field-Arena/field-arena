@@ -1,7 +1,6 @@
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import type { ShowDocument } from '@/modules/announcements/data/queries';
 
-/** The document-library table on the announcer's Documents page. */
 export function ShowDocumentsTable({ documents }: { documents: ShowDocument[] }) {
   if (documents.length === 0) {
     return (
@@ -28,7 +27,12 @@ export function ShowDocumentsTable({ documents }: { documents: ShowDocument[] })
               <td>{d.name}</td>
               <td className="r">
                 {d.url ? (
-                  <a href={d.url} target="_blank" rel="noopener noreferrer" className="dash-btn dash-btn-outline">
+                  <a
+                    href={d.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dash-btn dash-btn-outline"
+                  >
                     View ↗
                   </a>
                 ) : (

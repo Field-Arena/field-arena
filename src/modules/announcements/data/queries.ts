@@ -3,23 +3,12 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { CONTACT_ROLES, UP_NEXT_DEPTH } from '@/modules/announcements/constants';
 
-/**
- * Announcer reads, ported from announcer.html: active rings, what is up next,
- * live results, who else is staffed on the show, and the show's document
- * library.
- *
- * The announcer is read-only by design. Their permission defaults are empty —
- * they call what is happening, they do not change it — so this module has no
- * mutations at all.
- */
-
 export interface AnnouncerShow {
   id: string;
   name: string;
   dateLabel: string | null;
 }
 
-/** Shows this announcer is staffed on. */
 export async function listMyShows(): Promise<AnnouncerShow[]> {
   const profile = await getStaffProfile();
   if (!profile) return [];
@@ -57,26 +46,12 @@ export interface RingRow {
   scoringOpen: boolean;
   position: number;
   entryCount: number;
-  /**
-   * Whoever is actually in the ring right now — `scoring_pos` is the same
-   * index the scoring screen itself treats as `currentEntry` (see
-   * `modules/scoring/ui/scoring-screen.tsx`), not the rider after them. An
-   * earlier version of this field was named `nextUp` and the announcing page
-   * labeled it "Up next," which told an announcer the wrong rider was up —
-   * the one actually still riding.
-   */
+
   current: RingEntrySummary | null;
-  /** The next few riders after `current`, ported from announcer.html's "Up Next" queue. */
+
   upNext: RingEntrySummary[];
 }
 
-/**
- * Ring status: which classes are live, who's actually riding, and who's next.
- *
- * `scoring_pos` is the class's own cursor into its ride order, so `current`/
- * `upNext` are derived from it rather than from whichever entry happens to be
- * unscored — a scratched or worked-in rider would make that wrong.
- */
 export async function getRingStatus(showId: string): Promise<RingRow[]> {
   const supabase = await createServerClient();
 
@@ -93,7 +68,7 @@ export async function getRingStatus(showId: string): Promise<RingRow[]> {
     .select('class_id, num, rider, horse, ride_order, status, holding')
     .in(
       'class_id',
-      classes.map((c) => c.id)
+      classes.map((c) => c.id),
     )
     .order('ride_order');
   if (entryError) throw entryError;
@@ -106,8 +81,6 @@ export async function getRingStatus(showId: string): Promise<RingRow[]> {
   }
 
   return classes.map((cls) => {
-    // Holding-queue entries are outside the numbered order and only ride when
-    // explicitly worked in, so they are excluded from "next up".
     const list = (byClass.get(cls.id) ?? []).filter((e) => !e.holding);
     const position = cls.scoring_pos ?? 0;
     const current = list[position] ?? null;
@@ -137,17 +110,6 @@ export interface ResultRow {
   place: number;
 }
 
-/**
- * Every scored ride, class by class — ported from announcer.html's real-mode
- * Results-Live feed, which read straight off each entry's own `status`/
- * `final_pct` the moment a ride was confirmed, with no dependency on
- * `classes.results_published` at all. An earlier version of this function
- * gated on `results_published`, which meant an announcer saw nothing here
- * for an entire class still in progress — the opposite of "live." A rider's
- * own confirmed score is what an announcer reads out; the organizer's
- * later, separate "Publish" action is about opening the results up to
- * riders/the public, a different audience with a different bar.
- */
 export async function getLiveResults(showId: string): Promise<ResultRow[]> {
   const supabase = await createServerClient();
 
@@ -163,7 +125,7 @@ export async function getLiveResults(showId: string): Promise<ResultRow[]> {
     .select('class_id, num, rider, horse, final_pct, status')
     .in(
       'class_id',
-      classes.map((c) => c.id)
+      classes.map((c) => c.id),
     );
   if (entryError) throw entryError;
 
@@ -199,13 +161,6 @@ export interface ShowContact {
   phone: string | null;
 }
 
-/**
- * Who else is staffed on this show — the Contacts tab from announcer.html,
- * which listed judges, scribes, and the show secretary. Every row on this
- * show with a contact-relevant role, not scoped to any one class: an
- * announcer may need to reach any judge/scribe on the show, not just
- * whoever's ring they're currently covering.
- */
 export async function listShowContacts(showId: string): Promise<ShowContact[]> {
   const supabase = await createServerClient();
 
@@ -224,19 +179,10 @@ export async function listShowContacts(showId: string): Promise<ShowContact[]> {
 export interface ShowDocument {
   id: string;
   name: string;
-  /** Signed for a private bucket read, resolved here so the page never handles storage paths directly. */
+
   url: string | null;
 }
 
-/**
- * The show's document library (rider pronunciation guides, sponsor read
- * copy, PA quick-start sheets, etc.) — announcer.html's Documents section,
- * which embedded these as inline PDF previews. `documents` is a private
- * bucket, so each url is signed at read time rather than trusting a stored
- * public URL that would 403 (same pattern as
- * `modules/shows/data/setup-queries.ts`'s `listShowDocuments` — not reused
- * directly, since a module may not import another module's internals).
- */
 export async function listShowDocuments(showId: string): Promise<ShowDocument[]> {
   const supabase = await createServerClient();
 
@@ -251,10 +197,12 @@ export async function listShowDocuments(showId: string): Promise<ShowDocument[]>
     data.map(async (d) => {
       let url = d.url;
       if (!url && d.path) {
-        const { data: signed } = await supabase.storage.from('documents').createSignedUrl(d.path, 3600);
+        const { data: signed } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(d.path, 3600);
         url = signed?.signedUrl ?? null;
       }
       return { id: d.id, name: d.name, url };
-    })
+    }),
   );
 }
