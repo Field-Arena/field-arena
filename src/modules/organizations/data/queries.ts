@@ -2,14 +2,6 @@ import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import type { VenueListItem, VenueRing, VenueStable } from '@/modules/organizations/types';
 
-/**
- * Org-wide reads: the member database and org-level document library.
- *
- * The member database is deliberately org-scoped, not show-scoped. A member's
- * standing predates any show they appear on, which is why membership_status and
- * membership_expires live here rather than on a per-show staff row.
- */
-
 export interface MemberRow {
   id: string;
   name: string;
@@ -21,7 +13,7 @@ export interface MemberRow {
   membershipStatus: string;
   membershipExpires: string | null;
   notes: string | null;
-  /** Columns an imported list brought in beyond the fields above. */
+
   extraFields: Record<string, string>;
 }
 
@@ -31,7 +23,7 @@ export async function listMembers(orgId: string): Promise<MemberRow[]> {
   const { data, error } = await supabase
     .from('member_database')
     .select(
-      'id, name, first_name, last_name, email, phone, role, membership_status, membership_expires, notes, extra_fields'
+      'id, name, first_name, last_name, email, phone, role, membership_status, membership_expires, notes, extra_fields',
     )
     .eq('org_id', orgId)
     .order('name');
@@ -60,7 +52,6 @@ export interface TestTemplateRow {
   movementCount: number;
 }
 
-/** The organization's own reusable test library, distinct from the platform catalog. */
 export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[]> {
   const supabase = await createServerClient();
 
@@ -80,13 +71,6 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
   }));
 }
 
-/**
- * The org's reusable venue library, plus how many of this org's shows are
- * currently attached to each venue — ported from the previous bare-scaffold
- * venues page, which computed this same usage count inline. Kept here as
- * one query rather than two page-level reads so the "in use" figure has one
- * home, not one per caller.
- */
 export async function listVenues(orgId: string): Promise<VenueListItem[]> {
   const supabase = await createServerClient();
 

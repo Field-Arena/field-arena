@@ -6,28 +6,30 @@ import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
 import { SearchInput } from '@/shared/ui/organizer/search-input';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
-import { MEMBER_COLUMNS, MEMBER_ROW_CAP, type MemberColumnKey } from '@/modules/organizations/constants';
+import {
+  MEMBER_COLUMNS,
+  MEMBER_ROW_CAP,
+  type MemberColumnKey,
+} from '@/modules/organizations/constants';
 import type { MemberRow } from '@/modules/organizations/data/queries';
 import { buildMembersCsv } from '@/modules/organizations/utils/build-members-csv';
 import { useAddMembersToShow } from '@/modules/organizations/hooks/use-member-mutations';
 import { MemberEditDialog } from '@/modules/organizations/ui/member-edit-dialog';
 import { MemberImportDialog } from '@/modules/organizations/ui/member-import-dialog';
 
-/** Today in ISO, for the expired check. */
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/**
- * The organization's contact database — ported from showstaff.html's
- * renderMemberDb / updateMemberDbTable.
- *
- * One list of everyone the organization deals with, independent of any show.
- * Checking people and adding them to a show *copies* them in; they stay here
- * either way, which is the distinction the screen's own note draws.
- */
 export function MemberDatabaseScreen({
   members,
   shows,
@@ -51,12 +53,6 @@ export function MemberDatabaseScreen({
     },
   });
 
-  /**
-   * The toggleable columns: the fixed six, plus one per custom field any
-   * imported row carries — memberColumnDefs concatenates `extra:` columns the
-   * same way, so a spreadsheet's own columns are as visible as the built-in
-   * ones instead of only surfacing inside a person's detail.
-   */
   const columns = useMemo(() => {
     const extraKeys = [...new Set(members.flatMap((m) => Object.keys(m.extraFields)))].sort();
     return [
@@ -126,7 +122,6 @@ export function MemberDatabaseScreen({
         </div>
       </div>
 
-      {/* Only appears once something is checked, matching the legacy add-bar. */}
       {checked.size > 0 && (
         <Card className="mb-4 flex flex-wrap items-center gap-2.5 p-4">
           <b className="text-[13.5px]">{checked.size} selected</b>
@@ -256,19 +251,13 @@ export function MemberDatabaseScreen({
             <Table className="border-collapse text-[13px]">
               <caption className="sr-only">Everyone in your organization&apos;s database</caption>
               <TableHeader className="[&_tr]:border-0">
-                <TableRow className="hover:bg-transparent border-b border-[#E9EDEB]">
+                <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
                   <TableHead scope="col" className="h-auto w-[30px] py-2">
                     <input
                       type="checkbox"
                       title="Selects every match, not just the rows shown"
                       checked={filtered.length > 0 && filtered.every((m) => checked.has(m.id))}
                       onChange={(e) => {
-                        // Adds or removes only the current matches, leaving a
-                        // selection made under a different filter alone — the
-                        // legacy toggleAllMembers walks the filtered list and
-                        // adds/deletes each rather than replacing the set. It
-                        // covers every match, not just the capped rows on
-                        // screen, which is what its title promised.
                         setChecked((prev) => {
                           const next = new Set(prev);
                           for (const m of filtered) {
@@ -303,7 +292,7 @@ export function MemberDatabaseScreen({
                       className="cursor-pointer border-b border-[#F1F4F3] hover:bg-[#F8FAF9]"
                     >
                       <TableCell
-                        className="whitespace-normal py-2"
+                        className="py-2 whitespace-normal"
                         onClick={(e) => {
                           e.stopPropagation();
                         }}
@@ -322,7 +311,7 @@ export function MemberDatabaseScreen({
                           }}
                         />
                       </TableCell>
-                      <TableCell className="whitespace-normal py-2 font-semibold">
+                      <TableCell className="py-2 font-semibold whitespace-normal">
                         {member.name}
                       </TableCell>
 
@@ -330,10 +319,8 @@ export function MemberDatabaseScreen({
                         <TableCell
                           key={col.key}
                           className={cn(
-                            'whitespace-normal py-2',
-                            // Notes and imported columns read as supplementary —
-                            // smaller and muted, so the identifying columns stay
-                            // the ones the eye lands on.
+                            'py-2 whitespace-normal',
+
                             (col.key === 'notes' || col.extra) && 'text-[12px] text-[#7A8781]',
                             col.key === 'membershipExpires' &&
                               expired &&

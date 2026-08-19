@@ -21,17 +21,6 @@ import {
 } from '@/modules/organizations/schemas';
 import { MEMBERS_PATH } from '@/modules/organizations/constants';
 
-/**
- * Resolves the org a venue write should apply to: the caller's own org, or —
- * for a SuperAdmin previewing an organizer's workspace via "Enter as
- * organizer" — the org they're impersonating. `getOrganizerContext` (which
- * renders the Venues list a SuperAdmin sees while impersonating) already
- * resolves org id this same way; the venue mutations below previously only
- * checked `profile.org_id`, which is null for a SuperAdmin regardless of
- * impersonation, so saving/editing/deleting a venue while impersonating
- * failed with "Your account is not the owner of an organization" even though
- * the list of venues on screen was that org's own.
- */
 async function requireOrgId(): Promise<string> {
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');
@@ -42,14 +31,6 @@ async function requireOrgId(): Promise<string> {
   return orgId;
 }
 
-/**
- * Writes an organizer's own organization profile, from the onboarding screen.
- *
- * The organization is taken from the caller's profile rather than the request
- * body — see the schema for why. A ShowAdmin has org_id null by design and is
- * refused here: their access comes from a staff_assignments row for one show,
- * which is not authority over the organization's identity.
- */
 export async function completeOrganizationProfile(input: unknown): Promise<void> {
   const parsed = completeOrgProfileSchema.parse(input);
 
@@ -78,16 +59,6 @@ export async function completeOrganizationProfile(input: unknown): Promise<void>
   revalidatePath('/dashboard');
 }
 
-/**
- * Adds a person to the org's member database — a standing roster independent
- * of any one show, matching legacy's `maybeAddToMemberDatabase`. Deduped by
- * email within the org (legacy: `members.some(m => m.email === email)`) — a
- * person already on the roster is left alone rather than duplicated.
- *
- * Called from the staff module's `addStaffUser`, best-effort (see that
- * call site): the staff assignment or rider/vendor row it comes with is the
- * grant that actually matters, so a failure here must never roll that back.
- */
 export async function addOrgMember(input: unknown): Promise<{ added: boolean }> {
   const parsed = addOrgMemberSchema.parse(input);
   const email = parsed.email.trim().toLowerCase();
@@ -119,15 +90,6 @@ export async function addOrgMember(input: unknown): Promise<{ added: boolean }> 
   return { added: true };
 }
 
-/**
- * Adds a venue to the org's reusable library — showstaff.html's
- * saveLocationAction, POST branch. The org is resolved server-side via
- * requireOrgId (caller's own profile, or the impersonated org for a
- * SuperAdmin previewing an organizer's workspace) rather than accepted in the
- * request body: a signed-in organizer posting an org id would let them write
- * into someone else's organization (RLS's `venues_write` policy would very
- * likely stop the write, but the field has no reason to exist).
- */
 export async function createVenue(input: unknown): Promise<{ id: string }> {
   const parsed = createVenueSchema.parse(input);
   const orgId = await requireOrgId();
@@ -153,12 +115,6 @@ export async function createVenue(input: unknown): Promise<{ id: string }> {
   return { id: data.id };
 }
 
-/**
- * Edits a venue — showstaff.html's saveLocationAction, PATCH branch. Scoped
- * to the caller's own org (not just the row id) for the same reason as
- * createVenue: defense in depth alongside `venues_write`'s RLS check, not a
- * substitute for it.
- */
 export async function updateVenue(input: unknown): Promise<void> {
   const parsed = updateVenueSchema.parse(input);
   const orgId = await requireOrgId();
@@ -182,44 +138,17 @@ export async function updateVenue(input: unknown): Promise<void> {
   revalidatePath('/dashboard/venues');
 }
 
-/**
- * Removes a venue from the library — showstaff.html's deleteLocationAction.
- * No in-use guard here, matching legacy's own DELETE handler
- * (api/organizations/[id]/[resource].js lines 902-967) and `shows.venue_id`'s
- * `on delete set null`: a show that already picked up this venue's ring
- * layout keeps what it copied and simply loses the back-link, exactly as
- * legacy's own confirm() copy promises ("Shows that already used its ring
- * layout keep what they have"). The obvious-guard the caller actually wants
- * — not silently nuking a venue three live shows depend on — is a confirm
- * dialog naming what's attached, which belongs client-side where the show
- * count is already known (see venue-list.tsx), not a hard server-side block
- * legacy never had either.
- */
 export async function deleteVenue(input: unknown): Promise<void> {
   const parsed = deleteVenueSchema.parse(input);
   const orgId = await requireOrgId();
 
   const supabase = await createServerClient();
-  const { error } = await supabase
-    .from('venues')
-    .delete()
-    .eq('id', parsed.id)
-    .eq('org_id', orgId);
+  const { error } = await supabase.from('venues').delete().eq('id', parsed.id).eq('org_id', orgId);
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard/venues');
 }
 
-/* ── Member Database ─────────────────────────────────────────────────────── */
-
-/**
- * A message a person can act on, from a member write.
- *
- * member_database has a unique index on (org_id, email), so re-adding someone
- * already in the database fails with Postgres's own
- * "duplicate key value violates unique constraint" — accurate, and useless to
- * an organizer who just wants to know they are already on the list.
- */
 function memberError(error: { code?: string; message: string }, email?: string): string {
   if (error.code === '23505') {
     return email
@@ -229,7 +158,6 @@ function memberError(error: { code?: string; message: string }, email?: string):
   return error.message;
 }
 
-/** The column set every member write shares, from the parsed input. */
 function memberRow(parsed: {
   name: string;
   firstName?: string;
@@ -295,13 +223,6 @@ export async function deleteMember(input: unknown): Promise<void> {
   revalidatePath(MEMBERS_PATH);
 }
 
-/**
- * Bulk import from an uploaded list.
- *
- * Rows whose email already exists in this organization are skipped rather than
- * duplicated — re-uploading a slightly longer list is the normal way people use
- * this, and it should add the new names, not a second copy of everyone.
- */
 export async function importMembers(input: unknown): Promise<{ added: number; skipped: number }> {
   const parsed = importMembersSchema.parse(input);
   const orgId = await requireOrgId();
@@ -314,7 +235,7 @@ export async function importMembers(input: unknown): Promise<{ added: number; sk
   if (readError) throw new Error(readError.message);
 
   const seen = new Set(
-    existing.map((m) => m.email?.trim().toLowerCase()).filter((e): e is string => !!e)
+    existing.map((m) => m.email?.trim().toLowerCase()).filter((e): e is string => !!e),
   );
 
   const rows: ReturnType<typeof memberRow>[] = [];
@@ -340,26 +261,8 @@ export async function importMembers(input: unknown): Promise<{ added: number; sk
   return { added: rows.length, skipped };
 }
 
-/**
- * Copies selected members into a show.
- *
- * "Copies" is the word the legacy screen uses and it is accurate — the member
- * stays in the database either way. Where they land depends on their type:
- *
- *  - Vendor → a vendor booking on that show
- *  - Organizer → skipped; an organizer is not a per-show staffing row
- *  - Rider → skipped, and this is a real departure from the legacy build. There,
- *    a rider was a plain row anyone could create; here `riders` keys off
- *    auth.users, so a rider cannot exist without an account. Inventing one would
- *    mean an account nobody can sign into.
- *  - everything else → a staff assignment, with the generic "Member" mapped to
- *    ShowStaff, matching the legacy mapping
- *
- * Anyone already on the show by email is skipped, so running this twice does
- * not double them up.
- */
 export async function addMembersToShow(
-  input: unknown
+  input: unknown,
 ): Promise<{ added: number; skipped: number; ridersSkipped: number }> {
   const parsed = addMembersToShowSchema.parse(input);
   const supabase = await createServerClient();
@@ -377,10 +280,10 @@ export async function addMembersToShow(
   if (vendors.error) throw new Error(vendors.error.message);
 
   const staffEmails = new Set(
-    staff.data.map((s) => s.email?.trim().toLowerCase()).filter((e): e is string => !!e)
+    staff.data.map((s) => s.email?.trim().toLowerCase()).filter((e): e is string => !!e),
   );
   const vendorEmails = new Set(
-    vendors.data.map((v) => v.contact?.trim().toLowerCase()).filter((e): e is string => !!e)
+    vendors.data.map((v) => v.contact?.trim().toLowerCase()).filter((e): e is string => !!e),
   );
 
   const staffRows: {
@@ -392,8 +295,12 @@ export async function addMembersToShow(
     email: string | null;
     phone: string | null;
   }[] = [];
-  const vendorRows: { show_id: string; name: string; contact: string | null; phone: string | null }[] =
-    [];
+  const vendorRows: {
+    show_id: string;
+    name: string;
+    contact: string | null;
+    phone: string | null;
+  }[] = [];
 
   let skipped = 0;
   let ridersSkipped = 0;
@@ -418,8 +325,7 @@ export async function addMembersToShow(
       if (email) vendorEmails.add(email);
       vendorRows.push({
         show_id: parsed.showId,
-        // member_database.name is NOT NULL, but the generated row type widens
-        // it — the fallback keeps vendor_bookings.name's own NOT NULL honest.
+
         name: member.name || 'Vendor',
         contact: member.email,
         phone: member.phone,
@@ -437,8 +343,7 @@ export async function addMembersToShow(
       name: member.name || 'Staff',
       first_name: member.first_name,
       last_name: member.last_name,
-      // ShowStaff both for the generic "Member" and for a member whose type was
-      // never set — staff_assignments.role is NOT NULL and needs a real seat.
+
       role: !member.role || member.role === 'Member' ? 'ShowStaff' : member.role,
       email: member.email,
       phone: member.phone,
@@ -459,20 +364,6 @@ export async function addMembersToShow(
   return { added: staffRows.length + vendorRows.length, skipped, ridersSkipped };
 }
 
-/**
- * Starts — or resumes — Stripe Connect Express onboarding, ported from
- * POST /api/organizations/:id/connect.
- *
- * Returns the hosted Stripe URL for the caller to send the browser to. The
- * organization is `requireOrgId()`'s, never one named in the request: creating
- * a Connect account against someone else's organization would attach their
- * payouts to a bank account the caller controls.
- *
- * The account is created once and its id stored; calling this again for an
- * organization that abandoned onboarding half-way mints a fresh link onto the
- * SAME account rather than a second one, because Stripe account links expire
- * after a few minutes and a resumed onboarding must not start over.
- */
 export async function startStripeConnect(): Promise<{ url: string }> {
   if (!isStripeConfigured()) {
     throw new Error('Stripe is not configured on this environment yet.');
@@ -491,19 +382,6 @@ export async function startStripeConnect(): Promise<{ url: string }> {
   const stripe = getStripeClient();
   let accountId = org.stripe_connect_account_id;
 
-  /**
-   * A stored account id is only good for the platform that created it.
-   *
-   * Swapping STRIPE_SECRET_KEY — a different client's account, or the eventual
-   * test-to-live cutover — leaves every stored `acct_...` pointing at another
-   * platform's account, and Stripe rejects both retrieving it and minting a
-   * link for it. Rather than dead-ending on "not connected to your platform",
-   * the id is dropped and a fresh account is created under the current keys.
-   *
-   * Only a 4xx from Stripe counts. A network failure or an outage must NOT
-   * discard a perfectly good account id and start the organizer's onboarding
-   * over — so anything else is rethrown.
-   */
   if (accountId) {
     try {
       await stripe.accounts.retrieve(accountId);
@@ -514,9 +392,6 @@ export async function startStripeConnect(): Promise<{ url: string }> {
   }
 
   if (!accountId) {
-    // US-only at launch, and both capabilities requested up front: card_payments
-    // because Field & Arena is merchant of record, transfers because the payout
-    // is a separate transfer afterward.
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'US',
@@ -538,8 +413,7 @@ export async function startStripeConnect(): Promise<{ url: string }> {
   const link = await stripe.accountLinks.create({
     account: accountId,
     type: 'account_onboarding',
-    // Stripe sends the organizer back here either way: return_url when they
-    // finish, refresh_url when the link expired before they did.
+
     return_url: `${env.siteUrl}/dashboard/billing?connect=done`,
     refresh_url: `${env.siteUrl}/dashboard/billing?connect=refresh`,
   });

@@ -7,8 +7,6 @@ import { readableError } from '@/shared/lib/error-message';
 import { createVenue, updateVenue, deleteVenue } from '@/modules/organizations/data/mutations';
 import type { CreateVenueInput, UpdateVenueInput } from '@/modules/organizations/schemas';
 
-/** Mutation hooks for the Venues page. Every action revalidates server-side; router.refresh() pulls the re-rendered list back into this view. */
-
 export function useCreateVenue(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 

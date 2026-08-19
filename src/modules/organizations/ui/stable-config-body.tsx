@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 import { PromptDialog } from '@/shared/ui/prompt-dialog';
-import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/shadcn/dialog';
+import {
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { fa } from '@/shared/lib/organizer-theme';
@@ -10,7 +15,6 @@ import { resizeStalls } from '@/modules/organizations/utils/resize-stalls';
 import { VT_LABEL, VT_INPUT } from '@/modules/organizations/ui/venue-tokens';
 import type { VenueStable } from '@/modules/organizations/types';
 
-/** The per-stall grid inside StableConfigDialog — see that file's doc comment. */
 export function StableConfigBody({
   stable,
   onChange,
@@ -27,8 +31,6 @@ export function StableConfigBody({
     onChange({ ...stable, stalls: resizeStalls(stalls, n) });
   }
 
-  // The stall being renamed, or null. This app's own PromptDialog rather than
-  // window.prompt(), which announces "localhost:3000 says" and cannot be styled.
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const renamingStall = renamingIndex == null ? null : stalls[renamingIndex];
 
@@ -48,7 +50,7 @@ export function StableConfigBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-serif text-xl text-hunter-deep">
+        <DialogTitle className="text-hunter-deep font-serif text-xl">
           {stable.name || 'Stable'} — stalls
         </DialogTitle>
         <DialogDescription>
@@ -73,7 +75,9 @@ export function StableConfigBody({
       </div>
 
       {stalls.length === 0 ? (
-        <p className="my-4 text-[13px] text-[#7A8781]">Set a stall count above to build the grid.</p>
+        <p className="my-4 text-[13px] text-[#7A8781]">
+          Set a stall count above to build the grid.
+        </p>
       ) : (
         <div
           className="my-4 grid gap-2"

@@ -33,19 +33,10 @@ const LABEL = 'mb-1.5 block text-[12.5px] font-semibold text-forest';
 const FIELD =
   'w-full rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
 
-/**
- * Add or edit one person in the organization's database.
- *
- * A Vendor is a business and carries one name; everyone else is a person with a
- * first and last name, and the display name is built from them. The legacy form
- * swapped the name fields on the same rule — a vendor called "Southern Tack
- * Co." has no last name to ask for.
- */
 export function MemberEditDialog({
   member,
   onClose,
 }: {
-  /** Null opens the dialog in "add" mode. */
   member: MemberRow | null;
   onClose: () => void;
 }) {
@@ -74,9 +65,6 @@ export function MemberEditDialog({
       ? businessName.trim()
       : [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
 
-    // Editing falls back to the name already on record when the fields are
-    // cleared — saveMemberEdit's own `nm.name || m.name`. Adding has nothing to
-    // fall back to, so it says so rather than saving a nameless row.
     const name = typed === '' ? (member?.name ?? '') : typed;
     if (!name) {
       setNameError(true);

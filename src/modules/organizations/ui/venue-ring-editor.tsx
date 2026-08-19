@@ -2,13 +2,14 @@
 
 import { Input } from '@/shared/ui/shadcn/input';
 import { RING_SIZES, MAX_RINGS } from '@/modules/organizations/constants';
-import { VT_LABEL, VT_INPUT, VT_ROW_INPUT, VT_SECTION_LABEL } from '@/modules/organizations/ui/venue-tokens';
+import {
+  VT_LABEL,
+  VT_INPUT,
+  VT_ROW_INPUT,
+  VT_SECTION_LABEL,
+} from '@/modules/organizations/ui/venue-tokens';
 import type { VenueRing } from '@/modules/organizations/types';
 
-/**
- * The ring count + ring rows section of VenueFormDialog — a deliberate copy
- * of Show Manager's VenueCard, see that file's own doc comment.
- */
 export function VenueRingEditor({
   rings,
   onSetCount,

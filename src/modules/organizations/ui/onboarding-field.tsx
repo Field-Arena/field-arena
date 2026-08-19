@@ -20,14 +20,14 @@ export function OnboardingField({
       <label htmlFor={id} className={LABEL}>
         {label}
         {required && (
-          <span aria-hidden className="ml-1 text-gold">
+          <span aria-hidden className="text-gold ml-1">
             *
           </span>
         )}
       </label>
       {children}
       {error && (
-        <p role="alert" className="mt-1.5 text-[12.5px] text-alert-fg">
+        <p role="alert" className="text-alert-fg mt-1.5 text-[12.5px]">
           {error}
         </p>
       )}

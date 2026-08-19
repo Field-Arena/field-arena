@@ -3,13 +3,6 @@ import { MEMBER_TYPES } from '@/modules/organizations/constants';
 import { parseMemberCsvLine } from '@/modules/organizations/utils/parse-member-csv-line';
 import type { ParsedMemberCsvColumn } from '@/modules/organizations/utils/detect-member-csv-columns';
 
-/**
- * Turns parsed CSV rows into members, honouring the field picker's
- * exclusions.
- *
- * Name is always brought in — a record cannot exist without one — so it is
- * never offered as something to exclude.
- */
 export function buildMemberRowsFromCsv(
   dataLines: string[],
   columns: ParsedMemberCsvColumn[],
@@ -40,8 +33,7 @@ export function buildMemberRowsFromCsv(
       name: name.trim(),
       firstName,
       lastName,
-      // An unrecognised type becomes the generic Member rather than failing
-      // the row — a spreadsheet saying "volunteer" is still a person.
+
       role: role ?? 'Member',
       email: record.email ?? '',
       phone: record.phone ?? '',

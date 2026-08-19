@@ -18,13 +18,6 @@ import {
 } from '@/modules/organizations/utils/detect-member-csv-columns';
 import { buildMemberRowsFromCsv } from '@/modules/organizations/utils/build-member-rows-from-csv';
 
-/**
- * "Upload List" — a CSV of people, straight into the database.
- *
- * Any column the file carries beyond the known ones is kept as an extra field
- * rather than dropped, so an organizer's own spreadsheet columns survive the
- * round-trip through export.
- */
 export function MemberImportDialog({ onClose }: { onClose: () => void }) {
   const [columns, setColumns] = useState<ParsedMemberCsvColumn[]>([]);
   const [dataLines, setDataLines] = useState<string[]>([]);
@@ -34,12 +27,6 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
 
   const importMembers = useImportMembers({ onSuccess: onClose });
 
-  /**
-   * Reads the file into columns and rows, without building members yet.
-   *
-   * The field picker runs between this and the import, so which columns are
-   * used is a decision the organizer makes after seeing what the file has.
-   */
   function parse(text: string) {
     const result = detectMemberCsvColumns(text);
     if ('error' in result) {
@@ -53,8 +40,9 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
     setExcluded(new Set());
   }
 
-  // Everything the file offers to leave out — name is not among them.
-  const pickable = columns.filter((c) => c.field !== 'name' && c.field !== 'firstName' && c.field !== 'lastName');
+  const pickable = columns.filter(
+    (c) => c.field !== 'name' && c.field !== 'firstName' && c.field !== 'lastName',
+  );
   const rowCount = dataLines.length;
 
   return (
@@ -66,7 +54,7 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
     >
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl text-hunter-deep">Upload a list</DialogTitle>
+          <DialogTitle className="text-hunter-deep font-serif text-xl">Upload a list</DialogTitle>
           <DialogDescription>
             A CSV with a header row. First name, Last name, Type, Phone, Email and Notes are
             recognised — any other column is kept against each person as an extra field.

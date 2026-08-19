@@ -14,7 +14,7 @@ interface DetailField {
   placeholder?: string;
   colSpan2?: boolean;
   name: keyof VenueDetailsInput;
-  /** Only `name` shows a validation error inline — the rest are optional with nothing worth surfacing. */
+
   showsError?: boolean;
 }
 
@@ -34,7 +34,6 @@ const FIELDS: DetailField[] = [
   { id: 'vf-contact', label: 'Contact', colSpan2: true, name: 'contact' },
 ];
 
-/** The name/address/website/phone/contact fields at the top of VenueFormDialog. */
 export function VenueDetailsFields({
   register,
   errors,

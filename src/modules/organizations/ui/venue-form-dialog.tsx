@@ -42,23 +42,6 @@ function detailsDefaults(venue?: VenueListItem): VenueDetailsInput {
   };
 }
 
-/**
- * Add/edit for one venue in the org's reusable library — showstaff.html's
- * locationEditorHtml (~line 5296), one dialog for name/address/contact plus
- * a saved ring layout and a saved stable/stall layout, all persisted
- * together on Save (see the createVenue/updateVenue doc comments for why
- * there is no separate save path for rings/stables).
- *
- * The ring editor is a deliberate copy of Show Manager's VenueCard
- * (modules/shows/ui/show-manager/venue-card.tsx). Rings/stables are managed
- * as plain component state rather than react-hook-form fields, the same way
- * VenueCard manages its own ring rows with `useState` — the form only wraps
- * name/address/website/phone/contact (see venueDetailsSchema).
- *
- * Composes VenueDetailsFields / VenueRingEditor / VenueStableList, which own
- * their own section's markup — this component owns the shared draft state so
- * Save can assemble one payload from every section.
- */
 export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; trigger: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [rings, setRings] = useState<VenueRing[]>(venue?.rings ?? []);
