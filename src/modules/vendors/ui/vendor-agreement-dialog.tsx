@@ -21,13 +21,6 @@ const DEFAULT_AGREEMENT_TEXT =
   'follow all posted show rules, load-in/load-out times, and any instructions from show staff ' +
   'for your booth space.';
 
-/**
- * "Sign & continue" — ported from vendor.html's renderAgreementStep /
- * signAgreementAndContinue. Legacy gated payment behind this signature; this
- * port has no payment step to gate (see listBookableShows's doc comment), so
- * signing here simply records the vendor's agreement to the show's terms
- * ahead of the organizer countersigning off-line.
- */
 export function VendorAgreementDialog({
   bookingId,
   showName,
@@ -57,7 +50,7 @@ export function VendorAgreementDialog({
 
       <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl text-hunter-deep">
+          <DialogTitle className="text-hunter-deep font-serif text-xl">
             Vendor booth agreement
           </DialogTitle>
           <DialogDescription>{showName}</DialogDescription>
@@ -72,7 +65,12 @@ export function VendorAgreementDialog({
             event.preventDefault();
             mutate(
               { bookingId, fullName },
-              { onSuccess: () => { setOpen(false); setFullName(''); } }
+              {
+                onSuccess: () => {
+                  setOpen(false);
+                  setFullName('');
+                },
+              },
             );
           }}
           className="space-y-4"
@@ -85,12 +83,20 @@ export function VendorAgreementDialog({
               required
               placeholder="Jane Smith"
               value={fullName}
-              onChange={(e) => { setFullName(e.target.value); }}
+              onChange={(e) => {
+                setFullName(e.target.value);
+              }}
             />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => { setOpen(false); }}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+              }}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isPending || !fullName.trim()}>

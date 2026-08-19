@@ -45,12 +45,6 @@ export function useSignVendorAgreement() {
   });
 }
 
-/**
- * Uploads straight to Storage against a signed URL (see
- * shows/ui/show-manager/documents-card.tsx's useUploadShowDocument for the
- * same pattern) rather than base64-through-a-Server-Action, so a large PDF
- * never sits in a Server Action request body.
- */
 export function useUploadVendorDocument() {
   const router = useRouter();
 

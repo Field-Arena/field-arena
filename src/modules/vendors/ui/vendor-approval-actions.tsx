@@ -7,14 +7,13 @@ import {
   useRejectVendorBooking,
 } from '@/modules/vendors/hooks/use-vendor-staff-mutations';
 
-/**
- * Approve/Reject for one pending vendor application — rendered inline in the
- * Users directory (staff/ui/users-directory.tsx) for kind==='vendor' rows
- * whose status is 'pending'. This is the organizer-side action that unlocks
- * createVendorCheckoutSession for the vendor (see data/mutations.ts's
- * approveVendorBooking); until this exists, "Pending review" was a dead end.
- */
-export function VendorApprovalActions({ bookingId, showId }: { bookingId: string; showId: string }) {
+export function VendorApprovalActions({
+  bookingId,
+  showId,
+}: {
+  bookingId: string;
+  showId: string;
+}) {
   const { mutate: approve, isPending: approving } = useApproveVendorBooking();
   const { mutate: reject, isPending: rejecting } = useRejectVendorBooking();
   const isPending = approving || rejecting;

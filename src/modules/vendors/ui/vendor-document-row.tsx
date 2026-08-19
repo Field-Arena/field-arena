@@ -8,11 +8,6 @@ import {
 } from '@/modules/vendors/hooks/use-vendor-mutations';
 import type { VendorDocumentRequirement, VendorDocumentUpload } from '@/modules/vendors/types';
 
-/**
- * One row of a booking's document checklist — ported from vendor.html's
- * documentsView(): a file input + "Upload" when nothing is on file yet, or
- * "View"/"Delete" once something is.
- */
 export function VendorDocumentRow({
   bookingId,
   requirement,
@@ -46,12 +41,6 @@ export function VendorDocumentRow({
         </>
       ) : (
         <>
-          {/* Raw native file input, deliberately not the shadcn Input wrapper —
-              that component restyles the ::file-selector-button pseudo-element
-              (drops the browser's native "Choose File" chrome for a flat
-              text button), which would be a real visual change here, not a
-              pixel-identical one. Same reasoning as leaving checkbox/radio
-              inputs raw. */}
           <input
             ref={inputRef}
             type="file"
@@ -74,7 +63,9 @@ export function VendorDocumentRow({
             variant="ghost"
             className="btn-link h-auto rounded-none bg-transparent px-0 py-0 text-base font-normal hover:bg-transparent"
             disabled={uploadMutation.isPending}
-            onClick={() => { inputRef.current?.click(); }}
+            onClick={() => {
+              inputRef.current?.click();
+            }}
           >
             {uploadMutation.isPending ? 'Uploading…' : '↑ Upload'}
           </Button>

@@ -1,11 +1,6 @@
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { FinalizeVendorBookingResult } from '@/modules/vendors/types';
 
-/**
- * The return-from-Stripe confirmation view — mirrors
- * modules/riders/ui/checkout-confirmation.tsx's CheckoutConfirmation
- * exactly, minus the rider-number field (a vendor booking has no equivalent).
- */
 export function VendorCheckoutConfirmation({ result }: { result: FinalizeVendorBookingResult }) {
   return (
     <div className="dash-card">

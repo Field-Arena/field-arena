@@ -19,13 +19,6 @@ import type {
   VendorVerifyOutcome,
 } from '@/modules/vendors/types';
 
-/**
- * Every outcome here is DATA, not a thrown error — see VendorSignUpOutcome.
- * Backs the standalone "claim your account" page
- * (app/vendor-apply/account/page.tsx) — the bridge from an anonymous
- * applyToShowPublic application back to a real Vendor account that can sign
- * the agreement and pay (see data/mutations.ts's signUpVendor doc comment).
- */
 export function useSignUpVendor(options?: {
   onVerifyNeeded?: (email: string) => void;
   onAlreadyRegistered?: () => void;
