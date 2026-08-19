@@ -3,19 +3,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { StepPillNav, type StepPillNavStep } from '@/shared/ui/step-pill-nav';
-import { useEntryCartStore } from '../store';
-import { ClassPicker } from './class-picker';
-import { AddOnPicker } from './addon-picker';
-import { RiderDemoAccountStep } from './rider-demo-account-step';
-import { RiderDemoDetailsStep } from './rider-demo-details-step';
-import { RiderDemoPaymentStep } from './rider-demo-payment-step';
-import { CheckoutConfirmation } from './checkout-confirmation';
+import { SUPERADMIN_CONSOLE_ROUTE } from '@/modules/riders/constants';
+import { useEntryCartStore } from '@/modules/riders/store';
+import { ClassPicker } from '@/modules/riders/ui/class-picker';
+import { AddOnPicker } from '@/modules/riders/ui/addon-picker';
+import { RiderDemoAccountStep } from '@/modules/riders/ui/rider-demo-account-step';
+import { RiderDemoDetailsStep } from '@/modules/riders/ui/rider-demo-details-step';
+import { RiderDemoPaymentStep } from '@/modules/riders/ui/rider-demo-payment-step';
+import { CheckoutConfirmation } from '@/modules/riders/ui/checkout-confirmation';
 import type {
   AddOnWithRemaining,
   ClassWithCapacity,
   FinalizeOrderResult,
   QualTypeRow,
-} from '../types';
+} from '@/modules/riders/types';
 
 const DEMO_SHOW_ID = 'demo-show';
 
@@ -49,13 +50,6 @@ const CLASS_DEFAULTS = {
   working_in_entry_id: null,
 };
 
-/**
- * Hardcoded seed data for the "Demo" walkthrough — continues legacy's own
- * demo identity (seedRiderDemo, rider.html: Amanda Clarke / horse Willow)
- * rather than inventing new placeholder names. Deliberately not fetched from
- * Supabase: this route has zero real writes anywhere, so it has no real show
- * to read either.
- */
 const DEMO_CLASSES: ClassWithCapacity[] = [
   {
     ...CLASS_DEFAULTS,
@@ -150,15 +144,6 @@ const STEPS: StepPillNavStep[] = [
   },
 ];
 
-/**
- * The restored "Demo" button's destination (public route `/rider/demo`, no
- * auth gate — same as legacy's preview-rider-demo.html) — reproduces that
- * page's exact 5-step sequence against the real rider UI components wherever
- * that's safe (ClassPicker/AddOnPicker only touch local Zustand state;
- * CheckoutConfirmation is pure-presentational), and demo-only stand-ins for
- * the three steps whose real counterparts fire real mutations. Zero
- * Supabase writes anywhere in this component tree.
- */
 export function RiderDemoWalkthrough({
   showBackToConsole = false,
 }: {
@@ -167,9 +152,6 @@ export function RiderDemoWalkthrough({
   const [activeIndex, setActiveIndex] = useState(0);
   const reset = useEntryCartStore((state) => state.reset);
 
-  // The entry cart is a single app-wide store — reset on mount so a stray
-  // real cart never leaks into the demo, and again on unmount so a demo cart
-  // never leaks into a real rider page visited afterward in the same tab.
   useEffect(() => {
     reset();
     return () => {
@@ -182,7 +164,7 @@ export function RiderDemoWalkthrough({
       {showBackToConsole && (
         <div className="flex items-center border-b border-[#E9EDEB] bg-white px-5 py-2.5">
           <Link
-            href="/dashboard/superadmin"
+            href={SUPERADMIN_CONSOLE_ROUTE}
             className="text-forest hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
           >
             ← Back to console
