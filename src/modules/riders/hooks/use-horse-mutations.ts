@@ -10,7 +10,11 @@ import {
   updateHorse,
   uploadHorseDocument,
 } from '@/modules/riders/data/mutations';
-import type { HorseCreateInput, HorseDeleteInput, HorseUpdateInput } from '@/modules/riders/schemas';
+import type {
+  HorseCreateInput,
+  HorseDeleteInput,
+  HorseUpdateInput,
+} from '@/modules/riders/schemas';
 
 export function useCreateHorse(options?: { onSuccess?: () => void }) {
   return useMutation({

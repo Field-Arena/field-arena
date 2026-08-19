@@ -5,13 +5,6 @@ export interface CheckoutCartPayload {
   addOns: CheckoutAddOnLine[];
 }
 
-/**
- * Shapes the entry cart store's selection state into createCheckoutSession's
- * `{ cart, addOns }` input, right before "Proceed to payment" fires the real
- * mutation. Split out of CheckoutSummary so that component stays render +
- * event wiring only, per .claude/rules/architecture.md's "UI does not
- * compute business logic."
- */
 export function buildCheckoutCartPayload({
   selectedClassIds,
   classHorseAssignments,
@@ -24,7 +17,9 @@ export function buildCheckoutCartPayload({
   addOnQuantities: Record<string, number>;
 }): CheckoutCartPayload {
   const cart = [...selectedClassIds].flatMap((classId) => {
-    const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string => Boolean(id));
+    const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string =>
+      Boolean(id),
+    );
     const qualTypeIds = [...(qualSelections[classId] ?? [])];
     return horseIds.map((horseId) => ({ classId, horseId, qualTypeIds }));
   });

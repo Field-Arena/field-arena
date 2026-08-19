@@ -16,22 +16,13 @@ function classDisplayName(cls: { label: string; displayName: string | null }): s
   return (cls.displayName?.trim() ?? '') || cls.label;
 }
 
-/**
- * The Results view — legacy's `#dtab-results` (rider.html lines 710-718).
- * Not a sidebar tab: reached only via the "🏆 View Results" button on the
- * Schedule tab, with "← Back to My Schedule" as its only way back — mirrors
- * `showDashTab('results')`'s exact mechanism (no `.dash-tab` has
- * `data-dtab="results"`, so no sidebar item highlights while this is open).
- * One outer card ("Results" / "Placings and ribbons for your classes, as
- * scores come in."), with one block per scored entry inside it — not a
- * separate card per entry.
- *
- * `#results-congrats` stays empty here, matching legacy's own real-mode
- * behavior: ribbon/placing congrats banners are demo-only in legacy (no
- * `place`/`fieldSize` field exists in any real API response), so there is no
- * real placing to show.
- */
-export function ResultsView({ entries, onBack }: { entries: RiderEntryDetail[]; onBack: () => void }) {
+export function ResultsView({
+  entries,
+  onBack,
+}: {
+  entries: RiderEntryDetail[];
+  onBack: () => void;
+}) {
   const completed = entries.filter((entry) => {
     if (entry.finalPct == null) return false;
     return !Number.isNaN(Number(entry.finalPct));
@@ -39,7 +30,11 @@ export function ResultsView({ entries, onBack }: { entries: RiderEntryDetail[]; 
 
   return (
     <div>
-      <button type="button" style={{ ...legacyButtonGhostStyle, marginBottom: 14 }} onClick={onBack}>
+      <button
+        type="button"
+        style={{ ...legacyButtonGhostStyle, marginBottom: 14 }}
+        onClick={onBack}
+      >
         ← Back to My Schedule
       </button>
 
@@ -56,7 +51,13 @@ export function ResultsView({ entries, onBack }: { entries: RiderEntryDetail[]; 
             const subtitle = entry.class ? classSubtitle(entry.class) : null;
             return (
               <div key={entry.id} style={{ marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, color: LEGACY_COLOR.ink, marginBottom: subtitle ? 0 : 6 }}>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    color: LEGACY_COLOR.ink,
+                    marginBottom: subtitle ? 0 : 6,
+                  }}
+                >
                   {entry.class ? classDisplayName(entry.class) : 'Class'}
                   {entry.class?.division ? ` (${entry.class.division})` : ''}
                 </div>

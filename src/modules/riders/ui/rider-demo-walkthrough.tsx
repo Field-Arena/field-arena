@@ -50,13 +50,6 @@ const CLASS_DEFAULTS = {
   working_in_entry_id: null,
 };
 
-/**
- * Hardcoded seed data for the "Demo" walkthrough — continues legacy's own
- * demo identity (seedRiderDemo, rider.html: Amanda Clarke / horse Willow)
- * rather than inventing new placeholder names. Deliberately not fetched from
- * Supabase: this route has zero real writes anywhere, so it has no real show
- * to read either.
- */
 const DEMO_CLASSES: ClassWithCapacity[] = [
   {
     ...CLASS_DEFAULTS,
@@ -151,15 +144,6 @@ const STEPS: StepPillNavStep[] = [
   },
 ];
 
-/**
- * The restored "Demo" button's destination (public route `/rider/demo`, no
- * auth gate — same as legacy's preview-rider-demo.html) — reproduces that
- * page's exact 5-step sequence against the real rider UI components wherever
- * that's safe (ClassPicker/AddOnPicker only touch local Zustand state;
- * CheckoutConfirmation is pure-presentational), and demo-only stand-ins for
- * the three steps whose real counterparts fire real mutations. Zero
- * Supabase writes anywhere in this component tree.
- */
 export function RiderDemoWalkthrough({
   showBackToConsole = false,
 }: {
@@ -168,9 +152,6 @@ export function RiderDemoWalkthrough({
   const [activeIndex, setActiveIndex] = useState(0);
   const reset = useEntryCartStore((state) => state.reset);
 
-  // The entry cart is a single app-wide store — reset on mount so a stray
-  // real cart never leaks into the demo, and again on unmount so a demo cart
-  // never leaks into a real rider page visited afterward in the same tab.
   useEffect(() => {
     reset();
     return () => {

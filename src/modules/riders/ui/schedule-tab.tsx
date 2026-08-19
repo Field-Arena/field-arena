@@ -35,7 +35,12 @@ interface ShowDetailsFields {
 }
 
 function parseShowDetails(raw: unknown): ShowDetailsFields {
-  const value = (raw ?? {}) as { org?: string; website?: string; phone?: string; contactEmail?: string };
+  const value = (raw ?? {}) as {
+    org?: string;
+    website?: string;
+    phone?: string;
+    contactEmail?: string;
+  };
   return {
     org: (value.org?.trim() ?? '') || null,
     website: (value.website?.trim() ?? '') || null,
@@ -44,13 +49,6 @@ function parseShowDetails(raw: unknown): ShowDetailsFields {
   };
 }
 
-/**
- * The Schedule tab — legacy's `#dtab-schedule` (rider.html): the "Show
- * details" card, "Your rides" (with the "🏆 View Results" button, shown only
- * once a ride has a score), and the full event schedule. Mirrors the exact
- * field list/order/labels of `.showmeta` (lines 610-617) and the "your
- * rides"/full-schedule join logic already ported.
- */
 export function ScheduleTab({
   show,
   venueAddress,
@@ -68,9 +66,10 @@ export function ScheduleTab({
 }) {
   const enteredClassIds = new Set(entries.map((entry) => entry.classId));
   const details = parseShowDetails(show.show_details);
-  const recognition = Array.isArray(show.governing_bodies) && show.governing_bodies.length > 0
-    ? `${(show.governing_bodies as string[]).join(' / ')} recognized`
-    : null;
+  const recognition =
+    Array.isArray(show.governing_bodies) && show.governing_bodies.length > 0
+      ? `${(show.governing_bodies as string[]).join(' / ')} recognized`
+      : null;
   const showOffice = [details.phone, details.contactEmail].filter(Boolean).join(' · ') || null;
   const dates = formatDateRange(show.start_date, show.end_date) || show.date_label;
 
@@ -99,7 +98,15 @@ export function ScheduleTab({
       </div>
 
       <div style={legacyCardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
           <LegacySecTitle style={{ margin: 0 }}>Your rides</LegacySecTitle>
           {hasResults && (
             <button type="button" style={legacyButtonGhostStyle} onClick={onViewResults}>
@@ -108,8 +115,8 @@ export function ScheduleTab({
           )}
         </div>
         <p style={legacySecNoteStyle}>
-          Every class you&apos;re entered in, in order. Once a ride is complete, your score shows here —
-          tap it for the full scorecard.
+          Every class you&apos;re entered in, in order. Once a ride is complete, your score shows
+          here — tap it for the full scorecard.
         </p>
         {entries.length === 0 && (
           <p style={{ fontSize: 13.5, color: LEGACY_COLOR.inkSoft }}>No classes entered yet.</p>
@@ -131,7 +138,9 @@ export function ScheduleTab({
                 )}
                 <div style={legacyRideMetaStyle}>
                   {entry.class
-                    ? [entry.class.date, entry.class.time, entry.class.arena].filter(Boolean).join(' · ')
+                    ? [entry.class.date, entry.class.time, entry.class.arena]
+                        .filter(Boolean)
+                        .join(' · ')
                     : ''}
                 </div>
               </div>
@@ -170,10 +179,14 @@ export function ScheduleTab({
                   <td style={legacyTableCellStyle}>
                     {classDisplayName(cls)}
                     {mine && (
-                      <span style={{ ...legacyPillStyle('ok'), marginLeft: 8 }}>You&apos;re entered</span>
+                      <span style={{ ...legacyPillStyle('ok'), marginLeft: 8 }}>
+                        You&apos;re entered
+                      </span>
                     )}
                     {subtitle && (
-                      <div style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}>
+                      <div
+                        style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}
+                      >
                         {subtitle}
                       </div>
                     )}
@@ -212,7 +225,9 @@ function RideStatus({ entry }: { entry: RiderEntryDetail }) {
   if (entry.status === 'scratched') return <span style={legacyPillStyle('bad')}>Scratched</span>;
   if (entry.status === 'disqualified') {
     return (
-      <span style={legacyPillStyle('bad')}>Disqualified{entry.reason ? ` — ${entry.reason}` : ''}</span>
+      <span style={legacyPillStyle('bad')}>
+        Disqualified{entry.reason ? ` — ${entry.reason}` : ''}
+      </span>
     );
   }
   const pct = entry.finalPct != null ? Number(entry.finalPct) : null;

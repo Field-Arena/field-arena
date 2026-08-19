@@ -1,9 +1,18 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { useCreateHorse, useDeleteHorse, useUpdateHorse } from '@/modules/riders/hooks/use-horse-mutations';
+import {
+  useCreateHorse,
+  useDeleteHorse,
+  useUpdateHorse,
+} from '@/modules/riders/hooks/use-horse-mutations';
 import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
-import { LEGACY_COLOR, LegacySecTitle, legacyButtonGhostStyle, legacyCardStyle } from '@/modules/riders/ui/legacy-theme';
+import {
+  LEGACY_COLOR,
+  LegacySecTitle,
+  legacyButtonGhostStyle,
+  legacyCardStyle,
+} from '@/modules/riders/ui/legacy-theme';
 import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
 
 const fieldInputStyle: CSSProperties = {
@@ -15,21 +24,6 @@ const fieldInputStyle: CSSProperties = {
   width: '100%',
 };
 
-/**
- * The dashboard's Horse tab — legacy's `#dtab-horse` (rider.html): sec-title
- * "Horses" with the "➕ Add a Horse" affordance in the header row, one card
- * per horse. Distinct from `HorseManager` (used on the pre-purchase wizard's
- * Step 2, legacy's own separate `#signup-horses-card` screen with its own
- * "Your horses" copy) — the two legacy screens share the same underlying
- * horse-editing fields but not the same header treatment, so they're kept as
- * separate components rather than one reused across both, same reasoning as
- * this module's other Real-vs-wizard duplications (see riderCategoryToDivisionCode,
- * getCurrentRiderProfile's module-local twin).
- *
- * A horse's registered `name` is never editable here — no input for it
- * exists anywhere in this file, matching the DB trigger
- * (assert_horse_name_immutable) that would reject the write anyway.
- */
 export function HorseTabView({
   horses,
   documentRequirements,
@@ -99,7 +93,14 @@ export function HorseTabView({
           }}
         >
           <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: 11,
+                color: LEGACY_COLOR.inkSoft,
+                marginBottom: 4,
+              }}
+            >
               Horse&apos;s registered name
             </label>
             <input
@@ -159,7 +160,14 @@ function LegacyHorseCard({
         marginBottom: 8,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+        }}
+      >
         <div style={{ fontWeight: 700, color: LEGACY_COLOR.ink }}>{horse.name}</div>
         <button
           type="button"
@@ -174,9 +182,17 @@ function LegacyHorseCard({
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: 10,
+        }}
+      >
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
             Stable name
           </label>
           <input
@@ -188,7 +204,9 @@ function LegacyHorseCard({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
             Trainer name
           </label>
           <input
@@ -200,7 +218,9 @@ function LegacyHorseCard({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
             Trainer phone
           </label>
           <input

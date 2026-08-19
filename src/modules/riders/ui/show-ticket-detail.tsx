@@ -11,14 +11,6 @@ const TICKET_WINDOW_MESSAGE: Record<ReturnType<typeof getTicketWindowStatus>, st
   open: null,
 };
 
-/**
- * Read-only display of a show's public ticket page — what an anonymous
- * visitor or signed-in rider sees before ever picking a class. Mirrors the
- * "Choose your classes" / "Stabling & add-ons" cards from rider.html's Step 1
- * (public/views/rider.html), minus the actual picking — that interactivity
- * (cart state, add-to-cart, qualification checkboxes) is later phased work;
- * this proves the read side end-to-end first.
- */
 export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
   const { show, classes, addOns, qualTypes } = detail;
   const windowStatus = getTicketWindowStatus(parseTicketWindow(show));
@@ -27,8 +19,8 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-forest">{show.name}</h1>
-        <p className="text-sm text-fa-muted">
+        <h1 className="text-forest text-2xl font-semibold">{show.name}</h1>
+        <p className="text-fa-muted text-sm">
           {[show.date_label, show.venue_name].filter(Boolean).join(' · ')}
         </p>
       </div>
@@ -45,13 +37,11 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
         </CardHeader>
         <CardContent className="space-y-2">
           {classes.length === 0 && (
-            <p className="text-sm text-fa-muted">No classes published yet.</p>
+            <p className="text-fa-muted text-sm">No classes published yet.</p>
           )}
           {classes.map((cls) => {
             const isFull = cls.cap != null && cls.entryCount >= cls.cap;
-            // `?? ''` first so a whitespace-only display_name still falls back to
-            // the label instead of rendering blank, without tripping
-            // prefer-nullish-coalescing on a bare `||` between two strings.
+
             const classLabel = (cls.display_name?.trim() ?? '') || cls.label;
             const subtitle = classSubtitle({
               label: cls.label,
@@ -61,21 +51,21 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
             return (
               <div
                 key={cls.id}
-                className="flex items-center justify-between rounded-lg border border-line px-3 py-2"
+                className="border-line flex items-center justify-between rounded-lg border px-3 py-2"
               >
                 <div>
-                  <div className="text-sm font-medium text-forest">
+                  <div className="text-forest text-sm font-medium">
                     {classLabel}
                     {cls.division ? ` (${cls.division})` : ''}
                   </div>
-                  {subtitle && <div className="text-xs italic text-fa-muted">{subtitle}</div>}
-                  <div className="text-xs text-fa-muted">
+                  {subtitle && <div className="text-fa-muted text-xs italic">{subtitle}</div>}
+                  <div className="text-fa-muted text-xs">
                     {[cls.date, cls.time, cls.arena].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isFull && <Badge variant="destructive">Full</Badge>}
-                  <span className="text-sm font-semibold text-forest">
+                  <span className="text-forest text-sm font-semibold">
                     {cls.fee != null ? `$${cls.fee.toFixed(2)}` : '—'}
                   </span>
                 </div>
@@ -94,16 +84,16 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
             {addOns.map((addOn) => (
               <div
                 key={addOn.id}
-                className="flex items-center justify-between rounded-lg border border-line px-3 py-2"
+                className="border-line flex items-center justify-between rounded-lg border px-3 py-2"
               >
-                <div className="text-sm font-medium text-forest">{addOn.name}</div>
-                <div className="flex items-center gap-2 text-sm text-fa-muted">
+                <div className="text-forest text-sm font-medium">{addOn.name}</div>
+                <div className="text-fa-muted flex items-center gap-2 text-sm">
                   {addOn.remaining != null && (
                     <span>
                       {addOn.remaining > 0 ? `${addOn.remaining.toString()} left` : 'Sold out'}
                     </span>
                   )}
-                  <span className="font-semibold text-forest">
+                  <span className="text-forest font-semibold">
                     {addOn.price != null ? `$${addOn.price.toFixed(2)}` : '—'}
                   </span>
                 </div>
@@ -122,7 +112,7 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
             {qualTypes.map((qual) => (
               <div key={qual.id} className="flex items-center justify-between text-sm">
                 <span className="text-forest">{qual.name}</span>
-                <span className="font-semibold text-forest">
+                <span className="text-forest font-semibold">
                   {qual.price != null ? `$${qual.price.toFixed(2)}` : '—'}
                 </span>
               </div>

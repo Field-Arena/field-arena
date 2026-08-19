@@ -6,12 +6,6 @@ import type { AddOnWithRemaining } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
 
-/**
- * Stabling & add-ons quantity picker — mirrors rider.html's
- * realTicketAddons/setAddonReal. A sold-out add-on (`remaining === 0`)
- * disables its input rather than hiding the row, so a rider still sees it
- * listed and understands why they can't add it.
- */
 export function AddOnPicker({ addOns }: { addOns: AddOnWithRemaining[] }) {
   const addOnQuantities = useEntryCartStore((state) => state.addOnQuantities);
   const setAddOnQuantity = useEntryCartStore((state) => state.setAddOnQuantity);
@@ -30,11 +24,11 @@ export function AddOnPicker({ addOns }: { addOns: AddOnWithRemaining[] }) {
           return (
             <div
               key={addOn.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2"
+              className="border-line flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
             >
               <div>
-                <div className="text-sm font-medium text-forest">{addOn.name}</div>
-                <div className="text-xs text-fa-muted">
+                <div className="text-forest text-sm font-medium">{addOn.name}</div>
+                <div className="text-fa-muted text-xs">
                   {addOn.price != null ? `$${addOn.price.toFixed(2)} each` : null}
                   {addOn.remaining != null && !soldOut && ` · ${addOn.remaining.toString()} left`}
                   {soldOut && ' · Sold out'}

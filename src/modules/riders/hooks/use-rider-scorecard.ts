@@ -9,12 +9,6 @@ type ScorecardState =
   | { status: 'error' }
   | { status: 'loaded'; scorecard: RiderScorecard };
 
-/**
- * Fetches one entry's scorecard from `/api/rider/scorecard/[entryId]` on
- * demand — the same "opened from a click, not known at page-render time
- * across every entry" reasoning as scoring module's useScoringState, minus
- * the polling: a scorecard doesn't change while the modal is open.
- */
 export function useRiderScorecard() {
   const [state, setState] = useState<ScorecardState>({ status: 'idle' });
 

@@ -24,36 +24,6 @@ import type {
   RiderRow,
 } from '@/modules/riders/types';
 
-/**
- * The real backend for the rider checkout flow — cart pricing, Stripe
- * Checkout Session creation, and order fulfillment. Ported from legacy's
- * priceCart / handleCheckoutSessionCreate / finalizeOrder /
- * finalizeClaimedOrder / nextRiderNumberForShow (api/rider/[resource].js).
- *
- * Every exported function here takes an already-authenticated rider's id (or
- * full row) as a parameter — it is the CALLER's job (data/mutations.ts's
- * createCheckoutSession/confirmCheckoutSession, and the Stripe webhook route)
- * to resolve that from a real session or a verified Stripe event before
- * calling in. Nothing here is itself a Server Action or a route handler, and
- * that is deliberate: a `'use server'` export is directly callable by any
- * client with arbitrary arguments (layers.md's "every read and write must be
- * safe under the caller's role"), and finalizeOrder in particular takes a
- * pre-resolved `order` row and `rider` row as trusted input — exporting that
- * as a Server Action would let a forged request skip every check in
- * priceCart and mark an arbitrary order paid. This file has no 'use server'
- * pragma for exactly that reason; it is reachable only by other server-side
- * code that has already done its own authorization.
- *
- * Everything here uses the service-role admin client, passed in by the
- * caller rather than created here — mirrors legacy's own unrestricted
- * server-side DB access (there was no RLS at all in that codebase) and
- * matches this schema's own documented intent: orders_select_owner /
- * class_entries_write RLS (20260727120900_rls.sql) deliberately have no
- * rider insert policy, with the comment "Writes never come from a client...
- * because the amounts must be computed server-side and reconciled against
- * Stripe." This module is that reconciliation code.
- */
-
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 function allIn(price: number | null, feeModel: string | null): number {
@@ -78,27 +48,12 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/**
- * Prices and fully validates a cart server-side. Throws a `UserFacingError`
- * (never a raw Postgres/Stripe error) on the first failed check, matching
- * legacy's "reject the whole quote on the first bad line" stance — partially
- * pricing a cart the client can't actually check out is worse than one clear
- * error.
- *
- * `UserFacingError` specifically, not a plain `Error`: the caller
- * (`data/mutations.ts`'s `createCheckoutSession`) runs this inside
- * `action-result.ts`'s `run()`, which only lets a `UserFacingError`'s own
- * message cross back to the browser — everything else (a plain `Error`, a
- * raw Postgrest error) is logged and replaced with a generic fallback. A
- * plain `throw new Error(...)` here would silently become that same
- * generic fallback in production, the exact bug this type exists to prevent.
- */
 export async function priceCart(
   admin: AdminClient,
   riderId: string,
   showId: string,
   cart: CheckoutCartLine[],
-  addOnLines: CheckoutAddOnLine[]
+  addOnLines: CheckoutAddOnLine[],
 ): Promise<PricedCart> {
   if (cart.length === 0 && addOnLines.length === 0) {
     throw new UserFacingError('Your cart is empty.');
@@ -118,11 +73,9 @@ export async function priceCart(
     .eq('id', show.org_id)
     .maybeSingle();
   if (orgError) throw orgError;
-  if (!org || org.suspended || org.is_demo) throw new UserFacingError('This show is not open for entries.');
+  if (!org || org.suspended || org.is_demo)
+    throw new UserFacingError('This show is not open for entries.');
 
-  // Real enforcement of the ticket-sale window — the UI gates on this too
-  // (getTicketWindowStatus, same util), but that is advisory only. This is
-  // what actually stops a purchase outside the window.
   const windowStatus = getTicketWindowStatus(parseTicketWindow(show));
   if (windowStatus === 'not_open_yet') {
     throw new UserFacingError('Ticket sales for this show have not opened yet.');
@@ -144,8 +97,6 @@ export async function priceCart(
     }
   }
 
-  // Validate every cart line up front — each class must belong to this show,
-  // each horse must belong to this rider.
   const perClassAdds = new Map<string, number>();
   for (const line of cart) {
     perClassAdds.set(line.classId, (perClassAdds.get(line.classId) ?? 0) + 1);
@@ -174,8 +125,8 @@ export async function priceCart(
     }
   }
 
-  // Rider cap per class — 0/unset means no cap, same as legacy's classCapCheck.
-  const cap = (show.schedule_extras as { maxRidersPerEvent?: number } | null)?.maxRidersPerEvent ?? 0;
+  const cap =
+    (show.schedule_extras as { maxRidersPerEvent?: number } | null)?.maxRidersPerEvent ?? 0;
   if (cap > 0) {
     for (const [classId, addingCount] of perClassAdds) {
       const { data: existingEntries, error: entriesError } = await admin
@@ -183,7 +134,9 @@ export async function priceCart(
         .select('status')
         .eq('class_id', classId);
       if (entriesError) throw entriesError;
-      const activeCount = existingEntries.filter((e) => e.status !== NON_CAPPED_ENTRY_STATUS).length;
+      const activeCount = existingEntries.filter(
+        (e) => e.status !== NON_CAPPED_ENTRY_STATUS,
+      ).length;
       if (activeCount + addingCount > cap) {
         const label = classById.get(classId)?.label ?? 'This class';
         throw new UserFacingError(`"${label}" is already at its rider cap.`);
@@ -203,7 +156,7 @@ export async function priceCart(
   for (const line of cart) {
     const classRow = classById.get(line.classId);
     const horse = horseById.get(line.horseId);
-    if (!classRow || !horse) continue; // already validated above; narrows for TS
+    if (!classRow || !horse) continue;
     const amount = round2(allIn(classRow.fee, feeModel));
     items.push({
       kind: 'class_entry',
@@ -230,8 +183,6 @@ export async function priceCart(
     }
   }
 
-  // Add-on inventory: qty null = unlimited, otherwise capped against every
-  // paid order's already-sold quantity for this show.
   const addOnIds = addOnLines.map((line) => line.addOnId);
   const addOnRowsResult = addOnIds.length
     ? await admin.from('add_ons').select('*').in('id', addOnIds)
@@ -277,10 +228,6 @@ export async function priceCart(
   const total = round2(items.reduce((sum, item) => sum + item.amount, 0));
   if (total <= 0) throw new UserFacingError('Nothing to charge.');
 
-  // application_fee_amount = the sum of calcPlatformFee() over each item's
-  // own base price — every item's `amount` above already has that fee baked
-  // in (allIn()/allInFlat8()), so this recomputes it directly from the same
-  // source prices rather than reversing it back out of `amount`.
   let feeTotal = 0;
   for (const line of cart) {
     const classRow = classById.get(line.classId);
@@ -318,12 +265,6 @@ export async function priceCart(
   };
 }
 
-/**
- * A real Stripe Customer, one per checkout — what makes charging the same
- * card again later (an organizer's "Charge additional amount") possible,
- * since a bare PaymentIntent's setup_future_usage alone can't be reused
- * off-session without a Customer the saved payment_method is attached to.
- */
 export async function createOrderStripeCustomer(rider: RiderRow): Promise<string> {
   const stripe = getStripeClient();
   const name = `${rider.first_name ?? ''} ${rider.last_name ?? ''}`.trim();
@@ -335,17 +276,10 @@ export async function createOrderStripeCustomer(rider: RiderRow): Promise<string
   return customer.id;
 }
 
-/**
- * Persists the reusable customer+payment_method captured by
- * setup_future_usage:'off_session' once the PaymentIntent has actually
- * succeeded. Called from both confirm paths (in-page confirm and the
- * webhook) — best-effort, never throws, since a lookup failure here must
- * never block a real, already-verified payment from fulfilling.
- */
 export async function saveOffSessionCard(
   admin: AdminClient,
   orderId: string,
-  paymentIntent: Stripe.PaymentIntent
+  paymentIntent: Stripe.PaymentIntent,
 ): Promise<void> {
   if (!paymentIntent.customer || !paymentIntent.payment_method) return;
   const stripeCustomerId =
@@ -356,14 +290,17 @@ export async function saveOffSessionCard(
       : paymentIntent.payment_method.id;
   await admin
     .from('orders')
-    .update({ stripe_customer_id: stripeCustomerId, stripe_payment_method_id: stripePaymentMethodId })
+    .update({
+      stripe_customer_id: stripeCustomerId,
+      stripe_payment_method_id: stripePaymentMethodId,
+    })
     .eq('id', orderId);
 }
 
 async function nextRiderNumberForShow(
   admin: AdminClient,
   showId: string,
-  riderId: string
+  riderId: string,
 ): Promise<string> {
   const { data: show, error: showError } = await admin
     .from('shows')
@@ -401,20 +338,10 @@ async function nextRiderNumberForShow(
   return String(base + distinctRiderCount).padStart(RIDER_NUMBER_PAD_WIDTH, '0');
 }
 
-/**
- * Creates one class_entries row per class_entry line item, assigns a
- * show-scoped sequential rider number, and re-checks the class cap right
- * before each insert. That re-check narrows (but, without a real row lock,
- * cannot fully close) the race two simultaneous checkouts create: since
- * payment has already been captured by this point and refunding isn't wired
- * up here, an over-cap entry is still created rather than discarding a paid
- * charge — flagged via `correction` so the organizer sees it needs review.
- * Ported from legacy's finalizeClaimedOrder.
- */
 async function finalizeClaimedOrder(
   admin: AdminClient,
   order: OrderRow,
-  rider: RiderRow
+  rider: RiderRow,
 ): Promise<FinalizeOrderResult> {
   const riderName = `${rider.first_name ?? ''} ${rider.last_name ?? ''}`.trim();
   const riderNum = await nextRiderNumberForShow(admin, order.show_id, rider.id);
@@ -425,7 +352,7 @@ async function finalizeClaimedOrder(
     ...new Set(
       items
         .map((item) => (item.kind === 'class_entry' ? item.horseId : undefined))
-        .filter((horseId): horseId is string => Boolean(horseId))
+        .filter((horseId): horseId is string => Boolean(horseId)),
     ),
   ];
   const horseRowsResult = horseIds.length
@@ -440,7 +367,8 @@ async function finalizeClaimedOrder(
     .eq('id', order.show_id)
     .maybeSingle();
   if (showError) throw showError;
-  const capForShow = (show?.schedule_extras as { maxRidersPerEvent?: number } | null)?.maxRidersPerEvent ?? 0;
+  const capForShow =
+    (show?.schedule_extras as { maxRidersPerEvent?: number } | null)?.maxRidersPerEvent ?? 0;
 
   const nextOrderByClass = new Map<string, number>();
   const activeCountByClass = new Map<string, number>();
@@ -459,7 +387,7 @@ async function finalizeClaimedOrder(
       nextOrderByClass.set(classId, maxRideOrder + 1);
       activeCountByClass.set(
         classId,
-        existing.filter((e) => e.status !== NON_CAPPED_ENTRY_STATUS).length
+        existing.filter((e) => e.status !== NON_CAPPED_ENTRY_STATUS).length,
       );
     }
     const activeCount = activeCountByClass.get(classId) ?? 0;
@@ -503,24 +431,22 @@ async function finalizeClaimedOrder(
   };
 }
 
-/**
- * Best-effort confirmation email, reusing the same raw-Resend-fetch pattern
- * as modules/staff/data/mutations.ts's sendStaffInviteNotification (this
- * codebase's one existing transactional-email call site outside Supabase
- * Auth's own SMTP flows). Never throws — the order is already paid and
- * fulfilled by the time this runs, so an email failure must not surface as a
- * checkout error.
- */
 async function sendOrderConfirmationEmail(
   admin: AdminClient,
   order: OrderRow,
   rider: RiderRow,
-  result: FinalizeOrderResult
+  result: FinalizeOrderResult,
 ): Promise<void> {
-  const { data: show } = await admin.from('shows').select('name').eq('id', order.show_id).maybeSingle();
+  const { data: show } = await admin
+    .from('shows')
+    .select('name')
+    .eq('id', order.show_id)
+    .maybeSingle();
   const riderName = `${rider.first_name ?? ''} ${rider.last_name ?? ''}`.trim() || rider.email;
   const rows = result.items
-    .map((item) => `<li>${escapeHtml(item.label)}${item.qty > 1 ? ` × ${String(item.qty)}` : ''}</li>`)
+    .map(
+      (item) => `<li>${escapeHtml(item.label)}${item.qty > 1 ? ` × ${String(item.qty)}` : ''}</li>`,
+    )
     .join('');
 
   try {
@@ -550,23 +476,10 @@ async function sendOrderConfirmationEmail(
   }
 }
 
-/**
- * Fulfillment itself — the one place "what happens when an order gets paid"
- * is implemented. Both the in-page confirm path (data/mutations.ts's
- * confirmCheckoutSession) and the Stripe webhook route call this same
- * function after independently verifying payment their own way, so there is
- * only one fulfillment implementation to ever drift.
- *
- * Atomically claims the order before creating anything: the conditional
- * `UPDATE ... WHERE status = 'pending'` lets exactly one caller win a race
- * (a double-click, the webhook and the in-page confirm landing at nearly the
- * same instant); the loser sees zero rows updated and returns the
- * already-fulfilled read instead of inserting a second set of class_entries.
- */
 export async function finalizeOrder(
   admin: AdminClient,
   order: OrderRow,
-  rider: RiderRow
+  rider: RiderRow,
 ): Promise<FinalizeOrderResult> {
   const { data: claimed, error: claimError } = await admin
     .from('orders')
@@ -599,25 +512,21 @@ export async function finalizeOrder(
     await sendOrderConfirmationEmail(admin, claimed, rider, result);
     return result;
   } catch (fulfillError) {
-    // Charged but fulfillment threw after the claim — revert to 'pending' so
-    // a retry (or a support replay) can complete it, rather than stranding a
-    // paid order that can never be fulfilled.
     await admin
       .from('orders')
       .update({ status: 'pending', paid_at: null })
       .eq('id', order.id)
       .then(
         () => undefined,
-        () => undefined
+        () => undefined,
       );
     throw fulfillError;
   }
 }
 
-/** Builds the priced items into Stripe Checkout Session line items. */
 export function buildStripeLineItems(
   items: OrderLineItem[],
-  currency: string
+  currency: string,
 ): Stripe.Checkout.SessionCreateParams.LineItem[] {
   return items.map((item) => ({
     price_data: {
@@ -629,7 +538,6 @@ export function buildStripeLineItems(
   }));
 }
 
-/** items -> Json for the orders.items column, isolated so the cast lives in one place. */
 export function itemsToJson(items: OrderLineItem[]): Json {
   return items as unknown as Json;
 }

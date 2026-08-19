@@ -23,16 +23,6 @@ import type {
 
 type DashTab = 'schedule' | 'profile' | 'horse' | 'purchases' | 'results';
 
-/**
- * Icons weren't in legacy's sidebar at all (rider.html's `.dash-tab` items
- * are plain text — confirmed by direct read of that markup). Added anyway,
- * on request, so the rider sidebar matches this app's OWN established
- * pattern — every other role's sidebar (`ORGANIZER_NAV` etc.,
- * modules/staff/constants.ts) pairs an icon with each label via the same
- * `NavIcon` lookup used here. `horses` is an exact semantic match already in
- * that icon set; `schedule`/`users`/`eventsales` are the closest existing
- * fits for My Schedule/Profile/Purchases — no new icon glyphs were drawn.
- */
 const NAV_ITEMS: { key: Exclude<DashTab, 'results'>; label: string; icon: string }[] = [
   { key: 'schedule', label: 'My Schedule', icon: 'schedule' },
   { key: 'profile', label: 'Profile', icon: 'users' },
@@ -40,43 +30,14 @@ const NAV_ITEMS: { key: Exclude<DashTab, 'results'>; label: string; icon: string
   { key: 'purchases', label: 'Purchases', icon: 'eventsales' },
 ];
 
-/**
- * A darker shade of `LEGACY_COLOR.hunterDeep`, for the narrow role rail only
- * — mirrors the two-tone `--hunter-deep`/`--hunter` split the organizer
- * workspace uses between its own rail and sidebar (dashboard.css), scoped to
- * the rider portal's own palette instead of borrowing the organizer's.
- */
 const RAIL_DARK = '#172B21';
 
-/**
- * Shared by both sidebar columns so they scroll independently of `<main>`
- * and never fall out of sync with each other. `77` is the rider header's
- * rendered height (`rider/layout.tsx`'s `18px 30px` padding plus its content) —
- * there's no shared constant for it today because only this file needs to
- * offset against it; if the header's padding ever changes, this value has to
- * change with it.
- */
 const STICKY_SIDEBAR_STYLE = {
   minHeight: 'calc(100vh - 77px)',
   position: 'sticky',
   top: 77,
 } as const;
 
-/**
- * The post-purchase dashboard — legacy's `#dashboard-view` (rider.html
- * lines 584-720), pixel-matched: a 220px dark sidebar (`.rider-sidebar`,
- * `--hunter-deep:#1F3A2E`) with four plain-text nav items (no icons — legacy
- * has none), replaces the entry-drafting wizard entirely once the rider
- * already has at least one entry at this show (legacy's `realBoot` gate).
- *
- * "Results" is deliberately NOT a fifth sidebar item — legacy's
- * `showDashTab('results')` toggles the same panel-swap mechanism as the
- * other four tabs, but no `.dash-tab` carries `data-dtab="results"`, so
- * viewing results highlights none of the four nav items. It's reached only
- * via the "🏆 View Results" button on the Schedule tab (shown only once an
- * entry has a score) and left via "← Back to My Schedule" — reproduced here
- * as a fifth `activeTab` state with no matching nav button, not a real tab.
- */
 export function RiderShowDashboard({
   rider,
   show,
@@ -227,7 +188,9 @@ export function RiderShowDashboard({
 
       <main style={{ flex: 1, minWidth: 0, padding: '28px 32px 80px' }}>
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontFamily: LEGACY_GEORGIA, fontSize: 26, color: LEGACY_COLOR.ink, margin: 0 }}>
+          <h1
+            style={{ fontFamily: LEGACY_GEORGIA, fontSize: 26, color: LEGACY_COLOR.ink, margin: 0 }}
+          >
             Welcome, {firstName}
           </h1>
           <p style={{ color: LEGACY_COLOR.inkSoft, margin: '4px 0 0' }}>
@@ -252,7 +215,13 @@ export function RiderShowDashboard({
           <HorseTabView horses={horses} documentRequirements={documentRequirements} />
         )}
         {activeTab === 'purchases' && (
-          <PurchasesTab show={show} rider={rider} entries={entries} orders={orders} addOns={addOns} />
+          <PurchasesTab
+            show={show}
+            rider={rider}
+            entries={entries}
+            orders={orders}
+            addOns={addOns}
+          />
         )}
         {activeTab === 'results' && (
           <ResultsView

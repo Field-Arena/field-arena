@@ -8,18 +8,6 @@ import type { AddOnWithRemaining, ClassWithCapacity, QualTypeRow } from '@/modul
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 
-/**
- * Client-side preview only — the real, authoritative total is computed
- * server-side by data/checkout.ts's priceCart at "Proceed to payment" time,
- * and Stripe's own hosted Checkout page is what the rider actually confirms
- * against. This mirrors legacy's own accepted approximation (rider.html's
- * feeFor()): the fee model here is always the platform default (no
- * organization's `fee_model` is threaded into this preview), so a GMO-rate
- * show's preview can undercount slightly — corrected the moment the real
- * cart is priced. shared/lib/fees.ts's own header comment is what licenses
- * reusing calcPlatformFee client-side like this at all: "imported by both
- * the Server Action that charges and the form that previews."
- */
 export function CheckoutSummary({
   showId,
   classes,
@@ -31,15 +19,7 @@ export function CheckoutSummary({
   classes: ClassWithCapacity[];
   addOns: AddOnWithRemaining[];
   qualTypes: QualTypeRow[];
-  /**
-   * `true` when the show has no waiver text, or the rider already has a
-   * signature on file — `false` blocks checkout the same way an unassigned
-   * horse does. Without this, "Proceed to payment" stayed clickable for a
-   * rider who never scrolled up to sign, and the only feedback was
-   * priceCart's server-side rejection — whose message Next.js redacts in
-   * production (see readableError's doc comment), so the rider saw a bare
-   * "Could not start checkout" with no indication why.
-   */
+
   waiverSatisfied: boolean;
 }) {
   const selectedClassIds = useEntryCartStore((state) => state.selectedClassIds);
@@ -66,23 +46,27 @@ export function CheckoutSummary({
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-fa-muted">Estimated total</span>
-          <span className="text-lg font-semibold text-forest">${total.toFixed(2)}</span>
+          <span className="text-forest text-lg font-semibold">${total.toFixed(2)}</span>
         </div>
         {!canCheckout && (
-          <p className="text-xs text-fa-muted">Choose at least one class or add-on to continue.</p>
+          <p className="text-fa-muted text-xs">Choose at least one class or add-on to continue.</p>
         )}
         {canCheckout && !everyClassAssigned && (
-          <p className="text-xs text-destructive">Assign a horse to every selected class to continue.</p>
+          <p className="text-destructive text-xs">
+            Assign a horse to every selected class to continue.
+          </p>
         )}
         {canCheckout && everyClassAssigned && !waiverSatisfied && (
-          <p className="text-xs text-destructive">
+          <p className="text-destructive text-xs">
             Sign this show&apos;s waiver above to continue.
           </p>
         )}
         <Button
           type="button"
           className="w-full"
-          disabled={!canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending}
+          disabled={
+            !canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending
+          }
           onClick={() => {
             const payload = buildCheckoutCartPayload({
               selectedClassIds,

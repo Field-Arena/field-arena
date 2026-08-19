@@ -17,7 +17,13 @@ import {
   legacyTableHeadCellStyle,
   legacyTableStyle,
 } from '@/modules/riders/ui/legacy-theme';
-import type { AddOnWithRemaining, OrderRow, RiderEntryDetail, RiderRow, ShowRow } from '@/modules/riders/types';
+import type {
+  AddOnWithRemaining,
+  OrderRow,
+  RiderEntryDetail,
+  RiderRow,
+  ShowRow,
+} from '@/modules/riders/types';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 
 function classDisplayName(cls: { label: string; displayName: string | null }): string {
@@ -33,17 +39,6 @@ const fieldInputStyle: CSSProperties = {
   width: '100%',
 };
 
-/**
- * Purchases tab — legacy's `#dtab-purchases` (rider.html): ONE card
- * ("Your entries & purchases") containing, in order, the class-entries
- * table, the stabling/add-ons table with its "Auto-filled from checkout"
- * tag, the receipt toggle, and the stabling logistics form — not three
- * separate cards. Aggregates across every paid order for this show rather
- * than legacy's receipt/stabling-form gap of only ever reading the first
- * one for the running totals — see summarizePurchases/computeStablingSummary's
- * own comments in utils.ts; the stabling *form* itself still targets the
- * first paid order specifically, matching legacy's realStablingOrderId.
- */
 export function PurchasesTab({
   show,
   rider,
@@ -93,7 +88,9 @@ export function PurchasesTab({
                 <td style={legacyTableCellStyle}>
                   {entry.class ? classDisplayName(entry.class) : 'Class'}
                   {subtitle && (
-                    <div style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}>
+                    <div
+                      style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}
+                    >
                       {subtitle}
                     </div>
                   )}
@@ -101,7 +98,9 @@ export function PurchasesTab({
                 <td style={legacyTableCellStyle}>{entry.class?.division}</td>
                 <td style={legacyTableCellStyle}>
                   {entry.class
-                    ? [entry.class.date, entry.class.time, entry.class.arena].filter(Boolean).join(' · ')
+                    ? [entry.class.date, entry.class.time, entry.class.arena]
+                        .filter(Boolean)
+                        .join(' · ')
                     : ''}
                 </td>
                 <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
@@ -164,7 +163,10 @@ export function PurchasesTab({
         </tbody>
         <tfoot>
           <tr>
-            <td style={{ ...legacyTableCellStyle, fontWeight: 700, borderBottom: 'none' }} colSpan={3}>
+            <td
+              style={{ ...legacyTableCellStyle, fontWeight: 700, borderBottom: 'none' }}
+              colSpan={3}
+            >
               Total paid
             </td>
             <td
@@ -193,13 +195,19 @@ export function PurchasesTab({
         </button>
       </div>
       {showReceipt && (
-        <Receipt show={show} rider={rider} summary={summary} order={stablingOrder} entriesCount={entries.length} />
+        <Receipt
+          show={show}
+          rider={rider}
+          summary={summary}
+          order={stablingOrder}
+          entriesCount={entries.length}
+        />
       )}
 
       <div style={legacyBlockTitleStyle}>Stabling logistics</div>
       <p style={{ fontSize: 12.5, color: LEGACY_COLOR.inkSoft, margin: '0 0 12px' }}>
-        Your stalls are reserved from checkout. Tell the show when you&apos;ll arrive and leave so they
-        can assign them.
+        Your stalls are reserved from checkout. Tell the show when you&apos;ll arrive and leave so
+        they can assign them.
       </p>
       <StablingForm order={stablingOrder} stabling={stabling} />
     </div>
@@ -233,7 +241,9 @@ function Receipt({
       <p style={{ fontSize: 11.5, color: LEGACY_COLOR.inkSoft, margin: '0 0 2px' }}>
         From: Field &amp; Arena · notifications@field-arena.com
       </p>
-      <p style={{ fontSize: 11.5, color: LEGACY_COLOR.inkSoft, margin: '0 0 10px' }}>To: {rider.email}</p>
+      <p style={{ fontSize: 11.5, color: LEGACY_COLOR.inkSoft, margin: '0 0 10px' }}>
+        To: {rider.email}
+      </p>
       <p style={{ fontWeight: 700, color: LEGACY_COLOR.hunterDeep, margin: '0 0 8px' }}>
         Receipt — {show.name}
       </p>
@@ -274,7 +284,9 @@ function Receipt({
 function AutoField({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+      <label
+        style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+      >
         {label}{' '}
         <span
           style={{
@@ -289,7 +301,11 @@ function AutoField({ label, value }: { label: string; value: number }) {
           Auto
         </span>
       </label>
-      <input readOnly value={value} style={{ ...fieldInputStyle, background: LEGACY_COLOR.hunterPale }} />
+      <input
+        readOnly
+        value={value}
+        style={{ ...fieldInputStyle, background: LEGACY_COLOR.hunterPale }}
+      />
     </div>
   );
 }
@@ -315,7 +331,9 @@ function StablingForm({
         }}
       >
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
             Arrival date <span style={{ color: LEGACY_COLOR.red }}>*</span>
           </label>
           <input
@@ -328,7 +346,9 @@ function StablingForm({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
             Departure date <span style={{ color: LEGACY_COLOR.red }}>*</span>
           </label>
           <input

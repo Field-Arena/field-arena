@@ -10,19 +10,6 @@ import { Label } from '@/shared/ui/shadcn/label';
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 10;
 
-/**
- * Release of liability, waiver of claims, and assumption of risk — the
- * scroll-gate component. Mirrors rider.html's onWaiverScroll/trySignWaiver:
- * the "I agree" checkbox stays disabled until the rider has scrolled the text
- * to (near) its bottom, so a typed name + a checkbox click can never "sign"
- * text nobody was forced to see. A waiver short enough to never overflow its
- * box is auto-satisfied on mount (checked once via the same scroll-position
- * math) so it can never permanently lock the box with no way out.
- *
- * One signature covers every horse and entry this rider has for this show
- * (see signWaiver's own comment) — already-signed is rendered as a locked,
- * read-only state rather than a re-signable form.
- */
 export function WaiverForm({
   showId,
   waiverText,
@@ -36,7 +23,7 @@ export function WaiverForm({
   const [scrolledToBottom, setScrolledToBottom] = useState(!!existingSignature);
   const [fullName, setFullName] = useState(existingSignature?.full_name ?? '');
   const [signatureDate, setSignatureDate] = useState(
-    existingSignature?.signature_date ?? new Date().toISOString().slice(0, 10)
+    existingSignature?.signature_date ?? new Date().toISOString().slice(0, 10),
   );
   const [agreed, setAgreed] = useState(!!existingSignature);
   const signWaiver = useSignWaiver();
@@ -50,14 +37,13 @@ export function WaiverForm({
     }
   };
 
-  // Same "content that never overflows never fires a scroll event" fix as
-  // legacy's requestAnimationFrame(onWaiverScroll) right after render.
   useEffect(() => {
     checkScrolled();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount, same as legacy's one-shot check
   }, []);
 
-  const canSign = scrolledToBottom && fullName.trim().length > 0 && signatureDate.trim().length > 0 && agreed;
+  const canSign =
+    scrolledToBottom && fullName.trim().length > 0 && signatureDate.trim().length > 0 && agreed;
 
   return (
     <Card>
@@ -68,12 +54,12 @@ export function WaiverForm({
         <div
           ref={textRef}
           onScroll={checkScrolled}
-          className="max-h-56 overflow-y-auto rounded-lg border border-line p-3 text-xs leading-relaxed whitespace-pre-wrap text-fa-muted"
+          className="border-line text-fa-muted max-h-56 overflow-y-auto rounded-lg border p-3 text-xs leading-relaxed whitespace-pre-wrap"
         >
           {waiverText}
         </div>
         {!scrolledToBottom && (
-          <p className="text-xs text-destructive">Scroll to the bottom to continue.</p>
+          <p className="text-destructive text-xs">Scroll to the bottom to continue.</p>
         )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -103,7 +89,7 @@ export function WaiverForm({
           </div>
         </div>
 
-        <label className="flex items-start gap-2 text-sm text-forest">
+        <label className="text-forest flex items-start gap-2 text-sm">
           <input
             type="checkbox"
             checked={agreed}

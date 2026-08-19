@@ -1,18 +1,14 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useDeleteHorseDocument, useUploadHorseDocument } from '@/modules/riders/hooks/use-horse-mutations';
+import {
+  useDeleteHorseDocument,
+  useUploadHorseDocument,
+} from '@/modules/riders/hooks/use-horse-mutations';
 import type { DocumentRequirement, HorseDocumentUploadWithUrl } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 
-/**
- * One document-requirement upload slot on a horse card. Mirrors legacy's
- * realHorseDocBlockHtml (rider.html): a missing upload is flagged amber, not
- * red — uploading is never required to keep using the portal (that gate, if
- * any, belongs to a later checkout phase), just something the show wants
- * before the horse actually competes.
- */
 export function HorseDocumentUpload({
   horseId,
   requirement,
@@ -28,12 +24,12 @@ export function HorseDocumentUpload({
   const remove = useDeleteHorseDocument();
 
   return (
-    <div className="rounded-lg border border-line px-3 py-2">
+    <div className="border-line rounded-lg border px-3 py-2">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-medium text-forest">{requirement.label}</div>
+          <div className="text-forest text-sm font-medium">{requirement.label}</div>
           {existing ? (
-            <div className="text-xs text-fa-muted">
+            <div className="text-fa-muted text-xs">
               Uploaded
               {existing.url && (
                 <>

@@ -6,18 +6,10 @@ export interface CartPreview {
   lineCount: number;
   hasAddOns: boolean;
   canCheckout: boolean;
-  /** Every selected class has at least one horse slot assigned. */
+
   everyClassAssigned: boolean;
 }
 
-/**
- * Client-side cart total preview, shared by CheckoutSummary (the real "Review
- * & pay" card) and RiderDemoPaymentStep (its demo-mode stand-in) so the two
- * fee calculations can never drift apart. See CheckoutSummary's own comment
- * for why this is only ever a preview, never the authoritative total (that's
- * data/checkout.ts's priceCart, computed server-side at "Proceed to payment"
- * time).
- */
 export function computeCartPreview({
   classes,
   addOns,
@@ -35,13 +27,7 @@ export function computeCartPreview({
   classHorseAssignments: Record<string, (string | null)[]>;
   qualSelections: Record<string, Set<string>>;
   addOnQuantities: Record<string, number>;
-  /**
-   * The real CheckoutSummary requires an assigned horse for a class to count
-   * toward the total (`horseIds.length`, possibly 0); the demo stand-in never
-   * blocks itself on horse assignment, so an unassigned class still counts as
-   * one line (`horseIds.length || 1`) — see RiderDemoPaymentStep's own
-   * comment. Defaults to the real (stricter) behavior.
-   */
+
   countUnassignedClassAsOneLine?: boolean;
 }): CartPreview {
   const classById = new Map(classes.map((cls) => [cls.id, cls]));
@@ -53,7 +39,9 @@ export function computeCartPreview({
   for (const classId of selectedClassIds) {
     const cls = classById.get(classId);
     if (!cls) continue;
-    const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string => Boolean(id));
+    const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string =>
+      Boolean(id),
+    );
     const qualTotal = [...(qualSelections[classId] ?? [])].reduce((sum, qualId) => {
       const qual = qualById.get(qualId);
       const price = qual?.price ?? 0;
@@ -74,12 +62,9 @@ export function computeCartPreview({
 
   const hasAddOns = Object.values(addOnQuantities).some((qty) => qty > 0);
   const canCheckout = lineCount > 0 || hasAddOns;
-  // Every selected class needs at least one horse assigned before this is a
-  // real cart — the narrower version of legacy's realValidateDetails gate,
-  // since rider details and the waiver are already required earlier on this
-  // page rather than at this final step.
+
   const everyClassAssigned = [...selectedClassIds].every((classId) =>
-    (classHorseAssignments[classId] ?? []).some(Boolean)
+    (classHorseAssignments[classId] ?? []).some(Boolean),
   );
 
   return { total, lineCount, hasAddOns, canCheckout, everyClassAssigned };

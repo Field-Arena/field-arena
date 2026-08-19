@@ -33,20 +33,6 @@ const inputStyle: CSSProperties = {
   width: 190,
 };
 
-/**
- * Post-purchase Profile tab — mirrors legacy's #dtab-profile real mode
- * (renderProfileTabReal, rider.html): name/category/dob/credentials/email
- * are fixed "who you are" facts (no Edit affordance); phone, address, and
- * emergency contact stay editable indefinitely — legacy's own `scheduleLocked`
- * field-lock intent was never wired to real data, so there is no real
- * "locks once scheduled" behavior to port here either. `.prof-grid`'s exact
- * two-block layout ("Rider" / "Emergency contact") is reproduced with the
- * same `.block-title` token the rest of the dashboard uses.
- *
- * Legacy's real-mode UI only ever showed street/city, never state/zip, even
- * though the PATCH endpoint always accepted both — that reads as an
- * unintentional gap rather than a deliberate rule, so both are included here.
- */
 export function ProfileTab({ rider }: { rider: RiderRow }) {
   const name = [rider.first_name, rider.last_name].filter(Boolean).join(' ') || '—';
   const credentials = [rider.usef ? `USEF ${rider.usef}` : '', rider.fei ? `FEI ${rider.fei}` : '']
@@ -157,9 +143,7 @@ function EditableRow({
         style={inputStyle}
         onBlur={(event) => {
           const value = event.target.value.trim();
-          // Blank is a legitimate value here (clears a previously-set
-          // field, matching legacy's handleMe PATCH) — only a genuine no-op
-          // (nothing changed) skips the mutation.
+
           if (value === currentValue) {
             setEditing(false);
             return;
