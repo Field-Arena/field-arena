@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
+import { CONTACT_ROLES, UP_NEXT_DEPTH } from '@/modules/announcements/constants';
 
 /**
  * Announcer reads, ported from announcer.html: active rings, what is up next,
@@ -68,9 +69,6 @@ export interface RingRow {
   /** The next few riders after `current`, ported from announcer.html's "Up Next" queue. */
   upNext: RingEntrySummary[];
 }
-
-/** How many riders to show in the "Up Next" queue per ring, matching announcer.html's board depth. */
-const UP_NEXT_DEPTH = 3;
 
 /**
  * Ring status: which classes are live, who's actually riding, and who's next.
@@ -200,12 +198,6 @@ export interface ShowContact {
   role: string;
   phone: string | null;
 }
-
-// The roles ported from announcer.html's `contacts` array (Judge, Scribe,
-// "Show Secretary") — 'Show Admin' is this schema's equivalent of a show
-// secretary. ShowStaff/Vendor aren't people an announcer needs to reach
-// mid-ring the way a judge, scribe, or show admin are.
-const CONTACT_ROLES = ['Judge', 'Scribe', 'Show Admin'];
 
 /**
  * Who else is staffed on this show — the Contacts tab from announcer.html,

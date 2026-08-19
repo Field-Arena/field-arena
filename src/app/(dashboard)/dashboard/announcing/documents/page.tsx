@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { listMyShows, listShowDocuments } from '@/modules/announcements/data/queries';
+import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
+import { ShowDocumentsTable } from '@/modules/announcements/ui/show-documents-table';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
@@ -53,64 +55,8 @@ export default async function AnnouncingDocumentsPage({
       </div>
 
       <div className="dash-card">
-        <div className="showbar">
-          <span className="showbar-org">{currentShow.name}</span>
-          {shows.length > 1 && (
-            <form method="get" className="contents">
-              <select
-                name="show"
-                defaultValue={currentShow.id}
-                className="dash-select"
-                style={{ maxWidth: 380 }}
-                aria-label="Select show"
-              >
-                {shows.map((show) => (
-                  <option key={show.id} value={show.id}>
-                    {show.name}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="dash-btn dash-btn-outline">
-                Switch
-              </button>
-            </form>
-          )}
-        </div>
-
-        {documents.length === 0 ? (
-          <EmptyPanel
-            title="No documents shared yet"
-            note="Documents the organizer attaches to this show in ShowManager appear here."
-          />
-        ) : (
-          <div style={{ overflowX: 'auto', marginTop: 16 }}>
-            <table>
-              <caption className="sr-only">Show documents</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col" />
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((d) => (
-                  <tr key={d.id}>
-                    <td>{d.name}</td>
-                    <td className="r">
-                      {d.url ? (
-                        <a href={d.url} target="_blank" rel="noopener noreferrer" className="dash-btn dash-btn-outline">
-                          View ↗
-                        </a>
-                      ) : (
-                        <span className="card-meta">Unavailable</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ShowSwitcher currentShow={currentShow} shows={shows} />
+        <ShowDocumentsTable documents={documents} />
       </div>
     </>
   );
