@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { POLL_INTERVAL_MS } from '../constants';
-import type { ClassScoringState } from '../types';
+import { POLL_INTERVAL_MS } from '@/modules/scoring/constants';
+import type { ClassScoringState } from '@/modules/scoring/types';
 
 /**
  * Seeds from the Server Component's initial read, then polls

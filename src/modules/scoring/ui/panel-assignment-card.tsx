@@ -1,9 +1,9 @@
 'use client';
 
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { useRemovePanelSeat, useUpsertPanelSeat } from '../hooks/use-scoring-mutations';
-import type { PanelCandidate } from '../data/queries';
-import type { PanelSeat } from '../types';
+import { useRemovePanelSeat, useUpsertPanelSeat } from '@/modules/scoring/hooks/use-scoring-mutations';
+import type { PanelCandidate } from '@/modules/scoring/data/queries';
+import type { PanelSeat } from '@/modules/scoring/types';
 
 /**
  * Live judge/scribe seat editor, ported from showrunner-scoring.html's

@@ -1,7 +1,7 @@
 import { formatTimestamp } from '@/shared/lib/format/date';
-import { errorDeduction, scoreLabel, sheetPct } from '../scoring-engine';
-import { toSheet } from '../utils';
-import type { RideEntry, ScoreRow, TestDefinition } from '../types';
+import { errorDeduction, scoreLabel, sheetPct } from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
+import type { RideEntry, ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
 /** "2 pts" / "0.5%" / "Elimination" / "0 pts" — matches legacy's `dedText`. */
 function deductionText(errors: number, test: TestDefinition): string {

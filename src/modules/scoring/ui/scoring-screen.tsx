@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
+import { Button } from '@/shared/ui/shadcn/button';
 import type { PermissionKey } from '@/shared/constants/permissions';
-import { AUTO_ADVANCE_GRACE_MS, UNDO_WINDOW_MS } from '../constants';
-import { isSheetComplete } from '../scoring-engine';
-import { toSheet } from '../utils';
-import { useScoringState } from '../hooks/use-scoring-state';
+import { AUTO_ADVANCE_GRACE_MS, UNDO_WINDOW_MS } from '@/modules/scoring/constants';
+import { isSheetComplete } from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
+import { useScoringState } from '@/modules/scoring/hooks/use-scoring-state';
 import {
   useAdvanceRide,
   useDisqualifyRide,
@@ -26,24 +27,24 @@ import {
   useUnskipRide,
   usePublishResults,
   useUnpublishResults,
-} from '../hooks/use-scoring-mutations';
-import { TestSheet, type TestSheetHandle } from './test-sheet';
-import { ScoreTally } from './score-tally';
-import { ErrorOfCoursePanel } from './error-of-course-panel';
-import { PanelStatusStrip } from './panel-status-strip';
-import { SignatureModal } from './signature-modal';
-import { ReasonModal } from './reason-modal';
-import { RideActionsBar } from './ride-actions-bar';
-import { HoldingQueuePanel } from './holding-queue-panel';
-import { LiveProgressPanel } from './live-progress-panel';
-import { PanelAssignmentCard } from './panel-assignment-card';
-import type { PanelCandidate } from '../data/queries';
-import { StandingsPanel } from './standings-panel';
-import { ScoringToolbar } from './scoring-toolbar';
-import { NotARealTestBanner } from './not-a-real-test-banner';
-import { LiveClockStrip } from './live-clock-strip';
-import { PrintScoresheet } from './print-scoresheet';
-import type { ClassScoringState, MySeat, ScoreRow } from '../types';
+} from '@/modules/scoring/hooks/use-scoring-mutations';
+import { TestSheet, type TestSheetHandle } from '@/modules/scoring/ui/test-sheet';
+import { ScoreTally } from '@/modules/scoring/ui/score-tally';
+import { ErrorOfCoursePanel } from '@/modules/scoring/ui/error-of-course-panel';
+import { PanelStatusStrip } from '@/modules/scoring/ui/panel-status-strip';
+import { SignatureModal } from '@/modules/scoring/ui/signature-modal';
+import { ReasonModal } from '@/modules/scoring/ui/reason-modal';
+import { RideActionsBar } from '@/modules/scoring/ui/ride-actions-bar';
+import { HoldingQueuePanel } from '@/modules/scoring/ui/holding-queue-panel';
+import { LiveProgressPanel } from '@/modules/scoring/ui/live-progress-panel';
+import { PanelAssignmentCard } from '@/modules/scoring/ui/panel-assignment-card';
+import type { PanelCandidate } from '@/modules/scoring/data/queries';
+import { StandingsPanel } from '@/modules/scoring/ui/standings-panel';
+import { ScoringToolbar } from '@/modules/scoring/ui/scoring-toolbar';
+import { NotARealTestBanner } from '@/modules/scoring/ui/not-a-real-test-banner';
+import { LiveClockStrip } from '@/modules/scoring/ui/live-clock-strip';
+import { PrintScoresheet } from '@/modules/scoring/ui/print-scoresheet';
+import type { ClassScoringState, MySeat, ScoreRow } from '@/modules/scoring/types';
 
 export function ScoringScreen({
   classId,
@@ -370,32 +371,34 @@ export function ScoringScreen({
                 Waiting for judge&apos;s signature
               </span>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 disabled={!canSubmit}
                 onClick={() => {
                   sheetHandleRef.current?.flushPendingWrites();
                   setSignatureOpen(true);
                 }}
-                className="rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold text-[#F5F7F6] transition-colors hover:bg-gold hover:text-[#0D2C23] disabled:cursor-not-allowed disabled:bg-[#F1F4F3] disabled:text-[#B4BFB9]"
+                className="h-auto rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold text-[#F5F7F6] transition-colors hover:bg-gold hover:text-[#0D2C23] disabled:cursor-not-allowed disabled:bg-[#F1F4F3] disabled:text-[#B4BFB9] disabled:opacity-100"
               >
                 Sign &amp; Submit
-              </button>
+              </Button>
             )}
           </div>
 
           {allSeatsReady && !autoAdvanceCancelled && (
             <div className="flex items-center gap-3 rounded-xl border border-[#BFE0CB] bg-[#DCEFE1] p-[12px_16px] text-[13px] text-[#2E7D46]">
               Every seat has submitted — moving to the next rider shortly.
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setAutoAdvanceCancelled(true);
                 }}
-                className="font-semibold underline"
+                className="h-auto rounded-none px-0 py-0 text-[13px] font-semibold underline hover:bg-transparent"
               >
                 Cancel auto-advance
-              </button>
+              </Button>
             </div>
           )}
 

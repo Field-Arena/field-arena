@@ -29,6 +29,15 @@ export const REMARK_DEBOUNCE_MS = 500;
 /** Retry interval for a write that failed to reach the server. */
 export const WRITE_RETRY_MS = 3000;
 
+/** Bounded retry count for a write that failed to reach the server — legacy's own 3 tries. */
+export const MAX_WRITE_RETRIES = 3;
+
+/** Static routes this module revalidates after a mutation. Dynamic `/dashboard/scoring/{classId}`
+ *  routes stay inline as template literals — the established convention across this codebase
+ *  (see e.g. `shows/data/mutations.ts`) is to only extract parameter-free paths. */
+export const JUDGING_PATH = '/dashboard/judging';
+export const JUDGING_HISTORY_PATH = '/dashboard/judging/history';
+
 /**
  * Flat ride spacing assumption for the live vs-schedule clock, ported from
  * legacy's RIDE_MINUTES — "no differentiation by level" (its own comment).

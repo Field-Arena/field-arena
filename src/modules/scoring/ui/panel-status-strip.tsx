@@ -1,4 +1,4 @@
-import type { PanelSeat, ScoreRow } from '../types';
+import type { PanelSeat, ScoreRow } from '@/modules/scoring/types';
 
 /** A chip per panel seat — green once that seat has submitted for the current ride, grey while waiting. */
 export function PanelStatusStrip({

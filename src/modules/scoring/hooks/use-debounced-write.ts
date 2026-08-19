@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { MARK_DEBOUNCE_MS } from '../constants';
+import { MARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
 
 /**
  * Debounces writes across a dynamic set of fields (one movement/collective

@@ -2,17 +2,19 @@
 
 import { Fragment, useState } from 'react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { scoreLabel, sheetPct } from '../scoring-engine';
-import { toSheet } from '../utils';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import { scoreLabel, sheetPct } from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
 import {
   useCorrectEntry,
   useDisqualifyRide,
   useReopenScoresheet,
   useScratchRide,
   useSkipRide,
-} from '../hooks/use-scoring-mutations';
-import { ReasonModal } from './reason-modal';
-import type { PanelSeat, RideEntry, ScoreRow, TestDefinition } from '../types';
+} from '@/modules/scoring/hooks/use-scoring-mutations';
+import { ReasonModal } from '@/modules/scoring/ui/reason-modal';
+import type { PanelSeat, RideEntry, ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
 type RowActionTarget = { entryId: string; kind: 'correct' | 'disqualify' | 'reopen'; seatId?: string } | null;
 
@@ -58,23 +60,36 @@ export function LiveProgressPanel({
         scratch/skip/disqualify a rider who hasn&apos;t gone yet.
       </p>
 
-      <table className="w-full min-w-[720px] border-collapse text-[13px]">
-        <thead>
-          <tr className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
-            <th className="p-2">Draw</th>
-            <th className="p-2">Rider</th>
-            <th className="p-2">Horse</th>
+      <Table className="w-full min-w-[720px] border-collapse text-[13px]">
+        <TableHeader className="[&_tr]:border-0">
+          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Draw
+            </TableHead>
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Rider
+            </TableHead>
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Horse
+            </TableHead>
             {panel.map((seat) => (
-              <th key={seat.seatId} className="p-2">
+              <TableHead
+                key={seat.seatId}
+                className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase"
+              >
                 {seat.position ?? seat.seatId}
-              </th>
+              </TableHead>
             ))}
-            <th className="p-2 text-right">Final</th>
-            <th className="p-2">Status</th>
-            <th className="p-2"></th>
-          </tr>
-        </thead>
-        <tbody>
+            <TableHead className="h-auto p-2 text-right text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Final
+            </TableHead>
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Status
+            </TableHead>
+            <TableHead className="h-auto p-2"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="[&_tr:last-child]:border-t [&_tr:last-child]:border-[#E9EDEB]">
           {entries.map((entry) => {
             const status = entry.advancedPast
               ? 'Confirmed'
@@ -86,53 +101,56 @@ export function LiveProgressPanel({
 
             return (
               <Fragment key={entry.id}>
-              <tr className="border-t border-[#E9EDEB] align-top">
-                <td className="p-2">{entry.draw ?? '—'}</td>
-                <td className="p-2 font-semibold text-ink-deep">{entry.rider ?? '—'}</td>
-                <td className="p-2">{entry.horse ?? '—'}</td>
+              <TableRow className="border-t border-b-0 border-[#E9EDEB] align-top hover:bg-transparent">
+                <TableCell className="p-2 align-top whitespace-normal">{entry.draw ?? '—'}</TableCell>
+                <TableCell className="p-2 align-top whitespace-normal font-semibold text-ink-deep">
+                  {entry.rider ?? '—'}
+                </TableCell>
+                <TableCell className="p-2 align-top whitespace-normal">{entry.horse ?? '—'}</TableCell>
                 {panel.map((seat) => {
                   const score = scores.find((s) => s.entryId === entry.id && s.seatId === seat.seatId);
                   if (!score) {
                     return (
-                      <td key={seat.seatId} className="p-2 text-[#B4BFB9]">
+                      <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal text-[#B4BFB9]">
                         —
-                      </td>
+                      </TableCell>
                     );
                   }
                   if (!score.submitted) {
                     return (
-                      <td key={seat.seatId} className="p-2 text-[#7A8781]">
+                      <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal text-[#7A8781]">
                         …
-                      </td>
+                      </TableCell>
                     );
                   }
                   const pct = test ? sheetPct(toSheet(score), test) : null;
                   return (
-                    <td key={seat.seatId} className="p-2">
+                    <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-semibold text-ink-deep">
                           {pct !== null ? scoreLabel(pct) : '—'}
                         </span>
                         {!entry.advancedPast && (
-                          <button
+                          <Button
                             type="button"
-                            className="text-[11px] font-semibold text-[#5A6B63] underline hover:text-gold"
+                            variant="ghost"
                             onClick={() => {
                               setTarget({ entryId: entry.id, kind: 'reopen', seatId: seat.seatId });
                             }}
+                            className="h-auto px-0 py-0 rounded-none text-[11px] font-semibold text-[#5A6B63] underline hover:bg-transparent hover:text-gold"
                           >
                             Reopen
-                          </button>
+                          </Button>
                         )}
                       </div>
-                    </td>
+                    </TableCell>
                   );
                 })}
-                <td className="p-2 text-right font-mono font-semibold text-ink-deep">
+                <TableCell className="p-2 align-top whitespace-normal text-right font-mono font-semibold text-ink-deep">
                   {entry.finalPct ?? '—'}
-                </td>
-                <td className="p-2">{status}</td>
-                <td className="p-2">
+                </TableCell>
+                <TableCell className="p-2 align-top whitespace-normal">{status}</TableCell>
+                <TableCell className="p-2 align-top whitespace-normal">
                   {entry.advancedPast ? (
                     <GhostButton
                       type="button"
@@ -179,29 +197,29 @@ export function LiveProgressPanel({
                       </GhostButton>
                     </div>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
               {entry.correction && (
-                <tr className="border-t border-[#E9EDEB]">
-                  <td className="p-2"></td>
-                  <td className="p-2 text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
+                <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                  <TableCell className="p-2 whitespace-normal"></TableCell>
+                  <TableCell className="p-2 whitespace-normal text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
                     Corrected · {entry.correction}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
               {entry.reason && (
-                <tr className="border-t border-[#E9EDEB]">
-                  <td className="p-2"></td>
-                  <td className="p-2 text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
+                <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                  <TableCell className="p-2 whitespace-normal"></TableCell>
+                  <TableCell className="p-2 whitespace-normal text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
                     Eliminated · {entry.reason}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
               </Fragment>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       <ReasonModal
         open={target?.kind === 'correct'}

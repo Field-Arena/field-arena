@@ -18,9 +18,13 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getMySeat, getTestForClass } from './queries';
-import { averagePct, clampMark, collectivesTotal, sheetPct } from '../scoring-engine';
-import { asBooleanMap, asStringMap, parseMarkMap, toSheet } from '../utils';
+import { getMySeat, getTestForClass } from '@/modules/scoring/data/queries';
+import { averagePct, clampMark, collectivesTotal, sheetPct } from '@/modules/scoring/scoring-engine';
+import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
+import { asStringMap } from '@/modules/scoring/utils/as-string-map';
+import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
+import { JUDGING_PATH, JUDGING_HISTORY_PATH } from '@/modules/scoring/constants';
 import type { Json } from '@/shared/types/database.types';
 import {
   addHoldingEntrySchema,
@@ -47,7 +51,7 @@ import {
   unskipRideSchema,
   upsertPanelSeatSchema,
   workInEntrySchema,
-} from '../schemas';
+} from '@/modules/scoring/schemas';
 
 const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
 
@@ -686,8 +690,8 @@ export async function publishResults(input: unknown) {
   if (error) throw error;
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
-  revalidatePath('/dashboard/judging');
-  revalidatePath('/dashboard/judging/history');
+  revalidatePath(JUDGING_PATH);
+  revalidatePath(JUDGING_HISTORY_PATH);
 }
 
 export async function unpublishResults(input: unknown) {
@@ -701,8 +705,8 @@ export async function unpublishResults(input: unknown) {
   if (error) throw error;
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
-  revalidatePath('/dashboard/judging');
-  revalidatePath('/dashboard/judging/history');
+  revalidatePath(JUDGING_PATH);
+  revalidatePath(JUDGING_HISTORY_PATH);
 }
 
 // ---------------------------------------------------------------------------

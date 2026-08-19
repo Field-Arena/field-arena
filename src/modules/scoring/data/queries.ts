@@ -3,15 +3,13 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
-import {
-  asBooleanMap,
-  asStringMap,
-  isJsonRecord,
-  parseMarkMap,
-  parseTestDefinition,
-  resolveScoringPermissions,
-} from '../utils';
-import type { ClassScoringState, MySeat, PanelSeat, RideEntry, ScoreRow } from '../types';
+import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
+import { asStringMap } from '@/modules/scoring/utils/as-string-map';
+import { isJsonRecord } from '@/modules/scoring/utils/is-json-record';
+import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
+import { parseTestDefinition } from '@/modules/scoring/utils/parse-test-definition';
+import { resolveScoringPermissions } from '@/modules/scoring/utils/resolve-scoring-permissions';
+import type { ClassScoringState, MySeat, PanelSeat, RideEntry, ScoreRow } from '@/modules/scoring/types';
 import type { Json } from '@/shared/types/database.types';
 
 /**

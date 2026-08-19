@@ -1,5 +1,5 @@
-import { errorDeduction } from '../scoring-engine';
-import type { TestDefinition } from '../types';
+import { errorDeduction } from '@/modules/scoring/scoring-engine';
+import type { TestDefinition } from '@/modules/scoring/types';
 
 /**
  * The running error-of-course count, where each one happened, and its

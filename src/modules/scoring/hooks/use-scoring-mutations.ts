@@ -25,8 +25,9 @@ import {
   unskipRide,
   upsertPanelSeat,
   workInEntry,
-} from '../data/mutations';
-import { enqueueScoringWrite } from './use-mutation-queue';
+} from '@/modules/scoring/data/mutations';
+import { enqueueScoringWrite } from '@/modules/scoring/hooks/use-mutation-queue';
+import { MAX_WRITE_RETRIES, WRITE_RETRY_MS } from '@/modules/scoring/constants';
 
 /** Routes a Server Action through the shared queue — see use-mutation-queue.ts. */
 function queued<Input, Output>(action: (input: Input) => Promise<Output>) {
@@ -47,8 +48,6 @@ function isNetworkFailure(error: unknown): boolean {
   return error instanceof TypeError && /fetch|network/i.test(error.message);
 }
 
-const RETRY_DELAY_MS = 3000;
-
 /** One sticky id so repeated failures re-use the same toast instead of stacking — legacy's persistent banner, as a toast. */
 const SYNC_FAILURE_TOAST_ID = 'scoring-sync-failure';
 
@@ -63,8 +62,9 @@ const SYNC_FAILURE_TOAST_ID = 'scoring-sync-failure';
  */
 function silentMutationOptions() {
   return {
-    retry: (failureCount: number, error: unknown) => failureCount < 3 && isNetworkFailure(error),
-    retryDelay: RETRY_DELAY_MS,
+    retry: (failureCount: number, error: unknown) =>
+      failureCount < MAX_WRITE_RETRIES && isNetworkFailure(error),
+    retryDelay: WRITE_RETRY_MS,
     onError: () => {
       toast.error("Not synced — a mark didn't save. Check your connection and try again.", {
         id: SYNC_FAILURE_TOAST_ID,

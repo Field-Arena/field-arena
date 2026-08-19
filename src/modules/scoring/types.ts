@@ -1,6 +1,12 @@
-import type { TestDefinition } from './scoring-engine';
+import type { TestDefinition } from '@/modules/scoring/scoring-engine';
 
-export type { TestDefinition, TestMovement, TestCollective, Sheet, Score } from './scoring-engine';
+export type {
+  TestDefinition,
+  TestMovement,
+  TestCollective,
+  Sheet,
+  Score,
+} from '@/modules/scoring/scoring-engine';
 
 /** One mark's value plus who last wrote it — the judge-locks-scribe rule reads this. */
 export interface MarkEntry {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MARK_MAX, MARK_MIN } from './constants';
+import { MARK_MAX, MARK_MIN } from '@/modules/scoring/constants';
 
 const seatRoleSchema = z.enum(['judge', 'scribe']);
 

@@ -3,8 +3,12 @@
 import { useState } from 'react';
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { Input } from '@/shared/ui/shadcn/input';
-import { useAddHoldingEntry, useRemoveHoldingEntry, useWorkInEntry } from '../hooks/use-scoring-mutations';
-import type { RideEntry } from '../types';
+import {
+  useAddHoldingEntry,
+  useRemoveHoldingEntry,
+  useWorkInEntry,
+} from '@/modules/scoring/hooks/use-scoring-mutations';
+import type { RideEntry } from '@/modules/scoring/types';
 
 /**
  * Emergency/late riders, independent of the normal draw — ported from

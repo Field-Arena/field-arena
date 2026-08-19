@@ -1,6 +1,6 @@
-import { standings } from '../scoring-engine';
-import { parseFinalPct } from '../utils';
-import type { RideEntry } from '../types';
+import { standings } from '@/modules/scoring/scoring-engine';
+import { parseFinalPct } from '@/modules/scoring/utils/parse-final-pct';
+import type { RideEntry } from '@/modules/scoring/types';
 
 /** Live leaderboard — only rides with a real percentage rank, ties share a place. */
 export function StandingsPanel({ entries }: { entries: RideEntry[] }) {

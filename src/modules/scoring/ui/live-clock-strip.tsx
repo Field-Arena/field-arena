@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RIDE_MINUTES } from '../constants';
-import { scheduleDelta, type ScheduleStatus } from '../utils';
+import { RIDE_MINUTES } from '@/modules/scoring/constants';
+import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
 
 const STATUS_CLASSES: Record<ScheduleStatus, string> = {
   ahead: 'border-[#BFE0CB] bg-[#DCEFE1] text-[#2E7D46]',

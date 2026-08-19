@@ -1,10 +1,13 @@
 'use client';
 
 import { useImperativeHandle, useState, type Ref } from 'react';
-import { useDebouncedWrite } from '../hooks/use-debounced-write';
-import { REMARK_DEBOUNCE_MS } from '../constants';
-import { MarkStepper } from './mark-stepper';
-import type { ScoreRow, TestDefinition } from '../types';
+import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { useDebouncedWrite } from '@/modules/scoring/hooks/use-debounced-write';
+import { REMARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
+import { MarkStepper } from '@/modules/scoring/ui/mark-stepper';
+import type { ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
 export interface TestSheetHandle {
   flushPendingWrites: () => void;
@@ -115,22 +118,24 @@ export function TestSheet({
               }}
             />
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               disabled={locked}
               onClick={() => {
                 onToggleError(m.num);
               }}
               aria-pressed={Boolean(errorAt[String(m.num)])}
               aria-label="Toggle error of course"
-              className={`grid size-8 flex-none place-items-center rounded-[8px] border text-[15px] disabled:opacity-40 ${
+              className={cn(
+                'h-auto grid size-8 flex-none place-items-center rounded-[8px] border px-0 py-0 text-[15px] font-normal hover:bg-transparent disabled:opacity-40',
                 errorAt[String(m.num)]
                   ? 'border-[#E3B8B8] bg-[#F7E1E1] text-[#B23A3A]'
                   : 'border-[#D9E1DD] bg-white text-[#B4BFB9] hover:border-gold'
-              }`}
+              )}
             >
               ⚠
-            </button>
+            </Button>
 
             <RemarkField
               value={remarks[String(m.num)] ?? ''}
@@ -222,7 +227,7 @@ function RemarkField({
 }) {
   const { draft, setDraft, onFocus, onBlur } = useSyncedDraft(value);
   return (
-    <input
+    <Input
       type="text"
       value={draft}
       disabled={disabled}
@@ -233,7 +238,7 @@ function RemarkField({
         setDraft(e.target.value);
         onChange(e.target.value);
       }}
-      className="min-w-[160px] flex-1 rounded-[8px] border border-[#D9E1DD] px-2.5 py-1.5 text-[12.5px] text-ink-deep outline-none focus-visible:border-gold disabled:bg-[#F1F4F3]"
+      className="h-auto min-w-[160px] flex-1 rounded-[8px] border border-[#D9E1DD] px-2.5 py-1.5 text-[12.5px] text-ink-deep outline-none focus-visible:border-gold disabled:bg-[#F1F4F3] disabled:opacity-100"
     />
   );
 }
