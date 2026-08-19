@@ -15,13 +15,6 @@ import { useChargeMore } from '@/modules/sales/hooks/use-sales-mutations';
 import type { SaleRow } from '@/modules/sales/types';
 import { AmountField } from '@/modules/sales/ui/amount-field';
 
-/**
- * Charges the card saved at checkout again, off-session — for a stabling
- * overage, a damaged-arena fee, anything billed after the fact. Ported from
- * legacy's submitChargeMore; only ever offered when hasSavedCard is true,
- * since a sale with no stripe_customer_id/payment_method_id genuinely cannot
- * be charged this way.
- */
 export function ChargeMoreDialog({
   showId,
   sale,

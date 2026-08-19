@@ -1,13 +1,5 @@
 import type { SaleRow, SalesStats } from '@/modules/sales/types';
 
-/**
- * The four Event Sales KPI tiles, ported from showstaff.html's
- * updateSalesTable (6893-6903): total sales is the sum of `amount_total`
- * over every row that isn't fully refunded — a fully refunded sale is
- * excluded outright, not netted to zero, matching the legacy note
- * "N refunded, excluded". Rider/vendor totals are a plain sum of
- * amount_total for that type, whatever its status.
- */
 export function computeSalesStats(rows: SaleRow[]): SalesStats {
   const notRefunded = rows.filter((r) => r.status !== 'refunded');
   const riders = rows.filter((r) => r.type === 'Rider');

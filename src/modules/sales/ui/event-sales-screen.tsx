@@ -36,7 +36,8 @@ const STATUS_LABEL: Record<SaleRow['status'], string> = {
   refunded: 'Refunded',
 };
 
-const HEAD_CELL_CLASS = 'h-auto px-3 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
+const HEAD_CELL_CLASS =
+  'h-auto px-3 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
 
 const COLUMNS: { key: string; label: string; align?: 'right' }[] = [
   { key: 'customer', label: 'Customer' },
@@ -47,12 +48,6 @@ const COLUMNS: { key: string; label: string; align?: 'right' }[] = [
   { key: 'status', label: 'Status' },
 ];
 
-/**
- * Event Sales — the transactions ledger, ported from showstaff.html's
- * renderEventSales / updateSalesTable. "By Product" and "By Rider" are the
- * legacy view's other two tabs; they aren't built yet, so they stay honest,
- * inert stubs rather than empty-looking real tabs.
- */
 export function EventSalesScreen({
   showId,
   showName,
@@ -108,7 +103,11 @@ export function EventSalesScreen({
     },
     { label: 'Transactions', value: stats.transactions, sub: 'paid + refunded' },
     { label: 'Rider entries', value: stats.riderCount, sub: formatMoneyExact(stats.riderTotal) },
-    { label: 'Vendor purchases', value: stats.vendorCount, sub: formatMoneyExact(stats.vendorTotal) },
+    {
+      label: 'Vendor purchases',
+      value: stats.vendorCount,
+      sub: formatMoneyExact(stats.vendorTotal),
+    },
   ];
 
   return (
@@ -194,7 +193,7 @@ export function EventSalesScreen({
             a.remove();
             URL.revokeObjectURL(url);
           }}
-          className="h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold text-forest transition-colors hover:border-gold hover:bg-transparent"
+          className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
         >
           ⬇ Export Contact List
         </Button>
@@ -204,7 +203,7 @@ export function EventSalesScreen({
           onClick={() => {
             window.print();
           }}
-          className="h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold text-forest transition-colors hover:border-gold hover:bg-transparent"
+          className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
         >
           🖨 Print / Export PDF
         </Button>
@@ -220,7 +219,10 @@ export function EventSalesScreen({
                   <TableHead
                     key={col.key}
                     scope="col"
-                    className={cn(HEAD_CELL_CLASS, col.align === 'right' ? 'text-right' : 'text-left')}
+                    className={cn(
+                      HEAD_CELL_CLASS,
+                      col.align === 'right' ? 'text-right' : 'text-left',
+                    )}
                   >
                     {col.label}
                   </TableHead>

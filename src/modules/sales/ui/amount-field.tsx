@@ -2,7 +2,6 @@
 
 import { Input } from '@/shared/ui/shadcn/input';
 
-/** The labeled dollar-amount input shared by RefundDialog and ChargeMoreDialog. */
 export function AmountField({
   id,
   label,

@@ -1,12 +1,6 @@
 const NOT_BUILT_TIP = 'Not built yet — coming in a later update';
 const DISABLED_TABS = ['By Product', 'By Rider'] as const;
 
-/**
- * By Customer is the only real tab so far — By Product and By Rider are the
- * legacy view's own groupings of the same real data and aren't built yet.
- * Left visibly inert rather than silently missing, matching the same honesty
- * pattern as Show Manager's own unbuilt tabs.
- */
 export function EventSalesViewTabs() {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">

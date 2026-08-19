@@ -10,23 +10,8 @@ import { ROUTES } from '@/shared/constants/routes';
 import { refundSaleSchema, chargeMoreSchema } from '@/modules/sales/schemas';
 import { REFUND_AMOUNT_EPSILON, MAX_CHARGE_RECORD_ATTEMPTS } from '@/modules/sales/constants';
 
-/**
- * Real money moves through this file — Stripe refunds and off-session
- * additional charges against real orders and vendor bookings, ported from
- * showstaff.html's submitRealRefund / submitChargeMore and the legacy
- * api/shows/[id]/[resource].js handlers behind them.
- *
- * Both actions read and write through the service-role client rather than
- * the caller's own, on purpose — orders/vendor_bookings carry no RLS UPDATE
- * policy (see the comment on orders_select_owner in the RLS migration:
- * "Writes never come from a client... amounts must be computed server-side
- * and reconciled against Stripe"). The permission check that would normally
- * be RLS's job happens explicitly at the top of each action instead.
- */
-
 const TABLE_BY_TYPE = { order: 'orders', vendor_booking: 'vendor_bookings' } as const;
 
-/** Rounds to the nearest cent — every amount stored or sent to Stripe goes through this once, so the DB and Stripe never disagree over a fraction of a cent (e.g. a typed "25.999" becoming a $26.00 Stripe charge but a 25.999 ledger entry). */
 function toCents(amount: number): number {
   return Math.round(amount * 100);
 }
@@ -35,9 +20,6 @@ async function assertCanRefund(showId: string): Promise<void> {
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');
 
-  // Mirrors getOrganizerContext's canViewMoney bypass: the account owner (and
-  // a SuperAdmin impersonating them) always has full authority over their own
-  // show's money, regardless of the per-person canRefund grant.
   const impersonatedOrgId = await getImpersonatedOrgId();
   if (profile.platform_role === 'Organizer' || impersonatedOrgId !== null) return;
 
@@ -80,11 +62,6 @@ export async function refundSale(input: unknown): Promise<void> {
     throw new Error(`Only $${maxRefundable.toFixed(2)} can still be refunded on this sale.`);
   }
 
-  // Atomic reservation before ever calling Stripe: the update only applies if
-  // refunded_amount hasn't moved since we just read it, closing the same
-  // double-refund race legacy guarded against with a conditional UPDATE. The
-  // orders_refund_within_cap / vendor_bookings_refund_within_cap CHECK
-  // constraints back this up at the database layer too.
   const { data: reserved, error: reserveError } = await admin
     .from(table)
     .update({ refunded_amount: refundedBefore + amount })
@@ -106,7 +83,6 @@ export async function refundSale(input: unknown): Promise<void> {
       },
     );
   } catch (err) {
-    // Stripe never took the money — undo the reservation.
     await admin.from(table).update({ refunded_amount: refundedBefore }).eq('id', parsed.saleId);
     throw new Error(
       err instanceof Error ? `Stripe refund failed: ${err.message}` : 'Stripe refund failed.',
@@ -149,13 +125,7 @@ export async function chargeMore(input: unknown): Promise<void> {
         off_session: true,
         confirm: true,
       },
-      // Time-based rather than derived from sale state, unlike refundSale's key:
-      // two deliberate charges of the same amount on the same sale must both go
-      // through, so the key can't be just saleId+amount (Stripe would treat the
-      // second as a duplicate of the first and silently return the first's
-      // result). The real gap this leaves is a client-side retry of the exact
-      // same click racing the first attempt's response — narrow, since the
-      // dialog disables its submit button for the duration of the request.
+
       { idempotencyKey: `charge-${parsed.saleId}-${Date.now().toString()}` },
     );
     paymentIntentId = paymentIntent.id;
@@ -165,11 +135,6 @@ export async function chargeMore(input: unknown): Promise<void> {
     );
   }
 
-  // Stripe has already taken the money, so this write must never be silently
-  // lost to a race with another concurrent "charge more" on the same sale —
-  // unlike refundSale's reservation (made before Stripe is ever called, so a
-  // conflict there can just abort), a conflict here has to retry against the
-  // latest row instead, or the charge would vanish from the ledger.
   const chargeRecord = { id: paymentIntentId, amount, createdAt: new Date().toISOString() };
   for (let attempt = 0; attempt < MAX_CHARGE_RECORD_ATTEMPTS; attempt++) {
     const { data: current, error: currentError } = await admin

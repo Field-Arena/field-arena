@@ -1,4 +1,3 @@
-/** Matches modules/staff/utils.ts's staffCsvFilename slugging convention. */
 export function salesCsvFilename(showName: string): string {
   const slug = showName
     .toLowerCase()
