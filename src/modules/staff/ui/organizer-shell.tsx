@@ -7,7 +7,10 @@ import { LogOutIcon, SmartphoneIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
 import type { MemberOrg } from '../data/org-selection';
-import { useOrganizerShellPreview, useOrganizerShellOrgSwitch } from '../hooks/use-organizer-shell-actions';
+import {
+  useOrganizerShellPreview,
+  useOrganizerShellOrgSwitch,
+} from '../hooks/use-organizer-shell-actions';
 import { setRailRole } from '@/shared/lib/rail-role';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
@@ -36,13 +39,13 @@ export function OrganizerShell({
   profile: StaffProfile;
   workspace: RoleWorkspace;
   impersonating?: boolean;
-  /** An Organizer (or impersonating SuperAdmin) previewing their own workspace as Show Admin — see data/preview-role.ts. */
+
   previewingAsShowAdmin?: boolean;
-  /** Which rail icon was last clicked while impersonating — see shared/lib/rail-role.ts. */
+
   railRoleCookie?: string | null;
-  /** The org the "Organization" switcher below currently points at — see data/org-selection.ts. Null while impersonating. */
+
   selectedOrgId?: string | null;
-  /** Every org this person has real access to. The switcher only renders past one entry — a single-org person has nothing to switch between. */
+
   memberOrgs?: MemberOrg[];
 }) {
   const pathname = usePathname();
@@ -55,28 +58,8 @@ export function OrganizerShell({
   } = useOrganizerShellPreview();
   const { isPending: isOrgPending, setOrg } = useOrganizerShellOrgSwitch();
 
-  /**
-   * The role rail is a switcher only for SuperAdmin.
-   *
-   * In the legacy app this rail lived in platform.html — the demo shell whose
-   * whole purpose was showcasing every role, so every icon was clickable there.
-   * Carrying that into the real app would be a privilege-escalation control: a
-   * Judge could click through to the SuperAdmin console.
-   *
-   * SuperAdmin is the exception because impersonation is a genuine capability
-   * for them, not an oversight — api/_lib/authz.js states SuperAdmin "can touch
-   * anything (kept as a real support/impersonation capability, not a bug)", and
-   * the legacy SuperAdmin console had an explicit "experience as" feature built
-   * on it. Everyone else sees only their own role.
-   */
   const isSuperAdmin = profile.platform_role === 'SuperAdmin';
 
-  /**
-   * Rider is on the rail but is not a platform_role — riders live in a separate
-   * identity table — so it resolves against RIDER_WORKSPACE rather than the
-   * role map. The legacy rail showed all nine destinations including Rider, and
-   * this keeps that order.
-   */
   const workspaceFor = (role: string): RoleWorkspace | undefined =>
     role === 'Rider' ? RIDER_WORKSPACE : ROLE_WORKSPACES[role];
 
@@ -84,19 +67,6 @@ export function OrganizerShell({
     ? ROLE_RAIL_ORDER.filter((role) => workspaceFor(role) !== undefined)
     : ROLE_RAIL_ORDER.filter((role) => role === profile.platform_role);
 
-  /**
-   * Which role's workspace is actually on screen right now — drives the
-   * header title/hint, which rail icon lights up, and which nav the sidebar
-   * shows. Derived from the current pathname wherever a role's href is
-   * unique; the two ambiguous pairs (Organizer/Show Admin both `/dashboard`,
-   * Judge/Scribe both `/dashboard/judging`) fall back to a cookie, since the
-   * URL alone can't tell them apart. Previously this whole shell only ever
-   * considered Organizer vs. Show Admin — a SuperAdmin who clicked Judge (or
-   * any other rail icon) while impersonating got Judge's own content
-   * rendered inside a header, rail highlight, and nav that all still read
-   * "Organizer"/"Show Admin", because nothing here looked at the actual
-   * route being viewed.
-   */
   const activeRailRole = (() => {
     if (!isSuperAdmin) return profile.platform_role ?? 'Organizer';
     if (pathname === '/dashboard') return previewingAsShowAdmin ? 'ShowAdmin' : 'Organizer';
@@ -118,23 +88,10 @@ export function OrganizerShell({
 
   const baseNavItems = ROLE_NAV[activeRailRole] ?? ORGANIZER_NAV;
 
-  // Mirrors applyRoleVisibility's billingNav.classList.toggle('hidden-role',
-  // moneyHidden()) — the one nav destination the legacy preview actually
-  // hid, rather than a blanket re-filter of the whole shared nav.
   const navItems = previewingAsShowAdmin
     ? baseNavItems.filter((item) => item.key !== 'billing')
     : baseNavItems;
 
-  // Exactly one nav item is active at a time. An exact href match wins
-  // outright — needed for roles (Judge/Scribe) that nest sibling routes
-  // under their landing tab's own path (`/dashboard/judging` vs.
-  // `/dashboard/judging/documents`). Otherwise the item with the longest
-  // href that's still a path-prefix of the route wins: Dashboard's href
-  // (`/dashboard`) is itself a prefix of every other item's href, so on a
-  // dynamic route like `/dashboard/shows/[showId]` (no item's href equals
-  // it exactly) a plain independent startsWith check per item would light
-  // up Dashboard *and* Show Manager together — picking the longest match
-  // keeps it to Show Manager alone.
   const activeNavItem =
     navItems.find((n) => n.href === pathname) ??
     navItems.reduce<(typeof navItems)[number] | null>((best, item) => {
@@ -156,8 +113,6 @@ export function OrganizerShell({
           const label =
             target.status === 'pending' ? `${target.title} (not migrated)` : target.title;
 
-          // Non-SuperAdmin sees only their own role, so there is nowhere to
-          // navigate — render it as a static indicator rather than a dead link.
           if (!isSuperAdmin) {
             const active = role === profile.platform_role;
             return (
@@ -169,13 +124,6 @@ export function OrganizerShell({
             );
           }
 
-          // Organizer and Show Admin share one href ('/dashboard') — the same
-          // distinction the "Viewing as" dropdown makes, not a different route.
-          // While impersonating, clicking either rail icon toggles that same
-          // preview cookie instead of navigating to an identical URL, so the
-          // rail is a real switch here (matching legacy's platform.html rail,
-          // where Show Admin was its own reachable tab) rather than two links
-          // that both land on the same page with no visible difference.
           if (impersonating && (role === 'Organizer' || role === 'ShowAdmin')) {
             const active = role === activeRailRole;
             return (
@@ -188,11 +136,7 @@ export function OrganizerShell({
                   className={cn('dash-rail-btn', active && 'active')}
                   onClick={() => {
                     if (active) return;
-                    // The rail is a navigation control — it must always land
-                    // on `/dashboard`, unlike the "VIEWING AS" dropdown below,
-                    // which passes the current `pathname` because its whole
-                    // point is toggling money visibility without leaving the
-                    // page you're already on.
+
                     setPreview(role === 'ShowAdmin' ? 'showadmin' : 'organizer', target.href);
                   }}
                 >
@@ -202,10 +146,6 @@ export function OrganizerShell({
             );
           }
 
-          // Judge and Scribe share one href ('/dashboard/judging') too, for the
-          // same reason Organizer/Show Admin do — the click itself is what
-          // has to record which of the two was meant, via the same rail-role
-          // cookie SuperAdminShell's own rail already uses.
           if (role === 'Judge' || role === 'Scribe') {
             const active = role === activeRailRole;
             return (
@@ -251,13 +191,6 @@ export function OrganizerShell({
         </div>
         <div className="dash-side-sub">{activeWorkspace.title.toUpperCase()}</div>
 
-        {/*
-          A person can be genuinely staffed on shows across more than one
-          organization (see staff/data/mutations.ts's addStaffUser — nothing
-          prevents it), but their dashboard otherwise resolves to a single,
-          silently-fixed org — see data/org-selection.ts's doc comment for
-          why. Only worth rendering once there is an actual choice to make.
-        */}
         {memberOrgs.length > 1 && (
           <>
             <div className="dash-side-heading">ORGANIZATION</div>
@@ -281,16 +214,6 @@ export function OrganizerShell({
           </>
         )}
 
-        {/*
-          "Viewing as" existed in the legacy showstaff.html because Organizer and
-          Show Admin shared one view, with money hidden for Show Admin. It is only
-          meaningful for someone who can actually be both, so it is not rendered
-          for a real Show Admin — offering them an "Organizer" option would imply
-          they can grant themselves financial visibility, which the permission
-          model deliberately withholds. A SuperAdmin impersonating an organizer
-          gets it too, same as legacy's moneyHidden() covered both platform
-          roles — impersonating already grants everything an Organizer sees.
-        */}
         {(profile.platform_role === 'Organizer' || impersonating) && (
           <>
             <div className="dash-side-heading">VIEWING AS</div>
@@ -315,12 +238,6 @@ export function OrganizerShell({
           </>
         )}
 
-        {/*
-          Navigation follows the role, not the shell. Organizer and Show Admin
-          share the full organizer nav; the per-show roles each get the sections
-          their own legacy view had, so a Judge is not shown Billing and
-          MemberDatabase links they cannot use.
-        */}
         <nav className="dash-nav" aria-label={`${activeWorkspace.title} navigation`}>
           {navItems.map((item) => {
             const active = item.key === activeNavItem?.key;
@@ -353,12 +270,6 @@ export function OrganizerShell({
       </aside>
 
       <div className="dash-main">
-        {/*
-          An impersonation banner that is impossible to miss. Someone acting on a
-          customer's live data while believing it is their own is exactly how a
-          support session turns into an incident, so this is a full-width bar with
-          a permanent exit, not a subtle badge.
-        */}
         {impersonating && <ImpersonationBanner />}
 
         <header className="dash-topbar">

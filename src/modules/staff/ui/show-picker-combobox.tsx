@@ -5,18 +5,6 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronsUp, ChevronsDown } from 'lucide-react';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
-/**
- * The show picker's dropdown, rewritten as a real listbox instead of a plain
- * `<select>` — an organization running for a few years accumulates a long
- * show list, and there is no way to add controls inside a native `<select>`'s
- * browser-drawn popup. This owns the whole panel, so it can pin a "jump to
- * top" / "jump to bottom" button above and below the scrollable list.
- *
- * Selecting a show navigates immediately (no separate "Switch" step) — same
- * one-click convention as the "Organization"/"Viewing as" selects elsewhere
- * in this shell. The selected show still lives in the `?show=` query param,
- * so the page stays linkable; only how it's picked changed.
- */
 export function ShowPickerCombobox({
   shows,
   currentShow,

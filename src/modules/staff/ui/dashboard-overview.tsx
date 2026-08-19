@@ -17,26 +17,6 @@ import type {
 } from '@/modules/shows/data/queries';
 import { AttentionCard } from './attention-card';
 
-/**
- * The organizer dashboard.
- *
- * Every figure here comes from the database — see the module's prior history
- * for why that matters (it used to render fixed numbers from constants.ts).
- * This pass swaps the hand-rolled markup for the shared organizer UI kit
- * (src/shared/ui/organizer/) ported from the Admin Console design export, so
- * this screen and Show Manager draw from the same components instead of two
- * independently hand-matched copies of the same recipe. Every prop, query,
- * and href is unchanged — only presentation moved.
- *
- * Two honesty points carried over unchanged:
- *
- *  - Revenue is split. Entry value (what the roster is worth at current class
- *    prices) and settled revenue (money actually taken) are different things,
- *    and conflating them is how an organizer ends up budgeting against money
- *    nobody has paid.
- *  - The rings list says what rings are configured, not live timers — those
- *    come from the scoring screen, which isn't migrated yet.
- */
 export function DashboardOverview({
   orgName,
   shows,
@@ -55,7 +35,7 @@ export function DashboardOverview({
   inventory: InventoryRow[];
   stage: string;
   rings: string[];
-  /** What wants the organizer's attention on this show — see getShowAttention. */
+
   attention?: AttentionItem[];
   canViewMoney: boolean;
 }) {
@@ -63,11 +43,11 @@ export function DashboardOverview({
 
   if (!currentShow || !stats) {
     return (
-      <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
         <ScreenTitle>Dashboard</ScreenTitle>
         <ScreenLede>Everything across your shows, in one place.</ScreenLede>
         <Card className="p-[18px]">
-          <p className="text-lg font-semibold text-forest">No shows yet</p>
+          <p className="text-forest text-lg font-semibold">No shows yet</p>
           <p className="mt-1 text-[13.5px] text-[#5A6B63]">
             {orgName} has no shows on the platform. Create one to see entries, staffing and revenue
             here.
@@ -80,7 +60,7 @@ export function DashboardOverview({
   const incompleteCount = shows.filter((s) => !s.published).length;
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-5">
         <ScreenTitle className="mb-1.5">Dashboard</ScreenTitle>
         <p className="text-[13.5px] text-[#5A6B63]">Everything across your shows, in one place.</p>
@@ -91,8 +71,8 @@ export function DashboardOverview({
         {SHOW_STAGES.map((s, i) => (
           <span key={s.key} className="contents">
             <span
-              className={`inline-flex items-center gap-2 whitespace-nowrap text-[13px] ${
-                i === currentIndex ? 'font-semibold text-forest' : 'text-[#5A6B63]'
+              className={`inline-flex items-center gap-2 text-[13px] whitespace-nowrap ${
+                i === currentIndex ? 'text-forest font-semibold' : 'text-[#5A6B63]'
               }`}
             >
               <span
@@ -109,24 +89,20 @@ export function DashboardOverview({
         ))}
       </Card>
 
-      {/* Above the stat cards on purpose: "is anything broken right now" is
-          the question an organizer lands with, and a grid of equally-weighted
-          tiles answers it last. */}
       <AttentionCard items={attention} />
 
       <Card className="mb-[18px] p-[16px_18px_18px]">
         <div className="mb-3.5 flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-forest">
+          <span className="text-forest inline-flex items-center gap-2 text-[13.5px] font-semibold">
             <span className="size-[7px] rounded-full" style={{ background: fa.green }} />
             {orgName}
           </span>
 
-          {/* GET form, no JS required — matches the rest of this workspace's show switcher. */}
           <form method="get" className="contents">
             <select
               name="show"
               defaultValue={currentShow.id}
-              className="min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm text-ink-deep"
+              className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
               aria-label="Select show"
             >
               {shows.map((show) => (
@@ -153,7 +129,7 @@ export function DashboardOverview({
         </div>
 
         {canViewMoney && stats.entryValue > 0 && stats.settledRevenue === 0 && (
-          <p className="mb-4 text-[12.5px] text-[#7C8A84] text-pretty">
+          <p className="mb-4 text-[12.5px] text-pretty text-[#7C8A84]">
             The roster is worth {formatMoney(stats.entryValue)} at current class prices, but nothing
             has been collected — rider checkout is not migrated yet, so this is genuinely unpaid
             rather than missing.
@@ -162,13 +138,13 @@ export function DashboardOverview({
 
         {rings.length > 0 ? (
           <div className="flex items-stretch overflow-hidden rounded-[10px] border border-[#E9EDEB]">
-            <span className="whitespace-nowrap bg-forest px-4 py-2.5 font-mono text-sm font-bold text-gold">
+            <span className="bg-forest text-gold px-4 py-2.5 font-mono text-sm font-bold whitespace-nowrap">
               {rings.length} ring{rings.length === 1 ? '' : 's'}
             </span>
             {rings.map((ring) => (
               <span
                 key={ring}
-                className="grid flex-1 place-items-center bg-[#F5F7F6] px-2.5 py-2.5 text-[12.5px] font-bold text-forest"
+                className="text-forest grid flex-1 place-items-center bg-[#F5F7F6] px-2.5 py-2.5 text-[12.5px] font-bold"
               >
                 {ring}
               </span>
@@ -193,9 +169,9 @@ export function DashboardOverview({
         </Card>
       )}
 
-      <div className="overflow-hidden rounded-[12px] border border-[#E9EDEB] border-l-[3px] border-l-[#1A5B3C]">
+      <div className="overflow-hidden rounded-[12px] border border-l-[3px] border-[#E9EDEB] border-l-[#1A5B3C]">
         <div className="p-[16px_18px_14px]">
-          <div className="mb-[5px] font-[Newsreader,serif] text-[19px] font-semibold text-forest">
+          <div className="text-forest mb-[5px] font-[Newsreader,serif] text-[19px] font-semibold">
             {currentShow.name}
           </div>
           <div className="text-[12.5px] text-[#7A8781]">
@@ -204,7 +180,7 @@ export function DashboardOverview({
         </div>
 
         <div className="border-t border-[#E9EDEB] px-[18px] py-3.5">
-          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3.5 text-[9.5px] font-bold uppercase tracking-[.14em] text-[#6E7C76]">
+          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3.5 text-[9.5px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
             <span>Purchases &amp; inventory</span>
             <span className="text-right">Qty</span>
             <span className="text-right">{canViewMoney ? 'Value' : ''}</span>
@@ -214,9 +190,9 @@ export function DashboardOverview({
               key={row.name}
               className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3.5 border-t border-[#EFE9DB] py-2.5 text-[13.5px]"
             >
-              <span className="font-semibold text-ink-deep">{row.name}</span>
-              <span className="text-right text-ink-deep">{row.qty}</span>
-              <span className="text-right text-ink-deep">
+              <span className="text-ink-deep font-semibold">{row.name}</span>
+              <span className="text-ink-deep text-right">{row.qty}</span>
+              <span className="text-ink-deep text-right">
                 {canViewMoney && (
                   <>
                     {formatMoney(row.revenue)}
@@ -238,7 +214,10 @@ export function DashboardOverview({
               ? 'This show is published and visible to riders.'
               : 'This show is not published — riders cannot see or enter it yet.'}
           </span>
-          <Link href={`/dashboard/shows/${currentShow.id}`} className={cn(primaryButtonClass, 'ml-auto')}>
+          <Link
+            href={`/dashboard/shows/${currentShow.id}`}
+            className={cn(primaryButtonClass, 'ml-auto')}
+          >
             Open Show Manager
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M8 5v14l11-7z" />
