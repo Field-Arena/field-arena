@@ -1,23 +1,13 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { listSales, getCanRefund } from '@/modules/sales/data/queries';
-import { computeSalesStats } from '@/modules/sales/utils';
+import { computeSalesStats } from '@/modules/sales/utils/compute-sales-stats';
 import { EventSalesScreen } from '@/modules/sales/ui/event-sales-screen';
 import { isStripeLive } from '@/shared/lib/stripe';
 import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Event Sales — Field & Arena' };
 
-/**
- * Event Sales — the transactions ledger, ported from showstaff.html's
- * renderEventSales (key==='tickets'). Every paid rider order and vendor
- * booking on the selected show, with real Stripe refunds and off-session
- * additional charges — see modules/sales/ for the data layer.
- *
- * canRefund gates the action column the same way canViewMoney gates money
- * elsewhere: hiding the buttons is a UX courtesy, has_show_permission is the
- * actual boundary the mutations check.
- */
 export default async function EventSalesPage({
   searchParams,
 }: {
