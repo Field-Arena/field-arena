@@ -1,3 +1,6 @@
+/** Revalidated after every panel write (assignJudgeToClasses/assignScribeToClasses/setClassPanel). */
+export const JUDGING_PATH = '/dashboard/judging';
+
 /**
  * Real external URLs, ported from legacy judge-scribe.html's
  * TEST_SHEETS_URL/DR_RULES_URL/RULEBOOK_URL constants.

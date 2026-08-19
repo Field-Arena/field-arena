@@ -1,10 +1,10 @@
 import { cn } from '@/shared/lib/utils';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { formatDateShort } from '@/shared/lib/format/date';
-import type { AssignmentRow } from '../data/queries';
-import { formatClassTime } from '../utils';
-import { USDF_TEST_SHEETS_URL } from '../constants';
-import { LaunchScoringButton } from './launch-scoring-button';
+import type { AssignmentRow } from '@/modules/judging/data/queries';
+import { formatClassTime } from '@/modules/judging/utils/format-class-time';
+import { USDF_TEST_SHEETS_URL } from '@/modules/judging/constants';
+import { LaunchScoringButton } from '@/modules/judging/ui/launch-scoring-button';
 
 const WHEN_META = {
   today: { label: 'Today', bg: '#FBF0D8', fg: '#8A6D14' },

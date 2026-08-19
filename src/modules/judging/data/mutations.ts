@@ -6,7 +6,8 @@ import {
   assignJudgeToClassesSchema,
   assignScribeToClassesSchema,
   setClassPanelSchema,
-} from '../schemas';
+} from '@/modules/judging/schemas';
+import { JUDGING_PATH } from '@/modules/judging/constants';
 
 /**
  * Seats a judge on a class's panel — the write side of what
@@ -75,7 +76,7 @@ export async function assignJudgeToClasses(input: unknown): Promise<void> {
     .upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/judging');
+  revalidatePath(JUDGING_PATH);
 }
 
 /**
@@ -136,7 +137,7 @@ export async function assignScribeToClasses(input: unknown): Promise<void> {
     .upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/judging');
+  revalidatePath(JUDGING_PATH);
 }
 
 /**
@@ -165,5 +166,5 @@ export async function setClassPanel(input: unknown): Promise<void> {
   const { error } = await supabase.from('class_panel').upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/judging');
+  revalidatePath(JUDGING_PATH);
 }

@@ -2,12 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import {
-  buildDemoAssignments,
-  buildDemoPanelContacts,
-  buildTodaySnapshot,
-  classifyAssignment,
-} from '@/modules/judging/utils';
+import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
+import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
+import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
+import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';

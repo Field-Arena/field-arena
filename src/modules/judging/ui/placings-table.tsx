@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { rankPlacings, type PlacingRow } from '../utils';
-import type { ClassPlacingEntry } from '../data/queries';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import { rankPlacings, type PlacingRow } from '@/modules/judging/utils/rank-placings';
+import type { ClassPlacingEntry } from '@/modules/judging/data/queries';
 
 /**
  * Rank/rider/horse/score, ported from judge-scribe.html's `placingsTableHtml`
@@ -26,20 +27,20 @@ export function PlacingsTable({
   }
 
   return (
-    <table className="w-full border-collapse text-[13.5px]">
-      <thead>
-        <tr className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
-          <th className="p-2">Place</th>
-          <th className="p-2">Rider</th>
-          <th className="p-2">Horse</th>
-          <th className="p-2 text-right">Score</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table className="border-collapse text-[13.5px]">
+      <TableHeader className="[&_tr]:border-0">
+        <TableRow className="hover:bg-transparent text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
+          <TableHead className="h-auto p-2">Place</TableHead>
+          <TableHead className="h-auto p-2">Rider</TableHead>
+          <TableHead className="h-auto p-2">Horse</TableHead>
+          <TableHead className="h-auto p-2 text-right">Score</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {rows.map((row: PlacingRow) => (
-          <tr
+          <TableRow
             key={row.entryId}
-            className={`border-t border-[#E9EDEB] ${linkBase ? 'cursor-pointer hover:bg-[#F5F7F6]' : ''}`}
+            className={`border-t border-b-0 border-[#E9EDEB] ${linkBase ? 'cursor-pointer hover:bg-[#F5F7F6]' : 'hover:bg-transparent'}`}
             onClick={
               linkBase
                 ? () => {
@@ -48,13 +49,15 @@ export function PlacingsTable({
                 : undefined
             }
           >
-            <td className="p-2 font-bold text-ink-deep">{row.rank}</td>
-            <td className="p-2 text-ink-deep">{row.rider}</td>
-            <td className="p-2 text-[#5A6B63]">{row.horse}</td>
-            <td className="p-2 text-right font-mono font-semibold text-ink-deep">{row.pct.toFixed(3)}%</td>
-          </tr>
+            <TableCell className="whitespace-normal p-2 font-bold text-ink-deep">{row.rank}</TableCell>
+            <TableCell className="whitespace-normal p-2 text-ink-deep">{row.rider}</TableCell>
+            <TableCell className="whitespace-normal p-2 text-[#5A6B63]">{row.horse}</TableCell>
+            <TableCell className="whitespace-normal p-2 text-right font-mono font-semibold text-ink-deep">
+              {row.pct.toFixed(3)}%
+            </TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }

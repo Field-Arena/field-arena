@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { listMyAssignments, getClassPlacings } from '@/modules/judging/data/queries';
-import { isAssignmentComplete } from '@/modules/judging/utils';
+import { isAssignmentComplete } from '@/modules/judging/utils/is-assignment-complete';
 import { PlacingsTable } from '@/modules/judging/ui/placings-table';
 import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 

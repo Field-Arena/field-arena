@@ -1,4 +1,4 @@
-import type { PanelContact } from '../data/queries';
+import type { PanelContact } from '@/modules/judging/data/queries';
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
