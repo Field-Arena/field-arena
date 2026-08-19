@@ -3,8 +3,7 @@ import { gridDividerClasses } from '@/modules/marketing/utils';
 import { PROBLEM } from '@/modules/marketing/landing-content';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
-const H2 =
-  `${DISPLAY} text-[32px] font-medium leading-[1.04] tracking-[-.022em] md:text-[42px] xl:text-[50px]`;
+const H2 = `${DISPLAY} text-[32px] font-medium leading-[1.04] tracking-[-.022em] md:text-[42px] xl:text-[50px]`;
 const SECTION = 'px-5 py-[72px] md:px-8 lg:px-10 lg:py-28';
 
 export function ProblemSection() {
@@ -19,24 +18,24 @@ export function ProblemSection() {
             </h2>
           </div>
           <div className="lg:pt-11">
-            <p className="mb-4 text-[16.5px] leading-[1.66] text-ink-lead">{PROBLEM.lead}</p>
-            <p className="m-0 text-[16.5px] font-medium leading-[1.66] text-forest">
+            <p className="text-ink-lead mb-4 text-[16.5px] leading-[1.66]">{PROBLEM.lead}</p>
+            <p className="text-forest m-0 text-[16.5px] leading-[1.66] font-medium">
               {PROBLEM.leadStrong}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 overflow-hidden rounded-[14px] border border-line bg-white sm:grid-cols-2 lg:grid-cols-4">
+        <div className="border-line grid grid-cols-1 overflow-hidden rounded-[14px] border bg-white sm:grid-cols-2 lg:grid-cols-4">
           {PROBLEM.cells.map((cell, index) => (
             <article
               key={cell.numeral}
-              className={`border-line px-7 pb-9 pt-[34px] transition-colors duration-150 hover:bg-[#F4F8F6] ${gridDividerClasses(index, PROBLEM.cells.length, { base: 1, sm: 2, lg: 4 })}`}
+              className={`border-line px-7 pt-[34px] pb-9 transition-colors duration-150 hover:bg-[#F4F8F6] ${gridDividerClasses(index, PROBLEM.cells.length, { base: 1, sm: 2, lg: 4 })}`}
             >
-              <div className={`mb-5 ${DISPLAY} text-[34px] leading-none text-gold`}>
+              <div className={`mb-5 ${DISPLAY} text-gold text-[34px] leading-none`}>
                 {cell.numeral}
               </div>
-              <h3 className="mb-2.5 text-base font-bold leading-[1.3] text-forest">{cell.title}</h3>
-              <p className="m-0 text-[13.5px] leading-[1.6] text-fa-muted">{cell.body}</p>
+              <h3 className="text-forest mb-2.5 text-base leading-[1.3] font-bold">{cell.title}</h3>
+              <p className="text-fa-muted m-0 text-[13.5px] leading-[1.6]">{cell.body}</p>
             </article>
           ))}
         </div>

@@ -69,8 +69,8 @@ export function HorseShowManagementSoftware(): ReactElement {
         <p>
           Every successful competition starts with organized preparation. Field-Arena helps
           organizers create shows, build divisions and classes, configure fees, manage schedules,
-          organize documents, and prepare competition details — spending less time on setup and
-          more time improving the competitor experience.
+          organize documents, and prepare competition details — spending less time on setup and more
+          time improving the competitor experience.
         </p>
 
         <h3>2. Online Entries and Registration</h3>

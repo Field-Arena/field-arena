@@ -11,11 +11,11 @@ export function CtaBand({
   cta: string;
 }): ReactElement {
   return (
-    <section className="mt-14 rounded-[14px] border border-line-mint bg-mint px-7 py-10 text-center">
-      <h2 className="mb-3 mt-0 font-[family-name:var(--font-nr)] text-[26px] font-medium text-forest">
+    <section className="border-line-mint bg-mint mt-14 rounded-[14px] border px-7 py-10 text-center">
+      <h2 className="text-forest mt-0 mb-3 font-[family-name:var(--font-nr)] text-[26px] font-medium">
         {heading}
       </h2>
-      <p className="mx-auto mb-6 max-w-[520px] text-[15px] leading-[1.65] text-ink-lead">{body}</p>
+      <p className="text-ink-lead mx-auto mb-6 max-w-[520px] text-[15px] leading-[1.65]">{body}</p>
       <DemoLink>{cta}</DemoLink>
     </section>
   );

@@ -36,7 +36,9 @@ export function EventingAndCombinedTrainingSoftware(): ReactElement {
           successful event requires coordination between competitors, horses, trainers, judges,
           stewards, volunteers, scoring teams, and show management.
         </p>
-        <p>Field-Arena helps bring these moving parts together into one connected system, managing:</p>
+        <p>
+          Field-Arena helps bring these moving parts together into one connected system, managing:
+        </p>
         <ul>
           <li>Horse and rider registrations</li>
           <li>Entries and divisions</li>
@@ -126,9 +128,9 @@ export function EventingAndCombinedTrainingSoftware(): ReactElement {
         <h2>Benefits for Horse Trial Secretaries</h2>
         <p>
           Horse trial secretaries manage some of the most demanding administrative responsibilities
-          in equestrian sport. Field-Arena helps simplify entry management, competitor records, phase
-          tracking, results preparation, and communication — letting secretaries focus on managing
-          the event rather than chasing information.
+          in equestrian sport. Field-Arena helps simplify entry management, competitor records,
+          phase tracking, results preparation, and communication — letting secretaries focus on
+          managing the event rather than chasing information.
         </p>
 
         <hr />
@@ -172,9 +174,10 @@ export function EventingAndCombinedTrainingSoftware(): ReactElement {
         </table>
 
         <div className="callout">
-          Generic event software was not designed for horse sports. Field-Arena understands horse and
-          rider combinations, competition divisions, multi-phase scoring, show office workflows, and
-          equestrian event operations — it is designed around how horse competitions actually run.
+          Generic event software was not designed for horse sports. Field-Arena understands horse
+          and rider combinations, competition divisions, multi-phase scoring, show office workflows,
+          and equestrian event operations — it is designed around how horse competitions actually
+          run.
         </div>
       </article>
 

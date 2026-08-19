@@ -29,9 +29,9 @@ export function TermsOfServiceContent(): ReactElement {
         <p>
           These Terms apply to show organizers, organization staff (secretaries, judges, scribes,
           announcers), vendors, and any other party who creates an account or otherwise accesses the
-          Service. Riders, trainers, and other competitors who submit entries through a show hosted on
-          the Service are also bound by these Terms for purposes of their use of the entry, payment,
-          and results features.
+          Service. Riders, trainers, and other competitors who submit entries through a show hosted
+          on the Service are also bound by these Terms for purposes of their use of the entry,
+          payment, and results features.
         </p>
 
         <h2>2. Accounts and access</h2>
@@ -45,8 +45,8 @@ export function TermsOfServiceContent(): ReactElement {
             their organization, and for revoking access when appropriate.
           </li>
           <li>
-            We may suspend or terminate accounts that violate these Terms, engage in fraud, or create
-            risk to other users of the Service.
+            We may suspend or terminate accounts that violate these Terms, engage in fraud, or
+            create risk to other users of the Service.
           </li>
         </ul>
 

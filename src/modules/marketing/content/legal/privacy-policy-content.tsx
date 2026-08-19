@@ -65,7 +65,9 @@ export function PrivacyPolicyContent(): ReactElement {
             </tr>
             <tr>
               <td>Usage data</td>
-              <td>Log data such as IP address and access times, used for security and rate limiting</td>
+              <td>
+                Log data such as IP address and access times, used for security and rate limiting
+              </td>
             </tr>
           </tbody>
         </table>
@@ -80,8 +82,8 @@ export function PrivacyPolicyContent(): ReactElement {
             To send transactional email — invitations, entry confirmations, and account notices.
           </li>
           <li>
-            To secure the platform — detecting abuse, rate-limiting login attempts, and investigating
-            suspicious activity.
+            To secure the platform — detecting abuse, rate-limiting login attempts, and
+            investigating suspicious activity.
           </li>
           <li>To communicate with organization owners about material changes to the Service.</li>
         </ul>
@@ -94,16 +96,16 @@ export function PrivacyPolicyContent(): ReactElement {
         <h2>4. Data retention</h2>
         <p>
           We retain account and show data for as long as the account is active, and as needed to
-          comply with legal, tax, and payment-processor recordkeeping obligations. Uploaded documents
-          are retained per the retention rules configured by the organization, subject to legal
-          minimums.
+          comply with legal, tax, and payment-processor recordkeeping obligations. Uploaded
+          documents are retained per the retention rules configured by the organization, subject to
+          legal minimums.
         </p>
 
         <h2>5. Security</h2>
         <p>
-          Passwords are hashed (never stored in plain text); sessions use httpOnly cookies; documents
-          are stored with access-controlled, non-public URLs. No system is perfectly secure, and we
-          cannot guarantee absolute security.
+          Passwords are hashed (never stored in plain text); sessions use httpOnly cookies;
+          documents are stored with access-controlled, non-public URLs. No system is perfectly
+          secure, and we cannot guarantee absolute security.
         </p>
 
         <h2>6. Your choices</h2>
@@ -115,8 +117,8 @@ export function PrivacyPolicyContent(): ReactElement {
         <h2>{`7. Children's privacy`}</h2>
         <p>
           The Service is intended for use by adults managing or participating in equestrian
-          competitions. Where minors participate as riders, their information is provided and managed
-          by a parent, guardian, or trainer on their behalf.
+          competitions. Where minors participate as riders, their information is provided and
+          managed by a parent, guardian, or trainer on their behalf.
         </p>
 
         <h2>8. Changes to this policy</h2>

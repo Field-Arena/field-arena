@@ -45,7 +45,9 @@ export function HorseShowScoringSoftware(): ReactElement {
           <li>Awards information</li>
           <li>Published results</li>
         </ul>
-        <p>A modern scoring system reduces manual work while improving accuracy and transparency.</p>
+        <p>
+          A modern scoring system reduces manual work while improving accuracy and transparency.
+        </p>
 
         <hr />
         <h2>Why Horse Shows Need Digital Scoring Software</h2>
@@ -173,9 +175,9 @@ export function HorseShowScoringSoftware(): ReactElement {
         </p>
 
         <div className="callout">
-          Organizers are looking for better ways to reduce administrative workload, improve accuracy,
-          create better competitor experiences, and run more efficient events. Horse show scoring
-          software provides the technology foundation for modern competitions.
+          Organizers are looking for better ways to reduce administrative workload, improve
+          accuracy, create better competitor experiences, and run more efficient events. Horse show
+          scoring software provides the technology foundation for modern competitions.
         </div>
       </article>
 

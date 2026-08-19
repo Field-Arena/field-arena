@@ -2,14 +2,13 @@ import { Eyebrow } from '@/modules/marketing/ui/landing/sections/eyebrow';
 import { PLATFORM } from '@/modules/marketing/landing-content';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
-const H2 =
-  `${DISPLAY} text-[32px] font-medium leading-[1.04] tracking-[-.022em] md:text-[42px] xl:text-[50px]`;
+const H2 = `${DISPLAY} text-[32px] font-medium leading-[1.04] tracking-[-.022em] md:text-[42px] xl:text-[50px]`;
 
 export function PlatformSection() {
   return (
     <section
       id="platform"
-      className="relative overflow-hidden bg-forest px-5 py-[72px] md:px-8 lg:px-10 lg:pb-[124px] lg:pt-[116px]"
+      className="bg-forest relative overflow-hidden px-5 py-[72px] md:px-8 lg:px-10 lg:pt-[116px] lg:pb-[124px]"
     >
       <div
         aria-hidden
@@ -30,15 +29,17 @@ export function PlatformSection() {
           {PLATFORM.cards.map((card) => (
             <article
               key={card.numeral}
-              className="rounded-[14px] border border-[rgba(255,255,255,.10)] bg-forest-raised px-7 pb-[34px] pt-[30px] transition-all duration-150 hover:-translate-y-[3px] hover:border-[rgba(201,162,39,.5)]"
+              className="bg-forest-raised rounded-[14px] border border-[rgba(255,255,255,.10)] px-7 pt-[30px] pb-[34px] transition-all duration-150 hover:-translate-y-[3px] hover:border-[rgba(201,162,39,.5)]"
             >
               <div className="mb-[22px] flex items-baseline justify-between">
-                <span className={`${DISPLAY} text-[15px] tracking-[.1em] text-gold`}>
+                <span className={`${DISPLAY} text-gold text-[15px] tracking-[.1em]`}>
                   {card.numeral}
                 </span>
                 <span aria-hidden className="ml-3.5 h-px flex-1 bg-[rgba(255,255,255,.10)]" />
               </div>
-              <h3 className={`mb-3 ${DISPLAY} text-[25px] font-medium tracking-[-.01em] text-paper`}>
+              <h3
+                className={`mb-3 ${DISPLAY} text-paper text-[25px] font-medium tracking-[-.01em]`}
+              >
                 {card.title}
               </h3>
               <p className="m-0 text-sm leading-[1.62] text-[rgba(251,250,247,.58)]">{card.body}</p>

@@ -81,19 +81,19 @@ export function DressageShowSoftware(): ReactElement {
         </p>
         <h3>Dressage Scoring and Results Management</h3>
         <p>
-          Accurate scoring is at the heart of every dressage competition. Field-Arena helps streamline
-          dressage score sheets, test results, percentage calculations, class standings, final
-          results, and awards information.
+          Accurate scoring is at the heart of every dressage competition. Field-Arena helps
+          streamline dressage score sheets, test results, percentage calculations, class standings,
+          final results, and awards information.
         </p>
 
         <hr />
         <h2>Designed for USDF GMO Organizations</h2>
         <p>
           Field-Arena supports the needs of local and regional dressage organizations. GMOs often
-          rely on dedicated volunteers and small administrative teams to run successful competitions.
-          Field-Arena helps GMOs reduce volunteer workload, improve communication, standardize
-          processes, manage multiple shows, track organizational performance, and create better
-          experiences for members.
+          rely on dedicated volunteers and small administrative teams to run successful
+          competitions. Field-Arena helps GMOs reduce volunteer workload, improve communication,
+          standardize processes, manage multiple shows, track organizational performance, and create
+          better experiences for members.
         </p>
 
         <hr />
@@ -111,10 +111,10 @@ export function DressageShowSoftware(): ReactElement {
         <hr />
         <h2>Connect Your Entire Dressage Show Team</h2>
         <p>
-          Most dressage shows rely on many people working together. Field-Arena connects show managers
-          (monitoring the entire operation), show secretaries (managing entries, documents, schedules,
-          and results), judges and officials (accessing the information needed to perform their
-          roles), volunteers (understanding assignments and responsibilities), and vendors and
+          Most dressage shows rely on many people working together. Field-Arena connects show
+          managers (monitoring the entire operation), show secretaries (managing entries, documents,
+          schedules, and results), judges and officials (accessing the information needed to perform
+          their roles), volunteers (understanding assignments and responsibilities), and vendors and
           sponsors (coordinating participation and communication).
         </p>
 
@@ -123,9 +123,9 @@ export function DressageShowSoftware(): ReactElement {
         <p>
           Traditional dressage show management often requires multiple spreadsheets, paper score
           sheets, manual emails, separate payment systems, volunteer lists, and independent
-          communication tools. Field-Arena brings these disconnected processes together — resulting in
-          less paperwork, less office labor, better communication, fewer mistakes, and more efficient
-          competitions.
+          communication tools. Field-Arena brings these disconnected processes together — resulting
+          in less paperwork, less office labor, better communication, fewer mistakes, and more
+          efficient competitions.
         </p>
 
         <hr />
@@ -139,8 +139,8 @@ export function DressageShowSoftware(): ReactElement {
         </p>
 
         <div className="callout">
-          Dressage organizations have always valued precision and professionalism. The next evolution
-          is bringing that same standard to competition management.
+          Dressage organizations have always valued precision and professionalism. The next
+          evolution is bringing that same standard to competition management.
         </div>
       </article>
 

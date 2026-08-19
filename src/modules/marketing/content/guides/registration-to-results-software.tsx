@@ -37,12 +37,13 @@ export function RegistrationToResultsSoftware(): ReactElement {
           spreadsheets, and email communication.
         </p>
         <p>
-          Each separate system creates additional work. Information has to be entered multiple times,
-          checked for accuracy, updated manually, shared between teams, and reconciled after changes.
+          Each separate system creates additional work. Information has to be entered multiple
+          times, checked for accuracy, updated manually, shared between teams, and reconciled after
+          changes.
         </p>
         <p>
-          Without an integrated horse show management system, organizers can spend significantly more
-          time on manual tasks — often requiring approximately 40% more administrative effort
+          Without an integrated horse show management system, organizers can spend significantly
+          more time on manual tasks — often requiring approximately 40% more administrative effort
           compared to a connected workflow. Field-Arena eliminates many of these duplicate processes
           by keeping your show data connected from start to finish.
         </p>
@@ -78,8 +79,9 @@ export function RegistrationToResultsSoftware(): ReactElement {
         <p>
           Registration is the foundation of every competition. Field-Arena helps organizers manage
           rider information, horse information, owner and trainer details, class selections, entry
-          requirements, and payments and confirmations. Instead of manually transferring registration
-          information into multiple documents, your show office starts with organized, accurate data.
+          requirements, and payments and confirmations. Instead of manually transferring
+          registration information into multiple documents, your show office starts with organized,
+          accurate data.
         </p>
 
         <h2>2. Complete Horse and Rider Management</h2>
@@ -97,9 +99,9 @@ export function RegistrationToResultsSoftware(): ReactElement {
 
         <h2>4. Scheduling Without the Administrative Chaos</h2>
         <p>
-          Scheduling a horse show requires balancing classes, competitors, rings, judges, and timing.
-          When changes happen, your team can work from a connected system instead of updating multiple
-          spreadsheets.
+          Scheduling a horse show requires balancing classes, competitors, rings, judges, and
+          timing. When changes happen, your team can work from a connected system instead of
+          updating multiple spreadsheets.
         </p>
 
         <h2>5. Integrated Scoring and Results Management</h2>
@@ -107,8 +109,8 @@ export function RegistrationToResultsSoftware(): ReactElement {
           The competition does not end when the final rider enters the ring. Field-Arena connects
           competition scoring and results management directly into the show workflow — scores,
           placings, rankings, final results, and awards information. Because registration data,
-          competition data, and scoring information are connected, organizers spend less time manually
-          compiling results.
+          competition data, and scoring information are connected, organizers spend less time
+          manually compiling results.
         </p>
 
         <hr />
@@ -119,15 +121,15 @@ export function RegistrationToResultsSoftware(): ReactElement {
           data entry errors, missing information, delays, and reconciliation work.
         </p>
         <p>
-          Field-Arena creates one continuous workflow: registration → competition → scores → results.
-          The information follows the event.
+          Field-Arena creates one continuous workflow: registration → competition → scores →
+          results. The information follows the event.
         </p>
 
         <hr />
         <h2>The Hidden Cost of Manual Horse Show Administration</h2>
         <p>
-          Manual administration does not just consume time. It creates additional operational costs —
-          duplicate data entry, increased risk of mistakes, longer show office hours, and slower
+          Manual administration does not just consume time. It creates additional operational costs
+          — duplicate data entry, increased risk of mistakes, longer show office hours, and slower
           results. Field-Arena helps reduce these challenges by connecting the entire horse show
           office.
         </p>
@@ -135,18 +137,18 @@ export function RegistrationToResultsSoftware(): ReactElement {
         <hr />
         <h2>Built for Horse Show Secretaries and Organizers</h2>
         <p>
-          Field-Arena was designed around the real workflow of competition management. It helps horse
-          show secretaries spend less time managing paperwork and more time running the event, show
-          managers gain visibility across every part of competition operations, facilities create
-          repeatable systems for hosting more events, and associations improve consistency across
-          competitions.
+          Field-Arena was designed around the real workflow of competition management. It helps
+          horse show secretaries spend less time managing paperwork and more time running the event,
+          show managers gain visibility across every part of competition operations, facilities
+          create repeatable systems for hosting more events, and associations improve consistency
+          across competitions.
         </p>
 
         <div className="callout">
-          Field-Arena is more than registration software. It is more than scoring software. It is more
-          than a results platform. It is a complete horse show office management system designed to
-          connect every stage of competition — from the first entry to the final score, giving your
-          team one reliable source of truth.
+          Field-Arena is more than registration software. It is more than scoring software. It is
+          more than a results platform. It is a complete horse show office management system
+          designed to connect every stage of competition — from the first entry to the final score,
+          giving your team one reliable source of truth.
         </div>
       </article>
 

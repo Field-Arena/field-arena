@@ -78,9 +78,9 @@ export function HorseShowManagementSoftwareForUsdfGmos(): ReactElement {
         <h2>Why GMO Organizations Are Moving Away From Paper-Based Systems</h2>
         <p>
           Horse shows have evolved, but many organizations still rely on the same administrative
-          processes they used years ago. Field-Arena helps organizations reduce office labor, minimize
-          paperwork, improve communication, save time during show setup, streamline show-day
-          operations, and create a better experience for competitors and volunteers.
+          processes they used years ago. Field-Arena helps organizations reduce office labor,
+          minimize paperwork, improve communication, save time during show setup, streamline
+          show-day operations, and create a better experience for competitors and volunteers.
         </p>
 
         <hr />
@@ -90,11 +90,17 @@ export function HorseShowManagementSoftwareForUsdfGmos(): ReactElement {
         <h3>Registration and Entries</h3>
         <p>Manage competitors, waitlists, stall requests, payments, and required documents.</p>
         <h3>Show Preparation</h3>
-        <p>Coordinate volunteers, sponsors, vendors, and office staff from a centralized dashboard.</p>
+        <p>
+          Coordinate volunteers, sponsors, vendors, and office staff from a centralized dashboard.
+        </p>
         <h3>Show Execution</h3>
-        <p>Track scratches, publish scores, manage schedules, and communicate updates in real time.</p>
+        <p>
+          Track scratches, publish scores, manage schedules, and communicate updates in real time.
+        </p>
         <h3>Reporting</h3>
-        <p>Generate financial reports, participation data, and operational insights for your board.</p>
+        <p>
+          Generate financial reports, participation data, and operational insights for your board.
+        </p>
 
         <hr />
         <h2>Frequently Asked Questions</h2>
@@ -129,8 +135,8 @@ export function HorseShowManagementSoftwareForUsdfGmos(): ReactElement {
 
         <div className="callout">
           Every organization operates differently. Schedule a personalized demo and discover how
-          Field-Arena can reduce administrative work, simplify horse show operations, and support your
-          entire team.
+          Field-Arena can reduce administrative work, simplify horse show operations, and support
+          your entire team.
         </div>
       </article>
 

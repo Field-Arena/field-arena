@@ -15,11 +15,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import {
-  DEMO_DISCIPLINES,
-  DEMO_VOLUMES,
-  CALENDLY_URL,
-} from '@/modules/marketing/landing-content';
+import { DEMO_DISCIPLINES, DEMO_VOLUMES, CALENDLY_URL } from '@/modules/marketing/landing-content';
 import { demoRequestSchema, type DemoRequestInput } from '@/modules/marketing/schemas';
 import { useDemoRequest } from '@/modules/marketing/hooks/use-demo-request';
 
@@ -29,14 +25,6 @@ const FIELD =
   'placeholder:text-[#9AA6A0] focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/[.16]';
 const LABEL = 'mb-2 block text-xs font-bold uppercase tracking-[.1em] text-forest';
 
-/**
- * The "Book a demo" dialog.
- *
- * Every primary call to action on the landing page opens this. It records a lead
- * rather than only scrolling to the closing panel, which is what the design's
- * prototype did — a button that promises a booking has to actually book
- * something.
- */
 export function DemoDialog({
   open,
   onOpenChange,
@@ -64,8 +52,6 @@ export function DemoDialog({
   function close(next: boolean) {
     onOpenChange(next);
     if (!next) {
-      // Reset only on close, not on submit: a failed request must keep what the
-      // visitor typed so they can retry without filling the form again.
       setSent(false);
       form.reset();
       request.reset();
@@ -74,16 +60,16 @@ export function DemoDialog({
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[18px] border-line bg-paper font-[family-name:var(--font-ar)] sm:max-w-[520px]">
+      <DialogContent className="border-line bg-paper max-h-[90vh] overflow-y-auto rounded-[18px] font-[family-name:var(--font-ar)] sm:max-w-[520px]">
         {sent ? (
           <div className="py-6 text-center">
-            <span className="mx-auto mb-5 grid size-12 place-items-center rounded-full bg-mint text-forest">
+            <span className="bg-mint text-forest mx-auto mb-5 grid size-12 place-items-center rounded-full">
               <CheckIcon className="size-6" aria-hidden />
             </span>
-            <DialogTitle className={`${DISPLAY} mb-2.5 text-[30px] font-medium text-forest`}>
+            <DialogTitle className={`${DISPLAY} text-forest mb-2.5 text-[30px] font-medium`}>
               Thank you — we have it.
             </DialogTitle>
-            <DialogDescription className="mx-auto max-w-[360px] text-[14.5px] leading-[1.6] text-fa-muted">
+            <DialogDescription className="text-fa-muted mx-auto max-w-[360px] text-[14.5px] leading-[1.6]">
               Pick a time that works and we&apos;ll bring a walkthrough built around your discipline
               and the way your shows actually run.
             </DialogDescription>
@@ -92,7 +78,7 @@ export function DemoDialog({
                 href={CALENDLY_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-auto items-center gap-2.5 rounded-[10px] bg-gold px-6 py-3 text-sm font-bold text-forest transition-all hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)]"
+                className="bg-gold text-forest hover:bg-gold-light inline-flex h-auto items-center gap-2.5 rounded-[10px] px-6 py-3 text-sm font-bold transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(201,162,39,.28)]"
               >
                 Schedule your walkthrough
                 <ArrowRightIcon className="size-[15px]" aria-hidden />
@@ -103,7 +89,7 @@ export function DemoDialog({
                 onClick={() => {
                   close(false);
                 }}
-                className="h-auto rounded-none px-0 py-0 text-[13.5px] font-semibold text-fa-muted hover:bg-transparent hover:text-forest"
+                className="text-fa-muted hover:text-forest h-auto rounded-none px-0 py-0 text-[13.5px] font-semibold hover:bg-transparent"
               >
                 Maybe later
               </Button>
@@ -113,17 +99,17 @@ export function DemoDialog({
           <>
             <DialogHeader>
               <div className="mb-3 flex items-center gap-3">
-                <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
-                <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-forest">
+                <span aria-hidden className="bg-gold h-[3px] w-[26px]" />
+                <span className="text-forest text-[10.5px] font-bold tracking-[.18em] uppercase">
                   Book a demo
                 </span>
               </div>
               <DialogTitle
-                className={`${DISPLAY} text-[30px] font-medium leading-[1.04] tracking-[-.022em] text-forest`}
+                className={`${DISPLAY} text-forest text-[30px] leading-[1.04] font-medium tracking-[-.022em]`}
               >
                 Tell us about your events.
               </DialogTitle>
-              <DialogDescription className="text-[14.5px] leading-[1.6] text-fa-muted">
+              <DialogDescription className="text-fa-muted text-[14.5px] leading-[1.6]">
                 We&apos;ll tailor the walkthrough to your discipline, competition format, and event
                 size.
               </DialogDescription>
@@ -236,7 +222,7 @@ export function DemoDialog({
               {request.error && (
                 <p
                   role="alert"
-                  className="flex items-start gap-2 rounded-[10px] border border-alert-line bg-alert-bg px-3.5 py-3 text-[13.5px] text-alert-fg"
+                  className="border-alert-line bg-alert-bg text-alert-fg flex items-start gap-2 rounded-[10px] border px-3.5 py-3 text-[13.5px]"
                 >
                   <CircleAlertIcon className="mt-0.5 size-[15px] flex-none" aria-hidden />
                   {request.error.message}
@@ -246,7 +232,7 @@ export function DemoDialog({
               <Button
                 type="submit"
                 disabled={request.isPending}
-                className="h-auto w-full gap-2.5 rounded-[10px] bg-gold px-6 py-[15px] text-[15px] font-bold text-forest transition-all hover:-translate-y-0.5 hover:bg-gold-light hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] disabled:translate-y-0 disabled:opacity-70"
+                className="bg-gold text-forest hover:bg-gold-light h-auto w-full gap-2.5 rounded-[10px] px-6 py-[15px] text-[15px] font-bold transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(201,162,39,.28)] disabled:translate-y-0 disabled:opacity-70"
               >
                 {request.isPending ? 'Sending…' : 'Request a demo'}
                 {request.isPending ? (
@@ -266,7 +252,7 @@ export function DemoDialog({
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-1.5 text-[12.5px] text-alert-fg">
+    <p role="alert" className="text-alert-fg mt-1.5 text-[12.5px]">
       {message}
     </p>
   );

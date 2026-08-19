@@ -31,11 +31,6 @@ interface Guide {
   Body: () => ReactElement;
 }
 
-/**
- * The guide catalogue: metadata for the Learning Center index plus the body
- * component each guide route renders. Adding a guide means adding both a body
- * component under `content/guides/` and one entry here.
- */
 export const GUIDES: Guide[] = [
   {
     slug: 'horse-show-management-software',
