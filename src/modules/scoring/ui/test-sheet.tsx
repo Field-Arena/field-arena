@@ -1,30 +1,18 @@
 'use client';
 
 import { useImperativeHandle, useState, type Ref } from 'react';
-import { useDebouncedWrite } from '../hooks/use-debounced-write';
-import { REMARK_DEBOUNCE_MS } from '../constants';
-import { MarkStepper } from './mark-stepper';
-import type { ScoreRow, TestDefinition } from '../types';
+import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { useDebouncedWrite } from '@/modules/scoring/hooks/use-debounced-write';
+import { REMARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
+import { MarkStepper } from '@/modules/scoring/ui/mark-stepper';
+import type { ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
 export interface TestSheetHandle {
   flushPendingWrites: () => void;
 }
 
-/**
- * The movement/collective mark grid, ported from showrunner-scoring.html's
- * scoresheet body. One row per movement (mark + ⚠ error toggle + remark),
- * then the collectives, then a single "Final remarks" box for the whole
- * ride.
- *
- * `defaultCollapsed` starts the movement/collective grid folded — the Judge
- * side of this: they can enter or override any mark same as always (nothing
- * about capability changes), but by default their screen only needs to show
- * who's up, the final comment, and the signature, not a full scroll through
- * every movement the Scribe is already typing. Scribe's view stays expanded.
- * Local `open` state, not the `open` prop driven straight off
- * `defaultCollapsed`, so a judge's manual expand survives this screen's
- * 4-second poll re-renders instead of snapping back shut.
- */
 export function TestSheet({
   test,
   score,
@@ -91,85 +79,94 @@ export function TestSheet({
         }}
         className="flex flex-col gap-2.5"
       >
-        <summary className="cursor-pointer list-none rounded-xl border border-[#E9EDEB] bg-white p-[12px_16px] text-[13px] font-semibold text-ink-deep marker:hidden">
+        <summary className="text-ink-deep cursor-pointer list-none rounded-xl border border-[#E9EDEB] bg-white p-[12px_16px] text-[13px] font-semibold marker:hidden">
           {open ? 'Hide' : 'Show'} full test sheet — {test.movements.length} movements
-          {test.collectives.length > 0 ? `, ${String(test.collectives.length)} collective marks` : ''}
+          {test.collectives.length > 0
+            ? `, ${String(test.collectives.length)} collective marks`
+            : ''}
         </summary>
 
-      {test.movements.map((m) => {
-        const mark = movements[String(m.num)];
-        return (
-          <div
-            key={m.num}
-            className="flex flex-wrap items-center gap-3 rounded-xl border border-[#E9EDEB] bg-white p-[14px_16px]"
-          >
-            <span className="w-6 flex-none text-[13px] font-bold text-[#7A8781]">{m.num}</span>
-            <span className="min-w-[220px] flex-1 text-[13.5px] text-ink-deep">{m.text}</span>
-
-            <MarkStepper
-              value={mark?.value ?? null}
-              enteredBy={mark?.enteredBy ?? null}
-              locked={isLockedFor(mark?.enteredBy ?? null)}
-              onChange={(value) => {
-                movementWrite.debounced(String(m.num), value);
-              }}
-            />
-
-            <button
-              type="button"
-              disabled={locked}
-              onClick={() => {
-                onToggleError(m.num);
-              }}
-              aria-pressed={Boolean(errorAt[String(m.num)])}
-              aria-label="Toggle error of course"
-              className={`grid size-8 flex-none place-items-center rounded-[8px] border text-[15px] disabled:opacity-40 ${
-                errorAt[String(m.num)]
-                  ? 'border-[#E3B8B8] bg-[#F7E1E1] text-[#B23A3A]'
-                  : 'border-[#D9E1DD] bg-white text-[#B4BFB9] hover:border-gold'
-              }`}
+        {test.movements.map((m) => {
+          const mark = movements[String(m.num)];
+          return (
+            <div
+              key={m.num}
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-[#E9EDEB] bg-white p-[14px_16px]"
             >
-              ⚠
-            </button>
+              <span className="w-6 flex-none text-[13px] font-bold text-[#7A8781]">{m.num}</span>
+              <span className="text-ink-deep min-w-[220px] flex-1 text-[13.5px]">{m.text}</span>
 
-            <RemarkField
-              value={remarks[String(m.num)] ?? ''}
-              disabled={locked}
-              onChange={(text) => {
-                remarkWrite.debounced(String(m.num), text);
-              }}
-            />
+              <MarkStepper
+                value={mark?.value ?? null}
+                enteredBy={mark?.enteredBy ?? null}
+                locked={isLockedFor(mark?.enteredBy ?? null)}
+                onChange={(value) => {
+                  movementWrite.debounced(String(m.num), value);
+                }}
+              />
+
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={locked}
+                onClick={() => {
+                  onToggleError(m.num);
+                }}
+                aria-pressed={Boolean(errorAt[String(m.num)])}
+                aria-label="Toggle error of course"
+                className={cn(
+                  'grid size-8 h-auto flex-none place-items-center rounded-[8px] border px-0 py-0 text-[15px] font-normal hover:bg-transparent disabled:opacity-40',
+                  errorAt[String(m.num)]
+                    ? 'border-[#E3B8B8] bg-[#F7E1E1] text-[#B23A3A]'
+                    : 'hover:border-gold border-[#D9E1DD] bg-white text-[#B4BFB9]',
+                )}
+              >
+                ⚠
+              </Button>
+
+              <RemarkField
+                value={remarks[String(m.num)] ?? ''}
+                disabled={locked}
+                onChange={(text) => {
+                  remarkWrite.debounced(String(m.num), text);
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {test.collectives.length > 0 && (
+          <div className="mt-2 flex flex-col gap-2.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
+            <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
+              Collective marks
+            </span>
+            {test.collectives.map((c) => {
+              const mark = collectives[c.key];
+              return (
+                <div key={c.key} className="flex items-center gap-3">
+                  <span className="text-ink-deep min-w-[180px] flex-1 text-[13.5px]">
+                    {c.label}
+                  </span>
+                  <MarkStepper
+                    value={mark?.value ?? null}
+                    enteredBy={mark?.enteredBy ?? null}
+                    locked={isLockedFor(mark?.enteredBy ?? null)}
+                    onChange={(value) => {
+                      collectiveWrite.debounced(c.key, value);
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
-
-      {test.collectives.length > 0 && (
-        <div className="mt-2 flex flex-col gap-2.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-          <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
-            Collective marks
-          </span>
-          {test.collectives.map((c) => {
-            const mark = collectives[c.key];
-            return (
-              <div key={c.key} className="flex items-center gap-3">
-                <span className="min-w-[180px] flex-1 text-[13.5px] text-ink-deep">{c.label}</span>
-                <MarkStepper
-                  value={mark?.value ?? null}
-                  enteredBy={mark?.enteredBy ?? null}
-                  locked={isLockedFor(mark?.enteredBy ?? null)}
-                  onChange={(value) => {
-                    collectiveWrite.debounced(c.key, value);
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      )}
+        )}
       </details>
 
       <div className="mt-2 flex flex-col gap-1.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-        <label htmlFor="final-remarks" className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
+        <label
+          htmlFor="final-remarks"
+          className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase"
+        >
           Final remarks
         </label>
         <FinalRemarksField
@@ -184,13 +181,6 @@ export function TestSheet({
   );
 }
 
-/**
- * Syncs from the poll unless the field is actively focused — a remote
- * change shouldn't clobber a live keystroke. Adjusts state from a
- * prop-derived comparison during render (React's own documented pattern for
- * this), rather than an effect — plain state instead of a ref for
- * `isFocused` since it needs to be read during that same render-time check.
- */
 function useSyncedDraft(value: string) {
   const [draft, setDraft] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
@@ -222,7 +212,7 @@ function RemarkField({
 }) {
   const { draft, setDraft, onFocus, onBlur } = useSyncedDraft(value);
   return (
-    <input
+    <Input
       type="text"
       value={draft}
       disabled={disabled}
@@ -233,7 +223,7 @@ function RemarkField({
         setDraft(e.target.value);
         onChange(e.target.value);
       }}
-      className="min-w-[160px] flex-1 rounded-[8px] border border-[#D9E1DD] px-2.5 py-1.5 text-[12.5px] text-ink-deep outline-none focus-visible:border-gold disabled:bg-[#F1F4F3]"
+      className="text-ink-deep focus-visible:border-gold h-auto min-w-[160px] flex-1 rounded-[8px] border border-[#D9E1DD] px-2.5 py-1.5 text-[12.5px] outline-none disabled:bg-[#F1F4F3] disabled:opacity-100"
     />
   );
 }
@@ -260,7 +250,7 @@ function FinalRemarksField({
         setDraft(e.target.value);
         onChange(e.target.value);
       }}
-      className="resize-none rounded-[8px] border border-[#D9E1DD] px-2.5 py-2 text-[13px] text-ink-deep outline-none focus-visible:border-gold disabled:bg-[#F1F4F3]"
+      className="text-ink-deep focus-visible:border-gold resize-none rounded-[8px] border border-[#D9E1DD] px-2.5 py-2 text-[13px] outline-none disabled:bg-[#F1F4F3]"
     />
   );
 }

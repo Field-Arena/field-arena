@@ -15,14 +15,14 @@ import { Textarea } from '@/shared/ui/shadcn/textarea';
 import { Label } from '@/shared/ui/shadcn/label';
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { IconX } from '@/shared/ui/organizer/icons';
-import { ModalEyebrow, modalBodyClass, modalContentClass, modalFooterClass } from '@/shared/ui/organizer/modal-kit';
+import {
+  ModalEyebrow,
+  modalBodyClass,
+  modalContentClass,
+  modalFooterClass,
+} from '@/shared/ui/organizer/modal-kit';
 import { cn } from '@/shared/lib/utils';
 
-/**
- * Shared Scratch / Disqualify / Reopen reason entry, ported from
- * showrunner-scoring.html's `openReasonModal`. `required` matches legacy
- * exactly: Disqualify and Reopen always require a reason, Scratch does not.
- */
 export function ReasonModal({
   open,
   onOpenChange,
@@ -54,7 +54,9 @@ export function ReasonModal({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Ride action</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">{title}</DialogTitle>
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+            {title}
+          </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
           <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
