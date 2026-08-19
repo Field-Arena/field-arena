@@ -381,7 +381,10 @@ export function TestBuilderCard({
                     <Button
                       type="button"
                       variant="ghost"
-                      disabled={!pickedClass[t.id] || assignToClass.isPending}
+                      disabled={
+                        !pickedClass[t.id] ||
+                        (assignToClass.isPending && assignToClass.variables.templateId === t.id)
+                      }
                       onClick={() => {
                         const classId = pickedClass[t.id];
                         if (!classId) return;
@@ -389,7 +392,9 @@ export function TestBuilderCard({
                       }}
                       className="text-forest h-auto px-0 py-0 text-[13px] font-semibold hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B4BFB9] disabled:no-underline"
                     >
-                      Assign
+                      {assignToClass.isPending && assignToClass.variables.templateId === t.id
+                        ? 'Assigning…'
+                        : 'Assign'}
                     </Button>
                   </div>
                 )}
