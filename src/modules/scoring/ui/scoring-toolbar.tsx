@@ -3,11 +3,6 @@
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import type { PermissionKey } from '@/shared/constants/permissions';
 
-/**
- * Open/close scoring, publish/unpublish results, print. `toggleScoringOpen`
- * carries no extra permission check in legacy either (any admitted show
- * staff can flip it) — not adding one here that legacy never had.
- */
 export function ScoringToolbar({
   open,
   resultsPublished,
