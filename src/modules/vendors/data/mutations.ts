@@ -24,21 +24,28 @@ import {
   createVendorCheckoutSessionSchema,
   confirmVendorCheckoutSessionSchema,
   reviewVendorBookingSchema,
-} from '../schemas';
+} from '@/modules/vendors/schemas';
 import {
   buildVendorStripeLineItems,
   createVendorBookingStripeCustomer,
   finalizeVendorBookingPayment,
   priceVendorBooking,
   saveVendorOffSessionCard,
-} from './checkout';
+} from '@/modules/vendors/data/checkout';
 import type {
   FinalizeVendorBookingResult,
   VendorCheckoutSessionResult,
   VendorResendOutcome,
   VendorSignUpOutcome,
   VendorVerifyOutcome,
-} from '../types';
+} from '@/modules/vendors/types';
+import {
+  VENDOR_DASHBOARD_PATH,
+  VENDOR_DISCOVER_PATH,
+  VENDOR_DOCUMENTS_PATH,
+  VENDOR_DOCS_BUCKET,
+  VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS,
+} from '@/modules/vendors/constants';
 
 type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
 
@@ -64,8 +71,6 @@ type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
  * comment (RLS has no policy letting a vendor write these columns, by
  * design).
  */
-
-const VENDOR_DOCS_BUCKET = 'vendor-docs';
 
 /**
  * Same "a stalled mail send throws a bare, message-less fetch failure"
@@ -147,7 +152,7 @@ export async function signUpVendor(input: unknown): Promise<VendorSignUpOutcome>
       email,
       password,
       options: {
-        emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${ROUTES.dashboard}/vendor`,
+        emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${VENDOR_DASHBOARD_PATH}`,
         // Carries the name across to verifyVendorSignUpCode, a separate
         // request (just email + the emailed code) with no other way to know
         // what was typed on this original form.
@@ -174,7 +179,7 @@ export async function signUpVendor(input: unknown): Promise<VendorSignUpOutcome>
   // Confirmation is off for this project — the account is live immediately.
   await ensureVendorProfile(supabase, data.user, name);
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: `${ROUTES.dashboard}/vendor` };
+  return { status: 'done', redirectTo: VENDOR_DASHBOARD_PATH };
 }
 
 /** Exchanges the emailed 6-digit code for a session, then provisions the vendor row. Name was already captured at sign-up time and isn't re-asked here. */
@@ -194,7 +199,7 @@ export async function verifyVendorSignUpCode(input: unknown): Promise<VendorVeri
   const name = typeof metadataName === 'string' && metadataName.trim() ? metadataName : (data.user.email ?? 'Vendor');
   await ensureVendorProfile(supabase, data.user, name);
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: `${ROUTES.dashboard}/vendor` };
+  return { status: 'done', redirectTo: VENDOR_DASHBOARD_PATH };
 }
 
 /** Sends a fresh six-digit code to a vendor signup that hasn't confirmed yet. */
@@ -380,8 +385,8 @@ export async function applyToVendorShow(input: unknown): Promise<{ bookingId: st
     items: parsed.items,
   });
 
-  revalidatePath('/dashboard/vendor');
-  revalidatePath('/dashboard/vendor/discover');
+  revalidatePath(VENDOR_DASHBOARD_PATH);
+  revalidatePath(VENDOR_DISCOVER_PATH);
   return result;
 }
 
@@ -449,7 +454,7 @@ export async function signVendorAgreement(input: unknown): Promise<void> {
     .eq('id', parsed.bookingId);
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/vendor');
+  revalidatePath(VENDOR_DASHBOARD_PATH);
 }
 
 async function loadOwnBooking(
@@ -526,11 +531,11 @@ export async function registerVendorDocument(
     throw new Error(error.message);
   }
 
-  revalidatePath('/dashboard/vendor/documents');
+  revalidatePath(VENDOR_DOCUMENTS_PATH);
 
   const { data } = await supabase.storage
     .from(VENDOR_DOCS_BUCKET)
-    .createSignedUrl(parsed.path, 3600);
+    .createSignedUrl(parsed.path, VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS);
   return { url: data?.signedUrl ?? null };
 }
 
@@ -556,7 +561,7 @@ export async function removeVendorDocument(input: unknown): Promise<void> {
     await supabase.storage.from(VENDOR_DOCS_BUCKET).remove([removed.path]);
   }
 
-  revalidatePath('/dashboard/vendor/documents');
+  revalidatePath(VENDOR_DOCUMENTS_PATH);
 }
 
 // ---------------------------------------------------------------------------
@@ -632,7 +637,7 @@ export async function createVendorCheckoutSession(input: unknown): Promise<Vendo
 
   const stripeCustomerId = await createVendorBookingStripeCustomer(booking);
   const stripe = getStripeClient();
-  const returnPath = '/dashboard/vendor';
+  const returnPath = VENDOR_DASHBOARD_PATH;
 
   const paymentIntentData: NonNullable<Stripe.Checkout.SessionCreateParams['payment_intent_data']> = {
     setup_future_usage: 'off_session',
@@ -811,7 +816,7 @@ export async function approveVendorBooking(input: unknown): Promise<void> {
     .eq('status', 'pending');
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/users');
+  revalidatePath(ROUTES.users);
 }
 
 /** Rejects a pending application. Terminal — a rejected booking is not reconsidered through this action. */
@@ -829,5 +834,5 @@ export async function rejectVendorBooking(input: unknown): Promise<void> {
     .eq('status', 'pending');
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/users');
+  revalidatePath(ROUTES.users);
 }

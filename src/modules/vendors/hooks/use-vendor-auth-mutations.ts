@@ -3,9 +3,21 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { resendVendorSignUpCode, signUpVendor, verifyVendorSignUpCode } from '../data/mutations';
-import type { VendorResendCodeInput, VendorSignUpInput, VendorVerifyInput } from '../schemas';
-import type { VendorResendOutcome, VendorSignUpOutcome, VendorVerifyOutcome } from '../types';
+import {
+  resendVendorSignUpCode,
+  signUpVendor,
+  verifyVendorSignUpCode,
+} from '@/modules/vendors/data/mutations';
+import type {
+  VendorResendCodeInput,
+  VendorSignUpInput,
+  VendorVerifyInput,
+} from '@/modules/vendors/schemas';
+import type {
+  VendorResendOutcome,
+  VendorSignUpOutcome,
+  VendorVerifyOutcome,
+} from '@/modules/vendors/types';
 
 /**
  * Every outcome here is DATA, not a thrown error — see VendorSignUpOutcome.

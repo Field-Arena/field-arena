@@ -15,8 +15,8 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { useApplyToVendorShow } from '../hooks/use-vendor-mutations';
-import type { BookableShow } from '../data/queries';
+import { useApplyToVendorShow } from '@/modules/vendors/hooks/use-vendor-mutations';
+import type { BookableShow } from '@/modules/vendors/types';
 
 /**
  * "Apply for this space" — the real, non-money half of vendor-apply.html's

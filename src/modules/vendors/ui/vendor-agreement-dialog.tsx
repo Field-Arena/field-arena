@@ -14,7 +14,7 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { useSignVendorAgreement } from '../hooks/use-vendor-mutations';
+import { useSignVendorAgreement } from '@/modules/vendors/hooks/use-vendor-mutations';
 
 const DEFAULT_AGREEMENT_TEXT =
   'This organizer has not written a custom booth agreement yet. By signing below, you agree to ' +

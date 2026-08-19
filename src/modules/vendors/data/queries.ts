@@ -1,7 +1,12 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import type { PublicVendorApplyShow } from '../types';
+import type {
+  BookableShow,
+  PublicVendorApplyShow,
+  VendorDocumentRequirement,
+  VendorDocumentUpload,
+} from '@/modules/vendors/types';
 
 /**
  * Vendor reads, ported from vendor.html: "My Bookings" and "Reserve booth space".
@@ -11,19 +16,6 @@ import type { PublicVendorApplyShow } from '../types';
  * show rather than through an org membership, because a vendor trades with
  * several organizers and has no account with any of them.
  */
-
-export interface VendorDocumentRequirement {
-  id: string;
-  label: string;
-}
-
-export interface VendorDocumentUpload {
-  requirementId: string;
-  label: string;
-  path: string;
-  expirationDate: string | null;
-  verified: boolean;
-}
 
 export interface VendorBookingRow {
   id: string;
@@ -135,14 +127,6 @@ export async function listMyBookings(): Promise<VendorBookingRow[]> {
       documentUploads: uploads,
     };
   });
-}
-
-export interface BookableShow {
-  showId: string;
-  showName: string;
-  showDate: string | null;
-  orgName: string;
-  items: { id: string; name: string; price: number; qty: number | null; remaining: number | null }[];
 }
 
 /**

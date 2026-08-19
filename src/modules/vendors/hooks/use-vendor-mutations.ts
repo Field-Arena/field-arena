@@ -11,8 +11,9 @@ import {
   createVendorDocumentUploadUrl,
   registerVendorDocument,
   removeVendorDocument,
-} from '../data/mutations';
-import type { ApplyToShowInput, SignVendorAgreementInput } from '../schemas';
+} from '@/modules/vendors/data/mutations';
+import type { ApplyToShowInput, SignVendorAgreementInput } from '@/modules/vendors/schemas';
+import { VENDOR_DOCS_BUCKET } from '@/modules/vendors/constants';
 
 export function useApplyToVendorShow() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export function useUploadVendorDocument() {
 
       const supabase = createClient();
       const { error } = await supabase.storage
-        .from('vendor-docs')
+        .from(VENDOR_DOCS_BUCKET)
         .uploadToSignedUrl(path, token, file, {
           contentType: file.type || 'application/octet-stream',
         });

@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { applyToShowPublic } from '../data/mutations';
-import type { ApplyToShowPublicInput } from '../schemas';
+import { applyToShowPublic } from '@/modules/vendors/data/mutations';
+import type { ApplyToShowPublicInput } from '@/modules/vendors/schemas';
 
 /**
  * Backs VendorApplyEntryForm (the public, no-account "I'm a Vendor" entry

@@ -1,5 +1,5 @@
 import { formatMoney } from '@/shared/lib/format/currency';
-import type { FinalizeVendorBookingResult } from '../types';
+import type { FinalizeVendorBookingResult } from '@/modules/vendors/types';
 
 /**
  * The return-from-Stripe confirmation view — mirrors

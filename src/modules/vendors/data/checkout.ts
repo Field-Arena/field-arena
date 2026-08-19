@@ -9,7 +9,7 @@ import type {
   PricedVendorBooking,
   VendorBookingDbRow,
   VendorCheckoutLineItem,
-} from '../types';
+} from '@/modules/vendors/types';
 
 /**
  * The real backend for vendor booth-fee checkout — pricing, Stripe Checkout

@@ -2,7 +2,10 @@
 
 import { Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
-import { useApproveVendorBooking, useRejectVendorBooking } from '../hooks/use-vendor-staff-mutations';
+import {
+  useApproveVendorBooking,
+  useRejectVendorBooking,
+} from '@/modules/vendors/hooks/use-vendor-staff-mutations';
 
 /**
  * Approve/Reject for one pending vendor application — rendered inline in the

@@ -4,8 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { approveVendorBooking, rejectVendorBooking } from '../data/mutations';
-import type { ReviewVendorBookingInput } from '../schemas';
+import { approveVendorBooking, rejectVendorBooking } from '@/modules/vendors/data/mutations';
+import type { ReviewVendorBookingInput } from '@/modules/vendors/schemas';
 
 /**
  * Organizer/staff review of a pending vendor application — the missing half

@@ -3,7 +3,7 @@
 import { Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { useCreateVendorCheckoutSession } from '../hooks/use-vendor-checkout-mutations';
+import { useCreateVendorCheckoutSession } from '@/modules/vendors/hooks/use-vendor-checkout-mutations';
 
 /**
  * "Pay now" for one approved booking — creates a real Stripe Checkout

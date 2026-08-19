@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { createVendorCheckoutSession } from '../data/mutations';
-import type { CreateVendorCheckoutSessionInput } from '../schemas';
+import { createVendorCheckoutSession } from '@/modules/vendors/data/mutations';
+import type { CreateVendorCheckoutSessionInput } from '@/modules/vendors/schemas';
 
 /**
  * Creates the Stripe Checkout Session for a booth fee and redirects the

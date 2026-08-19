@@ -9,12 +9,13 @@ import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthEyebrow, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { readableError } from '@/shared/lib/error-message';
-import { vendorSignUpSchema, type VendorSignUpInput } from '../schemas';
+import { Button } from '@/shared/ui/shadcn/button';
+import { vendorSignUpSchema, type VendorSignUpInput } from '@/modules/vendors/schemas';
 import {
   useResendVendorSignUpCode,
   useSignUpVendor,
   useVerifyVendorSignUpCode,
-} from '../hooks/use-vendor-auth-mutations';
+} from '@/modules/vendors/hooks/use-vendor-auth-mutations';
 
 /**
  * "Claim your vendor account" — the bridge from applyToShowPublic's
@@ -78,17 +79,18 @@ export function VendorSignUpForm() {
         <div className="mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border border-line-mint bg-mint py-2.5 pl-3.5 pr-3">
           <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
           <span className="text-sm font-medium text-forest">{email}</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               setStep('account');
               setCode('');
               verify.reset();
             }}
-            className="ml-0.5 border-l border-line-mint-2 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:text-gold"
+            className="ml-0.5 h-auto rounded-none border-l border-line-mint-2 bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:bg-transparent hover:text-gold"
           >
             Change
-          </button>
+          </Button>
         </div>
 
         <form
@@ -109,16 +111,17 @@ export function VendorSignUpForm() {
 
           <div className="flex items-center justify-between gap-4 border-b border-line pb-[26px]">
             <span className="text-[13.5px] text-fa-muted">Didn&apos;t get it? Check spam, or</span>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               disabled={cooldown > 0 || resend.isPending}
               onClick={() => {
                 resend.mutate({ email }, { onSuccess: () => { setCooldown(RESEND_COOLDOWN_SECONDS); } });
               }}
-              className="text-[13.5px] font-bold text-forest transition-colors hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="h-auto rounded-none bg-transparent px-0 py-0 text-[13.5px] font-bold text-forest transition-colors hover:bg-transparent hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
             >
               {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
-            </button>
+            </Button>
           </div>
 
           <div className="mt-[26px]">

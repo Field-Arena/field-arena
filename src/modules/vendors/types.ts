@@ -75,3 +75,27 @@ export type VendorVerifyOutcome =
   | { status: 'error'; message: string };
 
 export type VendorResendOutcome = { status: 'sent' } | { status: 'error'; message: string };
+
+/** One item of a show's `vendor_document_requirements` — an organizer-defined checklist entry a booking must satisfy before load-in. */
+export interface VendorDocumentRequirement {
+  id: string;
+  label: string;
+}
+
+/** One file a vendor has uploaded against a `VendorDocumentRequirement`, stored inline on `vendor_bookings.document_uploads`. */
+export interface VendorDocumentUpload {
+  requirementId: string;
+  label: string;
+  path: string;
+  expirationDate: string | null;
+  verified: boolean;
+}
+
+/** One show with booth space still on sale — data/queries.ts's listBookableShows, consumed by ui/vendor-apply-dialog.tsx. */
+export interface BookableShow {
+  showId: string;
+  showName: string;
+  showDate: string | null;
+  orgName: string;
+  items: { id: string; name: string; price: number; qty: number | null; remaining: number | null }[];
+}

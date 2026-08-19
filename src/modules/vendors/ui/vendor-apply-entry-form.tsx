@@ -8,8 +8,9 @@ import { readableError } from '@/shared/lib/error-message';
 import { ROUTES } from '@/shared/constants/routes';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthEyebrow, AuthSubmit } from '@/shared/ui/auth/auth-primitives';
-import { useApplyToShowPublic } from '../hooks/use-vendor-apply-entry';
-import type { PublicVendorApplyShow } from '../types';
+import { Input } from '@/shared/ui/shadcn/input';
+import { useApplyToShowPublic } from '@/modules/vendors/hooks/use-vendor-apply-entry';
+import type { PublicVendorApplyShow } from '@/modules/vendors/types';
 
 /**
  * "I'm a Vendor" — the no-account entry point ported from legacy's
@@ -168,7 +169,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
                     {item.name}
                     <span className="ml-2 text-fa-muted">{formatMoney(item.price)}</span>
                   </span>
-                  <input
+                  <Input
                     type="number"
                     min={0}
                     max={item.remaining ?? undefined}
