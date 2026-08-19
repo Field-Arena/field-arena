@@ -24,7 +24,7 @@ import {
   updateMerchandise,
   saveWaiverText,
   approveWaiver,
-} from '../data/mutations';
+} from '@/modules/shows/data/mutations';
 import type {
   CreateShowInput,
   CreateClassInput,
@@ -39,9 +39,8 @@ import type {
   UpdateDocumentRequirementsInput,
   UpdateMerchandiseInput,
   SaveWaiverTextInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
-/** Re-exported so every hook in this module reports the same way. */
 const message = readableError;
 
 export function useCreateShow() {
@@ -51,12 +50,7 @@ export function useCreateShow() {
     mutationFn: (input: CreateShowInput) => createShow(input),
     onSuccess: ({ id }) => {
       toast.success('Show created — start with Setup.');
-      /**
-       * Straight into Show Manager, not back to the picker the organizer just
-       * came from. A new show has nothing on it, so the picker would show one
-       * more INCOMPLETE row and leave them to find their way in; Setup is the
-       * first tab of the flow and the only place the show can go next.
-       */
+
       router.push(`/dashboard/shows/${id}`);
     },
     onError: (error) => {
@@ -128,19 +122,13 @@ export function useCreateAddOn(options?: { onSuccess?: () => void }) {
   });
 }
 
-/**
- * Show Manager's Setup cards autosave per field group rather than through a
- * submit button — see updateShowDetails/updateShowLocations/
- * updateSchedulePrefs in data/mutations.ts for why. These hooks match that:
- * silent on success (the field the caller just edited already shows the new
- * value locally) and a toast only on failure, the same asymmetry
- * showstaff.html's own patchShow uses.
- */
 export function useUpdateShowDetails() {
   return useMutation({
     mutationFn: (input: UpdateShowDetailsInput) => updateShowDetails(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -149,7 +137,9 @@ export function useUpdateShowLocations() {
   return useMutation({
     mutationFn: (input: UpdateShowLocationsInput) => updateShowLocations(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -162,7 +152,9 @@ export function useApplySavedVenue(options?: { onSuccess?: () => void }) {
       options?.onSuccess?.();
     },
     onError: (error) => {
-      toast.error(message(error, "Couldn't apply that venue — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't apply that venue — check your connection and try again."),
+      );
     },
   });
 }
@@ -171,7 +163,9 @@ export function useUpdateSchedulePrefs() {
   return useMutation({
     mutationFn: (input: UpdateSchedulePrefsInput) => updateSchedulePrefs(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -180,7 +174,9 @@ export function useUpdateContact() {
   return useMutation({
     mutationFn: (input: UpdateContactInput) => updateContact(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -189,7 +185,9 @@ export function useUpdatePrizeList() {
   return useMutation({
     mutationFn: (input: UpdatePrizeListInput) => updatePrizeList(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -198,7 +196,9 @@ export function useUpdateDocumentRequirements() {
   return useMutation({
     mutationFn: (input: UpdateDocumentRequirementsInput) => updateDocumentRequirements(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -207,7 +207,9 @@ export function useUpdateMerchandise() {
   return useMutation({
     mutationFn: (input: UpdateMerchandiseInput) => updateMerchandise(input),
     onError: (error) => {
-      toast.error(message(error, "Couldn't save that change — check your connection and try again."));
+      toast.error(
+        message(error, "Couldn't save that change — check your connection and try again."),
+      );
     },
   });
 }
@@ -249,13 +251,11 @@ export function useSetShowPublished() {
       toast.success(
         published
           ? 'Show published — riders can now see and enter it'
-          : 'Show unpublished — it is hidden from riders again'
+          : 'Show unpublished — it is hidden from riders again',
       );
       router.refresh();
     },
     onError: (error) => {
-      // Carries the waiver-approval reason through verbatim, since that is the
-      // actionable part.
       toast.error(message(error, 'Could not change publish state'));
     },
   });
@@ -277,12 +277,6 @@ export function useDeleteShow(options?: { onSuccess?: () => void }) {
   });
 }
 
-/**
- * "+ New Show" everywhere it appears.
- *
- * Creates the placeholder row and goes straight to Setup — the organizer names
- * and dates the show there, on the same card they would use to edit it later.
- */
 export function useCreateDraftShow() {
   const router = useRouter();
 
@@ -293,9 +287,7 @@ export function useCreateDraftShow() {
       router.refresh();
     },
     onError: (error) => {
-      toast.error(
-        readableError(error, 'Could not create the show')
-      );
+      toast.error(readableError(error, 'Could not create the show'));
     },
   });
 }

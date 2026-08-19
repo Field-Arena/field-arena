@@ -1,19 +1,3 @@
-/**
- * The Select Events catalog — ported verbatim from showstaff.html's
- * SM_HIERARCHY and SM_GROUP_ARENA_DEFAULTS.
- *
- * Three levels deep: a category ("Introductory through Fourth Level"), the
- * groups inside it ("Training Level"), and the individual tests inside those
- * ("Training Level Test 1"). Checking a group is what creates classes — one per
- * test — which is why the design shows a test count against every group rather
- * than a checkbox per test.
- *
- * Hardcoded rather than read from scoring_catalog on purpose. This is the menu
- * of what an organizer may offer, which is fixed by the governing bodies;
- * scoring_catalog holds the sheets those tests are scored against, and is
- * uploaded per test. The two are related but neither derives from the other —
- * the legacy build kept them separate for the same reason.
- */
 export const SM_HIERARCHY = {
   'Introductory through Fourth Level': {
     Introductory: ['Introductory Test A', 'Introductory Test B', 'Introductory Test C'],
@@ -64,7 +48,6 @@ export const SM_HIERARCHY = {
 
 export type CatalogCategory = keyof typeof SM_HIERARCHY;
 
-/** Category order as the design lists them — object key order is not a contract. */
 export const CATALOG_CATEGORIES = [
   'Introductory through Fourth Level',
   'Freestyle / Pas de Deux / Quadrille',
@@ -73,13 +56,6 @@ export const CATALOG_CATEGORIES = [
   'Developing Horse / Young Horse',
 ] as const;
 
-/**
- * Arena size per category::group, from SM_GROUP_ARENA_DEFAULTS.
- *
- * Sport Horse is absent from that map because the legacy `smDefaultArenaFor`
- * short-circuits the whole category to one value before consulting it — the
- * classes are judged in hand on a triangle, not in a dressage arena at all.
- */
 const GROUP_ARENA_DEFAULTS: Record<string, string> = {
   'Introductory through Fourth Level::Introductory': 'Small, 20m x 40m',
   'Introductory through Fourth Level::Training Level': 'Small, 20m x 40m',
@@ -96,19 +72,13 @@ const GROUP_ARENA_DEFAULTS: Record<string, string> = {
   'Developing Horse / Young Horse::Developing Horse': 'Standard, 20m x 60m',
 };
 
-/** Mirrors showstaff.html's smDefaultArenaFor(ev, group). */
 export function defaultArenaFor(category: string, group: string): string {
   if (category === 'Sport Horse') return 'In-hand triangle, no rail letters';
   return GROUP_ARENA_DEFAULTS[`${category}::${group}`] ?? 'Standard, 20m x 60m';
 }
 
-/** The design's default entry fee, shown in every category's "Default price ($)" box. */
 export const DEFAULT_CLASS_FEE = 65;
 
-/**
- * Groups, with their tests, for one category. A plain helper so the UI never
- * indexes into SM_HIERARCHY with a computed key and loses its types.
- */
 export function groupsFor(
   category: CatalogCategory,
 ): { group: string; tests: readonly string[] }[] {
@@ -118,18 +88,6 @@ export function groupsFor(
   }));
 }
 
-/**
- * The governing-body sets behind the "+ FEI" / "+ USEF/USDF" / "+ Independent"
- * buttons, ported verbatim from the design's FM_SETS.
- *
- * Distinct from SM_HIERARCHY above: that is the show's own event catalog, while
- * these are published test sets an organizer opts into wholesale. Each opens a
- * dialog listing its levels and tests to check off.
- *
- * Independent is empty by design — those tests come from an organization's own
- * Test Builder library, and the design states the empty case outright rather
- * than inventing rows ("No organization has built an Independent test yet.").
- */
 export const FM_SETS = {
   '+ FEI': [
     { name: 'Prix St. Georges', tests: ['Prix St. Georges (2026)'] },
@@ -198,15 +156,8 @@ export const FM_SETS = {
 
 export type FmSetName = keyof typeof FM_SETS;
 
-/**
- * The three rider divisions a "+ FEI"/"+ USEF/USDF"/"+ Independent" test can
- * be added for, ported verbatim from showstaff.html's own fallback list
- * (`buildSmBulkPanel`'s `divisions`) — the new app has no per-show override
- * of this list either, same as legacy's fallback case.
- */
 export const CATALOG_DIVISIONS = ['Junior Rider', 'Adult Amateur', 'Open'] as const;
 
-/** The buttons above the catalog, in the design's own order. */
 export const EVENT_SOURCE_BUTTONS = [
   '+ FEI',
   '+ USEF/USDF',
@@ -215,29 +166,18 @@ export const EVENT_SOURCE_BUTTONS = [
   '+ Add Custom Class',
 ] as const;
 
-/**
- * The second, priced button row. In the design these carry no handler — they
- * are drawn and inert. They are wired here to qualifying types, which is the
- * real thing a priced governing-body button adds to a show: a per-class opt-in
- * fee riders pay on top of the entry (see the qual_types table).
- */
 export const QUAL_TYPE_PRESETS = [
   { body: 'FEI', price: 20 },
   { body: 'USDF', price: 20 },
   { body: 'USEF', price: 20 },
 ] as const;
 
-/* ── Show Manager — Rider Entries tab ────────────────────────────────────── */
+export const CONTACT_FIELDS = [
+  { key: 'website', label: 'Website', type: 'url', placeholder: 'https://…' },
+  { key: 'phone', label: 'Phone', type: 'tel', placeholder: '(555) 555-0100' },
+  { key: 'contactEmail', label: 'Contact email', type: 'email', placeholder: 'info@yourshow.com' },
+] as const;
 
-/**
- * The Vendor Spaces card's "Load standard space list" button — ported
- * verbatim from showstaff.html's VENDOR_SPACE_TEMPLATE, whose own comment
- * says these names/prices came from a real GDCTA Region 3 paper vendor
- * application form. The design's button label abbreviates these for its own
- * copy ("Indoor $650", "Truck & Trailer $400", …); the names inserted here
- * are the fuller legacy ones, since this is behavior ported from the real
- * source, not a re-typing of the button's display text.
- */
 export const VENDOR_SPACE_TEMPLATE = [
   { name: 'Indoor Vendor Space', price: 650 },
   { name: 'Truck & Trailer Location', price: 400 },
@@ -248,15 +188,6 @@ export const VENDOR_SPACE_TEMPLATE = [
   { name: 'Electricity Required (50 amp)', price: 50 },
 ] as const;
 
-/* ── Show Manager — Test Builder tab ─────────────────────────────────────── */
-
-/**
- * "Start from a template" starter tests, ported verbatim from showstaff.html's
- * TB_STARTER_TESTS — real USDF Training Level movement text, kept as a
- * client-side starting point for "+ New Test" rather than seed rows in
- * test_templates, since they belong to no organization until an organizer
- * actually clones one into their own library.
- */
 export const TB_STARTER_TESTS = [
   {
     key: 'tl1',
@@ -371,53 +302,20 @@ export const TB_STARTER_TESTS = [
   },
 ] as const;
 
-/* ── Horses screen ────────────────────────────────────────────────────────── */
-
-/**
- * The one document requirement label horses-queries.ts's "Coggins expired"
- * KPI specifically checks for, matching showstaff.html's own hardcoded
- * `req.label==='Coggins'` comparison (~13749) rather than a generic
- * "any expired document" count.
- */
 export const COGGINS_LABEL = 'Coggins';
 
-/**
- * KPI tile tints for the Horses screen's four counts (✓ Complete /
- * ✗ Incomplete / Needs verification / Coggins expired) — the same
- * success/warn/danger hex pairs as globals.css's status tokens, reused
- * directly since StatCard takes raw color strings rather than Tailwind
- * classes.
- */
 export const HORSE_STAT_TINTS = {
   complete: { bg: '#DCEFE1', fg: '#2E7D46' },
   incomplete: { bg: '#F7E1E1', fg: '#B23A3A' },
   needsVerification: { bg: '#FCEBD2', fg: '#9A6A12' },
   cogginsExpired: { bg: '#F7E1E1', fg: '#B23A3A' },
-  /** The Horses screen's 5th tile, shown only once a stable chart has stalls — mirrors showstaff.html's stableStallsKpiHtml (~14033). */
+
   stallsOccupied: { bg: '#E4F0E8', fg: '#1A5B3C' },
 } as const;
 
-/* ── Stable Chart ─────────────────────────────────────────────────────────
-   shows.stable_chart's stables/stalls caps. Deliberately local copies of
-   organizations/constants.ts's MAX_STABLES/MAX_STALLS_PER_STABLE — a module
-   must not reach into another module's internals (folder-structure.md) even
-   though both jsonb documents store a structurally similar stable/stall
-   shape. Neither cap is from legacy, which enforces none — sane engineering
-   guards generous enough that no real barn hits them. */
 export const MAX_STABLES = 40;
 export const MAX_STALLS_PER_STABLE = 300;
 
-/* ── Financial (Billing) tab ─────────────────────────────────────────────── */
-
-/**
- * The expense lines every show starts with, ported verbatim from
- * showstaff.html's DEFAULT_SHOW_EXPENSES.
- *
- * Pre-filled at zero rather than left blank: the legacy card's own note is
- * "the most common horse-show cost lines, pre-filled — edit amounts, rename, or
- * remove any that don't apply", and an organizer costing a show recognises the
- * list faster than they would recall it from nothing.
- */
 export const DEFAULT_SHOW_EXPENSES = [
   'Venue / facility rental',
   'Judges',
@@ -436,13 +334,6 @@ export const DEFAULT_SHOW_EXPENSES = [
   'Office / merchant processing fees',
 ] as const;
 
-/**
- * The confirmed payout architecture, verbatim from STRIPE_PAYOUT_DECISIONS.
- *
- * Kept as prose rather than turned into settings: these are decisions already
- * taken about how money moves, and the one still open is marked as such rather
- * than quietly dropped.
- */
 export const STRIPE_PAYOUT_DECISIONS = [
   'Payout timing: after the show ends.',
   'Holdback: SuperAdmin-configurable per organizer (cadence + holdback %), not a fixed platform policy.',
@@ -457,7 +348,6 @@ export const STRIPE_PAYOUT_DECISIONS = [
   "Dispute / chargeback liability: deducted from that specific organizer's balance.",
 ] as const;
 
-/** P&L category order, from pnlGenerateReport's catOrder. */
 export const PNL_CATEGORY_ORDER = [
   'Entry Fees',
   'Add-ons & Stabling',
@@ -466,7 +356,6 @@ export const PNL_CATEGORY_ORDER = [
   'Other',
 ] as const;
 
-/** The three money views above the P&L, from billingSectionCard's call sites. */
 export const BILLING_SECTIONS = [
   {
     kind: 'charges',
@@ -488,18 +377,6 @@ export const BILLING_SECTIONS = [
   },
 ] as const;
 
-/* ── Awards ──────────────────────────────────────────────────────────────
-   Ported from showstaff.html's RIBBONS / ribbon(). */
-
-/**
- * Ribbon colours by placing, in order. Ported verbatim — these are the
- * traditional colours, not a palette choice: blue is first, red second, and an
- * organizer counting ribbons to bring recognises the list by sight.
- *
- * Eight, not the design export's six — the legacy list runs to Purple and
- * Brown, and a class can award up to twenty places. Beyond eight, a placing
- * shows a neutral chip rather than inventing a colour.
- */
 export const RIBBONS = [
   { place: '1st', name: 'Blue', bg: '#1E5AA8', fg: '#FFFFFF' },
   { place: '2nd', name: 'Red', bg: '#C0392B', fg: '#FFFFFF' },
@@ -511,7 +388,6 @@ export const RIBBONS = [
   { place: '8th', name: 'Brown', bg: '#7A5230', fg: '#FFFFFF' },
 ] as const;
 
-/** Mirrors legacy's `ribbon(i)` fallback for placings past the named colours. */
 export const RIBBON_FALLBACK = { place: '', name: '', bg: '#E7EEE9', fg: '#1F3A2E' } as const;
 
 export interface RibbonColor {
@@ -520,18 +396,10 @@ export interface RibbonColor {
   fg: string;
 }
 
-/** Placing label for a zero-based rank: 1st, 2nd, 3rd, then 4th onward. */
 function placeLabel(index: number): string {
   return RIBBONS[index]?.place ?? `${String(index + 1)}th`;
 }
 
-/**
- * The ribbon for a zero-based placing, ported from legacy `ribbon(i, override)`.
- *
- * A class carrying its own colours (a championship with sponsor ribbons, say)
- * wins over the standard order; past the end of either list the placing gets a
- * neutral chip rather than an invented colour.
- */
 export function ribbonFor(
   index: number,
   override?: RibbonColor[] | null,
@@ -546,14 +414,6 @@ export function ribbonFor(
   return RIBBONS[index] ?? { ...RIBBON_FALLBACK, place: placeLabel(index) };
 }
 
-/**
- * Show Manager's seven tabs, in display/flow order, plus what the shared
- * SectionFooter says at the bottom of each one. Single source for both
- * ShowManagerShell's tab bar and SectionFooter's "Continue to X" targets, so
- * the two can never disagree about order or the URL a tab lives at.
- * Test Builder is last and has no `next` — SectionFooter renders a closing
- * state there instead of a dangling link.
- */
 export const SHOW_MANAGER_SECTIONS = [
   {
     label: 'Setup',
@@ -601,3 +461,36 @@ export const SHOW_MANAGER_SECTIONS = [
 ] as const;
 
 export type ShowManagerTab = (typeof SHOW_MANAGER_SECTIONS)[number]['label'];
+
+export const DASHBOARD_PATH = '/dashboard';
+export const SHOWS_PATH = '/dashboard/shows';
+export const SCHEDULE_PATH = '/dashboard/schedule';
+export const HORSES_PATH = '/dashboard/horses';
+export const STABLE_CHART_PATH = '/dashboard/horses/stable-chart';
+
+export const SHOW_DOCS_BUCKET = 'documents';
+
+export const DEFAULT_SCHEDULE_PREFS = {
+  perMin: 9,
+  buffer: 2,
+  upper: 2,
+  end: '17:00',
+  order: 'low',
+  warmup: 'no',
+  lunch: true,
+  extraBreaks: 0,
+  extraBreakMin: 10,
+  hardRuleEnabled: true,
+  hardRuleSameHorseMin: 30,
+  hardRuleDiffHorseMin: 55,
+  awardsByDivision: false,
+} as const;
+
+export const UPPER_LEVELS = new Set(['Third Level', 'Fourth Level', 'FEI']);
+
+export const RING_SIZE_LABEL: Record<string, string> = {
+  standard: 'Standard (20m × 60m)',
+  small: 'Small (20m × 40m)',
+};
+
+export const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;

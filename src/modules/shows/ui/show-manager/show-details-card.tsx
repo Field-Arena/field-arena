@@ -1,31 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import type { UpdateShowDetailsInput } from '../../schemas';
-import type { ShowSetupDetail } from '../../data/setup-queries';
-import { useUpdateShowDetails } from '../../hooks/use-show-mutations';
+import type { UpdateShowDetailsInput } from '@/modules/shows/schemas';
+import type { ShowSetupDetail } from '@/modules/shows/data/setup-queries';
+import { useUpdateShowDetails } from '@/modules/shows/hooks/use-show-mutations';
+import { SHOW_DETAILS_BODIES } from '@/modules/shows/constants';
 import { Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_LABEL, SM_INPUT, SM_SELECT } from './tokens';
+import { Input } from '@/shared/ui/shadcn/input';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_LABEL,
+  SM_INPUT,
+  SM_SELECT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * The exact 3-body list showstaff.html's renderSetupView hardcodes for this
- * card — distinct from schemas.ts's broader GOVERNING_BODIES (which also
- * offers USEA/None), that being the create-show form's own picker.
- */
-const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;
-
-/**
- * "Show Details" — the first Setup card. Every field autosaves on blur/change
- * (see updateShowDetails in data/mutations.ts for why there is no Save
- * button); this component's local state is what's on screen, and a field
- * commit sends the *whole* card, matching showstaff.html's saveSmShowDetails.
- *
- * Org/club name is the one field with an explicit edit/view toggle in the
- * design — org.readonly by default, org.editing behind an "Edit" button —
- * because it is a free-text override of the account's org name, edited far
- * less often than the rest of the card.
- */
 export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
   const [name, setName] = useState(show.name);
   const [org, setOrg] = useState(show.org ?? '');
@@ -38,6 +28,12 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
   const [governingBodies, setGoverningBodies] = useState<string[]>(show.governingBodies);
 
   const { mutate } = useUpdateShowDetails();
+
+  const dateFields: { id: string; label: string; value: string; onChange: (v: string) => void }[] =
+    [
+      { id: 'sm-start', label: 'Start date', value: startDate, onChange: setStartDate },
+      { id: 'sm-end-date', label: 'End date', value: endDate, onChange: setEndDate },
+    ];
 
   function save(overrides: Partial<UpdateShowDetailsInput> = {}) {
     mutate({
@@ -70,11 +66,11 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
         <label htmlFor="sm-name" className={SM_LABEL}>
           Show name <span className="text-status-danger">*</span>
         </label>
-        <input
+        <Input
           id="sm-name"
           value={name}
           placeholder="Name this show"
-          className={SM_INPUT}
+          className={`h-auto ${SM_INPUT}`}
           onChange={(e) => {
             setName(e.target.value);
           }}
@@ -99,10 +95,10 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
             </GhostButton>
           </div>
           {orgEditing ? (
-            <input
+            <Input
               autoFocus
               value={org}
-              className={SM_INPUT}
+              className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
                 setOrg(e.target.value);
               }}
@@ -111,7 +107,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
               }}
             />
           ) : (
-            <div className="border-b border-[#EDF0EE] pb-[13px] text-[14.5px] text-ink-deep">
+            <div className="text-ink-deep border-b border-[#EDF0EE] pb-[13px] text-[14.5px]">
               {org || <span className="text-[#98A29D] italic">Not set</span>}
             </div>
           )}
@@ -136,41 +132,25 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
           </select>
         </div>
 
-        <div>
-          <label htmlFor="sm-start" className={SM_LABEL}>
-            Start date
-          </label>
-          <input
-            id="sm-start"
-            type="date"
-            value={startDate}
-            className={SM_INPUT}
-            onChange={(e) => {
-              setStartDate(e.target.value);
-            }}
-            onBlur={() => {
-              save();
-            }}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="sm-end-date" className={SM_LABEL}>
-            End date
-          </label>
-          <input
-            id="sm-end-date"
-            type="date"
-            value={endDate}
-            className={SM_INPUT}
-            onChange={(e) => {
-              setEndDate(e.target.value);
-            }}
-            onBlur={() => {
-              save();
-            }}
-          />
-        </div>
+        {dateFields.map((f) => (
+          <div key={f.id}>
+            <label htmlFor={f.id} className={SM_LABEL}>
+              {f.label}
+            </label>
+            <Input
+              id={f.id}
+              type="date"
+              value={f.value}
+              className={`h-auto ${SM_INPUT}`}
+              onChange={(e) => {
+                f.onChange(e.target.value);
+              }}
+              onBlur={() => {
+                save();
+              }}
+            />
+          </div>
+        ))}
 
         <div>
           <label htmlFor="sm-tz" className={SM_LABEL}>
@@ -208,13 +188,13 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
           <label htmlFor="sm-rider-no" className={SM_LABEL}>
             Starting rider number
           </label>
-          <input
+          <Input
             id="sm-rider-no"
             type="number"
             min={1}
             value={startingRiderNumber}
             placeholder="101"
-            className={SM_INPUT}
+            className={`h-auto ${SM_INPUT}`}
             onChange={(e) => {
               setStartingRiderNumber(Number(e.target.value));
             }}
@@ -222,7 +202,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
               save();
             }}
           />
-          <p className="mt-2 text-[12.5px] leading-[1.5] text-[#7C8A84] text-pretty">
+          <p className="mt-2 text-[12.5px] leading-[1.5] text-pretty text-[#7C8A84]">
             Rider #1 checked in gets this number — e.g. 200 instead of the default 101.
           </p>
         </div>
@@ -230,10 +210,10 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
 
       {showType === 'rated' && (
         <div className="mt-[22px]">
-          <div className="mb-[7px] text-[10px] font-bold uppercase tracking-[.14em] text-[#6E7C76]">
+          <div className="mb-[7px] text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
             Governing bodies
           </div>
-          <p className="mb-3 max-w-[900px] text-[12.5px] leading-[1.5] text-[#6E7C76] text-pretty">
+          <p className="mb-3 max-w-[900px] text-[12.5px] leading-[1.5] text-pretty text-[#6E7C76]">
             Scores are certified/reportable to whichever bodies are checked here. A Schooling Show
             runs the exact same test catalog and scoring, just with none checked — nothing is
             reported to a federation.
@@ -242,7 +222,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
             {SHOW_DETAILS_BODIES.map((body) => (
               <label
                 key={body}
-                className="inline-flex items-center gap-2 text-[13.5px] text-ink-deep"
+                className="text-ink-deep inline-flex items-center gap-2 text-[13.5px]"
               >
                 <input
                   type="checkbox"

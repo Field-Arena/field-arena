@@ -3,8 +3,15 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { saveTestTemplate, deleteTestTemplate, assignTestTemplateToClass } from '../data/mutations';
-import type { SaveTestTemplateInput, AssignTestTemplateToClassInput } from '../schemas';
+import {
+  saveTestTemplate,
+  deleteTestTemplate,
+  assignTestTemplateToClass,
+} from '@/modules/shows/data/mutations';
+import type {
+  SaveTestTemplateInput,
+  AssignTestTemplateToClassInput,
+} from '@/modules/shows/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {
