@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DemoDialog } from './demo-dialog';
-import { useDemoDialogStore } from '../../store';
+import { DemoDialog } from '@/modules/marketing/ui/landing/demo-dialog';
+import { useDemoDialogStore } from '@/modules/marketing/store';
 
 /**
  * Mounts the demo dialog once per page and honours a `?demo=1` deep link.

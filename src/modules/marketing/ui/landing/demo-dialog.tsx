@@ -15,9 +15,13 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import { DEMO_DISCIPLINES, DEMO_VOLUMES, CALENDLY_URL } from '../../landing-content';
-import { demoRequestSchema, type DemoRequestInput } from '../../schemas';
-import { useDemoRequest } from '../../hooks/use-demo-request';
+import {
+  DEMO_DISCIPLINES,
+  DEMO_VOLUMES,
+  CALENDLY_URL,
+} from '@/modules/marketing/landing-content';
+import { demoRequestSchema, type DemoRequestInput } from '@/modules/marketing/schemas';
+import { useDemoRequest } from '@/modules/marketing/hooks/use-demo-request';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
 const FIELD =
@@ -93,15 +97,16 @@ export function DemoDialog({
                 Schedule your walkthrough
                 <ArrowRightIcon className="size-[15px]" aria-hidden />
               </a>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   close(false);
                 }}
-                className="text-[13.5px] font-semibold text-fa-muted hover:text-forest"
+                className="h-auto rounded-none px-0 py-0 text-[13.5px] font-semibold text-fa-muted hover:bg-transparent hover:text-forest"
               >
                 Maybe later
-              </button>
+              </Button>
             </div>
           </div>
         ) : (

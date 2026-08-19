@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { MenuIcon, XIcon } from 'lucide-react';
-import { NAV_LINKS } from '../../landing-content';
+import { NAV_LINKS } from '@/modules/marketing/landing-content';
 import { LoginTrigger } from '@/modules/auth/ui/login-trigger';
-import { DemoTrigger } from './demo-trigger';
+import { DemoTrigger } from '@/modules/marketing/ui/landing/demo-trigger';
+import { Button } from '@/shared/ui/shadcn/button';
 
 /**
  * The only client component on the landing page.
@@ -22,17 +23,18 @@ export function LandingMobileNav() {
 
   return (
     <div className="lg:hidden">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         aria-label={open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
         }}
-        className="flex size-10 items-center justify-center rounded-lg text-paper transition-colors hover:bg-[rgba(255,255,255,.08)]"
+        className="flex size-10 items-center justify-center rounded-lg p-0 text-paper transition-colors hover:bg-[rgba(255,255,255,.08)]"
       >
         {open ? <XIcon className="size-[22px]" /> : <MenuIcon className="size-[22px]" />}
-      </button>
+      </Button>
 
       {open && (
         <nav className="absolute inset-x-0 top-full border-b border-[rgba(255,255,255,.09)] bg-forest px-6 pb-6 pt-2 shadow-[0_20px_44px_rgba(0,0,0,.32)]">

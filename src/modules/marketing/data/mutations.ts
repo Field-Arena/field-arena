@@ -1,8 +1,9 @@
 'use server';
 
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { demoRequestSchema } from '../schemas';
-import { DEMO_VOLUME_TO_SHOWS } from '../landing-content';
+import { demoRequestSchema } from '@/modules/marketing/schemas';
+import { DEMO_VOLUME_TO_SHOWS } from '@/modules/marketing/landing-content';
+import { DEMO_REQUEST_ERROR_MESSAGE } from '@/modules/marketing/constants';
 
 /**
  * Records a "Book a demo" request as a lead.
@@ -59,6 +60,6 @@ export async function requestDemo(input: unknown): Promise<void> {
     // Anything else is a genuine server-side fault: log the real cause for us,
     // show the visitor a plain, actionable message instead of Postgres wording.
     console.error('[marketing] demo request failed', error.message);
-    throw new Error('Something went wrong on our end. Please try again in a moment.');
+    throw new Error(DEMO_REQUEST_ERROR_MESSAGE);
   }
 }

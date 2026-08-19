@@ -4,19 +4,18 @@ import { redirect } from 'next/navigation';
 import { getStaffProfile, getRiderProfile } from '@/modules/auth/data/queries';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
-import { LandingNav, LandingFooter } from '@/modules/marketing/ui/landing/chrome';
-import {
-  LandingHero,
-  DisciplineMarquee,
-  ProblemSection,
-  PlatformSection,
-  TourSection,
-  DisciplinesSection,
-  RolesSection,
-  WorkflowSection,
-  BenefitsSection,
-  FinalCtaSection,
-} from '@/modules/marketing/ui/landing/sections';
+import { LandingNav } from '@/modules/marketing/ui/landing/landing-nav';
+import { LandingFooter } from '@/modules/marketing/ui/landing/landing-footer';
+import { LandingHero } from '@/modules/marketing/ui/landing/sections/landing-hero';
+import { DisciplineMarquee } from '@/modules/marketing/ui/landing/sections/discipline-marquee';
+import { ProblemSection } from '@/modules/marketing/ui/landing/sections/problem-section';
+import { PlatformSection } from '@/modules/marketing/ui/landing/sections/platform-section';
+import { TourSection } from '@/modules/marketing/ui/landing/sections/tour-section';
+import { DisciplinesSection } from '@/modules/marketing/ui/landing/sections/disciplines-section';
+import { RolesSection } from '@/modules/marketing/ui/landing/sections/roles-section';
+import { WorkflowSection } from '@/modules/marketing/ui/landing/sections/workflow-section';
+import { BenefitsSection } from '@/modules/marketing/ui/landing/sections/benefits-section';
+import { FinalCtaSection } from '@/modules/marketing/ui/landing/sections/final-cta-section';
 import { DemoDialogMount } from '@/modules/marketing/ui/landing/demo-dialog-mount';
 import { LoginDialog } from '@/modules/auth/ui/login-dialog';
 import { LoginDialogMount } from '@/modules/auth/ui/login-dialog-mount';

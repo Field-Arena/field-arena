@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
-import { LandingNav, LandingFooter } from './landing/chrome';
-import { DemoDialogMount } from './landing/demo-dialog-mount';
+import { LandingNav } from '@/modules/marketing/ui/landing/landing-nav';
+import { LandingFooter } from '@/modules/marketing/ui/landing/landing-footer';
+import { DemoDialogMount } from '@/modules/marketing/ui/landing/demo-dialog-mount';
 import { LoginDialog } from '@/modules/auth/ui/login-dialog';
 
 /**

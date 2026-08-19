@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEMO_VOLUMES, DEMO_DISCIPLINES } from './landing-content';
+import { DEMO_VOLUMES, DEMO_DISCIPLINES } from '@/modules/marketing/landing-content';
 
 /**
  * The "Book a demo" request.
