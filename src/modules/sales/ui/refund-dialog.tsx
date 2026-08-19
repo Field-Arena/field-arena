@@ -11,9 +11,10 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { DangerButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
-import { useRefundSale } from '../hooks/use-sales-mutations';
-import type { SaleRow } from '../data/queries';
-import { AmountField } from './amount-field';
+import { REFUND_AMOUNT_EPSILON } from '@/modules/sales/constants';
+import { useRefundSale } from '@/modules/sales/hooks/use-sales-mutations';
+import type { SaleRow } from '@/modules/sales/types';
+import { AmountField } from '@/modules/sales/ui/amount-field';
 
 /**
  * Refunds real money through Stripe. Defaults to a full refund of whatever
@@ -36,7 +37,9 @@ export function RefundDialog({
 
   const parsedAmount = Number.parseFloat(amount);
   const valid =
-    Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= sale.maxRefundable + 0.001;
+    Number.isFinite(parsedAmount) &&
+    parsedAmount > 0 &&
+    parsedAmount <= sale.maxRefundable + REFUND_AMOUNT_EPSILON;
 
   return (
     <Dialog

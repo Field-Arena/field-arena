@@ -11,9 +11,9 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
-import { useChargeMore } from '../hooks/use-sales-mutations';
-import type { SaleRow } from '../data/queries';
-import { AmountField } from './amount-field';
+import { useChargeMore } from '@/modules/sales/hooks/use-sales-mutations';
+import type { SaleRow } from '@/modules/sales/types';
+import { AmountField } from '@/modules/sales/ui/amount-field';
 
 /**
  * Charges the card saved at checkout again, off-session — for a stabling

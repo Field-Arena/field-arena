@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { listSales, getCanRefund } from '@/modules/sales/data/queries';
-import { computeSalesStats } from '@/modules/sales/utils';
+import { computeSalesStats } from '@/modules/sales/utils/compute-sales-stats';
 import { EventSalesScreen } from '@/modules/sales/ui/event-sales-screen';
 import { isStripeLive } from '@/shared/lib/stripe';
 import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';

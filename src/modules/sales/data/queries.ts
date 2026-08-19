@@ -1,26 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import type { SaleStatus, SaleType } from '../types';
-
-export interface SaleRow {
-  id: string;
-  saleType: 'order' | 'vendor_booking';
-  type: SaleType;
-  customer: string;
-  showId: string;
-  showName: string;
-  /** paid_at when known, else created_at — matches what the design calls "Date". */
-  date: string | null;
-  amountTotal: number;
-  feeTotal: number;
-  refundedAmount: number;
-  additionalChargesTotal: number;
-  status: SaleStatus;
-  /** amountTotal - feeTotal - refundedAmount, floored at 0 — what a refund may still take. */
-  maxRefundable: number;
-  hasSavedCard: boolean;
-  stripePaymentIntentId: string | null;
-}
+import type { SaleStatus, SaleType, SaleRow } from '@/modules/sales/types';
 
 function deriveStatus(amountTotal: number, feeTotal: number, refundedAmount: number): SaleStatus {
   const refundableBase = amountTotal - feeTotal;

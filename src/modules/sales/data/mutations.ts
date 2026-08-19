@@ -6,7 +6,9 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
-import { refundSaleSchema, chargeMoreSchema } from '../schemas';
+import { ROUTES } from '@/shared/constants/routes';
+import { refundSaleSchema, chargeMoreSchema } from '@/modules/sales/schemas';
+import { REFUND_AMOUNT_EPSILON, MAX_CHARGE_RECORD_ATTEMPTS } from '@/modules/sales/constants';
 
 /**
  * Real money moves through this file — Stripe refunds and off-session
@@ -74,7 +76,7 @@ export async function refundSale(input: unknown): Promise<void> {
   const feeTotal = sale.fee_total ?? 0;
   const refundedBefore = sale.refunded_amount ?? 0;
   const maxRefundable = Math.round((amountTotal - feeTotal - refundedBefore) * 100) / 100;
-  if (amount > maxRefundable + 0.001) {
+  if (amount > maxRefundable + REFUND_AMOUNT_EPSILON) {
     throw new Error(`Only $${maxRefundable.toFixed(2)} can still be refunded on this sale.`);
   }
 
@@ -111,11 +113,8 @@ export async function refundSale(input: unknown): Promise<void> {
     );
   }
 
-  revalidatePath('/dashboard/event-sales');
+  revalidatePath(ROUTES.eventSales);
 }
-
-/** Optimistic-concurrency attempts for recording a charge after Stripe already took the money — see chargeMore. */
-const MAX_RECORD_ATTEMPTS = 5;
 
 export async function chargeMore(input: unknown): Promise<void> {
   const parsed = chargeMoreSchema.parse(input);
@@ -172,7 +171,7 @@ export async function chargeMore(input: unknown): Promise<void> {
   // conflict there can just abort), a conflict here has to retry against the
   // latest row instead, or the charge would vanish from the ledger.
   const chargeRecord = { id: paymentIntentId, amount, createdAt: new Date().toISOString() };
-  for (let attempt = 0; attempt < MAX_RECORD_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < MAX_CHARGE_RECORD_ATTEMPTS; attempt++) {
     const { data: current, error: currentError } = await admin
       .from(table)
       .select('additional_charges_total, additional_charges')
@@ -197,7 +196,7 @@ export async function chargeMore(input: unknown): Promise<void> {
       .maybeSingle();
     if (updateError) throw new Error(updateError.message);
     if (updated) {
-      revalidatePath('/dashboard/event-sales');
+      revalidatePath(ROUTES.eventSales);
       return;
     }
   }
