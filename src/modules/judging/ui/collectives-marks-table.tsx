@@ -1,4 +1,11 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { Card } from '@/shared/ui/organizer/card';
 
 export interface ScorecardCollective {
@@ -7,7 +14,6 @@ export interface ScorecardCollective {
   coef: number;
 }
 
-/** The collective-marks table on the History drill-down's scorecard. */
 export function CollectivesMarksTable({
   collectives,
   marks,
@@ -19,7 +25,7 @@ export function CollectivesMarksTable({
     <Card className="overflow-x-auto p-[16px_18px]">
       <Table className="min-w-[320px] border-collapse text-[13.5px]">
         <TableHeader className="[&_tr]:border-0">
-          <TableRow className="hover:bg-transparent text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
+          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
             <TableHead className="h-auto p-2">Category</TableHead>
             <TableHead className="h-auto p-2">Coef</TableHead>
             <TableHead className="h-auto p-2 text-right">Mark</TableHead>
@@ -27,10 +33,13 @@ export function CollectivesMarksTable({
         </TableHeader>
         <TableBody>
           {collectives.map((c) => (
-            <TableRow key={c.key} className="hover:bg-transparent border-t border-b-0 border-[#E9EDEB]">
-              <TableCell className="whitespace-normal p-2">{c.label}</TableCell>
-              <TableCell className="whitespace-normal p-2">{c.coef}</TableCell>
-              <TableCell className="whitespace-normal p-2 text-right font-mono font-semibold text-ink-deep">
+            <TableRow
+              key={c.key}
+              className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent"
+            >
+              <TableCell className="p-2 whitespace-normal">{c.label}</TableCell>
+              <TableCell className="p-2 whitespace-normal">{c.coef}</TableCell>
+              <TableCell className="text-ink-deep p-2 text-right font-mono font-semibold whitespace-normal">
                 {marks[c.key] ?? '—'}
               </TableCell>
             </TableRow>

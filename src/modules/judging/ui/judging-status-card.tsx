@@ -6,25 +6,6 @@ import { Button } from '@/shared/ui/shadcn/button';
 import type { TodayPanelContact } from '@/modules/judging/data/queries';
 import { PeopleIcon } from '@/modules/judging/ui/people-icon';
 
-/**
- * The clock/ring/panel strip shared by all 4 tabs, ported from Judge
- * Workspace.dc.html's status card — present on "My Assignments", "Panel &
- * Contacts", "Documents" and "History" alike in the design.
- *
- * One deliberate departure from the mock: the "Ring 1 · vs. schedule" slot
- * showed a static "6 min behind schedule" delta. That number implies a live
- * actual-vs-scheduled timing feed, which nothing in this schema records yet
- * (the same gap WorkspaceHeader's own doc comment flags for the organizer
- * dashboard's ring strip) — so this shows today's real ring name(s) instead
- * of a number nobody is actually measuring.
- *
- * `rings` can be empty even with real assignments today — a class only ends
- * up in it once an organizer has set that class's ring/location, which
- * nothing requires. `assignmentsToday` is the honest fallback: it comes
- * straight from today's assignment count, not from whether a ring name
- * happens to exist, so "No assignments today" only ever says that when it's
- * true.
- */
 export function JudgingStatusCard({
   rings,
   contacts,
@@ -73,7 +54,7 @@ export function JudgingStatusCard({
           onClick={() => {
             setOpen((o) => !o);
           }}
-          className="h-auto bg-white text-ink-deep hover:border-gold hover:bg-white inline-flex items-center gap-[7px] rounded-[9px] border border-[#D9E1DD] px-[15px] py-2.5 text-[12.5px] font-semibold transition-colors"
+          className="text-ink-deep hover:border-gold inline-flex h-auto items-center gap-[7px] rounded-[9px] border border-[#D9E1DD] bg-white px-[15px] py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-white"
         >
           <PeopleIcon />
           Who&apos;s on the panel

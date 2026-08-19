@@ -1,4 +1,11 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { Card } from '@/shared/ui/organizer/card';
 
 export interface ScorecardMovement {
@@ -7,7 +14,6 @@ export interface ScorecardMovement {
   coef: number;
 }
 
-/** The per-movement marks table on the History drill-down's scorecard. */
 export function MovementsMarksTable({
   movements,
   marks,
@@ -21,7 +27,7 @@ export function MovementsMarksTable({
     <Card className="overflow-x-auto p-[16px_18px]">
       <Table className="min-w-[480px] border-collapse text-[13.5px]">
         <TableHeader className="[&_tr]:border-0">
-          <TableRow className="hover:bg-transparent text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
+          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
             <TableHead className="h-auto p-2">#</TableHead>
             <TableHead className="h-auto p-2">Movement</TableHead>
             <TableHead className="h-auto p-2">Coef</TableHead>
@@ -31,14 +37,17 @@ export function MovementsMarksTable({
         </TableHeader>
         <TableBody>
           {movements.map((m) => (
-            <TableRow key={m.num} className="hover:bg-transparent border-t border-b-0 border-[#E9EDEB]">
-              <TableCell className="whitespace-normal p-2">{m.num}</TableCell>
-              <TableCell className="whitespace-normal p-2">{m.text}</TableCell>
-              <TableCell className="whitespace-normal p-2">{m.coef}</TableCell>
-              <TableCell className="whitespace-normal p-2 text-right font-mono font-semibold text-ink-deep">
+            <TableRow
+              key={m.num}
+              className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent"
+            >
+              <TableCell className="p-2 whitespace-normal">{m.num}</TableCell>
+              <TableCell className="p-2 whitespace-normal">{m.text}</TableCell>
+              <TableCell className="p-2 whitespace-normal">{m.coef}</TableCell>
+              <TableCell className="text-ink-deep p-2 text-right font-mono font-semibold whitespace-normal">
                 {marks[String(m.num)] ?? '—'}
               </TableCell>
-              <TableCell className="whitespace-normal p-2 text-[#5A6B63]">
+              <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
                 {remarks[String(m.num)] ?? ''}
               </TableCell>
             </TableRow>

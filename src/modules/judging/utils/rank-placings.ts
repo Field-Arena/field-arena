@@ -7,14 +7,6 @@ export interface PlacingRow {
   rank: number;
 }
 
-/**
- * Ranks already-final entries by percentage (collective total as tie-break),
- * ties sharing a place with the next distinct place skipped. A small
- * duplicate of `modules/scoring/scoring-engine.ts`'s `standings()` — modules
- * don't reach into each other's internals in this codebase, so the same
- * small pure ranking gets its own copy here rather than a cross-module
- * import (same precedent as `resolveScoringPermissions`'s three copies).
- */
 export function rankPlacings(
   rides: {
     entryId: string;

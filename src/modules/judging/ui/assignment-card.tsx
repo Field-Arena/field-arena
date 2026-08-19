@@ -12,18 +12,6 @@ const WHEN_META = {
   history: { label: 'Completed', bg: '#DCEFE1', fg: '#2E7D46' },
 } as const;
 
-/**
- * One class panel row, ported from Judge Workspace.dc.html's assignment
- * card — used for the Today/Upcoming groups on My Assignments and again,
- * without the Launch Scoring button, on History.
- *
- * The design's "Test sheet: {name} ↗" is a live link to a real PDF in its
- * mock. No per-class test-sheet document exists in this schema yet (the
- * platform's Documents board matches sheets to the scoring catalog globally,
- * not to a specific class instance) — links to the same USDF test-sheets
- * index every class links to in legacy judge-scribe.html (TEST_SHEETS_URL),
- * not a class-specific PDF.
- */
 export function AssignmentCard({
   assignment,
   variant,
@@ -36,12 +24,7 @@ export function AssignmentCard({
     .filter(Boolean)
     .join(' · ');
   const when = WHEN_META[variant];
-  // Today's own group already says "today" via the section heading, but History
-  // and Upcoming show classes from any date — a time with no date ("8:00 AM ·
-  // Training Level Test 3") gives no way to tell which day a completed class
-  // was on (BUG-SCRIBEHISTORY-001). Prefer the show's structured start_date;
-  // fall back to its date_label / class date (showDate) so a show recorded with
-  // only a text date ("Jul 10-12, 2026") still shows a date instead of nothing.
+
   const dateLabel =
     formatDateShort(assignment.classDate) ||
     formatDateShort(assignment.showDate) ||

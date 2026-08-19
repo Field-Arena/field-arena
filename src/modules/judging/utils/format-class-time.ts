@@ -1,4 +1,3 @@
-/** 'HH:MM' 24-hour text (this schema's `classes.time` convention) to "8:00 AM". */
 export function formatClassTime(time: string | null): string | null {
   if (!time) return null;
   const match = /^(\d{1,2}):(\d{2})/.exec(time);

@@ -1,12 +1,9 @@
-import type { AssignmentRow, PanelContact, TodayPanelContact } from '@/modules/judging/data/queries';
+import type {
+  AssignmentRow,
+  PanelContact,
+  TodayPanelContact,
+} from '@/modules/judging/data/queries';
 
-/**
- * Today's ring name(s) and who else is on today's panel — what the shared
- * status card needs on every tab. Not a "vs. schedule" delta; see
- * ui/judging-status-card.tsx for why that part of the design was dropped.
- * Pure so callers fetch `listMyAssignments`/`listPanelContacts` once and
- * reuse them for a page's own content too, rather than fetching twice.
- */
 export function buildTodaySnapshot(
   assignments: AssignmentRow[],
   panelContacts: PanelContact[],

@@ -11,11 +11,6 @@ const LABEL = 'mb-2 block text-[10px] font-bold uppercase tracking-[.14em] text-
 const SELECT =
   'w-full appearance-none rounded-[8px] border border-[#C6CFCB] bg-white px-3 py-2.5 text-[14px] font-medium text-ink-deep outline-none focus-visible:border-gold';
 
-/**
- * The judge/scribe + classes form inside AssignJudgesDialog. Mounted only
- * while the dialog is open and keyed by ring, so its initial selection comes
- * straight from useState initializers — no reset-in-effect needed.
- */
 export function PanelForm({
   ringName,
   classes,
@@ -33,8 +28,6 @@ export function PanelForm({
   const [judgeId, setJudgeId] = useState('');
   const [scribeId, setScribeId] = useState('');
   const [checked, setChecked] = useState<Set<string>>(() => {
-    // Default to this ring's own classes; if none carry that ring (location is
-    // optional per class), start with all classes so the panel is still usable.
     const inRing = classes.filter((c) => c.location === ringName).map((c) => c.id);
     return new Set(inRing.length ? inRing : classes.map((c) => c.id));
   });
@@ -111,7 +104,7 @@ export function PanelForm({
             onClick={() => {
               setChecked(allChecked ? new Set() : new Set(classes.map((c) => c.id)));
             }}
-            className="h-auto bg-transparent px-0 py-0 text-[12px] font-semibold text-forest hover:bg-transparent hover:text-gold"
+            className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[12px] font-semibold hover:bg-transparent"
           >
             {allChecked ? 'Clear all' : 'Select all'}
           </Button>

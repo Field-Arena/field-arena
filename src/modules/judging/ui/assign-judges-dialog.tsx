@@ -19,11 +19,6 @@ export interface PanelStaff {
   name: string;
 }
 
-/**
- * Setup → Venue "Assign Judges" — pick a head judge and scribe for a ring and
- * the classes they officiate. Writes the J1 panel seat (useSetClassPanel), which
- * is what a Judge/Scribe's My Assignments reads. Opened per ring from VenueCard.
- */
 export function AssignJudgesDialog({
   open,
   onOpenChange,
@@ -47,8 +42,8 @@ export function AssignJudgesDialog({
         <DialogHeader>
           <DialogTitle>Assign judges — {ringName}</DialogTitle>
           <DialogDescription>
-            Pick who officiates, then the classes they cover. They appear on the judge or scribe’s My
-            Assignments once saved.
+            Pick who officiates, then the classes they cover. They appear on the judge or scribe’s
+            My Assignments once saved.
           </DialogDescription>
         </DialogHeader>
 

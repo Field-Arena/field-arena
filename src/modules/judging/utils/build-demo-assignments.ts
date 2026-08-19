@@ -1,13 +1,6 @@
 import type { AssignmentRow } from '@/modules/judging/data/queries';
 import { DEMO_TODAY_ASSIGNMENTS, DEMO_UPCOMING_ASSIGNMENTS } from '@/modules/judging/constants';
 
-/**
- * Turns the static DEMO_* constants into real AssignmentRow shapes, for a
- * SuperAdmin previewing this workspace (see DEMO_JUDGE_NAME's doc comment in
- * constants.ts for why this exists at all). classDate is the only field that
- * can't be a static constant — "today" moves — so it's filled in here rather
- * than baked into the constant.
- */
 export function buildDemoAssignments(todayIso: string): AssignmentRow[] {
   const upcoming = new Date(`${todayIso}T00:00:00`);
   upcoming.setDate(upcoming.getDate() + 14);
