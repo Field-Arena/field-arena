@@ -3,7 +3,6 @@ import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
 import type { PlatformAccount } from '@/modules/superadmin/types';
 import { RemoveSuperAdminAction } from '@/modules/superadmin/ui/remove-super-admin-action';
 
-/** Role → badge tone. SuperAdmin reads as the privileged role; Organizer as the customer. */
 const ROLE_TONE: Record<string, StatusTone> = {
   SuperAdmin: 'info',
   Organizer: 'success',
@@ -11,11 +10,10 @@ const ROLE_TONE: Record<string, StatusTone> = {
 
 function roleLabel(role: string | null): string {
   if (!role) return 'Unassigned';
-  // 'ShowAdmin' → 'Show Admin', leave the rest as stored.
+
   return role === 'ShowAdmin' ? 'Show Admin' : role;
 }
 
-/** One row in the platform accounts table. */
 export function SuperAdminRow({
   account,
   currentUserId,
@@ -24,28 +22,28 @@ export function SuperAdminRow({
   currentUserId: string;
 }) {
   return (
-    <TableRow className="hover:bg-transparent border-b border-border last:border-b-0">
-      <TableCell className="whitespace-normal px-3 py-2.5 font-semibold text-hunter-deep">
+    <TableRow className="border-border border-b last:border-b-0 hover:bg-transparent">
+      <TableCell className="text-hunter-deep px-3 py-2.5 font-semibold whitespace-normal">
         {account.name}
       </TableCell>
-      <TableCell className="whitespace-normal px-3 py-2.5 text-fa-muted">{account.email}</TableCell>
-      <TableCell className="whitespace-normal px-3 py-2.5">
+      <TableCell className="text-fa-muted px-3 py-2.5 whitespace-normal">{account.email}</TableCell>
+      <TableCell className="px-3 py-2.5 whitespace-normal">
         <StatusBadge tone={account.role ? (ROLE_TONE[account.role] ?? 'neutral') : 'neutral'}>
           {roleLabel(account.role)}
         </StatusBadge>
       </TableCell>
-      <TableCell className="whitespace-normal px-3 py-2.5">
+      <TableCell className="px-3 py-2.5 whitespace-normal">
         {account.status === 'active' ? (
           <StatusBadge tone="success">Active</StatusBadge>
         ) : (
           <StatusBadge tone="warn">Invite pending</StatusBadge>
         )}
       </TableCell>
-      <TableCell className="whitespace-normal px-3 py-2.5 text-right">
+      <TableCell className="px-3 py-2.5 text-right whitespace-normal">
         {account.role === 'SuperAdmin' ? (
           <RemoveSuperAdminAction account={account} isSelf={account.id === currentUserId} />
         ) : (
-          <span className="pr-1 text-[12px] text-fa-muted-2">—</span>
+          <span className="text-fa-muted-2 pr-1 text-[12px]">—</span>
         )}
       </TableCell>
     </TableRow>

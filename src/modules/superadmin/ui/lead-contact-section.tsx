@@ -14,7 +14,9 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
   const [email, setEmail] = useState(lead.email ?? '');
   const [phone, setPhone] = useState(lead.phone ?? '');
   const [website, setWebsite] = useState(lead.website ?? '');
-  const [shows, setShows] = useState(lead.shows_per_year != null ? String(lead.shows_per_year) : '');
+  const [shows, setShows] = useState(
+    lead.shows_per_year != null ? String(lead.shows_per_year) : '',
+  );
   const [status, setStatus] = useState(lead.status ?? 'new');
   const update = useUpdateLead({ successMessage: 'Contact saved' });
 
@@ -27,11 +29,35 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
     placeholder?: string;
   }[] = [
     { key: 'org', label: 'Organization name', value: orgName, onChange: setOrgName },
-    { key: 'contact', label: 'Contact name', value: contactName, onChange: setContactName, placeholder: 'Not captured yet' },
+    {
+      key: 'contact',
+      label: 'Contact name',
+      value: contactName,
+      onChange: setContactName,
+      placeholder: 'Not captured yet',
+    },
     { key: 'email', label: 'Email', value: email, onChange: setEmail, type: 'email' },
-    { key: 'phone', label: 'Phone', value: phone, onChange: setPhone, placeholder: 'Not captured yet' },
-    { key: 'website', label: 'Website', value: website, onChange: setWebsite, placeholder: 'example.com' },
-    { key: 'shows', label: 'Shows per year', value: shows, onChange: setShows, placeholder: 'Unknown until the demo' },
+    {
+      key: 'phone',
+      label: 'Phone',
+      value: phone,
+      onChange: setPhone,
+      placeholder: 'Not captured yet',
+    },
+    {
+      key: 'website',
+      label: 'Website',
+      value: website,
+      onChange: setWebsite,
+      placeholder: 'example.com',
+    },
+    {
+      key: 'shows',
+      label: 'Shows per year',
+      value: shows,
+      onChange: setShows,
+      placeholder: 'Unknown until the demo',
+    },
   ];
 
   return (
@@ -39,7 +65,14 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
       <h2 className={`${H2} mb-5`}>Contact and account</h2>
       <div className={GRID}>
         {fields.map((f) => (
-          <Field key={f.key} label={f.label} value={f.value} onChange={f.onChange} type={f.type} placeholder={f.placeholder} />
+          <Field
+            key={f.key}
+            label={f.label}
+            value={f.value}
+            onChange={f.onChange}
+            type={f.type}
+            placeholder={f.placeholder}
+          />
         ))}
         <div>
           <label htmlFor="ld-status" className={LABEL}>

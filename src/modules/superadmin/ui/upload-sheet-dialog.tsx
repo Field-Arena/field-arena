@@ -29,11 +29,6 @@ import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 const SELECT =
   'w-full rounded-lg border border-[#D7CFBB] bg-white px-3.5 py-3 text-[14px] text-[#16261F] focus-visible:border-gold focus-visible:outline-none';
 
-/**
- * "Upload official sheet" — the design's upload modal. It creates a catalog stub
- * from the sheet's metadata (the file itself isn't stored in this build) and
- * opens the new sheet so its criteria can be transcribed.
- */
 export function UploadSheetDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -66,7 +61,7 @@ export function UploadSheetDialog() {
         <Button
           type="button"
           variant="ghost"
-          className="h-auto inline-flex items-center gap-2 rounded-[9px] bg-hunter-deep px-[18px] py-3 text-[13.5px] font-bold text-paper hover:bg-gold transition hover:text-hunter-deep"
+          className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep inline-flex h-auto items-center gap-2 rounded-[9px] px-[18px] py-3 text-[13.5px] font-bold transition"
         >
           <UploadIcon className="size-[15px]" aria-hidden />
           Upload official sheet
@@ -79,9 +74,9 @@ export function UploadSheetDialog() {
             Upload an official sheet
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Creates a catalog <strong className="text-[#16261F]">stub</strong> from the source sheet.
-            You then tag its scoring family and scaffold the criteria the renderer reads. The file
-            isn&apos;t stored in this build — only its name is captured.
+            Creates a catalog <strong className="text-[#16261F]">stub</strong> from the source
+            sheet. You then tag its scoring family and scaffold the criteria the renderer reads. The
+            file isn&apos;t stored in this build — only its name is captured.
           </DialogDescription>
         </DialogHeader>
 

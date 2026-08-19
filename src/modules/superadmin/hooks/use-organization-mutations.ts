@@ -10,18 +10,11 @@ import {
   setOrganizationDeleted,
   resendOrganizerInvite,
 } from '@/modules/superadmin/data/mutations';
-import type { CreateOrganizationInput, UpdateOrganizationInput } from '@/modules/superadmin/schemas';
+import type {
+  CreateOrganizationInput,
+  UpdateOrganizationInput,
+} from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
-
-/**
- * Mutation hooks for the console.
- *
- * Toasts and navigation live here rather than in the UI components, per
- * layers.md. Each action calls revalidatePath server-side, so the table
- * re-renders from fresh data without any manual cache invalidation — router
- * refresh is only needed where the mutation can change what the current page
- * should show at all.
- */
 
 function errorMessage(error: unknown, fallback: string): string {
   return readableError(error, fallback);
@@ -29,9 +22,6 @@ function errorMessage(error: unknown, fallback: string): string {
 
 export function useCreateOrganization(options?: { onSuccess?: () => void }) {
   return useMutation({
-    // The action returns a typed result rather than throwing (see mutations.ts /
-    // BUG-API-001). Re-throw here on failure so the existing onError/toast path
-    // still fires — now with the real, actionable message.
     mutationFn: async (input: CreateOrganizationInput) => {
       const result = await createOrganization(input);
       if (!result.ok) throw new Error(result.error);
@@ -67,7 +57,7 @@ export function useSetOrganizationSuspended() {
       toast.success(
         value
           ? 'Organizer suspended — their shows are now invisible to riders'
-          : 'Organizer reactivated — riders can purchase again'
+          : 'Organizer reactivated — riders can purchase again',
       );
     },
     onError: (error) => {
@@ -85,7 +75,7 @@ export function useSetOrganizationDeleted() {
       toast.success(
         value
           ? 'Organizer deleted. Their shows and history are kept, not erased.'
-          : 'Organizer restored'
+          : 'Organizer restored',
       );
       router.refresh();
     },

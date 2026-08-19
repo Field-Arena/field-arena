@@ -12,7 +12,6 @@ const JUDGE_NAV: WorkspaceNavItem[] = [
   { icon: HistoryIcon, label: 'History' },
 ];
 
-/** Sample of judge-scribe.html's real-mode "My Assignments" — seeded, not fetched. */
 export function JudgeScribePreview() {
   return (
     <WorkspaceFrame
@@ -21,17 +20,19 @@ export function JudgeScribePreview() {
       liveToday
       footer={
         <div>
-          <div className="text-[9.5px] font-bold uppercase tracking-[.14em] text-[rgba(251,250,247,.4)]">
+          <div className="text-[9.5px] font-bold tracking-[.14em] text-[rgba(251,250,247,.4)] uppercase">
             Signed in as
           </div>
-          <div className="font-semibold text-paper">Margaret Ellison</div>
+          <div className="text-paper font-semibold">Margaret Ellison</div>
         </div>
       }
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h1 className={`${DISPLAY} text-2xl font-medium text-forest`}>My Assignments</h1>
-          <p className="text-sm text-fa-muted">Today&apos;s ring times and every show you&apos;re on the panel for.</p>
+          <h1 className={`${DISPLAY} text-forest text-2xl font-medium`}>My Assignments</h1>
+          <p className="text-fa-muted text-sm">
+            Today&apos;s ring times and every show you&apos;re on the panel for.
+          </p>
         </div>
         <Badge variant="outline" className="flex-none">
           Judge · 3 upcoming
@@ -43,23 +44,33 @@ export function JudgeScribePreview() {
         View results
       </Button>
 
-      <div className="mb-2 text-xs font-bold uppercase tracking-[.1em] text-fa-muted">
+      <div className="text-fa-muted mb-2 text-xs font-bold tracking-[.1em] uppercase">
         Today&apos;s ring times
       </div>
       <div className="space-y-2">
         {[
-          { time: '8:00 AM', cls: 'Training Level Test 3', partner: 'Emily Carter (Scribe)', badge: 'Today' },
-          { time: '9:15 AM', cls: 'First Level Test 1', partner: 'Emily Carter (Scribe)', badge: 'Today' },
+          {
+            time: '8:00 AM',
+            cls: 'Training Level Test 3',
+            partner: 'Emily Carter (Scribe)',
+            badge: 'Today',
+          },
+          {
+            time: '9:15 AM',
+            cls: 'First Level Test 1',
+            partner: 'Emily Carter (Scribe)',
+            badge: 'Today',
+          },
         ].map((row) => (
           <div
             key={row.cls}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border-l-4 border-l-gold border-y border-r border-line bg-white px-3 py-2.5"
+            className="border-l-gold border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border-y border-r border-l-4 bg-white px-3 py-2.5"
           >
             <div>
-              <div className="text-sm font-semibold text-forest">
+              <div className="text-forest text-sm font-semibold">
                 {row.time} · {row.cls}
               </div>
-              <div className="text-xs text-fa-muted">
+              <div className="text-fa-muted text-xs">
                 Autumn Leaves Dressage Classic · Ring 1 · with {row.partner}
               </div>
             </div>
@@ -72,11 +83,13 @@ export function JudgeScribePreview() {
         ))}
       </div>
 
-      <div className="mb-2 mt-4 text-xs font-bold uppercase tracking-[.1em] text-fa-muted">Upcoming</div>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5">
+      <div className="text-fa-muted mt-4 mb-2 text-xs font-bold tracking-[.1em] uppercase">
+        Upcoming
+      </div>
+      <div className="border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5">
         <div>
-          <div className="text-sm font-semibold text-forest">Chattahoochee Fall Classic</div>
-          <div className="text-xs text-fa-muted">Sun, Aug 2 · Ring 2 · Second Level Test 2</div>
+          <div className="text-forest text-sm font-semibold">Chattahoochee Fall Classic</div>
+          <div className="text-fa-muted text-xs">Sun, Aug 2 · Ring 2 · Second Level Test 2</div>
         </div>
         <Badge variant="outline">Upcoming</Badge>
       </div>

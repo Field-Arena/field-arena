@@ -23,7 +23,6 @@ export interface LeadListItem {
   status: string | null;
 }
 
-/** Bars in the closing-rate breakdown, in the design's order. `lost` renders red. */
 const BREAKDOWN_STAGES: { key: string; label: string; lost?: boolean }[] = [
   { key: 'demo_scheduled', label: 'Demo scheduled' },
   { key: 'demo_completed', label: 'Demo completed' },
@@ -32,11 +31,6 @@ const BREAKDOWN_STAGES: { key: string; label: string; lost?: boolean }[] = [
   { key: 'lost', label: 'Lost', lost: true },
 ];
 
-/**
- * The interactive half of the Sales Funnel: search, the collapsible closing-rate
- * breakdown, and the "Newest targets" table. Data arrives as props; only the
- * search text and the breakdown open/closed state live here.
- */
 export function FunnelBoard({
   leads,
   counts,
@@ -56,7 +50,7 @@ export function FunnelBoard({
       (l) =>
         l.org.toLowerCase().includes(term) ||
         (l.contact ?? '').toLowerCase().includes(term) ||
-        (l.email ?? '').toLowerCase().includes(term)
+        (l.email ?? '').toLowerCase().includes(term),
     );
   }, [leads, search]);
 
@@ -72,7 +66,7 @@ export function FunnelBoard({
           onClick={() => {
             setBreakdownOpen((v) => !v);
           }}
-          className="h-auto inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep hover:bg-transparent transition-colors hover:border-gold"
+          className="text-hunter-deep hover:border-gold inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors hover:bg-transparent"
         >
           <BarChart3Icon className="size-[15px]" aria-hidden />
           {breakdownOpen ? 'Hide closing rate breakdown' : 'View closing rate breakdown'}
@@ -87,7 +81,7 @@ export function FunnelBoard({
                 contact: l.contact,
                 email: l.email,
                 shows: l.shows,
-                status: LEAD_STATUSES.find((s) => s.value === l.status)?.label ?? (l.status ?? 'New'),
+                status: LEAD_STATUSES.find((s) => s.value === l.status)?.label ?? l.status ?? 'New',
               })),
             );
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -100,14 +94,14 @@ export function FunnelBoard({
             a.remove();
             URL.revokeObjectURL(url);
           }}
-          className="h-auto inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep hover:bg-transparent transition-colors hover:border-gold"
+          className="text-hunter-deep hover:border-gold inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors hover:bg-transparent"
         >
           <DownloadIcon className="size-[15px]" aria-hidden />
           Export Contact List
         </Button>
-        <div className="relative ml-auto min-w-[190px] max-w-[300px] flex-[1_1_220px]">
+        <div className="relative ml-auto max-w-[300px] min-w-[190px] flex-[1_1_220px]">
           <SearchIcon
-            className="absolute left-[13px] top-1/2 size-[15px] -translate-y-1/2 text-[#9AA6A0]"
+            className="absolute top-1/2 left-[13px] size-[15px] -translate-y-1/2 text-[#9AA6A0]"
             aria-hidden
           />
           <Input
@@ -117,14 +111,14 @@ export function FunnelBoard({
               setSearch(event.target.value);
             }}
             placeholder="Search targets…"
-            className="h-auto w-full rounded-[9px] border border-[#D7E0DA] bg-white py-2.5 pl-9 pr-3.5 text-[13.5px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-gold/[.14]"
+            className="text-hunter-deep focus-visible:border-gold focus-visible:ring-gold/[.14] h-auto w-full rounded-[9px] border border-[#D7E0DA] bg-white py-2.5 pr-3.5 pl-9 text-[13.5px] focus-visible:ring-[3px] focus-visible:outline-none"
           />
         </div>
       </div>
 
       {breakdownOpen && (
         <div className="[animation:fa-in_.16s_ease-out_both] rounded-[14px] border border-[#E7E0D0] bg-[#F6F3EC] px-[26px] py-6">
-          <h3 className={`${NR} mb-4 text-[21px] font-medium tracking-[-.012em] text-hunter-deep`}>
+          <h3 className={`${NR} text-hunter-deep mb-4 text-[21px] font-medium tracking-[-.012em]`}>
             Closing rate breakdown
           </h3>
           <div className="flex flex-col gap-3">
@@ -151,7 +145,7 @@ export function FunnelBoard({
                       }}
                     />
                   </span>
-                  <span className="text-right text-[12.5px] font-bold text-hunter-deep">
+                  <span className="text-hunter-deep text-right text-[12.5px] font-bold">
                     {count} ({pct(count)}%)
                   </span>
                 </div>
@@ -163,15 +157,12 @@ export function FunnelBoard({
 
       <div className="rounded-[14px] border border-[#E2E8E4] bg-white">
         <div className="flex flex-wrap items-center gap-3.5 border-b border-[#E2E8E4] px-5 py-4">
-          <span className={`${NR} text-[20px] text-hunter-deep`}>Newest targets</span>
+          <span className={`${NR} text-hunter-deep text-[20px]`}>Newest targets</span>
           <span className="inline-flex h-5 items-center rounded-full bg-[#F9F0D8] px-[9px] text-[10.5px] font-bold text-[#8A6D14]">
             {total}
           </span>
-          {/* Not a link to a separate page: the table below already lists
-              every lead (listLeads has no limit), so "viewing all" is just
-              this table. Plain text states that rather than pointing a link
-              at a fuller view that doesn't exist. */}
-          <span className="ml-auto text-[12.5px] font-bold text-hunter-deep">
+
+          <span className="text-hunter-deep ml-auto text-[12.5px] font-bold">
             Showing all {total} {total === 1 ? 'target' : 'targets'}
           </span>
         </div>
@@ -184,7 +175,7 @@ export function FunnelBoard({
             {['Organization', 'Email', 'Shows/yr', 'Status', 'Action'].map((h, i) => (
               <span
                 key={h}
-                className={`text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2 ${
+                className={`text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] uppercase ${
                   i === 2 || i === 4 ? 'text-right' : ''
                 }`}
               >
@@ -195,10 +186,10 @@ export function FunnelBoard({
 
           {filtered.length === 0 ? (
             <div className="px-5 py-[52px] text-center">
-              <div className={`${NR} mb-2 text-[23px] text-hunter-deep`}>
+              <div className={`${NR} text-hunter-deep mb-2 text-[23px]`}>
                 {search.trim() ? `No targets match “${search.trim()}”.` : 'No leads yet'}
               </div>
-              <p className="text-[13.5px] text-fa-muted-2">
+              <p className="text-fa-muted-2 text-[13.5px]">
                 {search.trim()
                   ? 'Try a different name, org, or email.'
                   : 'Add one, or share your Calendly demo link.'}
@@ -212,14 +203,14 @@ export function FunnelBoard({
                 style={{ gridTemplateColumns: COLS }}
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[13.5px] font-bold leading-[1.35] text-hunter-deep">
+                  <span className="text-hunter-deep text-[13.5px] leading-[1.35] font-bold">
                     {lead.org}
                   </span>
                   {lead.contact && (
-                    <span className="text-[12px] text-fa-muted-2">{lead.contact}</span>
+                    <span className="text-fa-muted-2 text-[12px]">{lead.contact}</span>
                   )}
                 </div>
-                <span className="truncate text-[12.5px] text-fa-muted">{lead.email ?? '—'}</span>
+                <span className="text-fa-muted truncate text-[12.5px]">{lead.email ?? '—'}</span>
                 <span
                   className={`${NR} text-right text-[19px]`}
                   style={{ color: lead.shows == null ? '#C4CDC8' : '#0D2C23' }}
@@ -230,7 +221,7 @@ export function FunnelBoard({
                 <div className="flex justify-end">
                   <Link
                     href={`/dashboard/superadmin/sales/${lead.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#C4D3CB] px-3 py-2 text-[12.5px] font-bold text-hunter-deep transition-colors hover:border-gold hover:bg-[#FFFCF2]"
+                    className="text-hunter-deep hover:border-gold inline-flex items-center gap-1.5 rounded-lg border border-[#C4D3CB] px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
                   >
                     Open
                     <ArrowRightIcon className="size-[13px]" aria-hidden />

@@ -29,7 +29,10 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
-import { updateOrganizationSchema, type UpdateOrganizationInput } from '@/modules/superadmin/schemas';
+import {
+  updateOrganizationSchema,
+  type UpdateOrganizationInput,
+} from '@/modules/superadmin/schemas';
 import {
   useResendOrganizerInvite,
   useSetOrganizationDeleted,
@@ -41,15 +44,6 @@ import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 import { enterAsOrganizer } from '@/shared/lib/impersonation';
 import type { OrganizationSummary } from '@/modules/superadmin/types';
 
-/**
- * Per-row actions: Edit, Suspend/Reactivate, Delete.
- *
- * Suspend has no confirmation because it is fully reversible — the shows become
- * invisible to riders and every row stays put. Delete does, because it is a soft
- * delete with no undo in the UI; the confirmation text is the legacy wording,
- * which is unusually careful and worth keeping verbatim: it tells the operator
- * exactly what survives.
- */
 export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -82,35 +76,16 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const { errors } = form.formState;
   const busy = suspend.isPending || remove.isPending;
 
-  /**
-   * Button order and labels follow the legacy row exactly (superadmin.html
-   * lines 1108-1119): Resend invite (pending only), Edit, Delete, Suspend, then
-   * the impersonation button — whose label is "Preview onboarding form" rather
-   * than "Enter as organizer" for a pending org, because there is no organizer
-   * account to act as yet.
-   */
   const pending = !org.onboarded;
 
   return (
     <span className="flex items-center justify-end gap-1.5">
-      {/*
-        useTransition rather than a mutation hook: enterAsOrganizer ends in a
-        redirect, so there is no result to cache and no success state to toast —
-        the only UI need is a pending flag while the navigation happens.
-
-        The label reads "Enter as organizer" for pending orgs too, not "Preview
-        onboarding" (BUG-ORGLIST-001): this button is full impersonation — a
-        live, data-mutating session under the "Viewing as" banner — so a label
-        implying a safe read-only preview was misleading. There is no read-only
-        onboarding preview view in this app, so the honest, consistent label is
-        the one that matches the behavior.
-      */}
       <Button
         type="button"
         variant="ghost"
         disabled={entering}
         title="Full impersonation — you'll act as this organizer, not just view their shows"
-        className="h-auto inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-line-strong px-3 py-2 text-[12.5px] font-bold text-forest transition-colors hover:border-gold hover:bg-[#FFFCF2] disabled:opacity-45"
+        className="border-line-strong text-forest hover:border-gold inline-flex h-auto items-center gap-2 rounded-lg border px-3 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors hover:bg-[#FFFCF2] disabled:opacity-45"
         onClick={() => {
           startEntering(async () => {
             await enterAsOrganizer(org.id);
@@ -121,27 +96,21 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         <ArrowRightIcon className="size-[13px]" aria-hidden />
       </Button>
 
-      {/*
-        Everything else collapses into an overflow menu. Four buttons abreast
-        overflowed the actions column and wrapped onto a second line, which broke
-        the row rhythm — and only one of them is the action anyone actually
-        reaches for. Destructive items sit last, behind a separator.
-      */}
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`More actions for ${org.name}`}
-          className="grid size-8 flex-none place-items-center rounded-lg border border-transparent text-fa-muted-2 transition-colors hover:border-field hover:bg-white hover:text-forest"
+          className="text-fa-muted-2 hover:border-field hover:text-forest grid size-8 flex-none place-items-center rounded-lg border border-transparent transition-colors hover:bg-white"
         >
           <EllipsisVerticalIcon className="size-4" aria-hidden />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-52 rounded-xl border-line-mint p-1.5">
+        <DropdownMenuContent align="end" className="border-line-mint w-52 rounded-xl p-1.5">
           <DropdownMenuItem
             onSelect={() => {
               setEditOpen(true);
             }}
           >
-            <PencilIcon className="size-[15px] text-fa-muted" aria-hidden />
+            <PencilIcon className="text-fa-muted size-[15px]" aria-hidden />
             Edit organizer
           </DropdownMenuItem>
 
@@ -152,7 +121,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                 resendInvite.mutate(org.id);
               }}
             >
-              <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
+              <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
               {resendInvite.isPending ? 'Sending…' : 'Resend invite'}
             </DropdownMenuItem>
           )}
@@ -163,7 +132,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               suspend.mutate({ id: org.id, value: !org.suspended });
             }}
           >
-            <CircleSlashIcon className="size-[15px] text-fa-muted" aria-hidden />
+            <CircleSlashIcon className="text-fa-muted size-[15px]" aria-hidden />
             {org.suspended ? 'Reactivate access' : 'Suspend access'}
           </DropdownMenuItem>
 
@@ -176,7 +145,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                 remove.mutate({ id: org.id, value: false });
               }}
             >
-              <RotateCcwIcon className="size-[15px] text-fa-muted" aria-hidden />
+              <RotateCcwIcon className="text-fa-muted size-[15px]" aria-hidden />
               Restore organizer
             </DropdownMenuItem>
           ) : (
@@ -194,11 +163,10 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* ---- Edit ---- */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl text-hunter-deep">
+            <DialogTitle className="text-hunter-deep font-serif text-xl">
               Edit Organizer
             </DialogTitle>
             <DialogDescription>{org.name}</DialogDescription>
@@ -220,12 +188,10 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               registration={form.register('name')}
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              {(
-                [
-                  { name: 'email' as const, label: 'Contact email', type: 'email' },
-                  { name: 'phone' as const, label: 'Phone', type: undefined },
-                ]
-              ).map((f) => (
+              {[
+                { name: 'email' as const, label: 'Contact email', type: 'email' },
+                { name: 'phone' as const, label: 'Phone', type: undefined },
+              ].map((f) => (
                 <FormField
                   key={f.name}
                   id={`eo-${f.name}-${org.id}`}
@@ -244,13 +210,11 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               registration={form.register('website')}
             />
             <div className="grid gap-3 sm:grid-cols-3">
-              {(
-                [
-                  { name: 'city' as const, label: 'City' },
-                  { name: 'region' as const, label: 'State' },
-                  { name: 'country' as const, label: 'Country' },
-                ]
-              ).map((f) => (
+              {[
+                { name: 'city' as const, label: 'City' },
+                { name: 'region' as const, label: 'State' },
+                { name: 'country' as const, label: 'Country' },
+              ].map((f) => (
                 <FormField
                   key={f.name}
                   id={`eo-${f.name}-${org.id}`}
@@ -260,10 +224,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                 />
               ))}
             </div>
-            <FeeModelField
-              id={`eo-feemodel-${org.id}`}
-              registration={form.register('feeModel')}
-            />
+            <FeeModelField id={`eo-feemodel-${org.id}`} registration={form.register('feeModel')} />
 
             <DialogFooter>
               <Button
@@ -284,11 +245,10 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
         </DialogContent>
       </Dialog>
 
-      {/* ---- Delete confirmation ---- */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl text-hunter-deep">
+            <DialogTitle className="text-hunter-deep font-serif text-xl">
               Delete {org.name}?
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
@@ -319,7 +279,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                     onSuccess: () => {
                       setDeleteOpen(false);
                     },
-                  }
+                  },
                 );
               }}
             >

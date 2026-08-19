@@ -8,24 +8,19 @@ import { EconomicsSection } from '@/modules/superadmin/ui/lead-economics-section
 import { NotesSection } from '@/modules/superadmin/ui/lead-notes-section';
 import { OnboardingSection } from '@/modules/superadmin/ui/lead-onboarding-section';
 
-/**
- * The full target detail page — Contact & account, Deal economics, Notes, and
- * Onboarding — matching the Admin Console design. Each section saves
- * independently through updateLead, so one Save never touches another's fields.
- */
 export function LeadDetail({ lead }: { lead: LeadRow }) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-8">
         <div className="max-w-[700px]">
-          <h1 className="mb-3 font-[family-name:var(--font-nr)] text-[32px] font-medium leading-[1.06] tracking-[-.022em] text-hunter-deep">
+          <h1 className="text-hunter-deep mb-3 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.022em]">
             {lead.org_name}
           </h1>
           <LeadStatusPill status={lead.status} size="md" />
         </div>
         <Link
           href="/dashboard/superadmin/sales"
-          className="inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-hunter-deep transition-colors hover:border-gold"
+          className="text-hunter-deep hover:border-gold inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors"
         >
           <ArrowLeftIcon className="size-[14px]" aria-hidden />
           Back to funnel
@@ -35,15 +30,10 @@ export function LeadDetail({ lead }: { lead: LeadRow }) {
       <ContactSection lead={lead} />
       <EconomicsSection lead={lead} />
       <NotesSection lead={lead} />
-      {/*
-        Keyed so the section remounts — and re-reads the checklist from props —
-        when the checklist is first seeded (its length jumps 0→N) or re-sent
-        (sent-at changes). Toggling an item's `done` flag does not change the
-        length, so those edits are NOT lost to a remount before they are saved.
-      */}
+
       <OnboardingSection
         key={`${lead.onboarding_email_sent_at ?? 'unsent'}:${String(
-          toChecklist(lead.onboarding_checklist).length
+          toChecklist(lead.onboarding_checklist).length,
         )}`}
         lead={lead}
       />

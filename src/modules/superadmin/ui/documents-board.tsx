@@ -7,14 +7,6 @@ import type { CatalogDocument, TestSheetItem } from '@/modules/superadmin/types'
 import { DocumentsTestsTab } from '@/modules/superadmin/ui/documents-tests-tab';
 import { DocumentsGeneralTab } from '@/modules/superadmin/ui/documents-general-tab';
 
-/**
- * The platform file store, matching the Admin Console design: a Tests tab that
- * matches uploads to catalog sheets by filename, and a Documents tab for
- * everything else. Uploads/downloads/deletes hit Supabase Storage.
- *
- * Composes DocumentsTestsTab / DocumentsGeneralTab, which each own their tab's
- * markup and mutations — this component only owns which tab is showing.
- */
 export function DocumentsBoard({
   testSheets,
   docs,
@@ -36,10 +28,10 @@ export function DocumentsBoard({
               setTab(t);
             }}
             className={cn(
-              'h-auto rounded-full border px-5 py-2 text-[13.5px] font-semibold hover:bg-transparent transition-colors',
+              'h-auto rounded-full border px-5 py-2 text-[13.5px] font-semibold transition-colors hover:bg-transparent',
               tab === t
                 ? 'border-hunter-deep bg-hunter-deep text-paper'
-                : 'border-[#D7E0DA] bg-white text-[#5A6B63] hover:border-hunter-deep'
+                : 'hover:border-hunter-deep border-[#D7E0DA] bg-white text-[#5A6B63]',
             )}
           >
             {t === 'tests' ? 'Tests' : 'Documents'}

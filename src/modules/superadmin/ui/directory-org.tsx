@@ -23,20 +23,9 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'shows', label: 'Shows' },
 ];
 
-/**
- * Column templates as inline styles, shared with DirectoryPanel's header so they
- * line up exactly. Inline rather than a Tailwind arbitrary class because the
- * class is defined in this file but also consumed from another, and Tailwind's
- * cross-file scan did not reliably emit it for the header there.
- */
 export const ORG_COLS = 'minmax(240px,1fr) 90px 110px 132px';
 const NR = 'font-[family-name:var(--font-nr)]';
 
-/**
- * One organizer row in the directory, matching the Admin Console design: a grid
- * row (Organizer · Shows · Staff · View) that expands in place to a per-show
- * staff table with add / search / sort / re-role / permissions / remove.
- */
 export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState('');
@@ -49,12 +38,13 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
     const filtered = term
       ? org.staff.filter(
           (s) =>
-            s.name.toLowerCase().includes(term) || (s.email ?? '').toLowerCase().includes(term)
+            s.name.toLowerCase().includes(term) || (s.email ?? '').toLowerCase().includes(term),
         )
       : org.staff;
     return [...filtered].sort((a, b) => {
       if (sortBy === 'role') return a.role.localeCompare(b.role) || a.name.localeCompare(b.name);
-      if (sortBy === 'shows') return a.showName.localeCompare(b.showName) || a.name.localeCompare(b.name);
+      if (sortBy === 'shows')
+        return a.showName.localeCompare(b.showName) || a.name.localeCompare(b.name);
       return a.name.localeCompare(b.name);
     });
   }, [org.staff, search, sortBy]);
@@ -66,13 +56,11 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
         style={{ gridTemplateColumns: ORG_COLS }}
       >
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[14px] font-bold text-hunter-deep">{org.name}</span>
-          {location && <span className="text-[12px] text-fa-muted-2">{location}</span>}
+          <span className="text-hunter-deep text-[14px] font-bold">{org.name}</span>
+          {location && <span className="text-fa-muted-2 text-[12px]">{location}</span>}
         </div>
-        <span className={cn(NR, 'text-right text-[20px] text-hunter-deep')}>{org.showCount}</span>
-        <span className="text-right text-[12.5px] text-fa-muted-2">
-          {org.staff.length} staff
-        </span>
+        <span className={cn(NR, 'text-hunter-deep text-right text-[20px]')}>{org.showCount}</span>
+        <span className="text-fa-muted-2 text-right text-[12.5px]">{org.staff.length} staff</span>
         <div className="flex justify-end">
           <Button
             type="button"
@@ -80,7 +68,7 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
             onClick={() => {
               setExpanded((v) => !v);
             }}
-            className="h-auto rounded-lg border border-[#D7E0DA] bg-white px-3 py-2 text-[12.5px] font-bold text-hunter-deep hover:bg-transparent hover:border-gold"
+            className="text-hunter-deep hover:border-gold h-auto rounded-lg border border-[#D7E0DA] bg-white px-3 py-2 text-[12.5px] font-bold hover:bg-transparent"
           >
             {expanded ? 'Hide staff' : 'View staff'}
             <ChevronDownIcon
@@ -92,16 +80,16 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
       </div>
 
       {expanded && (
-        <div className="[animation:fa-in_.16s_ease-out_both] px-5 pb-[22px] pt-1">
+        <div className="[animation:fa-in_.16s_ease-out_both] px-5 pt-1 pb-[22px]">
           <div className="mb-4 flex flex-wrap items-center gap-3.5">
             <AddOrgStaffDialog orgName={org.name} shows={org.shows} />
-            <span className="max-w-[460px] text-[12.5px] leading-[1.5] text-fa-muted-2">
+            <span className="text-fa-muted-2 max-w-[460px] text-[12.5px] leading-[1.5]">
               Same invite flow {org.name} uses for their own team — email, role, and a show to
               assign them to.
             </span>
-            <div className="relative ml-auto min-w-[170px] max-w-[260px] flex-[1_1_200px]">
+            <div className="relative ml-auto max-w-[260px] min-w-[170px] flex-[1_1_200px]">
               <SearchIcon
-                className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9AA6A0]"
+                className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#9AA6A0]"
                 aria-hidden
               />
               <Input
@@ -112,22 +100,25 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
                   setSearch(event.target.value);
                 }}
                 placeholder="Search name or email…"
-                className="h-auto w-full rounded-lg border border-[#D7E0DA] bg-white py-[9px] pl-[34px] pr-3 text-[13px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-gold/[.14]"
+                className="text-hunter-deep focus-visible:border-gold focus-visible:ring-gold/[.14] h-auto w-full rounded-lg border border-[#D7E0DA] bg-white py-[9px] pr-3 pl-[34px] text-[13px] focus-visible:ring-[3px] focus-visible:outline-none"
               />
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex flex-none items-center gap-1.5 rounded-lg border border-[#D7E0DA] bg-white px-3 py-[9px] text-[12.5px] font-semibold text-hunter-deep transition-colors hover:border-gold data-[state=open]:border-gold">
+              <DropdownMenuTrigger className="text-hunter-deep hover:border-gold data-[state=open]:border-gold inline-flex flex-none items-center gap-1.5 rounded-lg border border-[#D7E0DA] bg-white px-3 py-[9px] text-[12.5px] font-semibold transition-colors">
                 Sort: {SORT_OPTIONS.find((o) => o.key === sortBy)?.label}
-                <ChevronDownIcon className="size-[13px] text-fa-muted-2" aria-hidden />
+                <ChevronDownIcon className="text-fa-muted-2 size-[13px]" aria-hidden />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[140px] rounded-xl border-line-mint p-1.5">
+              <DropdownMenuContent
+                align="end"
+                className="border-line-mint min-w-[140px] rounded-xl p-1.5"
+              >
                 {SORT_OPTIONS.map((option) => (
                   <DropdownMenuItem
                     key={option.key}
                     onSelect={() => {
                       setSortBy(option.key);
                     }}
-                    className={cn('text-[13px]', sortBy === option.key && 'font-bold text-gold')}
+                    className={cn('text-[13px]', sortBy === option.key && 'text-gold font-bold')}
                   >
                     {option.label}
                   </DropdownMenuItem>
@@ -146,8 +137,8 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
                   <span
                     key={h}
                     className={cn(
-                      'text-[9.5px] font-bold uppercase tracking-[0.14em] text-fa-muted-2',
-                      i === 5 && 'text-right'
+                      'text-fa-muted-2 text-[9.5px] font-bold tracking-[0.14em] uppercase',
+                      i === 5 && 'text-right',
                     )}
                   >
                     {h}
@@ -156,11 +147,11 @@ export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
               </div>
 
               {visible.length === 0 ? (
-                <div className="px-[18px] pb-[38px] pt-[34px] text-center">
-                  <div className={cn(NR, 'mb-1.5 text-[20px] text-hunter-deep')}>
+                <div className="px-[18px] pt-[34px] pb-[38px] text-center">
+                  <div className={cn(NR, 'text-hunter-deep mb-1.5 text-[20px]')}>
                     {search.trim() ? 'No matches' : 'No staff yet'}
                   </div>
-                  <p className="text-[13px] text-fa-muted-2">
+                  <p className="text-fa-muted-2 text-[13px]">
                     {search.trim()
                       ? `No one matches “${search.trim()}”.`
                       : 'Add a user to invite their first team member.'}

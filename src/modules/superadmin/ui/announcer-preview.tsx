@@ -13,7 +13,6 @@ const ANNOUNCER_NAV: WorkspaceNavItem[] = [
   { icon: HistoryIcon, label: 'History' },
 ];
 
-/** Sample of announcer.html's real-mode ring board — seeded, not fetched. */
 export function AnnouncerPreview() {
   return (
     <WorkspaceFrame
@@ -22,17 +21,19 @@ export function AnnouncerPreview() {
       liveToday
       footer={
         <div>
-          <div className="text-[9.5px] font-bold uppercase tracking-[.14em] text-[rgba(251,250,247,.4)]">
+          <div className="text-[9.5px] font-bold tracking-[.14em] text-[rgba(251,250,247,.4)] uppercase">
             Signed in as
           </div>
-          <div className="font-semibold text-paper">Tom Ruiz</div>
+          <div className="text-paper font-semibold">Tom Ruiz</div>
         </div>
       }
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h1 className={`${DISPLAY} text-2xl font-medium text-forest`}>My Assignments</h1>
-          <p className="text-sm text-fa-muted">Every show you&apos;re announcing, past and upcoming.</p>
+          <h1 className={`${DISPLAY} text-forest text-2xl font-medium`}>My Assignments</h1>
+          <p className="text-fa-muted text-sm">
+            Every show you&apos;re announcing, past and upcoming.
+          </p>
         </div>
         <Badge variant="outline" className="flex-none">
           2 upcoming
@@ -47,22 +48,28 @@ export function AnnouncerPreview() {
         ]}
       />
 
-      <div className="mb-2 text-xs font-bold uppercase tracking-[.1em] text-fa-muted">Upcoming &amp; today</div>
+      <div className="text-fa-muted mb-2 text-xs font-bold tracking-[.1em] uppercase">
+        Upcoming &amp; today
+      </div>
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border-l-4 border-l-gold border-y border-r border-line bg-white px-3 py-2.5">
+        <div className="border-l-gold border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border-y border-r border-l-4 bg-white px-3 py-2.5">
           <div>
-            <div className="text-sm font-semibold text-forest">Autumn Leaves Dressage Classic</div>
-            <div className="text-xs text-fa-muted">Peachtree Dressage Assoc. · Sat, Jul 11 · Ring 1</div>
+            <div className="text-forest text-sm font-semibold">Autumn Leaves Dressage Classic</div>
+            <div className="text-fa-muted text-xs">
+              Peachtree Dressage Assoc. · Sat, Jul 11 · Ring 1
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge>Today</Badge>
             <Button size="sm">Open live feed</Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-white px-3 py-2.5">
+        <div className="border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5">
           <div>
-            <div className="text-sm font-semibold text-forest">Chattahoochee Fall Classic</div>
-            <div className="text-xs text-fa-muted">Chattahoochee Equestrian Center · Sun, Aug 2 · Ring 2</div>
+            <div className="text-forest text-sm font-semibold">Chattahoochee Fall Classic</div>
+            <div className="text-fa-muted text-xs">
+              Chattahoochee Equestrian Center · Sun, Aug 2 · Ring 2
+            </div>
           </div>
           <Badge variant="outline">Upcoming</Badge>
         </div>

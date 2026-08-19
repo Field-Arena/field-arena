@@ -1,15 +1,8 @@
-/** CSV field escaping — wraps in quotes (doubling any inner quote) only when the field needs it. Matches modules/staff/utils.ts's identical helper. */
 function escapeCsvField(value: string | number | null | undefined): string {
   const v = value === null || value === undefined ? '' : String(value);
   return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
-/**
- * Builds the Sales Funnel "Export Contact List" CSV — every target currently
- * matching the board's search box, same columns as the visible table
- * (Organization, Contact, Email, Shows/yr, Status), so what downloads is
- * exactly what was on screen when the button was clicked.
- */
 export function buildLeadsCsv(
   leads: {
     org: string;

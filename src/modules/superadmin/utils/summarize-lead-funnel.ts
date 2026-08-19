@@ -2,12 +2,7 @@ import type { LeadRow } from '@/modules/superadmin/types';
 
 export interface LeadFunnelSummary {
   counts: Record<string, number>;
-  /**
-   * Of the leads that reached a real outcome (demo done, onboarding, won, or
-   * lost), how many became customers. New and demo-scheduled are excluded — they
-   * have not had a real chance yet. Matches the legacy formula exactly. `null`
-   * when nothing has resolved yet.
-   */
+
   closingRate: number | null;
 }
 

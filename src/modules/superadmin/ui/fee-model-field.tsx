@@ -2,7 +2,6 @@
 
 import { Label } from '@/shared/ui/shadcn/label';
 
-/** The fee-model select, shared by both dialogs. */
 export function FeeModelField({
   id,
   registration,
@@ -15,7 +14,7 @@ export function FeeModelField({
       <Label htmlFor={id}>Fee model</Label>
       <select
         id={id}
-        className="h-9 w-full rounded-lg border border-border bg-white px-2.5 text-[13.5px] text-ink outline-none focus-visible:border-gold focus-visible:ring-2 focus-visible:ring-gold/30"
+        className="border-border text-ink focus-visible:border-gold focus-visible:ring-gold/30 h-9 w-full rounded-lg border bg-white px-2.5 text-[13.5px] outline-none focus-visible:ring-2"
         {...registration}
       >
         <option value="default">Default — $7.99 floor, then 8%</option>

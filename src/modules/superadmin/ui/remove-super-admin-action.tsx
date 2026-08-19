@@ -14,12 +14,6 @@ import { Button } from '@/shared/ui/shadcn/button';
 import type { PlatformAccount } from '@/modules/superadmin/types';
 import { useRemoveSuperAdmin } from '@/modules/superadmin/hooks/use-superadmin-user-mutations';
 
-/**
- * Remove (active) or Cancel invite (pending) — Super Admins only. Both delete the
- * account; the copy differs because cancelling an unaccepted invite is a lighter
- * act than removing someone already working. The signed-in Super Admin cannot
- * remove themselves, so their own row shows a disabled "You" marker instead.
- */
 export function RemoveSuperAdminAction({
   account,
   isSelf,
@@ -35,7 +29,7 @@ export function RemoveSuperAdminAction({
   });
 
   if (isSelf) {
-    return <span className="pr-1 text-[12px] font-semibold text-fa-muted-2">You</span>;
+    return <span className="text-fa-muted-2 pr-1 text-[12px] font-semibold">You</span>;
   }
 
   const pending = account.status === 'pending';
@@ -48,7 +42,7 @@ export function RemoveSuperAdminAction({
         onClick={() => {
           setOpen(true);
         }}
-        className="h-auto rounded-lg border border-status-danger px-3 py-1.5 text-[12.5px] font-bold text-status-danger hover:bg-status-danger-bg transition-colors"
+        className="border-status-danger text-status-danger hover:bg-status-danger-bg h-auto rounded-lg border px-3 py-1.5 text-[12.5px] font-bold transition-colors"
       >
         {pending ? 'Cancel invite' : 'Remove'}
       </Button>
@@ -56,7 +50,7 @@ export function RemoveSuperAdminAction({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl text-hunter-deep">
+            <DialogTitle className="text-hunter-deep font-serif text-xl">
               {pending ? 'Cancel this invite?' : `Remove ${account.name} as a Super Admin?`}
             </DialogTitle>
             <DialogDescription className="leading-relaxed">

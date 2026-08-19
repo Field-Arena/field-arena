@@ -19,7 +19,7 @@ export function StatusPill({
     <span
       className={cn(
         'inline-flex h-[19px] flex-none items-center gap-[5px] rounded-full px-2 text-[10px] font-bold tracking-[.04em]',
-        tones[tone]
+        tones[tone],
       )}
     >
       <span aria-hidden className="size-[5px] rounded-full bg-[var(--dot)]" />

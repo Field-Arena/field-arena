@@ -10,7 +10,7 @@ export function RowRemove({ label, onClick }: { label: string; onClick: () => vo
       variant="ghost"
       aria-label={label}
       onClick={onClick}
-      className="h-auto grid size-[30px] flex-none place-items-center rounded-[7px] border border-transparent p-0 text-[#B4432F] hover:bg-[#FCF1EF] transition-colors hover:border-[#F0D3CE]"
+      className="grid size-[30px] h-auto flex-none place-items-center rounded-[7px] border border-transparent p-0 text-[#B4432F] transition-colors hover:border-[#F0D3CE] hover:bg-[#FCF1EF]"
     >
       <Trash2Icon className="size-[14px]" aria-hidden />
     </Button>

@@ -26,8 +26,8 @@ export function BulkDrop({ onFiles }: { onFiles: (files: FileList) => void }) {
         if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
       }}
       className={cn(
-        'h-auto flex w-full flex-col items-center justify-start gap-3 rounded-xl border border-dashed px-6 py-[30px] transition-colors',
-        over ? 'border-gold bg-[#FCFAF4]' : 'border-[#C9B98A] hover:border-gold hover:bg-[#FCFAF4]'
+        'flex h-auto w-full flex-col items-center justify-start gap-3 rounded-xl border border-dashed px-6 py-[30px] transition-colors',
+        over ? 'border-gold bg-[#FCFAF4]' : 'hover:border-gold border-[#C9B98A] hover:bg-[#FCFAF4]',
       )}
     >
       <Input

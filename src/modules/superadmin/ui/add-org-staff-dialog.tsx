@@ -23,13 +23,6 @@ import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 const SELECT_CLASS =
   'w-full rounded-lg border border-field bg-white px-3 py-2 text-[14px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none';
 
-/**
- * "+ Add a user" for one organizer, ported from openAddOrgStaffModal.
- *
- * Staff are per-show, so a show is picked here alongside email and role — it is
- * the same shape as the invite flow the organizer uses for their own team. The
- * trigger is disabled when the organizer has no shows to assign anyone to.
- */
 export function AddOrgStaffDialog({
   orgName,
   shows,
@@ -67,7 +60,7 @@ export function AddOrgStaffDialog({
           variant="ghost"
           disabled={!hasShows}
           title={hasShows ? undefined : 'This organizer has no shows to assign staff to yet'}
-          className="h-auto rounded-lg border border-hunter-deep bg-hunter-deep px-3 py-1.5 text-[12.5px] font-bold text-white hover:bg-transparent transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+          className="border-hunter-deep bg-hunter-deep h-auto rounded-lg border px-3 py-1.5 text-[12.5px] font-bold text-white transition hover:bg-transparent hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
         >
           <span aria-hidden>＋</span> Add a user
         </Button>
@@ -75,7 +68,7 @@ export function AddOrgStaffDialog({
 
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl text-hunter-deep">Add a user</DialogTitle>
+          <DialogTitle className="text-hunter-deep font-serif text-xl">Add a user</DialogTitle>
           <DialogDescription>
             Same invite flow {orgName} uses for their own team — email, role, and a show to assign
             them to.

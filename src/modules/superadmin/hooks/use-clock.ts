@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-/** A live-updating clock string, used by the signup-preview demo workspaces' status bars. */
 export function useClock(): string {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {

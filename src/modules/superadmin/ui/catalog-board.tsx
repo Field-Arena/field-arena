@@ -6,13 +6,15 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { CATALOG_SCORE_TYPES } from '@/modules/superadmin/constants';
-import type { CatalogDocument, CatalogSheetRow as CatalogSheetRowData } from '@/modules/superadmin/types';
+import type {
+  CatalogDocument,
+  CatalogSheetRow as CatalogSheetRowData,
+} from '@/modules/superadmin/types';
 import { UploadSheetDialog } from '@/modules/superadmin/ui/upload-sheet-dialog';
 import { CatalogSheetRow } from '@/modules/superadmin/ui/catalog-sheet-row';
 
 const COLS = 'minmax(280px,1fr) 150px 160px 130px 110px 92px';
 
-/** Does a sheet's governing body match the selected score-type filter? */
 function matchesType(gb: string | null, type: string): boolean {
   if (type === 'All') return true;
   const value = gb ?? '';
@@ -21,12 +23,6 @@ function matchesType(gb: string | null, type: string): boolean {
   return value.split('/').includes(type);
 }
 
-/**
- * The interactive catalog: the "Upload official sheet" action, the score-type
- * filter buttons with live counts, search, and the sheet table — matching the
- * Admin Console design. Data arrives as props; only the filter and search state
- * live here.
- */
 export function CatalogBoard({
   sheets,
   docs,
@@ -37,9 +33,6 @@ export function CatalogBoard({
   const [type, setType] = useState('All');
   const [search, setSearch] = useState('');
 
-  // The real uploaded PDF for a sheet lives in the documents store (Tests
-  // folder), keyed by the sheet's source_file. This is what makes "View PDF"
-  // link to an actual file rather than just marking the sheet Official.
   const docByName = new Map(docs.map((d) => [d.name, d] as const));
 
   const filters = useMemo(
@@ -48,7 +41,7 @@ export function CatalogBoard({
         label: t,
         count: sheets.filter((s) => matchesType(s.governing_body, t)).length,
       })),
-    [sheets]
+    [sheets],
   );
 
   const visible = useMemo(() => {
@@ -68,14 +61,14 @@ export function CatalogBoard({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <UploadSheetDialog />
-        <span className="text-[12.5px] text-fa-muted-2">
+        <span className="text-fa-muted-2 text-[12.5px]">
           Create a sheet stub here, then attach its PDF from the File column.
         </span>
       </div>
 
       <div className="rounded-[14px] border border-[#E2E8E4] bg-white">
         <div className="flex flex-wrap items-center gap-2 border-b border-[#E2E8E4] px-5 py-3.5">
-          <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2">
+          <span className="text-fa-muted-2 mr-1 text-[10px] font-bold tracking-[0.14em] uppercase">
             Score type
           </span>
           {filters.map((f) => {
@@ -89,14 +82,16 @@ export function CatalogBoard({
                   setType(f.label);
                 }}
                 className={cn(
-                  'h-auto inline-flex items-baseline gap-1.5 rounded-lg border px-3 py-2 text-[12.5px] font-semibold hover:bg-transparent transition-colors',
+                  'inline-flex h-auto items-baseline gap-1.5 rounded-lg border px-3 py-2 text-[12.5px] font-semibold transition-colors hover:bg-transparent',
                   on
                     ? 'border-hunter-deep bg-hunter-deep text-paper'
-                    : 'border-[#D7E0DA] bg-white text-[#5A6B63] hover:border-gold'
+                    : 'hover:border-gold border-[#D7E0DA] bg-white text-[#5A6B63]',
                 )}
               >
                 {f.label}
-                <span className={cn('text-[12px] font-medium', on ? 'text-paper/60' : 'text-[#9AA6A0]')}>
+                <span
+                  className={cn('text-[12px] font-medium', on ? 'text-paper/60' : 'text-[#9AA6A0]')}
+                >
                   {f.count}
                 </span>
               </Button>
@@ -104,7 +99,7 @@ export function CatalogBoard({
           })}
           <div className="relative ml-auto min-w-[170px] flex-[0_1_250px]">
             <SearchIcon
-              className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9AA6A0]"
+              className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#9AA6A0]"
               aria-hidden
             />
             <Input
@@ -114,7 +109,7 @@ export function CatalogBoard({
                 setSearch(event.target.value);
               }}
               placeholder="Search sheets…"
-              className="h-auto w-full rounded-lg border border-[#D7E0DA] bg-white py-2 pl-[33px] pr-3 text-[13px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-gold/[.14]"
+              className="text-hunter-deep focus-visible:border-gold focus-visible:ring-gold/[.14] h-auto w-full rounded-lg border border-[#D7E0DA] bg-white py-2 pr-3 pl-[33px] text-[13px] focus-visible:ring-[3px] focus-visible:outline-none"
             />
           </div>
         </div>
@@ -127,7 +122,7 @@ export function CatalogBoard({
             {['Sheet', 'Level', 'Scoring family', 'Provenance', 'File', ''].map((h) => (
               <span
                 key={h || 'action'}
-                className="text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2"
+                className="text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] uppercase"
               >
                 {h}
               </span>
@@ -135,7 +130,7 @@ export function CatalogBoard({
           </div>
 
           {visible.length === 0 ? (
-            <div className="px-6 py-[42px] text-center text-[13.5px] text-fa-muted-2">
+            <div className="text-fa-muted-2 px-6 py-[42px] text-center text-[13.5px]">
               No sheets match this filter.
             </div>
           ) : (
@@ -150,7 +145,7 @@ export function CatalogBoard({
           )}
         </div>
 
-        <div className="border-t border-[#E2E8E4] px-5 py-3 text-[12.5px] text-fa-muted-2">
+        <div className="text-fa-muted-2 border-t border-[#E2E8E4] px-5 py-3 text-[12.5px]">
           {visible.length} of {sheets.length} sheet{sheets.length === 1 ? '' : 's'}
         </div>
       </div>

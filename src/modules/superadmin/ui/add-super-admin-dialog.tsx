@@ -24,20 +24,6 @@ const FIELD =
   'placeholder:text-[#9AA6A0] focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/[.16]';
 const LABEL = 'mb-2 block text-[11px] font-bold uppercase tracking-[.08em] text-hunter-deep';
 
-/**
- * "+ Add Super Admin", ported from the legacy console's openAddSuperAdminModal.
- *
- * Styled to the Admin Console design (gold-ruled "Full access" eyebrow, serif
- * title, divider-separated footer) rather than the shared FormField/Dialog
- * footer defaults — those are shared by other dialogs across the app, and this
- * one has its own distinct look in the design, so it is built inline here the
- * same way DemoDialog builds the landing page's own look.
- *
- * Name and email only — every Super Admin has identical, platform-wide access,
- * so there is nothing else to grant. On submit the person is invited by email
- * and provisioned as a Super Admin immediately; see addSuperAdmin for why both
- * happen together.
- */
 export function AddSuperAdminDialog() {
   const [open, setOpen] = useState(false);
 
@@ -61,7 +47,7 @@ export function AddSuperAdminDialog() {
         <Button
           type="button"
           variant="ghost"
-          className="h-auto rounded-lg border border-hunter-deep bg-hunter-deep px-3.5 py-2 text-[13px] font-bold text-white hover:bg-transparent transition hover:brightness-110"
+          className="border-hunter-deep bg-hunter-deep h-auto rounded-lg border px-3.5 py-2 text-[13px] font-bold text-white transition hover:bg-transparent hover:brightness-110"
         >
           <span aria-hidden>＋</span> Add Super Admin
         </Button>
@@ -69,14 +55,14 @@ export function AddSuperAdminDialog() {
 
       <DialogContent
         showCloseButton={false}
-        className="gap-0 rounded-[20px] border-line-strong bg-white p-0 sm:max-w-[520px]"
+        className="border-line-strong gap-0 rounded-[20px] bg-white p-0 sm:max-w-[520px]"
       >
         <DialogClose asChild>
           <Button
             type="button"
             variant="ghost"
             aria-label="Close"
-            className="absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] bg-hunter-pale p-0 text-hunter-deep transition-colors hover:bg-line-strong"
+            className="bg-hunter-pale text-hunter-deep hover:bg-line-strong absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] p-0 transition-colors"
           >
             <XIcon className="size-[18px]" aria-hidden />
           </Button>
@@ -84,15 +70,15 @@ export function AddSuperAdminDialog() {
 
         <DialogHeader className="gap-0 px-8 pt-8 pb-6">
           <div className="mb-3.5 flex items-center gap-3">
-            <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
-            <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-gold">
+            <span aria-hidden className="bg-gold h-[3px] w-[26px]" />
+            <span className="text-gold text-[10.5px] font-bold tracking-[.18em] uppercase">
               Full access
             </span>
           </div>
-          <DialogTitle className="font-[family-name:var(--font-nr)] text-[28px] font-medium leading-[1.1] tracking-[-.02em] text-hunter-deep">
+          <DialogTitle className="text-hunter-deep font-[family-name:var(--font-nr)] text-[28px] leading-[1.1] font-medium tracking-[-.02em]">
             Add Super Admin
           </DialogTitle>
-          <DialogDescription className="mt-2.5 text-[14.5px] leading-[1.6] text-fa-muted">
+          <DialogDescription className="text-fa-muted mt-2.5 text-[14.5px] leading-[1.6]">
             Invite another person with full Super Admin access — impersonate any organizer,
             suspend/reactivate accounts, everything this account can do. They&apos;ll get an email
             to set a password and sign in.
@@ -107,7 +93,7 @@ export function AddSuperAdminDialog() {
           }}
           noValidate
         >
-          <div className="grid gap-4 border-t border-line px-8 py-6 sm:grid-cols-2">
+          <div className="border-line grid gap-4 border-t px-8 py-6 sm:grid-cols-2">
             <div>
               <Label htmlFor="asa-name" className={LABEL}>
                 Name
@@ -120,7 +106,7 @@ export function AddSuperAdminDialog() {
                 {...form.register('name')}
               />
               {errors.name && (
-                <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
+                <p role="alert" className="text-status-danger mt-1.5 text-[12.5px]">
                   {errors.name.message}
                 </p>
               )}
@@ -138,15 +124,15 @@ export function AddSuperAdminDialog() {
                 {...form.register('email')}
               />
               {errors.email && (
-                <p role="alert" className="mt-1.5 text-[12.5px] text-status-danger">
+                <p role="alert" className="text-status-danger mt-1.5 text-[12.5px]">
                   {errors.email.message}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-[20px] border-t border-line bg-hunter-pale px-8 py-5">
-            <span className="text-[13px] text-fa-muted">Access starts the moment they accept.</span>
+          <div className="border-line bg-hunter-pale flex flex-wrap items-center justify-between gap-3 rounded-b-[20px] border-t px-8 py-5">
+            <span className="text-fa-muted text-[13px]">Access starts the moment they accept.</span>
             <div className="flex items-center gap-2.5">
               <Button
                 type="button"
@@ -154,7 +140,7 @@ export function AddSuperAdminDialog() {
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="h-auto rounded-[10px] border border-line-strong bg-white px-4 py-2.5 text-[13.5px] font-bold text-hunter-deep hover:bg-transparent transition-colors hover:border-hunter-deep"
+                className="border-line-strong text-hunter-deep hover:border-hunter-deep h-auto rounded-[10px] border bg-white px-4 py-2.5 text-[13.5px] font-bold transition-colors hover:bg-transparent"
               >
                 Cancel
               </Button>
@@ -162,7 +148,7 @@ export function AddSuperAdminDialog() {
                 type="submit"
                 variant="ghost"
                 disabled={isPending}
-                className="h-auto inline-flex items-center gap-2 rounded-[10px] bg-hunter-deep px-4 py-2.5 text-[13.5px] font-bold text-white hover:bg-transparent transition hover:brightness-110 disabled:opacity-70"
+                className="bg-hunter-deep inline-flex h-auto items-center gap-2 rounded-[10px] px-4 py-2.5 text-[13.5px] font-bold text-white transition hover:bg-transparent hover:brightness-110 disabled:opacity-70"
               >
                 {isPending ? 'Sending…' : 'Send invite'}
                 {isPending ? (

@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { CheckIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import type { CatalogDocument, TestSheetItem } from '@/modules/superadmin/types';
@@ -18,16 +25,12 @@ import { StatusPill } from '@/modules/superadmin/ui/documents-tests-status-pill'
 import { RowUpload } from '@/modules/superadmin/ui/documents-tests-row-upload';
 import { BulkDrop } from '@/modules/superadmin/ui/documents-tests-bulk-drop';
 
-const HEAD = 'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
-const LINK = 'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
+const HEAD =
+  'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
+const LINK =
+  'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
 const DEL = 'text-[13px] font-bold text-[#B4432F] hover:text-[#8E3627]';
 
-/**
- * The Documents board's "Tests" tab: matches uploads to catalog sheets by
- * filename, a bulk-drop zone, the main per-sheet table, and any uploads whose
- * filename didn't match a sheet. Extracted from DocumentsBoard, which now only
- * owns which tab is active.
- */
 export function DocumentsTestsTab({
   testSheets,
   docs,
@@ -56,7 +59,9 @@ export function DocumentsTestsTab({
 
   async function bulkTests(files: FileList) {
     for (const file of Array.from(files)) {
-      const hit = testSheets.find((s) => normalizeFilename(s.sourceFile) === normalizeFilename(file.name));
+      const hit = testSheets.find(
+        (s) => normalizeFilename(s.sourceFile) === normalizeFilename(file.name),
+      );
       await uploadFile('Tests', hit ? hit.sourceFile : file.name, file);
     }
   }
@@ -74,7 +79,7 @@ export function DocumentsTestsTab({
           onClick={() => {
             setOnlyMissing((v) => !v);
           }}
-          className="h-auto px-0 py-0 inline-flex items-center gap-2.5 text-[13.5px] text-[#16261F] hover:bg-transparent"
+          className="inline-flex h-auto items-center gap-2.5 px-0 py-0 text-[13.5px] text-[#16261F] hover:bg-transparent"
         >
           <span
             className="grid size-[17px] place-items-center rounded border"
@@ -83,7 +88,7 @@ export function DocumentsTestsTab({
               background: onlyMissing ? '#0D2C23' : '#FFFFFF',
             }}
           >
-            {onlyMissing && <CheckIcon className="size-3 text-gold" aria-hidden />}
+            {onlyMissing && <CheckIcon className="text-gold size-3" aria-hidden />}
           </span>
           Show only missing
         </Button>
@@ -98,7 +103,7 @@ export function DocumentsTestsTab({
       <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
         <Table className="min-w-[900px] border-collapse">
           <TableHeader className="[&_tr]:border-0">
-            <TableRow className="hover:bg-transparent border-b-0">
+            <TableRow className="border-b-0 hover:bg-transparent">
               <TableHead className={cn('h-auto', HEAD, 'text-left')}>Test</TableHead>
               <TableHead className={cn('h-auto', HEAD, 'w-[170px] text-left')}>Level</TableHead>
               <TableHead className={cn('h-auto', HEAD, 'w-[200px] text-left')}>Status</TableHead>
@@ -108,7 +113,10 @@ export function DocumentsTestsTab({
           <TableBody>
             {rows.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={4} className="whitespace-normal px-5 py-[42px] text-center text-[13.5px] text-fa-muted-2">
+                <TableCell
+                  colSpan={4}
+                  className="text-fa-muted-2 px-5 py-[42px] text-center text-[13.5px] whitespace-normal"
+                >
                   {onlyMissing ? 'Every test sheet has a file. 🎉' : 'No test sheets yet.'}
                 </TableCell>
               </TableRow>
@@ -118,18 +126,21 @@ export function DocumentsTestsTab({
                 return (
                   <TableRow
                     key={sheet.id}
-                    className="hover:bg-transparent border-b border-[#EEF2EF] last:border-b-0"
+                    className="border-b border-[#EEF2EF] last:border-b-0 hover:bg-transparent"
                     style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
                   >
-                    <TableCell className="whitespace-normal px-5 py-3 text-[14px] text-[#16261F]">
+                    <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#16261F]">
                       {sheet.title}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-4 py-3 text-[13.5px] text-[#5A6B63]">
+                    <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
                       {sheet.level ?? '—'}
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       {doc ? (
-                        <StatusPill tone="ok" label={`Uploaded ${formatTimestamp(doc.createdAt)}`} />
+                        <StatusPill
+                          tone="ok"
+                          label={`Uploaded ${formatTimestamp(doc.createdAt)}`}
+                        />
                       ) : (
                         <StatusPill tone="warn" label="Missing" />
                       )}
@@ -183,23 +194,27 @@ export function DocumentsTestsTab({
           <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
             <Table className="min-w-[720px] border-collapse">
               <TableHeader className="[&_tr]:border-0">
-                <TableRow className="hover:bg-transparent border-b-0">
+                <TableRow className="border-b-0 hover:bg-transparent">
                   <TableHead className={cn('h-auto', HEAD, 'text-left')}>File</TableHead>
-                  <TableHead className={cn('h-auto', HEAD, 'w-[220px] text-left')}>Uploaded</TableHead>
-                  <TableHead className={cn('h-auto', HEAD, 'w-[340px] text-right')}>Actions</TableHead>
+                  <TableHead className={cn('h-auto', HEAD, 'w-[220px] text-left')}>
+                    Uploaded
+                  </TableHead>
+                  <TableHead className={cn('h-auto', HEAD, 'w-[340px] text-right')}>
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {unmatched.map((d, i) => (
                   <TableRow
                     key={d.id}
-                    className="hover:bg-transparent border-b border-[#EEF2EF] last:border-b-0"
+                    className="border-b border-[#EEF2EF] last:border-b-0 hover:bg-transparent"
                     style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
                   >
-                    <TableCell className="whitespace-normal px-5 py-3 text-[14px] text-[#16261F]">
+                    <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#16261F]">
                       {d.name}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-4 py-3 text-[13.5px] text-[#5A6B63]">
+                    <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
                       {formatTimestamp(d.createdAt)}
                     </TableCell>
                     <TableCell className="px-5 py-3">
@@ -212,7 +227,7 @@ export function DocumentsTestsTab({
                         <Button
                           type="button"
                           variant="ghost"
-                          className="h-auto px-0 py-0 hover:bg-transparent text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+                          className="hover:text-gold h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                           onClick={() => {
                             move.mutate({ id: d.id, folder: 'Documents' });
                           }}

@@ -2,11 +2,10 @@ import type { CatalogSheetRow } from '@/modules/superadmin/types';
 
 export interface SheetsByFamilySummary {
   byFamily: Map<string, number>;
-  /** Sheets with no source PDF attached yet. */
+
   stubs: number;
 }
 
-/** Groups the catalog by scoring family for the platform-library stat tiles. */
 export function groupSheetsByFamily(sheets: CatalogSheetRow[]): SheetsByFamilySummary {
   const byFamily = new Map<string, number>();
   for (const sheet of sheets) {

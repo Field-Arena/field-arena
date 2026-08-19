@@ -6,16 +6,15 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { DISPLAY, GROUP } from '@/modules/superadmin/ui/signup-preview-styles';
 import { DemoField } from '@/modules/superadmin/ui/demo-field';
 
-/** Same field set as the real `OnboardingForm` (organizations/ui/onboarding-form.tsx), pre-filled with sample data. */
 export function OrganizerOnboardingPreview() {
   const [submitted, setSubmitted] = useState(false);
 
   if (submitted) {
     return (
-      <div className="mx-auto max-w-[560px] rounded-[18px] border border-line bg-white p-9 text-center">
-        <CheckCircle2Icon className="mx-auto mb-3 size-8 text-forest" aria-hidden />
-        <h1 className={`${DISPLAY} mb-2 text-2xl font-medium text-forest`}>You&apos;re all set</h1>
-        <p className="text-[14.5px] text-fa-muted">
+      <div className="border-line mx-auto max-w-[560px] rounded-[18px] border bg-white p-9 text-center">
+        <CheckCircle2Icon className="text-forest mx-auto mb-3 size-8" aria-hidden />
+        <h1 className={`${DISPLAY} text-forest mb-2 text-2xl font-medium`}>You&apos;re all set</h1>
+        <p className="text-fa-muted text-[14.5px]">
           Demo only — nothing here was saved. A real organizer lands in their workspace next.
         </p>
       </div>
@@ -27,13 +26,15 @@ export function OrganizerOnboardingPreview() {
       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
         Demo data — a real invited organizer sees their own contact info pre-filled here instead.
       </div>
-      <div className="rounded-[18px] border border-line bg-white p-7 sm:p-9">
-        <h1 className={`${DISPLAY} mb-2.5 text-[26px] font-medium leading-[1.06] tracking-[-.022em] text-forest`}>
+      <div className="border-line rounded-[18px] border bg-white p-7 sm:p-9">
+        <h1
+          className={`${DISPLAY} text-forest mb-2.5 text-[26px] leading-[1.06] font-medium tracking-[-.022em]`}
+        >
           Complete Your Organization Profile
         </h1>
-        <p className="mb-7 text-[14.5px] leading-[1.6] text-fa-muted">
-          Welcome to Field &amp; Arena. A few details about your organization and you&apos;re ready to
-          build your first show.
+        <p className="text-fa-muted mb-7 text-[14.5px] leading-[1.6]">
+          Welcome to Field &amp; Arena. A few details about your organization and you&apos;re ready
+          to build your first show.
         </p>
 
         <div className="space-y-5">
@@ -65,7 +66,7 @@ export function OrganizerOnboardingPreview() {
             onClick={() => {
               setSubmitted(true);
             }}
-            className="h-auto w-full rounded-[10px] bg-gold px-6 py-[15px] text-[15px] font-bold text-forest hover:bg-gold-light transition-colors"
+            className="bg-gold text-forest hover:bg-gold-light h-auto w-full rounded-[10px] px-6 py-[15px] text-[15px] font-bold transition-colors"
           >
             Finish setup
           </Button>

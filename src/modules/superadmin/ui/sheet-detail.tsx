@@ -16,7 +16,10 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { CATALOG_FAMILY_META, SHEET_FAMILIES } from '@/modules/superadmin/constants';
 import type { ScoringSheet } from '@/modules/superadmin/types';
 import { readSheetDef, type SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
-import { useUpdateScoringSheet, useDeleteScoringSheet } from '@/modules/superadmin/hooks/use-catalog-mutations';
+import {
+  useUpdateScoringSheet,
+  useDeleteScoringSheet,
+} from '@/modules/superadmin/hooks/use-catalog-mutations';
 import { SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { SheetDetailsForm } from '@/modules/superadmin/ui/sheet-details-form';
 import { SheetMovementsEditor } from '@/modules/superadmin/ui/sheet-movements-editor';
@@ -34,16 +37,6 @@ const FAM_FALLBACK = {
 
 type SheetFamily = (typeof SHEET_FAMILIES)[number];
 
-/**
- * The catalog sheet detail/editor — Sheet Details plus, for movement sheets, the
- * header fields, movements, and collective marks. Everything saves through
- * updateScoringSheet in one go; the def is rebuilt from the edited fields.
- *
- * Composes SheetDetailsForm / SheetMovementsEditor / SheetCollectivesEditor,
- * which own their own section's markup — this component owns the shared form
- * state (so Save can assemble one payload from every section) and the
- * save/cancel/delete actions.
- */
 export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
   const router = useRouter();
   const initial = readSheetDef(sheet.def);
@@ -52,7 +45,9 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
   const [level, setLevel] = useState(sheet.level ?? '');
   const [discipline, setDiscipline] = useState(sheet.discipline ?? 'Dressage');
   const [scoreType, setScoreType] = useState(sheet.governing_body ?? 'Independent');
-  const [family, setFamily] = useState<SheetFamily>((sheet.family as SheetFamily | null) ?? 'unassigned');
+  const [family, setFamily] = useState<SheetFamily>(
+    (sheet.family as SheetFamily | null) ?? 'unassigned',
+  );
   const [def, setDef] = useState<SheetDefShape>(initial);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -91,7 +86,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
     <div className="mx-auto max-w-[1000px] space-y-5">
       <Link
         href="/dashboard/superadmin/catalog"
-        className="inline-flex items-center gap-2 text-[13px] font-bold text-hunter-deep transition-colors hover:text-gold"
+        className="text-hunter-deep hover:text-gold inline-flex items-center gap-2 text-[13px] font-bold transition-colors"
       >
         <ArrowLeftIcon className="size-[14px]" aria-hidden />
         Scoring Catalog
@@ -99,7 +94,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
 
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-3">
-          <h1 className="font-[family-name:var(--font-nr)] text-[31px] font-semibold leading-[1.06] tracking-[-.022em] text-[#16261F]">
+          <h1 className="font-[family-name:var(--font-nr)] text-[31px] leading-[1.06] font-semibold tracking-[-.022em] text-[#16261F]">
             {title || 'Untitled sheet'}
           </h1>
           <span className="inline-flex h-6 items-center rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold text-[#7A6A3C]">
@@ -113,7 +108,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
           >
             {fam.label}
           </span>
-          <span className="text-[14px] text-fa-muted-2">{fam.blurb}</span>
+          <span className="text-fa-muted-2 text-[14px]">{fam.blurb}</span>
         </div>
       </div>
 
@@ -140,20 +135,26 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
           <h2 className={`${H2} mb-1.5`}>Pick a scoring family</h2>
           <p className="text-[14px] leading-[1.6] text-[#8A8275]">
             The detailed criteria editor is built for movement sheets. Set this sheet to{' '}
-            <strong className="text-[#16261F]">Movement test</strong> above to scaffold movements and
-            collective marks, or keep the metadata and add the {fam.label.toLowerCase()} criteria
-            later.
+            <strong className="text-[#16261F]">Movement test</strong> above to scaffold movements
+            and collective marks, or keep the metadata and add the {fam.label.toLowerCase()}{' '}
+            criteria later.
           </p>
         </section>
       )}
 
       <div className="flex items-center gap-3">
-        <Button type="button" variant="ghost" disabled={update.isPending} className={`h-auto hover:bg-transparent ${SAVE}`} onClick={save}>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={update.isPending}
+          className={`h-auto hover:bg-transparent ${SAVE}`}
+          onClick={save}
+        >
           {update.isPending ? 'Saving…' : 'Save sheet'}
         </Button>
         <Link
           href="/dashboard/superadmin/catalog"
-          className="rounded-[9px] border border-[#C4D3CB] bg-white px-[18px] py-3 text-[13.5px] font-semibold text-hunter-deep transition-colors hover:border-gold"
+          className="text-hunter-deep hover:border-gold rounded-[9px] border border-[#C4D3CB] bg-white px-[18px] py-3 text-[13.5px] font-semibold transition-colors"
         >
           Cancel
         </Link>
@@ -163,7 +164,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
           onClick={() => {
             setConfirmOpen(true);
           }}
-          className="ml-auto h-auto inline-flex items-center gap-2 rounded-[9px] border border-[#E4CFC9] px-4 py-3 text-[13px] font-bold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FCF1EF]"
+          className="ml-auto inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#E4CFC9] px-4 py-3 text-[13px] font-bold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FCF1EF]"
         >
           <Trash2Icon className="size-[15px]" aria-hidden />
           Delete sheet
@@ -173,7 +174,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl text-hunter-deep">
+            <DialogTitle className="text-hunter-deep font-serif text-xl">
               Delete {sheet.title}?
             </DialogTitle>
             <DialogDescription>

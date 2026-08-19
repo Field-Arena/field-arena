@@ -6,12 +6,6 @@ import { cn } from '@/shared/lib/utils';
 
 type TabKey = 'superadmins' | 'directory';
 
-/**
- * The two-tab shell on the SuperAdmin Users page: "Super Admins" and "Organizer
- * Staff Directory", matching the legacy console. Each tab's content is passed in
- * as a node so the panels stay their own components and this only owns which one
- * is showing.
- */
 export function UsersTabs({
   superAdmins,
   directory,
@@ -40,10 +34,10 @@ export function UsersTabs({
               setTab(key);
             }}
             className={cn(
-              'h-auto rounded-full px-4 py-2 text-[13.5px] font-bold hover:bg-transparent transition-colors',
+              'h-auto rounded-full px-4 py-2 text-[13.5px] font-bold transition-colors hover:bg-transparent',
               tab === key
                 ? 'bg-hunter-deep text-white'
-                : 'border border-line-strong text-hunter-deep hover:border-hunter-deep'
+                : 'border-line-strong text-hunter-deep hover:border-hunter-deep border',
             )}
           >
             {label}

@@ -8,12 +8,6 @@ import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
 import { AddRow } from '@/modules/superadmin/ui/sheet-add-row';
 
-/**
- * Movement-family sheet header fields (arena, ride time, max points, …) plus
- * the numbered movements list. Extracted from SheetDetail; `def` state is
- * still owned by the parent so Save can rebuild the whole `def` payload in one
- * shot from every section's edits.
- */
 export function SheetMovementsEditor({
   def,
   setDef,
@@ -23,11 +17,10 @@ export function SheetMovementsEditor({
 }) {
   return (
     <>
-      {/* Sheet header */}
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Sheet header</h2>
         <p className="mb-[18px] text-[12.5px] text-[#8A8275]">Masthead fields the judge sees.</p>
-        <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))]">
+        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))] gap-[18px]">
           <Field
             label="Introduce (new movements)"
             value={def.intro}
@@ -70,7 +63,6 @@ export function SheetMovementsEditor({
         </div>
       </section>
 
-      {/* Movements */}
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Movements</h2>
         <p className="mb-4 text-[12.5px] leading-[1.55] text-[#8A8275]">
@@ -94,7 +86,7 @@ export function SheetMovementsEditor({
                   setDef((d) => ({
                     ...d,
                     movements: d.movements.map((m, j) =>
-                      j === i ? { ...m, text: e.target.value } : m
+                      j === i ? { ...m, text: e.target.value } : m,
                     ),
                   }));
                 }}
@@ -108,7 +100,7 @@ export function SheetMovementsEditor({
                   setDef((d) => ({
                     ...d,
                     movements: d.movements.map((m, j) =>
-                      j === i ? { ...m, coef: Number.isFinite(c) ? c : 0 } : m
+                      j === i ? { ...m, coef: Number.isFinite(c) ? c : 0 } : m,
                     ),
                   }));
                 }}
@@ -119,7 +111,9 @@ export function SheetMovementsEditor({
                 onClick={() => {
                   setDef((d) => ({
                     ...d,
-                    movements: d.movements.filter((_, j) => j !== i).map((m, j) => ({ ...m, n: j + 1 })),
+                    movements: d.movements
+                      .filter((_, j) => j !== i)
+                      .map((m, j) => ({ ...m, n: j + 1 })),
                   }));
                 }}
               />

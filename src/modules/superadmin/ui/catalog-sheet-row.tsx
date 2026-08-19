@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { ArrowRightIcon } from 'lucide-react';
 import { CATALOG_FAMILY_META } from '@/modules/superadmin/constants';
-import type { CatalogDocument, CatalogSheetRow as CatalogSheetRowData } from '@/modules/superadmin/types';
+import type {
+  CatalogDocument,
+  CatalogSheetRow as CatalogSheetRowData,
+} from '@/modules/superadmin/types';
 import { CatalogFileCell } from '@/modules/superadmin/ui/catalog-file-cell';
 
 const COLS = 'minmax(280px,1fr) 150px 160px 130px 110px 92px';
@@ -13,7 +16,6 @@ const FAM_FALLBACK = {
   bd: '#E2E8E4',
 };
 
-/** One row in the catalog table's sheet list. */
 export function CatalogSheetRow({
   sheet,
   doc,
@@ -39,24 +41,24 @@ export function CatalogSheetRow({
               {sheet.governing_body}
             </span>
           )}
-          <span className="text-[12px] text-fa-muted-2">{sheet.discipline ?? '—'}</span>
+          <span className="text-fa-muted-2 text-[12px]">{sheet.discipline ?? '—'}</span>
         </div>
       </div>
-      <span className="whitespace-nowrap text-[13.5px] text-[#16261F]">{sheet.level ?? '—'}</span>
+      <span className="text-[13.5px] whitespace-nowrap text-[#16261F]">{sheet.level ?? '—'}</span>
       <span
-        className="inline-flex h-6 w-fit items-center whitespace-nowrap rounded-md border px-2.5 text-[11.5px] font-bold"
+        className="inline-flex h-6 w-fit items-center rounded-md border px-2.5 text-[11.5px] font-bold whitespace-nowrap"
         style={{ background: fam.bg, borderColor: fam.bd, color: fam.fg }}
       >
         {fam.label}
       </span>
-      <span className="inline-flex h-6 w-fit items-center whitespace-nowrap rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold text-[#7A6A3C]">
+      <span className="inline-flex h-6 w-fit items-center rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold whitespace-nowrap text-[#7A6A3C]">
         {official ? 'Official' : 'Stub'}
       </span>
       <CatalogFileCell doc={doc} sourceFile={sheet.source_file} />
       <div className="flex justify-end">
         <Link
           href={`/dashboard/superadmin/catalog/${sheet.id}`}
-          className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[#16261F] transition-colors hover:text-gold"
+          className="hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-bold text-[#16261F] transition-colors"
         >
           Open
           <ArrowRightIcon className="size-3.5" aria-hidden />

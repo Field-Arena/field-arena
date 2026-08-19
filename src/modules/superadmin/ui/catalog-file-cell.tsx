@@ -8,12 +8,6 @@ import type { CatalogDocument } from '@/modules/superadmin/types';
 import { readFileAsBase64 } from '@/modules/superadmin/utils/read-file-as-base64';
 import { useUploadDocument } from '@/modules/superadmin/hooks/use-document-mutations';
 
-/**
- * The File column for one sheet: a real "View PDF" link when the source PDF has
- * been uploaded to the documents store, an inline Upload when it hasn't (the file
- * is stored under the sheet's source_file name so both surfaces stay in sync), or
- * a "No file" marker when the sheet designates no source document at all.
- */
 export function CatalogFileCell({
   doc,
   sourceFile,
@@ -30,7 +24,7 @@ export function CatalogFileCell({
         href={doc.url}
         target="_blank"
         rel="noreferrer"
-        className="text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold"
+        className="hover:text-gold text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px]"
       >
         View PDF
       </a>
@@ -39,7 +33,7 @@ export function CatalogFileCell({
 
   if (!sourceFile) {
     return (
-      <span className="inline-flex h-6 items-center whitespace-nowrap rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold text-[#9AA6A0]">
+      <span className="inline-flex h-6 items-center rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold whitespace-nowrap text-[#9AA6A0]">
         No file
       </span>
     );
@@ -67,7 +61,7 @@ export function CatalogFileCell({
         variant="ghost"
         disabled={upload.isPending}
         onClick={() => ref.current?.click()}
-        className="h-auto inline-flex items-center gap-1.5 p-0 text-[13px] font-bold text-[#8A6D14] hover:bg-transparent transition-colors hover:text-gold disabled:opacity-60"
+        className="hover:text-gold inline-flex h-auto items-center gap-1.5 p-0 text-[13px] font-bold text-[#8A6D14] transition-colors hover:bg-transparent disabled:opacity-60"
       >
         <UploadIcon className="size-[13px]" aria-hidden />
         {upload.isPending ? 'Uploading…' : 'Upload'}

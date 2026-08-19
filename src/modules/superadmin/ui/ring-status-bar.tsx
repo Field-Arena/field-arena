@@ -5,10 +5,10 @@ import { useClock } from '@/modules/superadmin/hooks/use-clock';
 export function RingStatusBar({ rings }: { rings: { label: string; offset: string }[] }) {
   const time = useClock();
   return (
-    <div className="mb-4 flex overflow-hidden rounded-lg border border-line font-mono text-xs font-bold">
-      <div className="flex items-center bg-forest px-3 py-2 text-paper">{time}</div>
+    <div className="border-line mb-4 flex overflow-hidden rounded-lg border font-mono text-xs font-bold">
+      <div className="bg-forest text-paper flex items-center px-3 py-2">{time}</div>
       {rings.map((ring) => (
-        <div key={ring.label} className="flex-1 bg-mint px-3 py-2 text-center text-forest">
+        <div key={ring.label} className="bg-mint text-forest flex-1 px-3 py-2 text-center">
           {ring.label} {ring.offset}
         </div>
       ))}

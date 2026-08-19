@@ -41,12 +41,12 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
       style={{ gridTemplateColumns: STAFF_COLS }}
     >
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-[13px] font-semibold text-hunter-deep">{staff.name}</span>
-        <span className="truncate text-[11.5px] text-fa-muted-2">{staff.email ?? '—'}</span>
+        <span className="text-hunter-deep truncate text-[13px] font-semibold">{staff.name}</span>
+        <span className="text-fa-muted-2 truncate text-[11.5px]">{staff.email ?? '—'}</span>
       </span>
 
       {isVendor ? (
-        <span className="inline-flex h-[34px] items-center justify-center rounded-lg bg-hunter-pale px-2 text-[11px] font-bold text-hunter-deep">
+        <span className="bg-hunter-pale text-hunter-deep inline-flex h-[34px] items-center justify-center rounded-lg px-2 text-[11px] font-bold">
           Vendor
         </span>
       ) : (
@@ -59,7 +59,7 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
               role: event.target.value as (typeof GRANTABLE_ROLES)[number],
             });
           }}
-          className="rounded-[7px] border border-[#D7E0DA] bg-white px-2 py-[7px] text-[12.5px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none disabled:opacity-50"
+          className="text-hunter-deep focus-visible:border-gold rounded-[7px] border border-[#D7E0DA] bg-white px-2 py-[7px] text-[12.5px] focus-visible:outline-none disabled:opacity-50"
           aria-label={`Role for ${staff.name}`}
         >
           {GRANTABLE_ROLES.filter((r) => r !== 'Vendor').map((role) => (
@@ -70,14 +70,14 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
         </select>
       )}
 
-      <span className="text-[12px] leading-[1.4] text-fa-muted" title={staff.showName}>
+      <span className="text-fa-muted text-[12px] leading-[1.4]" title={staff.showName}>
         {staff.showName}
       </span>
 
       <StatusPill status={staff.status} />
 
       {isVendor ? (
-        <span className="text-center text-[11px] text-fa-muted-2">—</span>
+        <span className="text-fa-muted-2 text-center text-[11px]">—</span>
       ) : (
         <StaffPermissionsDialog staff={staff} />
       )}
@@ -98,7 +98,7 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle className={cn(NR, 'text-[26px] font-medium text-hunter-deep')}>
+            <DialogTitle className={cn(NR, 'text-hunter-deep text-[26px] font-medium')}>
               Remove {staff.name}?
             </DialogTitle>
             <DialogDescription>

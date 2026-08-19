@@ -1,11 +1,5 @@
 import type { MovementItem, CollectiveItem } from '@/modules/superadmin/schemas';
 
-/**
- * The `def` jsonb, coerced into the shape the sheet editor's form fields bind
- * to — strings for every text input (even numeric ones, so an empty field
- * round-trips as `''` rather than `'0'` or `'NaN'`), and typed movement/
- * collective arrays.
- */
 export interface SheetDefShape {
   arena: string;
   rideTime: string;

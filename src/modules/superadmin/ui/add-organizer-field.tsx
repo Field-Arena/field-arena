@@ -4,16 +4,6 @@ import type { ComponentProps } from 'react';
 import type { FieldError } from 'react-hook-form';
 import { Input } from '@/shared/ui/shadcn/input';
 
-/**
- * Field chrome transcribed from the Admin Console design's own Add Organizer
- * modal, not the generic shadcn Input/Label — matching the hand-styled
- * convention the rest of the console already uses (lead-detail.tsx's INPUT/
- * LABEL consts, funnel-board.tsx's field styling). The shared FormField in
- * organizer-form-field.tsx renders shadcn's default sentence-case label and
- * generic border, which is what made this modal visibly diverge from the
- * design; it stays as-is for the dialogs that already use it rather than
- * changing their look too.
- */
 const FIELD_LABEL =
   'mb-2 block text-[11px] font-bold uppercase tracking-[.12em] text-hunter-deep whitespace-nowrap';
 const FIELD_INPUT =
@@ -51,7 +41,7 @@ export function Field({
         {...props}
       />
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 text-[13px] text-status-danger">
+        <p id={errorId} role="alert" className="text-status-danger mt-1.5 text-[13px]">
           {error.message}
         </p>
       )}

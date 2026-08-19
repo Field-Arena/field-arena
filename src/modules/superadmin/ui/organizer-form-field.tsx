@@ -4,13 +4,6 @@ import type { FieldError } from 'react-hook-form';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 
-/**
- * One labelled text field with its validation message.
- *
- * Extracted because the add and edit organizer dialogs share eight of these, and
- * the error wiring — aria-invalid plus aria-describedby pointing at the message —
- * is exactly the part that gets forgotten when it is retyped per field.
- */
 export function FormField({
   id,
   label,

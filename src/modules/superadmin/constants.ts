@@ -1,32 +1,5 @@
-/**
- * How long an organizer owner invite stays valid, matching the Admin Console
- * design's own copy ("Invite expires in 14 days."). Shared by every place that
- * states or sets this number — the create mutation (invites.expires_at), the
- * Add Organizer dialog's footer, the Resend Invites button's tooltip, and its
- * success toast — so none of them can drift out of sync with each other the
- * way four separately hand-typed "14"s would.
- */
 export const INVITE_TTL_DAYS = 14;
 
-/**
- * SuperAdmin console navigation, ported from the button bar in the legacy
- * public/views/superadmin.html (lines 392-400). Labels and tooltips are carried
- * over so the console is recognisable to anyone who used the old one.
- *
- * Note: this flat list has no consumer anywhere in src/ — superadmin-shell.tsx
- * renders SUPERADMIN_SIDEBAR (grouped) and SUPERADMIN_TOOLS below instead.
- * "Signup Flow Preview" and "Demo" (legacy's two remaining button-bar entries)
- * are wired into SUPERADMIN_TOOLS, the list that's actually rendered.
- */
-/**
- * Glyphs and tooltips are the legacy button bar's own, transcribed from the HTML
- * entities in superadmin.html lines 377-400 — ◆ for the home button, 💰 for
- * Sales Funnel, ▤ Scoring Catalog, 📁 Documents, 🧾 Billing, 👥 Users,
- * 👀 Signup Flow Preview, 🏆 Demo, ＋ Add Organizer, ✉ Resend Invite.
- *
- * `accent` marks the two buttons legacy styled gold (sa-cat-gold): Sales Funnel
- * and Add Organizer.
- */
 export const SUPERADMIN_NAV = [
   {
     key: 'overview',
@@ -78,7 +51,6 @@ export const SUPERADMIN_NAV = [
   },
 ] as const;
 
-/** Lead pipeline stages, matching the CHECK constraint on public.leads.status. */
 export const LEAD_STATUSES = [
   { value: 'new', label: 'New' },
   { value: 'demo_scheduled', label: 'Demo scheduled' },
@@ -88,10 +60,6 @@ export const LEAD_STATUSES = [
   { value: 'lost', label: 'Lost' },
 ] as const;
 
-/**
- * Which status maps to which badge tone. `customer` is the success state and
- * `lost` the terminal failure; everything between is in progress.
- */
 export const LEAD_STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'info'> = {
   new: 'info',
   demo_scheduled: 'info',
@@ -101,12 +69,6 @@ export const LEAD_STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'i
   lost: 'danger',
 };
 
-/**
- * Sales-funnel status pill colours, transcribed exactly from the Admin Console
- * design's TARGET_PILL map. Each stage has a background, a foreground, and a dot.
- * These are the design's own hexes rather than the app's status tokens because
- * the funnel uses a warmer, six-step palette the generic status badge doesn't.
- */
 export const LEAD_PILL: Record<string, { bg: string; fg: string; dot: string }> = {
   new: { bg: '#EDF5F1', fg: '#5A6B63', dot: '#9AA6A0' },
   demo_scheduled: { bg: '#F9F0D8', fg: '#8A6D14', dot: '#C9A227' },
@@ -116,11 +78,6 @@ export const LEAD_PILL: Record<string, { bg: string; fg: string; dot: string }> 
   lost: { bg: '#FCF1EF', fg: '#8E3627', dot: '#B4432F' },
 };
 
-/**
- * The onboarding checklist seeded onto a lead the first time its onboarding
- * email is sent, verbatim from the legacy ONBOARDING_CHECKLIST_TEMPLATE. Stored
- * per lead as [{id, label, done}] so a given org can drop items it doesn't need.
- */
 export const ONBOARDING_CHECKLIST_TEMPLATE = [
   'Staff list — names, emails, and roles for everyone helping run the show',
   'Prize list',
@@ -132,7 +89,6 @@ export const ONBOARDING_CHECKLIST_TEMPLATE = [
   'Ticket pricing, and whether this is a qualifying/rated show or a schooling show',
 ] as const;
 
-/** Scoring-sheet families, matching the CHECK constraint on scoring_catalog.family. */
 export const SHEET_FAMILIES = [
   'movement',
   'freestyle',
@@ -141,11 +97,6 @@ export const SHEET_FAMILIES = [
   'unassigned',
 ] as const;
 
-/**
- * Scoring-family display metadata for the catalog, transcribed from the Admin
- * Console design's FAM_STYLE plus the legacy FAMILIES blurbs. Each family has a
- * label, a one-line explanation of how it scores, and a badge colour triple.
- */
 export const CATALOG_FAMILY_META: Record<
   string,
   { label: string; blurb: string; bg: string; fg: string; bd: string }
@@ -187,13 +138,10 @@ export const CATALOG_FAMILY_META: Record<
   },
 };
 
-/** Score types (governing bodies) — the catalog's provenance filter. */
 export const CATALOG_SCORE_TYPES = ['USEF', 'USDF', 'USEF/USDF', 'FEI', 'Independent'] as const;
 
-/** The three governing bodies offered on the Admin Console's Add Organizer modal. */
 export const GOVERNING_BODIES = ['FEI', 'USDF', 'USEF'] as const;
 
-/** Disciplines a catalog sheet can belong to, from the upload modal. */
 export const CATALOG_DISCIPLINES = [
   'Dressage',
   'Western Dressage',
@@ -203,17 +151,6 @@ export const CATALOG_DISCIPLINES = [
   'Combined Driving',
 ] as const;
 
-/**
- * Console sidebar, grouped the way the Admin Console design groups it.
- *
- * Same destinations as SUPERADMIN_NAV above — that flat list still drives
- * anything that needs the console's routes without the grouping. The split
- * matters visually: "Clients" are the things a platform owner works *in*
- * (organizers, their people, the pipeline that creates them), while "Platform"
- * and "Tools" are configuration and one-off utilities. The design labels them
- * separately for that reason, so the grouping lives here rather than being
- * inferred in the component.
- */
 export const SUPERADMIN_SIDEBAR = [
   {
     heading: 'Clients',
@@ -243,20 +180,6 @@ export const SUPERADMIN_SIDEBAR = [
   },
 ] as const;
 
-/**
- * The two legacy button-bar entries (👀 Signup Flow Preview, 🏆 Demo) that
- * opened preview-signup-pages.html / preview-rider-demo.html in a new tab —
- * static walkthroughs of screens legacy hadn't ported yet. Now that all 6
- * signup/invite flows are real routes in this app, both link to the genuine
- * article instead of a mockup:
- *  - signup-preview → /dashboard/superadmin/preview, a step-through of all 6
- *    real routes (src/modules/superadmin/ui/signup-flow-preview.tsx).
- *  - demo-show → /rider/demo, the real rider flow's own demo mode
- *    (src/modules/riders/ui/rider-demo-walkthrough.tsx) — a riders-module
- *    route, not a SuperAdmin-side reimplementation, so there is only ever one
- *    copy of the rider signup screens to keep in sync.
- */
-/** Console routes revalidated after a Server Action write, and the catalog docs storage bucket. */
 export const CONSOLE_PATH = '/dashboard/superadmin';
 export const USERS_PATH = '/dashboard/superadmin/users';
 export const SALES_PATH = '/dashboard/superadmin/sales';
@@ -277,6 +200,7 @@ export const SUPERADMIN_TOOLS = [
     label: 'Demo show',
     icon: 'demo',
     href: '/rider/demo',
-    reason: 'Rider signup, the wizard, checkout, and confirmation screen by screen — demo data throughout.',
+    reason:
+      'Rider signup, the wizard, checkout, and confirmation screen by screen — demo data throughout.',
   },
 ] as const;

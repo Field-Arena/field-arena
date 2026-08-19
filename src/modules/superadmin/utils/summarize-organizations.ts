@@ -8,11 +8,6 @@ export interface OrganizationsSummaryStats {
   withShows: number;
 }
 
-/**
- * The "Clients — Organizers" overview page's stat-bar figures, derived from the
- * full (unfiltered) organization list so they always describe the platform, not
- * whatever the search/status filter currently narrows the table to.
- */
 export function summarizeOrganizations(orgs: OrganizationSummary[]): OrganizationsSummaryStats {
   const onboarded = orgs.filter((org) => org.onboarded).length;
   return {

@@ -1,4 +1,3 @@
-/** Strips extension, years, and punctuation so bulk uploads match by filename. */
 export function normalizeFilename(s: string): string {
   return s
     .replace(/\.[^.]+$/, '')

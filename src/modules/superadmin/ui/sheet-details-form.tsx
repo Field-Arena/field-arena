@@ -1,17 +1,16 @@
 'use client';
 
-import { CATALOG_DISCIPLINES, CATALOG_SCORE_TYPES, CATALOG_FAMILY_META, SHEET_FAMILIES } from '@/modules/superadmin/constants';
+import {
+  CATALOG_DISCIPLINES,
+  CATALOG_SCORE_TYPES,
+  CATALOG_FAMILY_META,
+  SHEET_FAMILIES,
+} from '@/modules/superadmin/constants';
 import { INPUT, LABEL, SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
 
 type SheetFamily = (typeof SHEET_FAMILIES)[number];
 
-/**
- * The sheet's metadata fields — title, level, discipline, score type, and
- * scoring family. Extracted from SheetDetail so the editor's sections stay
- * independently readable; state is still owned by the parent (SheetDetail
- * assembles the full save payload from every section's fields).
- */
 export function SheetDetailsForm({
   title,
   onTitleChange,
@@ -43,7 +42,13 @@ export function SheetDetailsForm({
     placeholder?: string;
   }[] = [
     { key: 'title', label: 'Title', value: title, onChange: onTitleChange },
-    { key: 'level', label: 'Level', value: level, onChange: onLevelChange, placeholder: 'e.g. First' },
+    {
+      key: 'level',
+      label: 'Level',
+      value: level,
+      onChange: onLevelChange,
+      placeholder: 'e.g. First',
+    },
   ];
 
   const selectFields: {
@@ -85,9 +90,15 @@ export function SheetDetailsForm({
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-[18px]`}>Sheet details</h2>
-      <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))]">
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))] gap-[18px]">
         {textFields.map((f) => (
-          <Field key={f.key} label={f.label} value={f.value} onChange={f.onChange} placeholder={f.placeholder} />
+          <Field
+            key={f.key}
+            label={f.label}
+            value={f.value}
+            onChange={f.onChange}
+            placeholder={f.placeholder}
+          />
         ))}
         {selectFields.map((s) => (
           <div key={s.key}>

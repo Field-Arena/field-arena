@@ -1,23 +1,30 @@
 'use client';
 
 import { Button } from '@/shared/ui/shadcn/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/shadcn/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import type { CatalogDocument } from '@/modules/superadmin/types';
 import { readFileAsBase64 } from '@/modules/superadmin/utils/read-file-as-base64';
-import { useUploadDocument, useDeleteDocument } from '@/modules/superadmin/hooks/use-document-mutations';
+import {
+  useUploadDocument,
+  useDeleteDocument,
+} from '@/modules/superadmin/hooks/use-document-mutations';
 import { DocumentsUpload } from '@/modules/superadmin/ui/documents-upload';
 
-const HEAD = 'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
-const LINK = 'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
+const HEAD =
+  'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
+const LINK =
+  'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
 const DEL = 'text-[13px] font-bold text-[#B4432F] hover:text-[#8E3627]';
 
-/**
- * The Documents board's "Documents" tab: everything that isn't an official test
- * sheet PDF — waivers, glossaries, agreements. Extracted from DocumentsBoard,
- * which now only owns which tab is active.
- */
 export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
   const upload = useUploadDocument();
   const remove = useDeleteDocument();
@@ -39,7 +46,7 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
       <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
         <Table className="min-w-[820px] border-collapse">
           <TableHeader className="[&_tr]:border-0">
-            <TableRow className="hover:bg-transparent border-b-0">
+            <TableRow className="border-b-0 hover:bg-transparent">
               <TableHead className={cn('h-auto', HEAD, 'text-left')}>Name</TableHead>
               <TableHead className={cn('h-auto', HEAD, 'w-[220px] text-left')}>Uploaded</TableHead>
               <TableHead className={cn('h-auto', HEAD, 'w-[240px] text-right')}>Actions</TableHead>
@@ -48,7 +55,10 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
           <TableBody>
             {generalDocs.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={3} className="whitespace-normal px-5 py-[42px] text-center text-[13.5px] text-fa-muted-2">
+                <TableCell
+                  colSpan={3}
+                  className="text-fa-muted-2 px-5 py-[42px] text-center text-[13.5px] whitespace-normal"
+                >
                   No files uploaded yet.
                 </TableCell>
               </TableRow>
@@ -56,13 +66,13 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
               generalDocs.map((d, i) => (
                 <TableRow
                   key={d.id}
-                  className="hover:bg-transparent border-b border-[#EEF2EF] last:border-b-0"
+                  className="border-b border-[#EEF2EF] last:border-b-0 hover:bg-transparent"
                   style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
                 >
-                  <TableCell className="whitespace-normal px-5 py-3.5 text-[14px] text-[#16261F]">
+                  <TableCell className="px-5 py-3.5 text-[14px] whitespace-normal text-[#16261F]">
                     {d.name}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap px-4 py-3.5 text-[13.5px] text-[#5A6B63]">
+                  <TableCell className="px-4 py-3.5 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
                     {formatTimestamp(d.createdAt)}
                   </TableCell>
                   <TableCell className="px-5 py-3">

@@ -7,14 +7,16 @@ import { Input } from '@/shared/ui/shadcn/input';
 import type { LeadRow } from '@/modules/superadmin/types';
 import type { ChecklistItem } from '@/modules/superadmin/schemas';
 import { toChecklist } from '@/modules/superadmin/utils/to-checklist';
-import { useUpdateLead, useSendLeadOnboarding } from '@/modules/superadmin/hooks/use-lead-mutations';
+import {
+  useUpdateLead,
+  useSendLeadOnboarding,
+} from '@/modules/superadmin/hooks/use-lead-mutations';
 import { SECTION, H2, LABEL, INPUT, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
 
 export function OnboardingSection({ lead }: { lead: LeadRow }) {
-  // datetime-local wants "YYYY-MM-DDTHH:mm"; slice the stored ISO string to fit.
   const [when, setWhen] = useState(lead.onboarding_at ? lead.onboarding_at.slice(0, 16) : '');
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
-    toChecklist(lead.onboarding_checklist)
+    toChecklist(lead.onboarding_checklist),
   );
   const schedule = useUpdateLead({ successMessage: 'Onboarding scheduled' });
   const saveChecklist = useUpdateLead({ successMessage: 'Checklist updated' });
@@ -54,7 +56,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
         </Button>
       </div>
 
-      <p className="mt-4 text-[12.5px] text-fa-muted-2">
+      <p className="text-fa-muted-2 mt-4 text-[12.5px]">
         {lead.onboarding_email_sent_at
           ? 'Onboarding checklist has been emailed.'
           : 'No onboarding email sent yet.'}
@@ -63,8 +65,8 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
       {checklist.length > 0 && (
         <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E8E4]">
           <div className="flex items-center gap-3 border-b border-[#E2E8E4] bg-[#F6F3EC] px-[18px] py-3.5">
-            <span className="text-[12.5px] font-bold text-hunter-deep">Onboarding checklist</span>
-            <span className="ml-auto text-[12.5px] font-semibold text-fa-muted">
+            <span className="text-hunter-deep text-[12.5px] font-bold">Onboarding checklist</span>
+            <span className="text-fa-muted ml-auto text-[12.5px] font-semibold">
               {done}/{checklist.length} done
             </span>
           </div>
@@ -75,10 +77,10 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               variant="ghost"
               onClick={() => {
                 setChecklist((prev) =>
-                  prev.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c))
+                  prev.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)),
                 );
               }}
-              className="h-auto flex w-full items-start justify-start gap-3 border-b border-[#EEF2EF] px-[18px] py-3.5 text-left last:border-b-0 hover:bg-[#FAFCFB]"
+              className="flex h-auto w-full items-start justify-start gap-3 border-b border-[#EEF2EF] px-[18px] py-3.5 text-left last:border-b-0 hover:bg-[#FAFCFB]"
             >
               <span
                 className="grid size-[19px] flex-none place-items-center rounded-md border"
@@ -88,7 +90,17 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
                 }}
               >
                 {item.done && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#C9A227"
+                    strokeWidth="3.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 )}
@@ -109,7 +121,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               type="button"
               variant="ghost"
               disabled={saveChecklist.isPending}
-              className="h-auto px-0 py-0 text-[12.5px] font-bold text-hunter-deep underline underline-offset-2 hover:bg-transparent hover:text-gold disabled:opacity-60"
+              className="text-hunter-deep hover:text-gold h-auto px-0 py-0 text-[12.5px] font-bold underline underline-offset-2 hover:bg-transparent disabled:opacity-60"
               onClick={() => {
                 saveChecklist.mutate({ id: lead.id, onboardingChecklist: checklist });
               }}
@@ -125,7 +137,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
           type="button"
           variant="ghost"
           disabled={send.isPending}
-          className="h-auto inline-flex items-center gap-2 rounded-[9px] bg-gold px-5 py-3 text-[13.5px] font-bold text-hunter-deep hover:bg-gold-light transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
+          className="bg-gold text-hunter-deep hover:bg-gold-light inline-flex h-auto items-center gap-2 rounded-[9px] px-5 py-3 text-[13.5px] font-bold transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
           onClick={() => {
             send.mutate(lead.id);
           }}

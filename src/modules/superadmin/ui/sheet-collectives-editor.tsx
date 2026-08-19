@@ -7,7 +7,6 @@ import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-s
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
 import { AddRow } from '@/modules/superadmin/ui/sheet-add-row';
 
-/** The collective-marks editor for a movement-family sheet. Extracted from SheetDetail. */
 export function SheetCollectivesEditor({
   def,
   setDef,
@@ -34,7 +33,7 @@ export function SheetCollectivesEditor({
                 setDef((d) => ({
                   ...d,
                   collectives: d.collectives.map((c, j) =>
-                    j === i ? { ...c, name: e.target.value } : c
+                    j === i ? { ...c, name: e.target.value } : c,
                   ),
                 }));
               }}
@@ -48,7 +47,7 @@ export function SheetCollectivesEditor({
                 setDef((d) => ({
                   ...d,
                   collectives: d.collectives.map((cc, j) =>
-                    j === i ? { ...cc, coef: Number.isFinite(c) ? c : 0 } : cc
+                    j === i ? { ...cc, coef: Number.isFinite(c) ? c : 0 } : cc,
                   ),
                 }));
               }}

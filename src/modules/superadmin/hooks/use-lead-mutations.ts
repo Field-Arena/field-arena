@@ -7,12 +7,6 @@ import { createLead, updateLead, sendLeadOnboarding } from '@/modules/superadmin
 import type { CreateLeadInput, UpdateLeadInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
-/**
- * Sales-funnel mutation hooks. Toasts and refreshes live here per layers.md; each
- * server action revalidates its paths, and router.refresh pulls the re-rendered
- * funnel/detail back into view.
- */
-
 function errorMessage(error: unknown, fallback: string): string {
   return readableError(error, fallback);
 }
@@ -58,7 +52,7 @@ export function useSendLeadOnboarding() {
       toast.success(
         emailSent
           ? 'Onboarding email sent.'
-          : 'Checklist seeded. No email was sent — the email provider is not configured yet.'
+          : 'Checklist seeded. No email was sent — the email provider is not configured yet.',
       );
       router.refresh();
     },

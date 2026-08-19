@@ -24,7 +24,7 @@ export function RowUpload({ onFile }: { onFile: (file: File) => void }) {
         type="button"
         variant="ghost"
         onClick={() => ref.current?.click()}
-        className="h-auto px-0 py-0 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#8A6D14] hover:bg-transparent hover:text-gold"
+        className="hover:text-gold inline-flex h-auto items-center gap-1.5 px-0 py-0 text-[13px] font-bold text-[#8A6D14] hover:bg-transparent"
       >
         <UploadIcon className="size-[13px]" aria-hidden />
         Upload
