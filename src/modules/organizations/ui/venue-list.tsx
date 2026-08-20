@@ -6,25 +6,12 @@ import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatCard } from '@/shared/ui/organizer/stat-card';
 import { GhostButton, PrimaryButton, DangerButton } from '@/shared/ui/organizer/buttons';
 import { IconBarn } from '@/shared/ui/organizer/icons';
-import { VENUE_STAT_TINTS } from '../constants';
-import { VenueFormDialog } from './venue-form-dialog';
-import { useDeleteVenue } from '../hooks/use-venue-mutations';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import type { VenueListItem } from '../types';
+import { VENUE_STAT_TINTS } from '@/modules/organizations/constants';
+import { VenueFormDialog } from '@/modules/organizations/ui/venue-form-dialog';
+import { useDeleteVenue } from '@/modules/organizations/hooks/use-venue-mutations';
+import type { VenueListItem } from '@/modules/organizations/types';
 
-/**
- * "Your venues" — the org's reusable venue library, ported from
- * showstaff.html's `locationsListHtml` (~line 5251): name, address, ring
- * count, stable count, Edit/Delete per row, "+ Add new venue".
- *
- * Adds an "in use" count (how many of this org's shows point at this venue)
- * that legacy's own list didn't show, and — unlike legacy's bare
- * `confirm('Delete this location?…')` — names what's attached in the
- * confirmation when a venue is in use, so deleting one three live shows
- * depend on is a decision the organizer can't make by accident. Deleting
- * still isn't blocked: those shows keep the ring layout they already copied
- * (see deleteVenue's doc comment), exactly like legacy always allowed.
- */
 export function VenueList({ venues }: { venues: VenueListItem[] }) {
   const deleteVenue = useDeleteVenue();
 
@@ -38,7 +25,7 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
   }
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <ScreenTitle className="mb-1.5">Venues</ScreenTitle>
@@ -88,7 +75,7 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
         </p>
 
         {venues.length === 0 ? (
-          <p className="py-8 text-center text-[13.5px] italic text-[#7A8781]">
+          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
             No saved venues yet &mdash; click &ldquo;+ Add new venue&rdquo; to build your first one.
           </p>
         ) : (
@@ -99,7 +86,7 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#EDF0EE] px-4 py-3"
               >
                 <div className="min-w-0">
-                  <div className="truncate font-bold text-forest">{venue.name}</div>
+                  <div className="text-forest truncate font-bold">{venue.name}</div>
                   <div className="mt-0.5 text-[12.5px] text-[#6E7C76]">
                     {venue.address ?? 'No address on file'} · {venue.rings.length} ring
                     {venue.rings.length === 1 ? '' : 's'} · {venue.stables.length} stable

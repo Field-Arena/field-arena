@@ -7,14 +7,6 @@ import { Alert, AlertDescription } from '@/shared/ui/shadcn/alert';
 import { cn } from '@/shared/lib/utils';
 import { passwordStrength, passwordStrengthLabel } from '@/shared/lib/password-strength';
 
-/**
- * The primary action on every auth screen, in the design's three treatments.
- *
- * They are not interchangeable. Sign-up's button carries the arrow and lifts on
- * hover because it advances a flow; sign-in's is the end of one, so it only
- * changes fill. The reset action is deliberately forest rather than gold — it
- * sits above the "or sign in another way" alternative and must not out-shout it.
- */
 const SUBMIT_VARIANTS = {
   gold:
     'bg-gold text-forest hover:-translate-y-0.5 hover:bg-gold-light ' +
@@ -37,11 +29,11 @@ export function AuthSubmit({
   pending?: boolean;
   pendingLabel?: string;
   variant?: keyof typeof SUBMIT_VARIANTS;
-  /** The trailing arrow. On by default only where the design draws one. */
+
   showIcon?: boolean;
   type?: 'submit' | 'button';
   onClick?: () => void;
-  /** An extra, caller-decided condition (e.g. a required field still empty) — combined with `pending`, not a replacement for it. */
+
   disabled?: boolean;
 }) {
   return (
@@ -52,7 +44,7 @@ export function AuthSubmit({
       className={cn(
         'h-auto w-full gap-2.5 rounded-xl px-6 py-[17px] text-[15px] font-bold',
         'transition-all duration-150 ease-out disabled:opacity-70',
-        SUBMIT_VARIANTS[variant]
+        SUBMIT_VARIANTS[variant],
       )}
     >
       {pending ? (pendingLabel ?? 'Working…') : children}
@@ -65,13 +57,6 @@ export function AuthSubmit({
   );
 }
 
-/**
- * The design's "Keep me signed in on this device" control.
- *
- * A real checkbox input rather than a styled button: the design draws a button,
- * but a checkbox is what screen readers and password managers expect here, and
- * the visual result is identical.
- */
 export function AuthCheckbox({
   checked,
   onChange,
@@ -98,57 +83,46 @@ export function AuthCheckbox({
           }}
           className={cn(
             'peer size-[18px] cursor-pointer appearance-none rounded-[5px] border transition-colors',
-            checked ? 'border-gold bg-gold' : 'border-field bg-white'
+            checked ? 'border-gold bg-gold' : 'border-field bg-white',
           )}
         />
         <CheckIcon
           aria-hidden
           className={cn(
-            'pointer-events-none absolute size-[11px] text-forest [stroke-width:3.4]',
-            checked ? 'opacity-100' : 'opacity-0'
+            'text-forest pointer-events-none absolute size-[11px] [stroke-width:3.4]',
+            checked ? 'opacity-100' : 'opacity-0',
           )}
         />
       </span>
-      <label htmlFor={fieldId} className="cursor-pointer text-[13.5px] text-fa-muted">
+      <label htmlFor={fieldId} className="text-fa-muted cursor-pointer text-[13.5px]">
         {children}
       </label>
     </div>
   );
 }
 
-/** The rule-flanked caption separating the reset action from its alternative. */
 export function AuthDivider({ children }: { children: ReactNode }) {
   return (
     <div className="flex w-full items-center gap-3.5">
-      <span aria-hidden className="h-px flex-1 bg-line" />
-      <span className="whitespace-nowrap text-[13px] text-fa-muted-2">{children}</span>
-      <span aria-hidden className="h-px flex-1 bg-line" />
+      <span aria-hidden className="bg-line h-px flex-1" />
+      <span className="text-fa-muted-2 text-[13px] whitespace-nowrap">{children}</span>
+      <span aria-hidden className="bg-line h-px flex-1" />
     </div>
   );
 }
 
-/**
- * The gold-ruled eyebrow above each panel's heading. The reset panel is centred,
- * so it is ruled on both sides; the sign-in panel is left-aligned and ruled once.
- */
 export function AuthEyebrow({ children, centred }: { children: ReactNode; centred?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <span aria-hidden className="h-[3px] w-[26px] bg-gold" />
-      <span className="text-[10.5px] font-bold uppercase tracking-[.18em] text-forest">
+      <span aria-hidden className="bg-gold h-[3px] w-[26px]" />
+      <span className="text-forest text-[10.5px] font-bold tracking-[.18em] uppercase">
         {children}
       </span>
-      {centred && <span aria-hidden className="h-[3px] w-[26px] bg-gold" />}
+      {centred && <span aria-hidden className="bg-gold h-[3px] w-[26px]" />}
     </div>
   );
 }
 
-/**
- * Inline status, in the design's own two tones.
- *
- * Errors render here rather than as a toast: the message belongs beside the
- * field that caused it, not in a corner the user has to look away to read.
- */
 export function AuthAlert({ tone, children }: { tone: 'error' | 'success'; children: ReactNode }) {
   const isError = tone === 'error';
   const Icon = isError ? CircleAlertIcon : CheckIcon;
@@ -158,7 +132,7 @@ export function AuthAlert({ tone, children }: { tone: 'error' | 'success'; child
       role={isError ? 'alert' : 'status'}
       className={cn(
         'grid-cols-[15px_1fr] items-start gap-x-[9px] rounded-xl px-3.5 py-3',
-        isError ? 'border-alert-line bg-alert-bg' : 'border-line-mint-2 bg-mint'
+        isError ? 'border-alert-line bg-alert-bg' : 'border-line-mint-2 bg-mint',
       )}
     >
       <Icon
@@ -174,12 +148,6 @@ export function AuthAlert({ tone, children }: { tone: 'error' | 'success'; child
   );
 }
 
-/**
- * The three-segment strength meter from the sign-up design.
- *
- * Colour comes from the score, not the segment index — all filled bars share the
- * score's colour, so the meter reads as one verdict rather than a gradient.
- */
 const STRENGTH_COLOURS = ['#C24A3A', '#D9A83C', '#3E8E5A'] as const;
 
 export function PasswordStrengthMeter({ password }: { password: string }) {
@@ -199,7 +167,7 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
       </div>
       <span
         aria-live="polite"
-        className="min-w-[74px] text-right text-[11.5px] font-semibold tracking-[.04em] text-fa-muted-2"
+        className="text-fa-muted-2 min-w-[74px] text-right text-[11.5px] font-semibold tracking-[.04em]"
       >
         {passwordStrengthLabel(password)}
       </span>

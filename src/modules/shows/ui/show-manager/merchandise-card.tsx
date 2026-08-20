@@ -3,9 +3,20 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
-import { useUpdateMerchandise } from '../../hooks/use-show-mutations';
-import type { MerchItem } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_SELECT, SM_ROW_INPUT, SM_INPUT } from './tokens';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
+import { useUpdateMerchandise } from '@/modules/shows/hooks/use-show-mutations';
+import type { MerchItem } from '@/modules/shows/data/setup-queries';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_LABEL,
+  SM_SELECT,
+  SM_ROW_INPUT,
+  SM_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
 export function MerchandiseCard({
   showId,
@@ -62,61 +73,70 @@ export function MerchandiseCard({
       {enabled && (
         <div className="flex flex-col gap-2.5">
           {items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_100px_auto] items-center gap-3">
-              <input
+            <div
+              key={item.id}
+              className="grid grid-cols-[minmax(0,1fr)_100px_auto] items-center gap-3"
+            >
+              <Input
                 value={item.name}
-                className={SM_ROW_INPUT}
+                className={cn('h-auto', SM_ROW_INPUT)}
                 onChange={(e) => {
                   commit(
                     enabled,
-                    items.map((m) => (m.id === item.id ? { ...m, name: e.target.value } : m))
+                    items.map((m) => (m.id === item.id ? { ...m, name: e.target.value } : m)),
                   );
                 }}
               />
-              <input
+              <Input
                 type="number"
                 min={0}
                 value={item.price}
-                className={SM_ROW_INPUT}
+                className={cn('h-auto', SM_ROW_INPUT)}
                 onChange={(e) => {
                   commit(
                     enabled,
-                    items.map((m) => (m.id === item.id ? { ...m, price: Number(e.target.value) } : m))
+                    items.map((m) =>
+                      m.id === item.id ? { ...m, price: Number(e.target.value) } : m,
+                    ),
                   );
                 }}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
-                  commit(enabled, items.filter((m) => m.id !== item.id));
+                  commit(
+                    enabled,
+                    items.filter((m) => m.id !== item.id),
+                  );
                 }}
-                className="bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:text-status-danger"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))}
 
           <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_100px_auto] items-center gap-3">
-            <input
+            <Input
               value={newName}
               placeholder="Item name"
-              className={SM_INPUT}
+              className={cn('h-auto', SM_INPUT)}
               onChange={(e) => {
                 setNewName(e.target.value);
               }}
             />
-            <input
+            <Input
               type="number"
               min={0}
               value={newPrice}
               placeholder="Price"
-              className={SM_INPUT}
+              className={cn('h-auto', SM_INPUT)}
               onChange={(e) => {
                 setNewPrice(e.target.value);
               }}
             />
-            <PrimaryButton className="whitespace-nowrap rounded-[9px]" onClick={add}>
+            <PrimaryButton className="rounded-[9px] whitespace-nowrap" onClick={add}>
               + Add item
             </PrimaryButton>
           </div>

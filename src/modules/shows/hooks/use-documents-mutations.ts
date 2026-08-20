@@ -10,21 +10,11 @@ import {
   registerShowDocument,
   removeShowDocument,
   updateDocumentEvents,
-} from '../data/mutations';
-import type { RemoveShowDocumentInput, UpdateDocumentEventsInput } from '../schemas';
+} from '@/modules/shows/data/mutations';
+import type { RemoveShowDocumentInput, UpdateDocumentEventsInput } from '@/modules/shows/schemas';
 
 const message = readableError;
 
-/**
- * Uploads a document straight from the browser to Supabase Storage.
- *
- * Three steps: ask the server for a signed URL, PUT the file to it, then tell
- * the server to record the row. The file never travels through a Server
- * Action — Vercel caps a serverless request body at 4.5 MB regardless of
- * Next's own `bodySizeLimit`, and base64 encoding added a third on top, so the
- * previous single-call version failed on any real PDF once deployed while
- * working locally.
- */
 export function useUploadShowDocument() {
   const router = useRouter();
 

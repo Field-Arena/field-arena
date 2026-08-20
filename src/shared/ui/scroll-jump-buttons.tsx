@@ -8,13 +8,6 @@ const EDGE_THRESHOLD = 24;
 const JUMP_BTN =
   'flex size-10 items-center justify-center rounded-full border border-[#D9E1DD] bg-white text-forest shadow-[0_4px_14px_rgba(16,40,32,.16)] transition-colors hover:border-gold';
 
-/**
- * Site-wide "scroll to top / scroll to bottom" jump buttons, fixed to the
- * bottom-right corner on every page. Tracks window scroll rather than any
- * one page's own layout, so it works the same on the dashboard, the public
- * marketing pages, and the rider-facing pages alike. Each button only shows
- * once there's actually somewhere to jump to.
- */
 export function ScrollJumpButtons() {
   const [showTop, setShowTop] = useState(false);
   const [showBottom, setShowBottom] = useState(false);

@@ -10,22 +10,14 @@ import {
   scratchEntry,
   setClassDuration,
   updateScheduleRules,
-} from '../data/mutations';
+} from '@/modules/shows/data/mutations';
 import type {
   MoveClassToRingDayInput,
   ReorderRideInput,
   ScratchEntryInput,
   SetClassDurationInput,
   UpdateScheduleRulesInput,
-} from '../schemas';
-
-/**
- * Master Schedule's in-place edits.
- *
- * Every one of these changes an input the schedule is built from, so the page
- * refresh that follows is what rebuilds it — there is no stored schedule to
- * invalidate.
- */
+} from '@/modules/shows/schemas';
 
 const message = readableError;
 

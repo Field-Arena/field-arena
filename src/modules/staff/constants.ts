@@ -1,14 +1,3 @@
-/**
- * The organizer sidebar, transcribed from the legacy showstaff.html sidebar
- * (lines 862-871) — nine items, with their labels and `data-tip` tooltip text
- * verbatim.
- *
- * Two corrections against the earlier version of this file: the labels are spaced
- * ("Member Database", not "MemberDatabase") and the financial section is called
- * "Financial", not "Billing". Master Schedule, Venues and Horses were missing
- * entirely; Documents was invented — legacy has no Documents item in this
- * sidebar, because per-show documents live inside Show Manager.
- */
 export const ORGANIZER_NAV = [
   {
     key: 'dashboard',
@@ -75,13 +64,6 @@ export const ORGANIZER_NAV = [
   },
 ] as const;
 
-/**
- * Per-role sidebar navigation, from each legacy view's own sections.
- *
- * Keyed by platform_role so the shell can pick one without a switch statement.
- * Judge and Scribe share a nav because they shared judge-scribe.html — the
- * difference is scope (whose assignments), not which screens exist.
- */
 export const ROLE_NAV: Record<
   string,
   { key: string; label: string; icon: string; href: string; tip: string }[]
@@ -176,11 +158,7 @@ export const ROLE_NAV: Record<
       tip: 'Rider pronunciation guides, sponsor copy, and rule references',
     },
   ],
-  // Eight flat items, in showstaff-ops.html's own sidebar order (lines
-  // 196-203) — Find/Riders/Horses/Stabling/Vendors were briefly consolidated
-  // into one "Directories" page with sub-tabs, but that grouped five of
-  // legacy's own top-level nav items under one link instead of matching its
-  // sidebar 1:1, so each is back to being its own item/route.
+
   ShowStaff: [
     {
       key: 'ops',
@@ -282,7 +260,6 @@ export const ROLE_RAIL = [
   { key: 'staff', icon: 'briefcase', label: 'Show staff' },
 ] as const;
 
-/* Mock data — stands in until the Supabase data layer is wired. */
 export const CURRENT_ORG = 'Peachtree Dressage Association';
 export const CURRENT_ORG_SHORT = 'Peachtree Dressage Assoc.';
 export const CURRENT_STAGE = 'complete';
@@ -314,25 +291,6 @@ export const SHOW_INVENTORY = [
   { name: 'Vendors', qty: '0', revenue: '$0' },
 ] as const;
 
-/**
- * Roles offered in the "All Users" directory's "+ Add User" modal — ported
- * from showstaff.html's `addableRoles().concat(['Rider'])`, including Rider:
- *
- *  - Rider: legacy's own add-user modal never actually did anything for this
- *    choice — no API call, no email, no invite-acceptance page, just a fake
- *    row pushed into an in-memory array with an explicit "Riders aren't
- *    migrated yet" comment in legacy's own source. Included here for exact
- *    visual/behavioral parity with that (real, if broken) legacy screen —
- *    selecting it in `AddUserDialog` still does nothing real, same as
- *    legacy. A rider account is only ever created the one real way this app
- *    supports: self-service signup from a show's own ticket page.
- *
- * Vendor IS wired to something real, unlike Rider — `addStaffUser` branches
- * on it and never touches staff_assignments at all, writing to
- * vendor_bookings instead (see that function's own doc comment).
- * `allUsersAcrossShows()` composing vendors from vendor_bookings rather than
- * staff rows is exactly why that branch exists.
- */
 export const ADD_USER_ROLES = [
   'Show Admin',
   'Judge',
@@ -343,12 +301,6 @@ export const ADD_USER_ROLES = [
   'Rider',
 ] as const;
 
-/**
- * Sort rank for the "All Users" directory, ported verbatim from showstaff.html's
- * `ROLE_ORDER` (line 9079) — Organizer/Rider sort lowest-priority-last on
- * purpose, so operational staff surface before the (often much longer) rider
- * list. A role not in this list (should not happen) sorts last.
- */
 export const USER_ROLE_RANK = [
   'SuperAdmin',
   'Organizer',
@@ -361,13 +313,6 @@ export const USER_ROLE_RANK = [
   'Rider',
 ] as const;
 
-/**
- * Status pill labels and colors for the "All Users" directory, exact values
- * from showstaff.html's `statusBadge()` (line 10339): `[label, textColor,
- * backgroundColor]`. Kept as the legacy's literal hex pairs rather than the
- * `fa` theme tokens — those don't have an exact match for this specific pill
- * recipe, and the point of this table is pixel parity with the source.
- */
 export const USER_STATUS_META: Record<
   'not_invited' | 'pending' | 'onboard',
   { label: string; fg: string; bg: string }

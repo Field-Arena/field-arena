@@ -5,12 +5,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
-/**
- * "Documents" — ported from showstaff-ops.html's Documents tab: the show's
- * shared PDF library. The only tab ShowStaff can write to — uploading is
- * allowed (see `modules/operations/data/mutations.ts`), removal is not
- * (organizer-only in Show Manager, same as legacy).
- */
 export default async function OperationsDocumentsPage({
   searchParams,
 }: {
@@ -46,7 +40,10 @@ export default async function OperationsDocumentsPage({
       <div className="dash-head">
         <div>
           <h1>Documents</h1>
-          <p>One shared document library — judges, scribes, and announcers see whatever you upload here.</p>
+          <p>
+            One shared document library — judges, scribes, and announcers see whatever you upload
+            here.
+          </p>
         </div>
       </div>
 
@@ -100,7 +97,9 @@ export default async function OperationsDocumentsPage({
                 }}
               >
                 <span aria-hidden="true">📄</span>
-                <span style={{ flex: 1, fontWeight: 600, color: 'var(--hunter-deep)' }}>{doc.name}</span>
+                <span style={{ flex: 1, fontWeight: 600, color: 'var(--hunter-deep)' }}>
+                  {doc.name}
+                </span>
                 {doc.url && (
                   <a
                     href={doc.url}

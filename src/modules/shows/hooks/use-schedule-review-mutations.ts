@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { updateClassReview, removeClass } from '../data/mutations';
-import type { UpdateClassReviewInput, RemoveClassInput } from '../schemas';
+import { updateClassReview, removeClass } from '@/modules/shows/data/mutations';
+import type { UpdateClassReviewInput, RemoveClassInput } from '@/modules/shows/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {
