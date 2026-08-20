@@ -83,10 +83,14 @@ export function OrganizerShell({
 
   const activeRailRole = (() => {
     if (!isSuperAdmin) {
-      const match = railRoles.find((role) => {
-        const w = workspaceFor(role);
-        return w ? pathname === w.href || pathname.startsWith(`${w.href}/`) : false;
-      });
+      // Match the MOST specific workspace href. Organizer/ShowAdmin live at
+      // '/dashboard', which is a prefix of every '/dashboard/*' route, so a
+      // plain first-match would let it shadow Judge (/dashboard/judging) etc.
+      // Pick the longest matching href instead.
+      const match = railRoles
+        .map((role) => ({ role, href: workspaceFor(role)?.href ?? '' }))
+        .filter(({ href }) => href !== '' && (pathname === href || pathname.startsWith(`${href}/`)))
+        .sort((a, b) => b.href.length - a.href.length)[0]?.role;
       return match ?? profile.platform_role ?? 'Organizer';
     }
     if (pathname === '/dashboard') return previewingAsShowAdmin ? 'ShowAdmin' : 'Organizer';
