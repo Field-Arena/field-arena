@@ -36,6 +36,7 @@ export interface ClassRow {
   resultsPublished: boolean;
   ribbonPlaces: number;
   awardScope: string;
+  runOrder: number | null;
 }
 
 export async function listClasses(showId: string): Promise<ClassRow[]> {
@@ -44,7 +45,7 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
   const { data, error } = await supabase
     .from('classes')
     .select(
-      'id, label, display_name, division, location, fee, judges_count, date, time, scoring_open, results_published, ribbon_places, award_scope',
+      'id, label, display_name, division, location, fee, judges_count, date, time, scoring_open, results_published, ribbon_places, award_scope, run_order',
     )
     .eq('show_id', showId)
     .order('label');
@@ -81,6 +82,7 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
     resultsPublished: c.results_published ?? false,
     ribbonPlaces: c.ribbon_places ?? 6,
     awardScope: c.award_scope,
+    runOrder: c.run_order,
   }));
 }
 
@@ -323,7 +325,7 @@ export interface SchedulePrefs {
   buffer: number;
   upper: number;
   end: string;
-  order: 'low' | 'high';
+  order: 'low' | 'high' | 'custom';
   warmup: 'yes' | 'no';
   lunch: boolean;
   extraBreaks: number;
@@ -770,6 +772,7 @@ export interface ScheduleReviewClassRow {
   fee: number;
   platformFee: number;
   entryCount: number;
+  sponsor: string | null;
 }
 
 export interface ScheduleReviewData {
@@ -803,7 +806,9 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
     supabase.from('organizations').select('fee_model').eq('id', show.org_id).maybeSingle(),
     supabase
       .from('classes')
-      .select('id, event, label, display_name, division, location, arena, judges_count, fee')
+      .select(
+        'id, event, label, display_name, division, location, arena, judges_count, fee, sponsor',
+      )
       .eq('show_id', showId)
       .order('label'),
   ]);
@@ -839,6 +844,7 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
       fee,
       platformFee: calcPlatformFee(fee, feeModel),
       entryCount: counts.get(c.id) ?? 0,
+      sponsor: c.sponsor,
     };
   });
 
@@ -1264,7 +1270,7 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
-    .select('id, label, display_name, event, location, date, min_per_ride')
+    .select('id, label, display_name, event, location, date, min_per_ride, run_order')
     .eq('show_id', showId)
     .order('label');
   if (classError) throw classError;
@@ -1361,6 +1367,7 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
         ring: c.location,
         pinnedDay: null,
         minPerRide: c.min_per_ride,
+        runOrder: c.run_order,
         order: byClass.get(c.id) ?? [],
       })),
     {

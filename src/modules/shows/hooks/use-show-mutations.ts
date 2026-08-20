@@ -17,6 +17,7 @@ import {
   updateShowLocations,
   applySavedVenue,
   updateSchedulePrefs,
+  reorderClasses,
   deleteShow,
   updateContact,
   updatePrizeList,
@@ -34,6 +35,7 @@ import type {
   UpdateShowDetailsInput,
   UpdateShowLocationsInput,
   UpdateSchedulePrefsInput,
+  ReorderClassesInput,
   UpdateContactInput,
   UpdatePrizeListInput,
   UpdateDocumentRequirementsInput,
@@ -165,6 +167,17 @@ export function useUpdateSchedulePrefs() {
     onError: (error) => {
       toast.error(
         message(error, "Couldn't save that change — check your connection and try again."),
+      );
+    },
+  });
+}
+
+export function useReorderClasses() {
+  return useMutation({
+    mutationFn: (input: ReorderClassesInput) => reorderClasses(input),
+    onError: (error) => {
+      toast.error(
+        message(error, "Couldn't save the running order — check your connection and try again."),
       );
     },
   });

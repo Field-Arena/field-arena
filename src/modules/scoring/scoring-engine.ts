@@ -2,12 +2,16 @@ export interface TestMovement {
   num: number;
   text: string;
   coef: number;
+  /** Optional section name (score-sheet grouping). Absent on legacy flat tests. */
+  section?: string;
 }
 
 export interface TestCollective {
   key: string;
   label: string;
   coef: number;
+  /** Optional section name (score-sheet grouping). Absent on legacy flat tests. */
+  section?: string;
 }
 
 export interface TestDefinition {
@@ -45,6 +49,36 @@ export function earned(sheet: Sheet, test: TestDefinition): number {
     if (value != null) total += value * c.coef;
   }
   return total;
+}
+
+/** Points earned across a subset of movements — used for per-section subtotals. */
+export function subtotalForMovements(sheet: Sheet, movements: TestMovement[]): number {
+  let total = 0;
+  for (const m of movements) {
+    const value = sheet.movements[String(m.num)];
+    if (value != null) total += value * m.coef;
+  }
+  return total;
+}
+
+/** Points earned across a subset of collective marks — used for per-section subtotals. */
+export function subtotalForCollectives(sheet: Sheet, collectives: TestCollective[]): number {
+  let total = 0;
+  for (const c of collectives) {
+    const value = sheet.collectives[c.key];
+    if (value != null) total += value * c.coef;
+  }
+  return total;
+}
+
+/** Maximum possible points for a subset of movements (10 per movement × coefficient). */
+export function maxForMovements(movements: TestMovement[]): number {
+  return movements.reduce((sum, m) => sum + 10 * m.coef, 0);
+}
+
+/** Maximum possible points for a subset of collective marks. */
+export function maxForCollectives(collectives: TestCollective[]): number {
+  return collectives.reduce((sum, c) => sum + 10 * c.coef, 0);
 }
 
 export type DeductionSchedule = 'standard' | 'fei-senior' | 'young-horse';

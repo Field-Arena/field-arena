@@ -10,6 +10,7 @@ import {
   createShowSchema,
   createClassSchema,
   updateClassReviewSchema,
+  reorderClassesSchema,
   removeClassSchema,
   createDivisionSchema,
   createAddOnSchema,
@@ -630,6 +631,7 @@ export async function addCustomClass(input: unknown): Promise<void> {
     label: parsed.name,
     division: parsed.division ?? null,
     fee: parsed.fee,
+    sponsor: parsed.sponsor?.trim() ?? null,
     event: 'Custom',
     price_edited: true,
   });
@@ -940,11 +942,33 @@ export async function updateClassReview(input: unknown): Promise<void> {
     ...(parsed.arena !== undefined ? { arena: parsed.arena } : {}),
     ...(parsed.judgesCount !== undefined ? { judges_count: parsed.judgesCount } : {}),
     ...(parsed.fee !== undefined ? { fee: parsed.fee } : {}),
+    ...(parsed.sponsor !== undefined ? { sponsor: parsed.sponsor } : {}),
   };
 
   const { error } = await supabase.from('classes').update(patch).eq('id', parsed.classId);
   if (error) throw new Error(error.message);
 
+  revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
+}
+
+export async function reorderClasses(input: unknown): Promise<void> {
+  const parsed = reorderClassesSchema.parse(input);
+  const supabase = await createServerClient();
+
+  // Persist the manual running order as sequential run_order values (0-based).
+  const results = await Promise.all(
+    parsed.orderedClassIds.map((id, index) =>
+      supabase
+        .from('classes')
+        .update({ run_order: index })
+        .eq('id', id)
+        .eq('show_id', parsed.showId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}`);
   revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
 }
 
@@ -1014,8 +1038,8 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
   let movements = parsed.movements;
   let collectives = parsed.collectives;
   if (parsed.sections.length > 0) {
-    const m: { num: number; text: string; coef: number }[] = [];
-    const c: { key: string; label: string; coef: number }[] = [];
+    const m: { num: number; text: string; coef: number; section: string }[] = [];
+    const c: { key: string; label: string; coef: number; section: string }[] = [];
     let n = 1;
     for (const section of parsed.sections) {
       const isCollective = section.type === 'collective' || /collective/i.test(section.name);
@@ -1026,13 +1050,18 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, '-')
               .replace(/^-+|-+$/g, '') || `mark-${String(c.length + 1)}`;
-          c.push({ key: slug, label: item.label || 'Mark', coef: item.coef });
+          c.push({ key: slug, label: item.label || 'Mark', coef: item.coef, section: section.name });
         } else {
           const instr = item.instructions
             .map((i) => [i.marker, i.instruction].filter(Boolean).join(' — '))
             .filter(Boolean)
             .join('; ');
-          m.push({ num: n, text: instr || item.label || `Movement ${String(n)}`, coef: item.coef });
+          m.push({
+            num: n,
+            text: instr || item.label || `Movement ${String(n)}`,
+            coef: item.coef,
+            section: section.name,
+          });
           n += 1;
         }
       }
@@ -1091,7 +1120,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
 
   const { data: template, error: templateError } = await supabase
     .from('test_templates')
-    .select('name, movements, collectives')
+    .select('name, movements, collectives, sections')
     .eq('id', parsed.templateId)
     .single();
   if (templateError) throw new Error(templateError.message);
@@ -1102,6 +1131,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
       name: template.name,
       movements: template.movements,
       collectives: template.collectives,
+      sections: template.sections,
     },
     { onConflict: 'class_id' },
   );

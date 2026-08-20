@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import type { UpdateSchedulePrefsInput } from '@/modules/shows/schemas';
-import type { SchedulePrefs } from '@/modules/shows/data/setup-queries';
-import { useUpdateSchedulePrefs } from '@/modules/shows/hooks/use-show-mutations';
+import type { SchedulePrefs, ClassRow } from '@/modules/shows/data/setup-queries';
+import { useUpdateSchedulePrefs, useReorderClasses } from '@/modules/shows/hooks/use-show-mutations';
 import { showDayDates } from '@/modules/shows/utils/show-day-dates';
 import { dayLabel } from '@/modules/shows/utils/day-label';
 import { Card } from '@/shared/ui/organizer/card';
@@ -24,6 +24,7 @@ export function SchedulePreferencesCard({
   prefs,
   dayStartTimes,
   dayEndTimes,
+  classes,
 }: {
   showId: string;
   startDate: string | null;
@@ -31,6 +32,7 @@ export function SchedulePreferencesCard({
   prefs: SchedulePrefs;
   dayStartTimes: string[];
   dayEndTimes: string[];
+  classes: ClassRow[];
 }) {
   const days = showDayDates(startDate ?? '', endDate ?? '');
   const effDays = days.length ? days : ['__day1__'];
@@ -50,6 +52,28 @@ export function SchedulePreferencesCard({
   const [dayEnds, setDayEnds] = useState<string[]>(effDays.map((_, i) => dayEndTimes[i] ?? ''));
 
   const { mutate } = useUpdateSchedulePrefs();
+  const { mutate: reorder } = useReorderClasses();
+  const [manualOrder, setManualOrder] = useState<ClassRow[]>(() =>
+    [...classes].sort((a, b) => {
+      const ao = a.runOrder ?? Number.MAX_SAFE_INTEGER;
+      const bo = b.runOrder ?? Number.MAX_SAFE_INTEGER;
+      if (ao !== bo) return ao - bo;
+      return a.label.localeCompare(b.label);
+    }),
+  );
+
+  function moveClass(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= manualOrder.length) return;
+    const next = [...manualOrder];
+    const a = next[index];
+    const b = next[target];
+    if (!a || !b) return;
+    next[index] = b;
+    next[target] = a;
+    setManualOrder(next);
+    reorder({ showId, orderedClassIds: next.map((c) => c.id) });
+  }
 
   const rateFields: {
     id: string;
@@ -212,13 +236,14 @@ export function SchedulePreferencesCard({
             value={order}
             className={SM_SELECT}
             onChange={(e) => {
-              const next = e.target.value as 'low' | 'high';
+              const next = e.target.value as 'low' | 'high' | 'custom';
               setOrder(next);
               save({ order: next });
             }}
           >
             <option value="low">Lowest level first</option>
             <option value="high">Highest level first</option>
+            <option value="custom">Custom (manual order)</option>
           </select>
         </div>
         <div>
@@ -291,6 +316,61 @@ export function SchedulePreferencesCard({
           </div>
         </div>
       </div>
+
+      {order === 'custom' && (
+        <div className="mt-6 border-t border-[#EEF2F0] pt-5">
+          <span className={SM_LABEL}>Running order</span>
+          <p className={SM_NOTE}>
+            Arrange classes into the exact order they should run — this order drives the schedule.
+          </p>
+          {manualOrder.length === 0 ? (
+            <p className="text-[13px] text-[#98A29D] italic">
+              No classes yet — add classes in Select Events first.
+            </p>
+          ) : (
+            <ol className="mt-2 flex flex-col gap-1.5">
+              {manualOrder.map((c, i) => (
+                <li
+                  key={c.id}
+                  className="flex items-center gap-3 rounded-[10px] border border-[#E9EDEB] px-3 py-2"
+                >
+                  <span className="w-6 text-[12px] font-semibold text-[#98A29D]">
+                    {String(i + 1)}
+                  </span>
+                  <span className="text-ink-deep min-w-0 flex-1 truncate text-[13.5px]">
+                    {c.displayName ?? c.label}
+                    {c.division ? (
+                      <span className="text-[12px] text-[#98A29D]"> · {c.division}</span>
+                    ) : null}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Move up"
+                    disabled={i === 0}
+                    onClick={() => {
+                      moveClass(i, -1);
+                    }}
+                    className="text-forest h-7 w-7 rounded-[8px] border border-[#E9EDEB] text-[13px] font-semibold transition-colors hover:bg-[#F4F7F5] disabled:cursor-not-allowed disabled:text-[#C7D0CB]"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Move down"
+                    disabled={i === manualOrder.length - 1}
+                    onClick={() => {
+                      moveClass(i, 1);
+                    }}
+                    className="text-forest h-7 w-7 rounded-[8px] border border-[#E9EDEB] text-[13px] font-semibold transition-colors hover:bg-[#F4F7F5] disabled:cursor-not-allowed disabled:text-[#C7D0CB]"
+                  >
+                    ↓
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

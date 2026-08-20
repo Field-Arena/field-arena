@@ -9,6 +9,7 @@ export function parseTestCollectives(json: unknown): TestDefinition['collectives
       key: typeof c.key === 'string' ? c.key : '',
       label: typeof c.label === 'string' ? c.label : '',
       coef: Number(c.coef ?? 1),
+      section: typeof c.section === 'string' ? c.section : undefined,
     }))
     .filter((c) => c.key !== '');
 }

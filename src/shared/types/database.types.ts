@@ -353,6 +353,7 @@ export type Database = {
           id: string
           movements: Json | null
           name: string
+          sections: Json | null
         }
         Insert: {
           class_id: string
@@ -361,6 +362,7 @@ export type Database = {
           id?: string
           movements?: Json | null
           name: string
+          sections?: Json | null
         }
         Update: {
           class_id?: string
@@ -369,6 +371,7 @@ export type Database = {
           id?: string
           movements?: Json | null
           name?: string
+          sections?: Json | null
         }
         Relationships: [
           {
@@ -406,10 +409,12 @@ export type Database = {
           results_published_at: string | null
           ribbon_colors: Json | null
           ribbon_places: number | null
+          run_order: number | null
           score_format: string | null
           scoring_open: boolean | null
           scoring_pos: number | null
           show_id: string
+          sponsor: string | null
           test_options: Json | null
           time: string | null
           working_in_entry_id: string | null
@@ -439,10 +444,12 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          run_order?: number | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
           show_id: string
+          sponsor?: string | null
           test_options?: Json | null
           time?: string | null
           working_in_entry_id?: string | null
@@ -472,10 +479,12 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          run_order?: number | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
           show_id?: string
+          sponsor?: string | null
           test_options?: Json | null
           time?: string | null
           working_in_entry_id?: string | null

@@ -71,6 +71,7 @@ export const updateClassReviewSchema = z.object({
   arena: z.string().trim().max(120).nullable().optional(),
   judgesCount: z.coerce.number().int().min(1).max(9).optional(),
   fee: z.coerce.number().min(0).max(100000).optional(),
+  sponsor: z.string().trim().max(120).nullable().optional(),
 });
 
 export type UpdateClassReviewInput = z.input<typeof updateClassReviewSchema>;
@@ -178,7 +179,7 @@ export const updateSchedulePrefsSchema = z.object({
   buffer: z.coerce.number().int().min(0).max(15),
   upper: z.coerce.number().int().min(0).max(15),
   end: clockTime,
-  order: z.enum(['low', 'high']),
+  order: z.enum(['low', 'high', 'custom']),
   warmup: z.enum(['yes', 'no']),
   lunch: z.boolean(),
   extraBreaks: z.coerce.number().int().min(0).max(6),
@@ -189,6 +190,13 @@ export const updateSchedulePrefsSchema = z.object({
 });
 
 export type UpdateSchedulePrefsInput = z.input<typeof updateSchedulePrefsSchema>;
+
+export const reorderClassesSchema = z.object({
+  showId: z.uuid(),
+  orderedClassIds: z.array(z.uuid()).min(1).max(500),
+});
+
+export type ReorderClassesInput = z.input<typeof reorderClassesSchema>;
 
 export const updateContactSchema = z.object({
   showId: z.uuid(),
@@ -314,6 +322,7 @@ export const addCustomClassSchema = z.object({
   name: z.string().trim().min(2, 'Name this class').max(160),
   division: optionalText(120),
   fee: z.coerce.number().min(0).max(100000),
+  sponsor: optionalText(120),
 });
 
 export type AddCustomClassInput = z.input<typeof addCustomClassSchema>;

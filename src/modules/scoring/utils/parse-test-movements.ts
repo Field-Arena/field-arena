@@ -9,6 +9,7 @@ export function parseTestMovements(json: unknown): TestDefinition['movements'] {
       num: Number(m.n ?? m.num ?? 0),
       text: typeof m.text === 'string' ? m.text : '',
       coef: Number(m.coef ?? 1),
+      section: typeof m.section === 'string' ? m.section : undefined,
     }))
     .filter((m) => m.num > 0);
 }

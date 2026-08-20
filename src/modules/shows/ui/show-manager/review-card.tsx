@@ -95,6 +95,9 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                     Arena
                   </TableHead>
                   <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Sponsor
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
                     Judges
                   </TableHead>
                   <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD, 'text-right')}>
@@ -135,6 +138,16 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                         className={cn('h-auto', SM_ROW_INPUT, 'w-[150px]!')}
                         onBlur={(e) => {
                           commit(c.id, { arena: e.target.value || null });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-normal">
+                      <Input
+                        defaultValue={c.sponsor ?? ''}
+                        placeholder="—"
+                        className={cn('h-auto', SM_ROW_INPUT, 'w-[160px]!')}
+                        onBlur={(e) => {
+                          commit(c.id, { sponsor: e.target.value.trim() || null });
                         }}
                       />
                     </TableCell>

@@ -63,6 +63,7 @@ export interface ClassScoringState {
   classId: string;
   showName: string;
   className: string;
+  sponsor: string | null;
 
   test: TestDefinition | null;
   panel: PanelSeat[];

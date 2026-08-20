@@ -114,6 +114,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
         prefs={show.schedulePrefs}
         dayStartTimes={show.dayStartTimes}
         dayEndTimes={show.dayEndTimes}
+        classes={classes}
       />
       <SectionFooter
         currentTab="Setup"
