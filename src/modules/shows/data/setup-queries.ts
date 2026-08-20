@@ -870,6 +870,46 @@ export interface TestTemplateCollective {
   coef: number;
 }
 
+/* Score-sheet engine (phase 1) read shapes — mirror the jsonb columns added in
+   20260818120000_scoring_template_structure.sql. */
+export interface TemplateInstruction {
+  id: string;
+  marker: string;
+  instruction: string;
+  gait: string;
+  direction: string;
+}
+export interface TemplateItem {
+  id: string;
+  label: string;
+  directive: string;
+  maxScore: number;
+  coef: number;
+  required: boolean;
+  instructions: TemplateInstruction[];
+}
+export interface TemplateSection {
+  id: string;
+  name: string;
+  type: string;
+  subtotal: boolean;
+  items: TemplateItem[];
+}
+export interface TemplatePenalty {
+  id: string;
+  name: string;
+  penaltyType: string;
+  value: string;
+  repeat: boolean;
+  elimination: boolean;
+}
+export interface TemplateScoringConfig {
+  scoreType: string;
+  applyCoefficients: boolean;
+  finalDisplay: string;
+  formula: string;
+}
+
 export interface TestTemplateRow {
   id: string;
   name: string;
@@ -878,6 +918,18 @@ export interface TestTemplateRow {
   movements: TestTemplateMovement[];
   collectives: TestTemplateCollective[];
   updatedAt: string;
+  // Score-sheet engine (phase 1) — the structured fields.
+  discipline: string | null;
+  sheetType: string | null;
+  governingBody: string | null;
+  versionYear: string | null;
+  arenaSize: string | null;
+  rideTime: string | null;
+  scoringMethod: string | null;
+  maxPoints: number | null;
+  sections: TemplateSection[];
+  penalties: TemplatePenalty[];
+  scoringConfig: TemplateScoringConfig | null;
 }
 
 export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[]> {
@@ -885,7 +937,9 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
 
   const { data, error } = await supabase
     .from('test_templates')
-    .select('id, name, level, source_label, movements, collectives, updated_at')
+    .select(
+      'id, name, level, source_label, movements, collectives, updated_at, discipline, sheet_type, governing_body, version_year, arena_size, ride_time, scoring_method, max_points, sections, penalties, scoring_config',
+    )
     .eq('org_id', orgId)
     .order('name');
   if (error) throw error;
@@ -898,6 +952,17 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
     movements: (t.movements ?? []) as unknown as TestTemplateMovement[],
     collectives: (t.collectives ?? []) as unknown as TestTemplateCollective[],
     updatedAt: t.updated_at,
+    discipline: t.discipline ?? null,
+    sheetType: t.sheet_type ?? null,
+    governingBody: t.governing_body ?? null,
+    versionYear: t.version_year ?? null,
+    arenaSize: t.arena_size ?? null,
+    rideTime: t.ride_time ?? null,
+    scoringMethod: t.scoring_method ?? null,
+    maxPoints: t.max_points ?? null,
+    sections: (t.sections ?? []) as unknown as TemplateSection[],
+    penalties: (t.penalties ?? []) as unknown as TemplatePenalty[],
+    scoringConfig: (t.scoring_config ?? null) as unknown as TemplateScoringConfig | null,
   }));
 }
 

@@ -1007,16 +1007,62 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
   const parsed = saveTestTemplateSchema.parse(input);
   const supabase = await createServerClient();
 
+  // Keep the legacy movements/collectives columns in sync from the structured
+  // sections when the new editor supplied them, so the current judge scoring
+  // path (class_tests, filled by assignTestTemplateToClass) keeps working
+  // unchanged. When no sections are sent (old editor), what it sent wins.
+  let movements = parsed.movements;
+  let collectives = parsed.collectives;
+  if (parsed.sections.length > 0) {
+    const m: { num: number; text: string; coef: number }[] = [];
+    const c: { key: string; label: string; coef: number }[] = [];
+    let n = 1;
+    for (const section of parsed.sections) {
+      const isCollective = section.type === 'collective' || /collective/i.test(section.name);
+      for (const item of section.items) {
+        if (isCollective) {
+          const slug =
+            (item.label || `mark-${String(c.length + 1)}`)
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '') || `mark-${String(c.length + 1)}`;
+          c.push({ key: slug, label: item.label || 'Mark', coef: item.coef });
+        } else {
+          const instr = item.instructions
+            .map((i) => [i.marker, i.instruction].filter(Boolean).join(' — '))
+            .filter(Boolean)
+            .join('; ');
+          m.push({ num: n, text: instr || item.label || `Movement ${String(n)}`, coef: item.coef });
+          n += 1;
+        }
+      }
+    }
+    movements = m;
+    collectives = c;
+  }
+
+  const fields = {
+    name: parsed.name,
+    level: parsed.level ?? null,
+    movements,
+    collectives,
+    discipline: parsed.discipline ?? null,
+    sheet_type: parsed.sheetType ?? null,
+    governing_body: parsed.governingBody ?? null,
+    version_year: parsed.versionYear ?? null,
+    arena_size: parsed.arenaSize ?? null,
+    ride_time: parsed.rideTime ?? null,
+    scoring_method: parsed.scoringMethod ?? null,
+    max_points: parsed.maxPoints ?? null,
+    sections: parsed.sections,
+    penalties: parsed.penalties,
+    scoring_config: parsed.scoringConfig ?? null,
+  };
+
   if (parsed.id) {
     const { data, error } = await supabase
       .from('test_templates')
-      .update({
-        name: parsed.name,
-        level: parsed.level ?? null,
-        movements: parsed.movements,
-        collectives: parsed.collectives,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', parsed.id)
       .select('id')
       .single();
@@ -1026,14 +1072,7 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
 
   const { data, error } = await supabase
     .from('test_templates')
-    .insert({
-      org_id: parsed.orgId,
-      name: parsed.name,
-      level: parsed.level ?? null,
-      source_label: parsed.sourceLabel ?? null,
-      movements: parsed.movements,
-      collectives: parsed.collectives,
-    })
+    .insert({ org_id: parsed.orgId, source_label: parsed.sourceLabel ?? null, ...fields })
     .select('id')
     .single();
   if (error) throw new Error(error.message);
