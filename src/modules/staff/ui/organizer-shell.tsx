@@ -34,6 +34,7 @@ export function OrganizerShell({
   railRoleCookie = null,
   selectedOrgId = null,
   memberOrgs = [],
+  availableRoles = [],
 }: {
   children: ReactNode;
   profile: StaffProfile;
@@ -47,6 +48,8 @@ export function OrganizerShell({
   selectedOrgId?: string | null;
 
   memberOrgs?: MemberOrg[];
+
+  availableRoles?: string[];
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
@@ -63,12 +66,33 @@ export function OrganizerShell({
   const workspaceFor = (role: string): RoleWorkspace | undefined =>
     role === 'Rider' ? RIDER_WORKSPACE : ROLE_WORKSPACES[role];
 
+  // Workspaces a non-SuperAdmin may switch between: what the server said they
+  // qualify for, falling back to just their own platform_role.
+  const effectiveAvailable =
+    availableRoles.length > 0
+      ? availableRoles
+      : profile.platform_role
+        ? [profile.platform_role]
+        : [];
+
   const railRoles = isSuperAdmin
     ? ROLE_RAIL_ORDER.filter((role) => workspaceFor(role) !== undefined)
-    : ROLE_RAIL_ORDER.filter((role) => role === profile.platform_role);
+    : ROLE_RAIL_ORDER.filter(
+        (role) => effectiveAvailable.includes(role) && workspaceFor(role) !== undefined,
+      );
 
   const activeRailRole = (() => {
-    if (!isSuperAdmin) return profile.platform_role ?? 'Organizer';
+    if (!isSuperAdmin) {
+      // Match the MOST specific workspace href. Organizer/ShowAdmin live at
+      // '/dashboard', which is a prefix of every '/dashboard/*' route, so a
+      // plain first-match would let it shadow Judge (/dashboard/judging) etc.
+      // Pick the longest matching href instead.
+      const match = railRoles
+        .map((role) => ({ role, href: workspaceFor(role)?.href ?? '' }))
+        .filter(({ href }) => href !== '' && (pathname === href || pathname.startsWith(`${href}/`)))
+        .sort((a, b) => b.href.length - a.href.length)[0]?.role;
+      return match ?? profile.platform_role ?? 'Organizer';
+    }
     if (pathname === '/dashboard') return previewingAsShowAdmin ? 'ShowAdmin' : 'Organizer';
 
     const judgeHref = ROLE_WORKSPACES.Judge?.href;
@@ -106,7 +130,9 @@ export function OrganizerShell({
         <div className="dash-rail-logo">
           F<b>&amp;</b>A
         </div>
-        <div className="dash-rail-label">{isSuperAdmin ? 'ROLES' : 'ROLE'}</div>
+        <div className="dash-rail-label">
+          {isSuperAdmin || railRoles.length > 1 ? 'ROLES' : 'ROLE'}
+        </div>
         {railRoles.map((role) => {
           const target = workspaceFor(role);
           if (!target) return null;
@@ -114,12 +140,17 @@ export function OrganizerShell({
             target.status === 'pending' ? `${target.title} (not migrated)` : target.title;
 
           if (!isSuperAdmin) {
-            const active = role === profile.platform_role;
+            const active = role === activeRailRole;
             return (
               <Tip key={role} text={target.title} className="grid place-items-center">
-                <span className={cn('dash-rail-btn', active && 'active')} aria-label={target.title}>
+                <Link
+                  href={target.href}
+                  className={cn('dash-rail-btn', active && 'active')}
+                  aria-label={target.title}
+                  aria-current={active ? 'page' : undefined}
+                >
                   <RoleIcon role={role} size={20} />
-                </span>
+                </Link>
               </Tip>
             );
           }
