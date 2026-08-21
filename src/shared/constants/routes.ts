@@ -8,6 +8,7 @@ export const ROUTES = {
   onboarding: '/onboarding',
 
   rider: '/rider',
+  browseShows: '/shows',
 
   dashboard: '/dashboard',
   shows: '/dashboard/shows',
