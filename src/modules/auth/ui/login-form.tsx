@@ -28,7 +28,7 @@ import { isEmailAddress } from '@/modules/auth/utils/is-email-address';
 import type { LoginView } from '@/modules/auth/types';
 import { AuthPanel } from '@/modules/auth/ui/auth-panel';
 import { AuthHeading } from '@/modules/auth/ui/auth-heading';
-import { BackButton } from '@/modules/auth/ui/back-button';
+import { AuthBackButton } from '@/modules/auth/ui/back-button';
 
 export function LoginForm({
   onSuccess,
@@ -140,7 +140,7 @@ export function LoginForm({
               },
             );
           }}
-          className="border-field text-ink-deep hover:border-gold h-auto w-full justify-start gap-3 rounded-xl border bg-white px-4 py-3.5 text-left text-[14.5px] font-normal transition-colors duration-150 ease-out hover:bg-[#FEFCF5] disabled:opacity-70"
+          className="border-field text-ink-deep hover:border-gold h-auto w-full justify-start gap-3 rounded-xl border bg-white px-4 py-3.5 text-left text-[14.5px] font-normal whitespace-normal transition-colors duration-150 ease-out hover:bg-[#FEFCF5] disabled:opacity-70"
         >
           <MailIcon className="text-fa-muted size-[17px] flex-none" aria-hidden />
           <span>
@@ -159,7 +159,7 @@ export function LoginForm({
           </div>
         )}
 
-        <BackButton
+        <AuthBackButton
           onClick={() => {
             show('login');
           }}
@@ -217,7 +217,7 @@ export function LoginForm({
           </div>
         </form>
 
-        <BackButton
+        <AuthBackButton
           onClick={() => {
             show('forgot');
           }}
