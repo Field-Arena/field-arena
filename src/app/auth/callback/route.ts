@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(`${origin}${next}`);
 }
 
-// `next` is attacker-controllable via the emailed URL — same-site absolute paths only.
 function safeNext(value: string | null): string {
   if (!value) return ROUTES.dashboard;
   if (!value.startsWith('/') || value.startsWith('//')) return ROUTES.dashboard;

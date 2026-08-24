@@ -71,8 +71,6 @@ export function LoginForm({
   const sendCode = useSendSignInCode();
   const verifyCode = useVerifySignInCode({ onSuccess });
 
-  // useWatch, not form.watch() — the latter reads outside React's render
-  // cycle, which the React Compiler bails out of memoizing this component for.
   const email = useWatch({ control: form.control, name: 'email' });
   const remember = useWatch({ control: form.control, name: 'remember' }) ?? true;
   const { errors } = form.formState;

@@ -55,7 +55,6 @@ export function SignUpForm() {
   const verify = useVerifyEmail();
   const resend = useResendEmailCode();
 
-  // useWatch, not form.watch() — see login-form.tsx.
   const password = useWatch({ control: form.control, name: 'password' });
   const { errors } = form.formState;
 
