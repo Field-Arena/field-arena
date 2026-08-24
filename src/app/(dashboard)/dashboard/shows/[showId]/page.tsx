@@ -18,11 +18,14 @@ import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-
 import { MerchandiseCard } from '@/modules/shows/ui/show-manager/merchandise-card';
 import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
 import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
+import { ShareShowLink } from '@/modules/shows/ui/show-manager/share-show-link';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
+import { env } from '@/shared/lib/env';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
+import { ROUTES } from '@/shared/constants/routes';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
@@ -62,6 +65,10 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
       canViewMoney={context.canViewMoney}
     >
       <ReadinessMeter completeness={completeness} />
+      <ShareShowLink
+        url={`${env.siteUrl}/show/${show.id}`}
+        browseUrl={`${env.siteUrl}${ROUTES.browseShows}`}
+      />
       <div id="show-details" className="scroll-mt-24">
         <ShowDetailsCard show={show} />
       </div>
