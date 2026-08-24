@@ -130,6 +130,8 @@ export function useSignOut() {
   return useMutation({
     mutationFn: () => signOut(),
     onSuccess: () => {
+      // A full navigation, not router.push — every client-held query/store
+      // state needs to reset with the session, not just the URL.
       window.location.assign('/?signin=1');
     },
     onError: (error) => {

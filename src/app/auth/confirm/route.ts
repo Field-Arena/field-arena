@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}${ROUTES.setPassword}`);
       }
 
+      // Read from user_metadata.next, not ?next= — GoTrue's own {{ .RedirectTo }}
+      // template variable was tried and empirically truncates to the bare origin.
       const metaNext: unknown = data.user?.user_metadata.next;
       const next = safeNext(typeof metaNext === 'string' ? metaNext : searchParams.get('next'));
       return NextResponse.redirect(`${origin}${next}`);
@@ -27,6 +29,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(`${origin}${ROUTES.login}?error=missing_token`);
 }
 
+// `next` is attacker-controllable via the emailed URL — same-site absolute paths only.
 function safeNext(value: string | null): string {
   if (!value) return ROUTES.dashboard;
   if (!value.startsWith('/') || value.startsWith('//')) return ROUTES.dashboard;

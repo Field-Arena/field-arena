@@ -18,6 +18,7 @@ import {
   verifyEmailSchema,
   verifySignInCodeSchema,
 } from '@/modules/auth/schemas';
+import { readableAuthError } from '@/modules/auth/utils/readable-auth-error';
 import type {
   SignUpOutcome,
   VerifyOutcome,
@@ -25,16 +26,6 @@ import type {
   LoginOutcome,
   SignInCodeOutcome,
 } from '@/modules/auth/types';
-
-function readableAuthError(message: string): string {
-  if (/rate limit/i.test(message)) {
-    return 'Too many emails have gone to this address recently. Try again in an hour.';
-  }
-  if (/expired|invalid/i.test(message)) {
-    return 'That code is wrong or has expired. Check the latest email, or send a new code.';
-  }
-  return message;
-}
 
 async function withMailTransport<T>(
   label: string,
@@ -57,6 +48,8 @@ export async function signInWithPassword(input: unknown): Promise<LoginOutcome> 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    // Supabase's vague "Invalid login credentials" is passed through as-is —
+    // rewriting it would let this form be used to enumerate accounts.
     return { status: 'error', message: error.message };
   }
 
@@ -131,6 +124,9 @@ export async function signUpWithPassword(input: unknown): Promise<SignUpOutcome>
   const { data, error } = attempt.value;
   if (error) return { status: 'error', message: readableAuthError(error.message) };
 
+  // An empty identities array is Supabase's signal for "this email already has
+  // an account" — nothing is leaked by acting on it, since the caller supplied
+  // the address themselves.
   if (data.user && data.user.identities?.length === 0) {
     return { status: 'exists' };
   }
@@ -216,6 +212,8 @@ export async function requestPasswordReset(input: unknown): Promise<void> {
   );
   const error = attempt.ok ? attempt.value.error : new Error(attempt.message);
 
+  // Swallowed on purpose — reporting "no such user" would make this an
+  // account-enumeration oracle. The caller always sees the same outcome.
   if (error) {
     console.error('[auth] password reset request failed', error.message);
   }
@@ -229,6 +227,8 @@ export async function sendSignInCode(input: unknown): Promise<SignInCodeOutcome>
     supabase.auth.signInWithOtp({
       email,
       options: {
+        // false — left at its default, Supabase would create an account for any
+        // address typed here, an open door on an invite-only platform.
         shouldCreateUser: false,
         emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}`,
       },

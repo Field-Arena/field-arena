@@ -19,6 +19,7 @@ export function SetPasswordForm() {
 
   const setPassword = useSetPassword();
 
+  // useWatch, not form.watch() — see login-form.tsx.
   const password = useWatch({ control: form.control, name: 'password' });
   const { errors } = form.formState;
 
