@@ -28,7 +28,7 @@ export function LoginDialog() {
           onClick={() => {
             setOpen(false);
           }}
-          className="border-line-mint bg-mint text-fa-muted hover:border-forest hover:bg-forest hover:text-paper absolute top-5 right-5 grid size-[34px] place-items-center rounded-[9px] border p-0 transition-colors"
+          className="border-line-mint bg-mint text-fa-muted hover:border-forest hover:bg-forest hover:text-paper active:translate-y-0 absolute top-5 right-5 grid size-[34px] place-items-center rounded-[9px] border p-0 transition-colors"
         >
           <XIcon className="size-[15px]" aria-hidden />
         </Button>

@@ -84,7 +84,7 @@ export function SignUpForm() {
               setFormError(null);
               verify.reset();
             }}
-            className="border-line-mint-2 text-fa-muted hover:text-gold h-auto rounded-none border-l bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
+            className="border-line-mint-2 text-fa-muted hover:text-gold active:translate-y-0 h-auto rounded-none border-l bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
           >
             Change
           </Button>
@@ -133,7 +133,7 @@ export function SignUpForm() {
                   },
                 );
               }}
-              className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="text-forest hover:text-gold active:translate-y-0 h-auto bg-transparent px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
             >
               {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
             </Button>

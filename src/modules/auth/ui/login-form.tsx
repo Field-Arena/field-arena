@@ -275,7 +275,7 @@ export function LoginForm({
                 onClick={() => {
                   show('forgot');
                 }}
-                className="text-fa-muted hover:text-gold h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
+                className="text-fa-muted hover:text-gold active:translate-y-0 h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
               >
                 Forgot password?
               </Button>
