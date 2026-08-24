@@ -1,14 +1,12 @@
-'use client';
-
 import { Button } from '@/shared/ui/shadcn/button';
 
-export function BackButton({ onClick }: { onClick: () => void }) {
+export function AuthBackButton({ onClick }: { onClick: () => void }) {
   return (
     <Button
       type="button"
       variant="ghost"
       onClick={onClick}
-      className="text-fa-muted hover:text-gold h-auto justify-start bg-transparent px-2 py-1 text-[13.5px] font-semibold transition-colors hover:bg-transparent"
+      className="text-fa-muted hover:text-gold active:translate-y-0 mt-[22px] h-auto bg-transparent px-2 py-1 text-[13.5px] font-semibold transition-colors hover:bg-transparent"
     >
       Back
     </Button>

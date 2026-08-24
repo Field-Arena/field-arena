@@ -1,20 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRightIcon, MailIcon } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/constants/routes';
 import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
-import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import {
-  AuthAlert,
-  AuthCheckbox,
-  AuthDivider,
-  AuthEyebrow,
-  AuthSubmit,
-} from '@/shared/ui/auth/auth-primitives';
+import { AuthField } from '@/shared/ui/auth/auth-field';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-password-field';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
+import { AuthCheckbox } from '@/shared/ui/auth/auth-checkbox';
+import { AuthDivider } from '@/shared/ui/auth/auth-divider';
+import { AuthEyebrow } from '@/shared/ui/auth/auth-eyebrow';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { loginSchema, type LoginInput } from '@/modules/auth/schemas';
@@ -24,11 +22,17 @@ import {
   useSendSignInCode,
   useVerifySignInCode,
 } from '@/modules/auth/hooks/use-auth-mutations';
+import { useLoginViewState } from '@/modules/auth/hooks/use-login-view';
 import { isEmailAddress } from '@/modules/auth/utils/is-email-address';
-import type { LoginView } from '@/modules/auth/types';
+import {
+  ENTER_EMAIL_FOR_RESET_MESSAGE,
+  RESET_LINK_SENT_MESSAGE,
+  ENTER_EMAIL_FOR_CODE_MESSAGE,
+  CODE_SENT_MESSAGE,
+} from '@/modules/auth/constants';
 import { AuthPanel } from '@/modules/auth/ui/auth-panel';
 import { AuthHeading } from '@/modules/auth/ui/auth-heading';
-import { BackButton } from '@/modules/auth/ui/back-button';
+import { AuthBackButton } from '@/modules/auth/ui/back-button';
 
 export function LoginForm({
   onSuccess,
@@ -41,11 +45,19 @@ export function LoginForm({
 
   headingLevel?: 'h1' | 'h2';
 }) {
-  const [view, setView] = useState<LoginView>('login');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
-  const [code, setCode] = useState('');
+  const {
+    view,
+    setView,
+    show,
+    formError,
+    setFormError,
+    notice,
+    setNotice,
+    resetSent,
+    setResetSent,
+    code,
+    setCode,
+  } = useLoginViewState();
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -63,13 +75,6 @@ export function LoginForm({
   const { errors } = form.formState;
 
   const emailLabel = isEmailAddress(email) ? email : 'your account email';
-
-  function show(next: LoginView) {
-    setView(next);
-    setFormError(null);
-    setNotice(null);
-    setResetSent(false);
-  }
 
   if (view === 'forgot') {
     return (
@@ -90,7 +95,7 @@ export function LoginForm({
           pendingLabel="Sending…"
           onClick={() => {
             if (!isEmailAddress(email)) {
-              setFormError('Enter your account email first and we’ll send the link there.');
+              setFormError(ENTER_EMAIL_FOR_RESET_MESSAGE);
               return;
             }
             setFormError(null);
@@ -99,7 +104,7 @@ export function LoginForm({
               {
                 onSettled: () => {
                   setResetSent(true);
-                  setNotice('Reset link sent. It expires in 30 minutes.');
+                  setNotice(RESET_LINK_SENT_MESSAGE);
                 },
               },
             );
@@ -118,7 +123,7 @@ export function LoginForm({
           disabled={sendCode.isPending}
           onClick={() => {
             if (!isEmailAddress(email)) {
-              setFormError('Enter your account email first and we’ll send the code there.');
+              setFormError(ENTER_EMAIL_FOR_CODE_MESSAGE);
               return;
             }
             setFormError(null);
@@ -131,7 +136,7 @@ export function LoginForm({
                     return;
                   }
                   setCode('');
-                  setNotice('One-time code sent. Check your inbox.');
+                  setNotice(CODE_SENT_MESSAGE);
                   setView('code');
                 },
                 onError: (error) => {
@@ -140,7 +145,7 @@ export function LoginForm({
               },
             );
           }}
-          className="border-field text-ink-deep hover:border-gold h-auto w-full justify-start gap-3 rounded-xl border bg-white px-4 py-3.5 text-left text-[14.5px] font-normal transition-colors duration-150 ease-out hover:bg-[#FEFCF5] disabled:opacity-70"
+          className="border-field text-ink-deep hover:border-gold hover:text-ink-deep active:translate-y-0 h-auto w-full justify-start gap-3 rounded-xl border bg-white px-4 py-3.5 text-left text-[14.5px] font-normal whitespace-normal transition-colors duration-150 ease-out hover:bg-[#FEFCF5] disabled:opacity-70"
         >
           <MailIcon className="text-fa-muted size-[17px] flex-none" aria-hidden />
           <span>
@@ -159,7 +164,7 @@ export function LoginForm({
           </div>
         )}
 
-        <BackButton
+        <AuthBackButton
           onClick={() => {
             show('login');
           }}
@@ -217,7 +222,7 @@ export function LoginForm({
           </div>
         </form>
 
-        <BackButton
+        <AuthBackButton
           onClick={() => {
             show('forgot');
           }}
@@ -275,7 +280,7 @@ export function LoginForm({
                 onClick={() => {
                   show('forgot');
                 }}
-                className="text-fa-muted hover:text-gold h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
+                className="text-fa-muted hover:text-gold active:translate-y-0 h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
               >
                 Forgot password?
               </Button>

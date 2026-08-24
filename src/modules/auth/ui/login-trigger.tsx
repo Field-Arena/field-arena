@@ -13,7 +13,7 @@ export function LoginTrigger({ children, className }: { children: ReactNode; cla
       type="button"
       variant="ghost"
       onClick={openDialog}
-      className={cn('h-auto bg-transparent p-0 hover:bg-transparent', className)}
+      className={cn('h-auto bg-transparent p-0 hover:bg-transparent active:translate-y-0', className)}
     >
       {children}
     </Button>

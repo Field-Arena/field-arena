@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/shared/ui/shadcn/button';
-import { AuthAlert } from '@/shared/ui/auth/auth-primitives';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 
 const MESSAGES: Record<string, string> = {

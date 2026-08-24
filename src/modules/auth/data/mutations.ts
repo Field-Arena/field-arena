@@ -18,6 +18,7 @@ import {
   verifyEmailSchema,
   verifySignInCodeSchema,
 } from '@/modules/auth/schemas';
+import { readableAuthError } from '@/modules/auth/utils/readable-auth-error';
 import type {
   SignUpOutcome,
   VerifyOutcome,
@@ -25,16 +26,6 @@ import type {
   LoginOutcome,
   SignInCodeOutcome,
 } from '@/modules/auth/types';
-
-function readableAuthError(message: string): string {
-  if (/rate limit/i.test(message)) {
-    return 'Too many emails have gone to this address recently. Try again in an hour.';
-  }
-  if (/expired|invalid/i.test(message)) {
-    return 'That code is wrong or has expired. Check the latest email, or send a new code.';
-  }
-  return message;
-}
 
 async function withMailTransport<T>(
   label: string,

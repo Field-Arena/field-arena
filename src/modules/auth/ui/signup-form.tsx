@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/constants/routes';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
-import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
+import { AuthField } from '@/shared/ui/auth/auth-field';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-password-field';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
+import { PasswordStrengthMeter } from '@/shared/ui/auth/password-strength-meter';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { signUpSchema, type SignUpInput } from '@/modules/auth/schemas';
@@ -17,16 +19,23 @@ import {
   useVerifyEmail,
   useResendEmailCode,
 } from '@/modules/auth/hooks/use-auth-mutations';
-import type { SignUpStep } from '@/modules/auth/types';
+import { useResendCooldown } from '@/modules/auth/hooks/use-resend-cooldown';
+import { useSignupFlow } from '@/modules/auth/hooks/use-signup-flow';
 
 export function SignUpForm() {
-  const [step, setStep] = useState<SignUpStep>('account');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-
-  const [formError, setFormError] = useState<string | null>(null);
-  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const {
+    step,
+    setStep,
+    email,
+    setEmail,
+    code,
+    setCode,
+    formError,
+    setFormError,
+    alreadyRegistered,
+    setAlreadyRegistered,
+  } = useSignupFlow();
+  const cooldown = useResendCooldown();
 
   const form = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
@@ -40,7 +49,7 @@ export function SignUpForm() {
       setAlreadyRegistered(false);
       setEmail(confirmedEmail);
       setStep('verify');
-      setCooldown(RESEND_COOLDOWN_SECONDS);
+      cooldown.start(RESEND_COOLDOWN_SECONDS);
     },
     onAlreadyRegistered: () => {
       setAlreadyRegistered(true);
@@ -48,16 +57,6 @@ export function SignUpForm() {
   });
   const verify = useVerifyEmail();
   const resend = useResendEmailCode();
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setTimeout(() => {
-      setCooldown((seconds) => seconds - 1);
-    }, 1000);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [cooldown]);
 
   const password = useWatch({ control: form.control, name: 'password' });
   const { errors } = form.formState;
@@ -84,7 +83,7 @@ export function SignUpForm() {
               setFormError(null);
               verify.reset();
             }}
-            className="border-line-mint-2 text-fa-muted hover:text-gold h-auto rounded-none border-l bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
+            className="border-line-mint-2 text-fa-muted hover:text-gold active:translate-y-0 h-auto rounded-none border-l bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
           >
             Change
           </Button>
@@ -122,20 +121,20 @@ export function SignUpForm() {
             <Button
               type="button"
               variant="ghost"
-              disabled={cooldown > 0 || resend.isPending}
+              disabled={cooldown.seconds > 0 || resend.isPending}
               onClick={() => {
                 resend.mutate(
                   { email },
                   {
                     onSuccess: () => {
-                      setCooldown(RESEND_COOLDOWN_SECONDS);
+                      cooldown.start(RESEND_COOLDOWN_SECONDS);
                     },
                   },
                 );
               }}
-              className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="text-forest hover:text-gold active:translate-y-0 h-auto bg-transparent px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
             >
-              {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
+              {cooldown.seconds > 0 ? `Resend in ${String(cooldown.seconds)}s` : 'Send a new code'}
             </Button>
           </div>
 
