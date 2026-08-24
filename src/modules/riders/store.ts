@@ -1,29 +1,12 @@
 import { create } from 'zustand';
 
-/**
- * In-progress entry cart: which classes are selected, which qualification
- * types apply to each, and which horse(s) are assigned to each — all purely
- * client-side, in-memory state. Mirrors legacy's realSelectedClasses /
- * realQualSelections / realClassHorse (rider.html) as one Zustand store
- * instead of three module-level mutable variables.
- *
- * No persistence layer (unlike legacy's sessionStorage cart-resume, which
- * existed specifically to survive a redirect out to Stripe's hosted checkout
- * and back). Checkout is a later phase; there is nothing yet that navigates a
- * rider away from this page and back, so nothing to resume.
- *
- * Scoped to one show at a time — `reset()` is called when a rider lands on a
- * different show's ticket page, and the store is never keyed by showId, so a
- * stale cart from a previous show should never carry forward silently.
- */
 interface EntryCartState {
-  /** classId -> selected */
   selectedClassIds: Set<string>;
-  /** classId -> selected qualTypeIds */
+
   qualSelections: Record<string, Set<string>>;
-  /** classId -> ordered horseId slots (null = unassigned; more than one slot = same class, multiple horses) */
+
   classHorseAssignments: Record<string, (string | null)[]>;
-  /** addOnId -> quantity */
+
   addOnQuantities: Record<string, number>;
 
   toggleClass: (classId: string) => void;
@@ -95,7 +78,7 @@ export const useEntryCartStore = create<EntryCartState>((set) => ({
   removeClassHorseSlot: (classId, slotIndex) => {
     set((state) => {
       const slots = (state.classHorseAssignments[classId] ?? [null]).filter(
-        (_, i) => i !== slotIndex
+        (_, i) => i !== slotIndex,
       );
       return {
         classHorseAssignments: {

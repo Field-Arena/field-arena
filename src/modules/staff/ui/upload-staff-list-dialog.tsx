@@ -17,21 +17,9 @@ import { IconUpload } from '@/shared/ui/organizer/icons';
 import { parseStaffCsv } from '../utils';
 import { useImportStaffList } from '../hooks/use-user-directory-mutations';
 
-const TEMPLATE_CSV = 'First name,Last name,Role,Phone,Email\nJane,Smith,Judge,(555) 123-4567,jane@example.com\n';
+const TEMPLATE_CSV =
+  'First name,Last name,Role,Phone,Email\nJane,Smith,Judge,(555) 123-4567,jane@example.com\n';
 
-/**
- * "Upload Staff List" — real CSV import, not the legacy demo no-op. Parses
- * with `parseStaffCsv` (the same header-aware/positional-fallback logic as
- * showstaff.html's `parseStaffCsv`) and hands the rows to `importStaffList`,
- * which grants a real staff_assignments row and sends a real invite email per
- * new address — this app already has that path (the same one Add User uses),
- * so there is no reason to keep legacy's "doesn't send real email" limitation.
- *
- * Only .csv is accepted. Legacy's .xlsx/.xls path either faked a canned
- * roster (demo mode) or refused outright (real org) — this only ever had the
- * real-org behaviour available to port, so unsupported files are refused with
- * the same message rather than silently doing nothing.
- */
 export function UploadStaffListDialog({ showId, showName }: { showId: string; showName: string }) {
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -76,18 +64,20 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
 
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl text-hunter-deep">Upload staff list</DialogTitle>
+          <DialogTitle className="text-hunter-deep font-serif text-xl">
+            Upload staff list
+          </DialogTitle>
           <DialogDescription>
             A CSV with a row per person for {showName} — First name, Last name, Role (Show Admin,
-            Judge, Scribe, ShowStaff, Vendor, or Announcer), Phone, and Email. Each new address gets a
-            real invite email. Anyone already on this show (matched by email) is skipped.
+            Judge, Scribe, ShowStaff, Vendor, or Announcer), Phone, and Email. Each new address gets
+            a real invite email. Anyone already on this show (matched by email) is skipped.
           </DialogDescription>
         </DialogHeader>
 
         <a
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE_CSV)}`}
           download="field-and-arena-staff-template.csv"
-          className="text-[12.5px] font-semibold text-forest underline"
+          className="text-forest text-[12.5px] font-semibold underline"
         >
           ⤓ Download CSV template
         </a>
@@ -136,7 +126,9 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
             }}
           >
             {importList.isPending && <Loader2Icon className="animate-spin" aria-hidden />}
-            {importList.isPending ? 'Importing…' : `Import ${rows.length ? String(rows.length) : ''}`}
+            {importList.isPending
+              ? 'Importing…'
+              : `Import ${rows.length ? String(rows.length) : ''}`}
           </Button>
         </DialogFooter>
       </DialogContent>

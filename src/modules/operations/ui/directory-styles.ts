@@ -1,4 +1,3 @@
-/** Shared inline styles across the Find/Riders/Horses/Stabling/Vendors panels — one per top-level nav item, matching showstaff-ops.html's own sidebar 1:1. */
 export const rowStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',

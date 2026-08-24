@@ -12,10 +12,6 @@ export const assignScribeToClassesSchema = z.object({
 });
 export type AssignScribeToClassesInput = z.input<typeof assignScribeToClassesSchema>;
 
-/**
- * The Setup → Venue "Assign Judges" dialog: set the head-judge seat (J1) for a
- * chosen set of classes in one go. Either role may be null to leave/clear it.
- */
 export const setClassPanelSchema = z.object({
   classIds: z.array(z.uuid()).min(1),
   judgeStaffId: z.uuid().nullable(),

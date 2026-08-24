@@ -1,12 +1,3 @@
-/**
- * Organizer sidebar icons, ported verbatim from the inline SVGs in the legacy
- * showstaff.html sidebar (lines 862-871).
- *
- * These are the real paths, not lookalikes. Several carry their own stroke widths
- * (1.6 rather than 1.75 on the horse, ticket and dollar glyphs) and a couple use
- * a filled dot with `stroke="none"` — both preserved, because at 22px those
- * choices are what make the glyphs read correctly.
- */
 const S = {
   stroke: 'currentColor',
   strokeWidth: 1.75,
@@ -15,7 +6,6 @@ const S = {
   strokeLinejoin: 'round' as const,
 };
 
-/** The horse, ticket and dollar glyphs were drawn at a slightly finer weight. */
 const S16 = { ...S, strokeWidth: 1.6 };
 
 const PATHS: Record<string, React.ReactNode> = {
@@ -78,9 +68,24 @@ const PATHS: Record<string, React.ReactNode> = {
 
   eventsales: (
     <>
-      <rect x="4" y="10" width="16" height="9.5" rx="1.3" stroke="currentColor" strokeWidth={1.6} fill="none" />
+      <rect
+        x="4"
+        y="10"
+        width="16"
+        height="9.5"
+        rx="1.3"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        fill="none"
+      />
       <path {...S16} d="M7.5 10V8a2 2 0 012-2h5a2 2 0 012 2v2" />
-      <path stroke="currentColor" strokeWidth={1.6} fill="none" strokeLinecap="round" d="M4 14.7h16" />
+      <path
+        stroke="currentColor"
+        strokeWidth={1.6}
+        fill="none"
+        strokeLinecap="round"
+        d="M4 14.7h16"
+      />
       <circle cx="12" cy="17.2" r={0.7} fill="currentColor" stroke="none" />
     </>
   ),
@@ -109,10 +114,6 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
 
-  // Below: ShowStaff-only glyphs, ported verbatim from showstaff-ops.html's own
-  // sidebar (lines 197-202) rather than reused from the organizer set above —
-  // that file draws its own Find/Riders/Stabling/Vendors icons distinct from
-  // showstaff.html's Member Database/Horses glyphs.
   find: (
     <>
       <circle cx="11" cy="11" r="6" {...S} />

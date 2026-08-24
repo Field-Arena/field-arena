@@ -5,7 +5,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Stabling — Field & Arena' };
 
-/** "Stabling" — `ROLE_NAV.ShowStaff`'s own top-level item, ported from showstaff-ops.html's Stabling tab. */
 export default async function OperationsStablingPage({
   searchParams,
 }: {

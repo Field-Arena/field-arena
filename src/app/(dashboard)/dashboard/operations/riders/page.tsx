@@ -5,7 +5,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Riders — Field & Arena' };
 
-/** "Riders" — `ROLE_NAV.ShowStaff`'s own top-level item, ported from showstaff-ops.html's Riders tab. */
 export default async function OperationsRidersPage({
   searchParams,
 }: {

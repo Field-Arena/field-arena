@@ -21,15 +21,6 @@ export async function generateMetadata({
   return { title: org ? `${org.name} — Billing` : 'Billing' };
 }
 
-/**
- * One organizer's billing, matching the Admin Console design.
- *
- * The Connect panel is read-only and the settlement panel is editable, which
- * splits along ownership rather than along convenience: Stripe owns account
- * status, payouts and charge type, and those are read live so there is no
- * stale-status failure mode. Cadence and holdback are our own columns, so they
- * are stored and edited here.
- */
 export default async function OrganizationBillingPage({
   params,
 }: {
@@ -47,30 +38,29 @@ export default async function OrganizationBillingPage({
       <div>
         <Link
           href="/dashboard/superadmin/billing"
-          className="mb-4 inline-flex items-center gap-2 text-[13px] font-semibold text-fa-muted transition-colors hover:text-gold"
+          className="text-fa-muted hover:text-gold mb-4 inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
         >
           <ArrowLeftIcon className="size-4" aria-hidden />
           All organizers · Billing
         </Link>
 
         <h1
-          className={`${NR} mb-2 text-[34px] font-medium leading-[1.06] tracking-[-.022em] text-hunter-deep`}
+          className={`${NR} text-hunter-deep mb-2 text-[34px] leading-[1.06] font-medium tracking-[-.022em]`}
         >
           {org.name}
         </h1>
-        <p className="text-[14.5px] leading-[1.6] text-fa-muted">
+        <p className="text-fa-muted text-[14.5px] leading-[1.6]">
           {location ? `${location} · ` : ''}Stripe Connect account and deposit reconciliation for
           every show.
         </p>
       </div>
 
-      {/* Read-only: every field here belongs to Stripe. */}
-      <section className="rounded-xl border border-line-mint bg-[#F3F0E7] p-7">
-        <h2 className={`${NR} mb-5 text-[22px] font-medium text-hunter-deep`}>
+      <section className="border-line-mint rounded-xl border bg-[#F3F0E7] p-7">
+        <h2 className={`${NR} text-hunter-deep mb-5 text-[22px] font-medium`}>
           Stripe Connect Account
         </h2>
 
-        <dl className="grid grid-cols-2 gap-6 border-b border-line-mint pb-5 sm:grid-cols-4">
+        <dl className="border-line-mint grid grid-cols-2 gap-6 border-b pb-5 sm:grid-cols-4">
           {[
             {
               label: 'Status',
@@ -83,13 +73,13 @@ export default async function OrganizationBillingPage({
             { label: 'Charge type', value: 'Separate charges & transfers' },
           ].map((field) => (
             <div key={field.label}>
-              <dt className="mb-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-fa-muted-2">
+              <dt className="text-fa-muted-2 mb-1.5 text-[10px] font-bold tracking-[.16em] uppercase">
                 {field.label}
               </dt>
               <dd
                 className={cn(
                   'flex items-center gap-2 text-[14px] font-bold',
-                  field.tone ?? 'text-hunter-deep'
+                  field.tone ?? 'text-hunter-deep',
                 )}
               >
                 {field.dot && (
@@ -127,14 +117,14 @@ export default async function OrganizationBillingPage({
       />
 
       <section aria-label="Per-show reconciliation" className="space-y-3">
-        <h2 className={`${NR} text-[22px] font-medium text-hunter-deep`}>By show</h2>
+        <h2 className={`${NR} text-hunter-deep text-[22px] font-medium`}>By show</h2>
         <ShowBillingTable rows={org.shows} currency={org.currency} locale={org.locale} />
       </section>
 
       <section aria-label="Payout history" className="space-y-3">
-        <h2 className={`${NR} text-[22px] font-medium text-hunter-deep`}>Payout History</h2>
-        <div className="rounded-[14px] border border-dashed border-line bg-white px-5 py-12 text-center">
-          <p className="m-0 text-[13.5px] leading-[1.6] text-fa-muted">
+        <h2 className={`${NR} text-hunter-deep text-[22px] font-medium`}>Payout History</h2>
+        <div className="border-line rounded-[14px] border border-dashed bg-white px-5 py-12 text-center">
+          <p className="text-fa-muted m-0 text-[13.5px] leading-[1.6]">
             Payouts are Stripe&rsquo;s record, not ours, so there is nothing to list until a Connect
             account is linked and the Stripe keys are set. Caching them here would create a second,
             stale copy of something Stripe already answers authoritatively.

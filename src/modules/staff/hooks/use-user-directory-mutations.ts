@@ -23,8 +23,6 @@ import type {
   UpdateStaffDetailsInput,
 } from '../schemas';
 
-/** Mutation hooks for the "All Users" directory. Every action revalidates server-side; router.refresh() pulls the re-rendered directory back into this view. */
-
 export function useAddStaffUser(options?: { onSuccess?: () => void }) {
   const router = useRouter();
 
