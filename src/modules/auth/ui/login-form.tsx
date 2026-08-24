@@ -6,14 +6,13 @@ import { ArrowRightIcon, MailIcon } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/constants/routes';
 import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
-import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import {
-  AuthAlert,
-  AuthCheckbox,
-  AuthDivider,
-  AuthEyebrow,
-  AuthSubmit,
-} from '@/shared/ui/auth/auth-primitives';
+import { AuthField } from '@/shared/ui/auth/auth-field';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-password-field';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
+import { AuthCheckbox } from '@/shared/ui/auth/auth-checkbox';
+import { AuthDivider } from '@/shared/ui/auth/auth-divider';
+import { AuthEyebrow } from '@/shared/ui/auth/auth-eyebrow';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { loginSchema, type LoginInput } from '@/modules/auth/schemas';

@@ -7,7 +7,7 @@ import { riderDetailsFormSchema, type RiderDetailsFormInput } from '@/modules/ri
 import { useUpdateRiderProfile } from '@/modules/riders/hooks/use-rider-profile-mutations';
 import type { RiderRow } from '@/modules/riders/types';
 import { AuthField } from '@/shared/ui/auth/auth-field';
-import { AuthSubmit } from '@/shared/ui/auth/auth-primitives';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
 
 const SELECT_LABEL_CLASSES =
   'mb-[9px] block text-xs font-bold uppercase tracking-[.1em] text-forest';

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowRightIcon, XIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
-import { AuthAlert } from '@/shared/ui/auth/auth-primitives';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
 import { ROUTES } from '@/shared/constants/routes';
 import { LoginForm } from '@/modules/auth/ui/login-form';
 import { useLoginDialogStore } from '@/modules/auth/store';

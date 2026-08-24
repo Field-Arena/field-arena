@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-password-field';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
+import { PasswordStrengthMeter } from '@/shared/ui/auth/password-strength-meter';
 import { setPasswordSchema, type SetPasswordInput } from '@/modules/auth/schemas';
 import { useSetPassword } from '@/modules/auth/hooks/use-auth-mutations';
 

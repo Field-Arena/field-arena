@@ -14,8 +14,11 @@ import {
 import type { RiderSignUpStep } from '@/modules/riders/types';
 import { ROUTES } from '@/shared/constants/routes';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
-import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
+import { AuthField } from '@/shared/ui/auth/auth-field';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-password-field';
+import { AuthAlert } from '@/shared/ui/auth/auth-alert';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
+import { PasswordStrengthMeter } from '@/shared/ui/auth/password-strength-meter';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 

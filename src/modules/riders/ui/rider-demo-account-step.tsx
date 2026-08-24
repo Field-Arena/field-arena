@@ -1,7 +1,8 @@
 'use client';
 
-import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import { AuthSubmit } from '@/shared/ui/auth/auth-primitives';
+import { AuthField } from '@/shared/ui/auth/auth-field';
+import { AuthPasswordField } from '@/shared/ui/auth/auth-password-field';
+import { AuthSubmit } from '@/shared/ui/auth/auth-submit';
 
 export function RiderDemoAccountStep({ onNext }: { onNext: () => void }) {
   return (
