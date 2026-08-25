@@ -233,7 +233,6 @@ export interface StablingStall {
   label: string;
   horseName: string;
   riderName: string;
-
   num: string | null;
 }
 
@@ -331,7 +330,6 @@ export async function listVendors(showId: string): Promise<VendorRow[]> {
 export interface ShowDocumentRow {
   id: string;
   name: string;
-
   url: string | null;
 }
 
@@ -364,9 +362,7 @@ export interface ScheduleEntry {
   rider: string;
   horse: string;
   draw: number;
-
   finalPctRaw: string | null;
-
   finalPctNum: number | null;
 }
 
@@ -379,9 +375,7 @@ export interface ScheduleClass {
   status: 'upcoming' | 'running' | 'done';
   entryCount: number;
   scoredCount: number;
-
   entries: ScheduleEntry[];
-
   placings: (ScheduleEntry & { place: number })[];
 }
 
