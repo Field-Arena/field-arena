@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { EyeIcon, XIcon } from 'lucide-react';
-import { exitOrganizerView } from '@/shared/lib/impersonation';
+import { exitOrganizerView } from '@/modules/superadmin/data/impersonation';
 
 export function ImpersonationBanner() {
   const [isPending, startTransition] = useTransition();

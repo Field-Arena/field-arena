@@ -249,48 +249,6 @@ export const ROLE_NAV: Record<
   ],
 };
 
-export const ROLE_RAIL = [
-  { key: 'superadmin', icon: 'shield', label: 'Super Admin' },
-  { key: 'organizer', icon: 'grid', label: 'Organizer' },
-  { key: 'judge', icon: 'check-square', label: 'Judge' },
-  { key: 'scribe', icon: 'flag', label: 'Scribe' },
-  { key: 'announcer', icon: 'scale', label: 'Announcer' },
-  { key: 'rider', icon: 'pencil', label: 'Rider' },
-  { key: 'vendor', icon: 'speaker', label: 'Vendor' },
-  { key: 'staff', icon: 'briefcase', label: 'Show staff' },
-] as const;
-
-export const CURRENT_ORG = 'Peachtree Dressage Association';
-export const CURRENT_ORG_SHORT = 'Peachtree Dressage Assoc.';
-export const CURRENT_STAGE = 'complete';
-
-export const CURRENT_SHOW = {
-  name: 'Blue Ridge Dressage Weekend',
-  dateLabel: 'Jul 10 – Jul 12, 2026',
-  venue: 'Wills Park Equestrian',
-} as const;
-
-export const DASHBOARD_STATS = [
-  { label: 'Total riders', value: '115', sub: 'this show · view list →' },
-  { label: 'Entries sold', value: '226', sub: 'this show · view list →' },
-  { label: 'Horses', value: '114', sub: 'this show · view list →' },
-  { label: 'Vendor spaces', value: '0', sub: 'booths sold · view list →' },
-  { label: 'Revenue (all-in)', value: '$21,690', sub: 'this show', revenue: true },
-] as const;
-
-export const RING_TIMERS = [
-  { ring: 'Ring 1', delay: '+3m' },
-  { ring: 'Ring 2', delay: '+7m' },
-  { ring: 'Ring 3', delay: '+12m' },
-] as const;
-
-export const SHOW_INVENTORY = [
-  { name: 'Total riders', qty: '115', revenue: '$15,780' },
-  { name: 'Stabling', qty: '65', revenue: '$3,310' },
-  { name: 'Add-ons', qty: '109', revenue: '$2,600' },
-  { name: 'Vendors', qty: '0', revenue: '$0' },
-] as const;
-
 export const ADD_USER_ROLES = [
   'Show Admin',
   'Judge',

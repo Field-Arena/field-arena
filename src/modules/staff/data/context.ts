@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile, type StaffProfile } from '@/modules/auth/data/queries';
 import { listShowsForOrg, type ShowListItem } from '@/modules/shows/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { getPreviewingAsShowAdmin } from './preview-role';
 import { getSelectedOrg, type MemberOrg } from './org-selection';
 
