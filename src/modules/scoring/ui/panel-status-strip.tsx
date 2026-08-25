@@ -1,6 +1,5 @@
-import type { PanelSeat, ScoreRow } from '../types';
+import type { PanelSeat, ScoreRow } from '@/modules/scoring/types';
 
-/** A chip per panel seat — green once that seat has submitted for the current ride, grey while waiting. */
 export function PanelStatusStrip({
   panel,
   scores,
@@ -27,7 +26,9 @@ export function PanelStatusStrip({
                 : 'border-[#E9EDEB] bg-[#F1F4F3] text-[#7A8781]'
             }`}
           >
-            <span className={`size-[7px] rounded-full ${ready ? 'bg-[#2E7D46]' : 'bg-[#B4BFB9]'}`} />
+            <span
+              className={`size-[7px] rounded-full ${ready ? 'bg-[#2E7D46]' : 'bg-[#B4BFB9]'}`}
+            />
             {name} · {seat.position ?? seat.seatId} · {ready ? 'submitted' : 'waiting'}
           </span>
         );

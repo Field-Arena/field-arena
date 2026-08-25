@@ -11,17 +11,11 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { DangerButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
-import { useRefundSale } from '../hooks/use-sales-mutations';
-import type { SaleRow } from '../data/queries';
-import { AmountField } from './amount-field';
+import { REFUND_AMOUNT_EPSILON } from '@/modules/sales/constants';
+import { useRefundSale } from '@/modules/sales/hooks/use-sales-mutations';
+import type { SaleRow } from '@/modules/sales/types';
+import { AmountField } from '@/modules/sales/ui/amount-field';
 
-/**
- * Refunds real money through Stripe. Defaults to a full refund of whatever
- * is still refundable (amountTotal - feeTotal - refundedAmount, the platform
- * fee is never returned) and lets the organizer type a smaller amount for a
- * partial refund — matching legacy's refundEverySaleItem / submitCustomRefund
- * split.
- */
 export function RefundDialog({
   showId,
   sale,
@@ -36,7 +30,9 @@ export function RefundDialog({
 
   const parsedAmount = Number.parseFloat(amount);
   const valid =
-    Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= sale.maxRefundable + 0.001;
+    Number.isFinite(parsedAmount) &&
+    parsedAmount > 0 &&
+    parsedAmount <= sale.maxRefundable + REFUND_AMOUNT_EPSILON;
 
   return (
     <Dialog

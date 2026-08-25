@@ -15,15 +15,9 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { useApplyToVendorShow } from '../hooks/use-vendor-mutations';
-import type { BookableShow } from '../data/queries';
+import { useApplyToVendorShow } from '@/modules/vendors/hooks/use-vendor-mutations';
+import type { BookableShow } from '@/modules/vendors/types';
 
-/**
- * "Apply for this space" — the real, non-money half of vendor-apply.html's
- * form, for a signed-in platform Vendor instead of an anonymous public page.
- * Submits a pending vendor_bookings row for an organizer to review; there is
- * no payment step here (see listBookableShows's doc comment for why).
- */
 export function VendorApplyDialog({ show }: { show: BookableShow }) {
   const [open, setOpen] = useState(false);
   const [businessName, setBusinessName] = useState('');
@@ -60,7 +54,7 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
 
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl text-hunter-deep">
+          <DialogTitle className="text-hunter-deep font-serif text-xl">
             Apply to vend at {show.showName}
           </DialogTitle>
           <DialogDescription>
@@ -80,7 +74,12 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
                 productsOffered: productsOffered || undefined,
                 items: cart.map(({ item, qty }) => ({ vendorItemId: item.id, qty })),
               },
-              { onSuccess: () => { setOpen(false); reset(); } }
+              {
+                onSuccess: () => {
+                  setOpen(false);
+                  reset();
+                },
+              },
             );
           }}
           className="space-y-4"
@@ -93,7 +92,9 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               required
               placeholder="Blue Ridge Tack Co."
               value={businessName}
-              onChange={(e) => { setBusinessName(e.target.value); }}
+              onChange={(e) => {
+                setBusinessName(e.target.value);
+              }}
             />
           </div>
 
@@ -103,7 +104,9 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               id="va-contact-name"
               placeholder="Jane Smith"
               value={contactName}
-              onChange={(e) => { setContactName(e.target.value); }}
+              onChange={(e) => {
+                setContactName(e.target.value);
+              }}
             />
           </div>
 
@@ -113,7 +116,9 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               id="va-products"
               placeholder="Tack, apparel, custom leatherwork"
               value={productsOffered}
-              onChange={(e) => { setProductsOffered(e.target.value); }}
+              onChange={(e) => {
+                setProductsOffered(e.target.value);
+              }}
             />
           </div>
 
@@ -144,7 +149,9 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setOpen(false); }}
+              onClick={() => {
+                setOpen(false);
+              }}
             >
               Cancel
             </Button>

@@ -25,46 +25,25 @@ import {
   unskipRide,
   upsertPanelSeat,
   workInEntry,
-} from '../data/mutations';
-import { enqueueScoringWrite } from './use-mutation-queue';
+} from '@/modules/scoring/data/mutations';
+import { enqueueScoringWrite } from '@/modules/scoring/hooks/use-mutation-queue';
+import { MAX_WRITE_RETRIES, WRITE_RETRY_MS } from '@/modules/scoring/constants';
 
-/** Routes a Server Action through the shared queue — see use-mutation-queue.ts. */
 function queued<Input, Output>(action: (input: Input) => Promise<Output>) {
   return (input: Input) => enqueueScoringWrite(() => action(input));
 }
 
-/**
- * Marks/collectives retry on genuine network failure (a fetch that never
- * reached the server) — legacy retried those indefinitely with a persistent
- * "not synced" banner. A bounded retry here (3 tries, legacy's own 3s
- * interval) rather than truly indefinite: an unbounded retry loop against a
- * server that is actually rejecting the write (not just unreachable) would
- * hammer it forever with no visible end state. A thrown business error
- * (permission, "judge already entered this mark", validation) is never a
- * network failure and never retried.
- */
 function isNetworkFailure(error: unknown): boolean {
   return error instanceof TypeError && /fetch|network/i.test(error.message);
 }
 
-const RETRY_DELAY_MS = 3000;
-
-/** One sticky id so repeated failures re-use the same toast instead of stacking — legacy's persistent banner, as a toast. */
 const SYNC_FAILURE_TOAST_ID = 'scoring-sync-failure';
 
-/**
- * Marks/collectives/remarks are otherwise silent on error (no per-keystroke
- * toast — that would be noisy). But once retries are exhausted the write is
- * genuinely lost, and legacy never let that happen invisibly: it kept a
- * sticky "not synced" banner up and kept retrying until the write landed.
- * This is the same "don't fail silently" guarantee via a persistent toast
- * (duration Infinity — dismissed only by the next successful write in this
- * class), rather than a bounded auto-hide.
- */
 function silentMutationOptions() {
   return {
-    retry: (failureCount: number, error: unknown) => failureCount < 3 && isNetworkFailure(error),
-    retryDelay: RETRY_DELAY_MS,
+    retry: (failureCount: number, error: unknown) =>
+      failureCount < MAX_WRITE_RETRIES && isNetworkFailure(error),
+    retryDelay: WRITE_RETRY_MS,
     onError: () => {
       toast.error("Not synced — a mark didn't save. Check your connection and try again.", {
         id: SYNC_FAILURE_TOAST_ID,
@@ -85,7 +64,6 @@ function toastedMutationOptions(errorMessage: string) {
   };
 }
 
-/** No toast on error — the mark-stepper's own inline "not synced" indicator handles it. */
 export function useSetMark() {
   return useMutation({ mutationFn: queued(setMark), ...silentMutationOptions() });
 }
@@ -131,7 +109,10 @@ export function useCorrectEntry() {
 }
 
 export function useAdvanceRide() {
-  return useMutation({ mutationFn: queued(advanceRide), ...toastedMutationOptions('Could not advance') });
+  return useMutation({
+    mutationFn: queued(advanceRide),
+    ...toastedMutationOptions('Could not advance'),
+  });
 }
 
 export function useScratchRide() {
@@ -183,19 +164,31 @@ export function useAddHoldingEntry() {
 }
 
 export function useRemoveHoldingEntry() {
-  return useMutation({ mutationFn: queued(removeHoldingEntry), ...toastedMutationOptions('Could not remove') });
+  return useMutation({
+    mutationFn: queued(removeHoldingEntry),
+    ...toastedMutationOptions('Could not remove'),
+  });
 }
 
 export function useUpsertPanelSeat() {
-  return useMutation({ mutationFn: queued(upsertPanelSeat), ...toastedMutationOptions('Could not update the panel') });
+  return useMutation({
+    mutationFn: queued(upsertPanelSeat),
+    ...toastedMutationOptions('Could not update the panel'),
+  });
 }
 
 export function useRemovePanelSeat() {
-  return useMutation({ mutationFn: queued(removePanelSeat), ...toastedMutationOptions('Could not remove that seat') });
+  return useMutation({
+    mutationFn: queued(removePanelSeat),
+    ...toastedMutationOptions('Could not remove that seat'),
+  });
 }
 
 export function useWorkInEntry() {
-  return useMutation({ mutationFn: queued(workInEntry), ...toastedMutationOptions('Could not work this rider in') });
+  return useMutation({
+    mutationFn: queued(workInEntry),
+    ...toastedMutationOptions('Could not work this rider in'),
+  });
 }
 
 export function useToggleScoringOpen() {
