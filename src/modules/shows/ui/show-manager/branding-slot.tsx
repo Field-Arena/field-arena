@@ -2,6 +2,7 @@
 
 import { ArrowUpIcon, Loader2Icon } from 'lucide-react';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { readFileAsBase64 } from '@/modules/shows/utils/read-file-as-base64';
 import { useUploadShowBranding } from '@/modules/shows/hooks/use-catalog-mutations';
@@ -28,7 +29,7 @@ export function BrandingSlot({
       <div className="text-ink-deep text-[13px] font-bold">{label}</div>
       <div className="mb-2 text-[11.5px] text-[#98A29D]">{hint}</div>
 
-      <label
+      <Label
         className={cn(
           'grid min-h-[104px] cursor-pointer place-items-center gap-1.5 rounded-[10px]',
           'border border-dashed border-[#D9E1DD] bg-white p-3 text-center transition-colors',
@@ -62,7 +63,7 @@ export function BrandingSlot({
             <span className="text-[12.5px] text-[#6E7C76]">{prompt}</span>
           </>
         )}
-      </label>
+      </Label>
     </div>
   );
 }

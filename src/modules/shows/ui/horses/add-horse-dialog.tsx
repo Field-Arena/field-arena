@@ -124,14 +124,14 @@ export function AddHorseDialog({ showId }: { showId: string }) {
               </div>
             ))}
 
-            <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
+            <Label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
               <input
                 type="checkbox"
                 className="accent-hunter-deep size-4"
                 {...form.register('isStallion')}
               />
               This horse is a stallion
-            </label>
+            </Label>
           </div>
 
           <DialogFooter className={modalFooterClass}>

@@ -6,6 +6,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import {
   useSaveTestTemplate,
   useDeleteTestTemplate,
@@ -125,7 +126,7 @@ export function TestBuilderCard({
 
         <div className="mb-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <div>
-            <label className={SM_LABEL}>Test name</label>
+            <Label className={SM_LABEL}>Test name</Label>
             <Input
               value={draft.name}
               className={`h-auto ${SM_INPUT}`}
@@ -135,7 +136,7 @@ export function TestBuilderCard({
             />
           </div>
           <div>
-            <label className={SM_LABEL}>Level</label>
+            <Label className={SM_LABEL}>Level</Label>
             <Input
               value={draft.level}
               placeholder="e.g. Training Level"
@@ -147,7 +148,7 @@ export function TestBuilderCard({
           </div>
         </div>
 
-        <label className={SM_LABEL}>Movements</label>
+        <Label className={SM_LABEL}>Movements</Label>
         <div className="mb-3 flex flex-col gap-2">
           {draft.movements.map((m, i) => (
             <div
@@ -218,7 +219,7 @@ export function TestBuilderCard({
           + Add movement
         </GhostButton>
 
-        <label className={SM_LABEL}>Collective marks</label>
+        <Label className={SM_LABEL}>Collective marks</Label>
         <div className="mb-3 flex flex-col gap-2">
           {draft.collectives.map((c, i) => (
             <div key={i} className="grid grid-cols-[minmax(0,1fr)_70px_auto] items-center gap-2.5">

@@ -143,7 +143,6 @@ export const updateShowDetailsSchema = z
     startingRiderNumber: z.coerce.number().int().min(1).max(99999),
     governingBodies: z.array(z.enum(GOVERNING_BODIES)),
   })
-  // Only once both are set — half-dated is a normal state mid-setup.
   .refine((d) => !d.startDate || !d.endDate || d.endDate >= d.startDate, {
     message: 'End date cannot be before the start date',
     path: ['endDate'],

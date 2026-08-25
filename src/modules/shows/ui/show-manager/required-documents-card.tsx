@@ -5,6 +5,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateDocumentRequirements } from '@/modules/shows/hooks/use-show-mutations';
 import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
@@ -65,7 +66,7 @@ export function RequiredDocumentsCard({
                   commit(rows.map((d) => (d.id === doc.id ? { ...d, label: e.target.value } : d)));
                 }}
               />
-              <label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
                 <input
                   type="checkbox"
                   checked={!!doc.requiresExpiration}
@@ -79,8 +80,8 @@ export function RequiredDocumentsCard({
                   }}
                 />
                 Requires expiration date
-              </label>
-              <label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+              </Label>
+              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
                 <input
                   type="checkbox"
                   checked={!!doc.requiresApproval}
@@ -94,7 +95,7 @@ export function RequiredDocumentsCard({
                   }}
                 />
                 Requires staff approval
-              </label>
+              </Label>
               <Button
                 type="button"
                 variant="ghost"

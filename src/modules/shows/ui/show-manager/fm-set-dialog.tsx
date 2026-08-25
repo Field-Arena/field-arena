@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import {
   CATALOG_DIVISIONS,
@@ -164,7 +165,7 @@ export function FmSetDialog({
                     key={level.name}
                     className="rounded-[10px] border border-[#EDF0EE] px-3.5 py-2.5"
                   >
-                    <label className="flex cursor-pointer items-center gap-3">
+                    <Label className="flex cursor-pointer items-center gap-3">
                       <input
                         type="checkbox"
                         className="size-4 flex-none accent-[#1A5B3C]"
@@ -176,7 +177,7 @@ export function FmSetDialog({
                       <span className="text-ink-deep text-[13.5px] font-semibold">
                         {level.name}
                       </span>
-                    </label>
+                    </Label>
 
                     <div className="mt-2 flex flex-col gap-2 pl-7">
                       {level.tests.map((test) => (
@@ -189,7 +190,7 @@ export function FmSetDialog({
                             {CATALOG_DIVISIONS.map((division) => {
                               const key = catalogKey(level.name, test, division);
                               return (
-                                <label
+                                <Label
                                   key={division}
                                   className="flex cursor-pointer items-center gap-1.5 text-[12.5px] text-[#5A6B63]"
                                 >
@@ -202,7 +203,7 @@ export function FmSetDialog({
                                     }}
                                   />
                                   {division}
-                                </label>
+                                </Label>
                               );
                             })}
                           </div>
