@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
 import {
   useUploadVendorDocument,
   useRemoveVendorDocument,
@@ -41,10 +42,10 @@ export function VendorDocumentRow({
         </>
       ) : (
         <>
-          <input
+          <Input
             ref={inputRef}
             type="file"
-            style={{ display: 'inline-block', maxWidth: 180, fontSize: 12 }}
+            className="inline-flex h-auto max-w-[180px] border-none bg-transparent p-0 text-xs"
             disabled={uploadMutation.isPending}
             onChange={(e) => {
               const file = e.target.files?.[0];

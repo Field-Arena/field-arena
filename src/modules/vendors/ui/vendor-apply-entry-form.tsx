@@ -10,6 +10,7 @@ import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthEyebrow, AuthSubmit } from '@/shared/ui/auth/auth-primitives';
 import { Input } from '@/shared/ui/shadcn/input';
 import { useApplyToShowPublic } from '@/modules/vendors/hooks/use-vendor-apply-entry';
+import { useVendorCart } from '@/modules/vendors/hooks/use-vendor-cart';
 import type { PublicVendorApplyShow } from '@/modules/vendors/types';
 
 export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) {
@@ -21,13 +22,9 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
   const [website, setWebsite] = useState('');
   const [productsOffered, setProductsOffered] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
-  const [qtyById, setQtyById] = useState<Record<string, number>>({});
 
   const apply = useApplyToShowPublic();
-
-  const cart = show.items
-    .map((item) => ({ item, qty: qtyById[item.id] ?? 0 }))
-    .filter(({ qty }) => qty > 0);
+  const { qtyById, cart, setQty } = useVendorCart(show.items);
 
   if (submitted) {
     return (
@@ -174,8 +171,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
                     className="border-field text-ink-deep focus-visible:border-gold focus-visible:ring-gold/[.16] h-auto w-16 rounded-lg border bg-white px-2 py-1.5 text-center text-[14px] outline-none focus-visible:ring-[3px]"
                     value={qtyById[item.id] ?? 0}
                     onChange={(e) => {
-                      const n = Math.max(0, Number(e.target.value) || 0);
-                      setQtyById((prev) => ({ ...prev, [item.id]: n }));
+                      setQty(item.id, e.target.value);
                     }}
                     aria-label={`Quantity for ${item.name}`}
                   />

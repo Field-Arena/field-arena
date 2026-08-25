@@ -35,6 +35,7 @@ import {
 import type {
   FinalizeVendorBookingResult,
   VendorCheckoutSessionResult,
+  VendorDocumentUpload,
   VendorResendOutcome,
   VendorSignUpOutcome,
   VendorVerifyOutcome,
@@ -152,14 +153,6 @@ export async function resendVendorSignUpCode(input: unknown): Promise<VendorRese
   const { error } = attempt.value;
   if (error) return { status: 'error', message: error.message };
   return { status: 'sent' };
-}
-
-interface VendorDocumentUpload {
-  requirementId: string;
-  label: string;
-  path: string;
-  expirationDate: string | null;
-  verified: boolean;
 }
 
 async function requireVendorProfile(): Promise<{ id: string; email: string }> {

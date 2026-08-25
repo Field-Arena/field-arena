@@ -2,6 +2,14 @@ import type { Metadata } from 'next';
 import { listMyBookings } from '@/modules/vendors/data/queries';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { formatMoney } from '@/shared/lib/format/currency';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export const metadata: Metadata = { title: 'History — Field & Arena' };
 
@@ -28,28 +36,28 @@ export default async function VendorHistoryPage() {
             note="Paid bookings appear here once their show has passed."
           />
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Show</th>
-                <th scope="col">Organizer</th>
-                <th scope="col" className="r">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Date</TableHead>
+                <TableHead scope="col">Show</TableHead>
+                <TableHead scope="col">Organizer</TableHead>
+                <TableHead scope="col" className="text-right">
                   Total paid
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {past.map((booking) => (
-                <tr key={booking.id}>
-                  <td>{booking.showDate ?? ''}</td>
-                  <td>{booking.showName}</td>
-                  <td>{booking.orgName}</td>
-                  <td className="r">{formatMoney(booking.amountTotal)}</td>
-                </tr>
+                <TableRow key={booking.id}>
+                  <TableCell>{booking.showDate ?? ''}</TableCell>
+                  <TableCell>{booking.showName}</TableCell>
+                  <TableCell>{booking.orgName}</TableCell>
+                  <TableCell className="text-right">{formatMoney(booking.amountTotal)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </>

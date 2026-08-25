@@ -16,6 +16,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { useApplyToVendorShow } from '@/modules/vendors/hooks/use-vendor-mutations';
+import { useVendorCart } from '@/modules/vendors/hooks/use-vendor-cart';
 import type { BookableShow } from '@/modules/vendors/types';
 
 export function VendorApplyDialog({ show }: { show: BookableShow }) {
@@ -23,19 +24,15 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
   const [businessName, setBusinessName] = useState('');
   const [contactName, setContactName] = useState('');
   const [productsOffered, setProductsOffered] = useState('');
-  const [qtyById, setQtyById] = useState<Record<string, number>>({});
 
   const { mutate, isPending } = useApplyToVendorShow();
-
-  const cart = show.items
-    .map((item) => ({ item, qty: qtyById[item.id] ?? 0 }))
-    .filter(({ qty }) => qty > 0);
+  const { qtyById, cart, setQty, reset: resetCart } = useVendorCart(show.items);
 
   function reset() {
     setBusinessName('');
     setContactName('');
     setProductsOffered('');
-    setQtyById({});
+    resetCart();
   }
 
   return (
@@ -137,8 +134,7 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
                   className="w-20"
                   value={qtyById[item.id] ?? 0}
                   onChange={(e) => {
-                    const n = Math.max(0, Number(e.target.value) || 0);
-                    setQtyById((prev) => ({ ...prev, [item.id]: n }));
+                    setQty(item.id, e.target.value);
                   }}
                 />
               </div>
