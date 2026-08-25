@@ -3,10 +3,17 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { useUpdatePrizeList } from '../../hooks/use-show-mutations';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_LABEL, SM_INPUT } from './tokens';
+import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
+import { useUpdatePrizeList } from '@/modules/shows/hooks/use-show-mutations';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_LABEL,
+  SM_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
 
-/** "Prize list" — one toggle-edit URL field, same recipe as Contact's rows. */
 export function PrizeListCard({
   showId,
   prizeListUrl,
@@ -30,19 +37,19 @@ export function PrizeListCard({
         <div className="min-w-0">
           <span className={`${SM_LABEL} mb-1.5`}>Prize list URL</span>
           {editing ? (
-            <input
+            <Input
               autoFocus
               type="url"
               value={value}
               placeholder="https://…"
-              className={SM_INPUT}
+              className={cn('h-auto', SM_INPUT)}
               onChange={(e) => {
                 setValue(e.target.value);
               }}
             />
           ) : (
-            <div className="truncate text-[14.5px] text-ink-deep">
-              {value || <span className="italic text-[#98A29D]">Not set</span>}
+            <div className="text-ink-deep truncate text-[14.5px]">
+              {value || <span className="text-[#98A29D] italic">Not set</span>}
             </div>
           )}
         </div>

@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
-import { normalizeStableChart, summarizeStableChart } from '@/modules/shows/data/stable-chart-queries';
+import {
+  normalizeStableChart,
+  summarizeStableChart,
+} from '@/modules/shows/data/stable-chart-queries';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { WorkspaceHeader } from '@/shared/ui/organizer/workspace-header';
@@ -11,21 +14,6 @@ import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 
 export const metadata: Metadata = { title: 'Horses — Field & Arena' };
 
-/**
- * Every horse entered in the show, and what paperwork is still outstanding —
- * a full rebuild off the bare scaffold this page used to be (raw inline
- * `createServerClient()` reads, a plain read-only table, no KPIs, no sort, no
- * per-document detail, no "+ Add Horse", no reminder action). See
- * `modules/shows/data/horses-queries.ts` for the row-building logic (kept and
- * extended from the previous version of this page) and
- * `modules/shows/ui/horses/horses-screen.tsx` for the screen itself.
- *
- * Unlike Users/Venues, which went org-wide, Horses stays genuinely per-show —
- * documents are checked against one show's own `document_requirements`, so
- * there is no sensible org-wide version of this screen. `?show=` and the
- * WorkspaceHeader chrome are wired exactly like users/page.tsx and
- * venues/page.tsx.
- */
 export default async function HorsesPage({
   searchParams,
 }: {
@@ -36,7 +24,7 @@ export default async function HorsesPage({
 
   if (!context.currentShow) {
     return (
-      <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
         <EmptyPanel title="No shows yet" note="Horses are listed per show." />
       </div>
     );
@@ -45,13 +33,17 @@ export default async function HorsesPage({
   const supabase = await createServerClient();
   const [{ stats, stage }, showRow, horsesData] = await Promise.all([
     getShowManagerVitals(context.currentShow.id),
-    supabase.from('shows').select('locations, stable_chart').eq('id', context.currentShow.id).single(),
+    supabase
+      .from('shows')
+      .select('locations, stable_chart')
+      .eq('id', context.currentShow.id)
+      .single(),
     getHorsesPageData(context.currentShow.id),
   ]);
 
   if (!horsesData) {
     return (
-      <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
         <EmptyPanel title="Show not found" note="This show may have been removed." />
       </div>
     );
@@ -64,7 +56,7 @@ export default async function HorsesPage({
   const stableChartSummary = summarizeStableChart(normalizeStableChart(showRow.data?.stable_chart));
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <WorkspaceHeader
         orgName={context.orgName}
         shows={context.shows}

@@ -9,18 +9,12 @@ import {
   changeStaffRole,
   updateStaffPermissions,
   removeStaffAssignment,
-} from '../data/mutations';
+} from '@/modules/superadmin/data/mutations';
 import type {
   AddOrgStaffInput,
   ChangeStaffRoleInput,
   UpdateStaffPermissionsInput,
-} from '../schemas';
-
-/**
- * Mutation hooks for the Organizer Staff Directory tab. Toasts and refreshes live
- * here per layers.md; each server action calls revalidatePath, and router.refresh
- * pulls the re-rendered directory back into the current view.
- */
+} from '@/modules/superadmin/schemas';
 
 function errorMessage(error: unknown, fallback: string): string {
   return readableError(error, fallback);

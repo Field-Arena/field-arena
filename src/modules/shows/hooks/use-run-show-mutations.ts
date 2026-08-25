@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { setShowPublished, advanceRunnerState } from '../data/mutations';
+import { setShowPublished, advanceRunnerState } from '@/modules/shows/data/mutations';
 import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {

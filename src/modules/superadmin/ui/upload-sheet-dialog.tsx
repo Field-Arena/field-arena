@@ -21,19 +21,14 @@ import {
   CATALOG_FAMILY_META,
   CATALOG_SCORE_TYPES,
   SHEET_FAMILIES,
-} from '../constants';
-import { createSheetSchema, type CreateSheetInput } from '../schemas';
-import { useCreateScoringSheet } from '../hooks/use-catalog-mutations';
-import { FormField } from './organizer-form-fields';
+} from '@/modules/superadmin/constants';
+import { createSheetSchema, type CreateSheetInput } from '@/modules/superadmin/schemas';
+import { useCreateScoringSheet } from '@/modules/superadmin/hooks/use-catalog-mutations';
+import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 
 const SELECT =
   'w-full rounded-lg border border-[#D7CFBB] bg-white px-3.5 py-3 text-[14px] text-[#16261F] focus-visible:border-gold focus-visible:outline-none';
 
-/**
- * "Upload official sheet" — the design's upload modal. It creates a catalog stub
- * from the sheet's metadata (the file itself isn't stored in this build) and
- * opens the new sheet so its criteria can be transcribed.
- */
 export function UploadSheetDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -63,13 +58,14 @@ export function UploadSheetDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="inline-flex items-center gap-2 rounded-[9px] bg-hunter-deep px-[18px] py-3 text-[13.5px] font-bold text-paper transition hover:bg-gold hover:text-hunter-deep"
+          variant="ghost"
+          className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep inline-flex h-auto items-center gap-2 rounded-[9px] px-[18px] py-3 text-[13.5px] font-bold transition"
         >
           <UploadIcon className="size-[15px]" aria-hidden />
           Upload official sheet
-        </button>
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
@@ -78,9 +74,9 @@ export function UploadSheetDialog() {
             Upload an official sheet
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Creates a catalog <strong className="text-[#16261F]">stub</strong> from the source sheet.
-            You then tag its scoring family and scaffold the criteria the renderer reads. The file
-            isn&apos;t stored in this build — only its name is captured.
+            Creates a catalog <strong className="text-[#16261F]">stub</strong> from the source
+            sheet. You then tag its scoring family and scaffold the criteria the renderer reads. The
+            file isn&apos;t stored in this build — only its name is captured.
           </DialogDescription>
         </DialogHeader>
 

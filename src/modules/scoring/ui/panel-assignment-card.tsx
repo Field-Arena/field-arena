@@ -1,17 +1,13 @@
 'use client';
 
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { useRemovePanelSeat, useUpsertPanelSeat } from '../hooks/use-scoring-mutations';
-import type { PanelCandidate } from '../data/queries';
-import type { PanelSeat } from '../types';
+import {
+  useRemovePanelSeat,
+  useUpsertPanelSeat,
+} from '@/modules/scoring/hooks/use-scoring-mutations';
+import type { PanelCandidate } from '@/modules/scoring/data/queries';
+import type { PanelSeat } from '@/modules/scoring/types';
 
-/**
- * Live judge/scribe seat editor, ported from showrunner-scoring.html's
- * "Panel Assignment" card — reassign who's judging/recording each seat, or
- * add/remove a seat, without leaving the scoring screen. Distinct from the
- * pre-show "+ Add User" staffing checklist (`modules/judging`), which stays
- * as the bulk multi-class writer it already is.
- */
 export function PanelAssignmentCard({
   classId,
   panel,
@@ -42,8 +38,11 @@ export function PanelAssignmentCard({
 
       <div className="flex flex-col gap-2.5">
         {panel.map((seat) => (
-          <div key={seat.seatId} className="flex flex-wrap items-center gap-2 rounded-lg border border-[#E9EDEB] p-2.5">
-            <span className="w-24 flex-none text-[13px] font-semibold text-ink-deep">
+          <div
+            key={seat.seatId}
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-[#E9EDEB] p-2.5"
+          >
+            <span className="text-ink-deep w-24 flex-none text-[13px] font-semibold">
               Judge at {seat.position ?? '—'}
             </span>
 
@@ -51,7 +50,11 @@ export function PanelAssignmentCard({
               className="rounded-md border border-[#E9EDEB] px-2 py-1.5 text-[13px]"
               value={seat.judgeStaffId ?? ''}
               onChange={(e) => {
-                upsert.mutate({ classId, seatId: seat.seatId, judgeStaffId: e.target.value || null });
+                upsert.mutate({
+                  classId,
+                  seatId: seat.seatId,
+                  judgeStaffId: e.target.value || null,
+                });
               }}
             >
               <option value="">— Judge —</option>
@@ -66,7 +69,11 @@ export function PanelAssignmentCard({
               className="rounded-md border border-[#E9EDEB] px-2 py-1.5 text-[13px]"
               value={seat.scribeStaffId ?? ''}
               onChange={(e) => {
-                upsert.mutate({ classId, seatId: seat.seatId, scribeStaffId: e.target.value || null });
+                upsert.mutate({
+                  classId,
+                  seatId: seat.seatId,
+                  scribeStaffId: e.target.value || null,
+                });
               }}
             >
               <option value="">— Scribe —</option>

@@ -1,16 +1,18 @@
 import { Card } from '@/shared/ui/organizer/card';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from '@/shared/ui/shadcn/table';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { SM_CARD_PAD, SM_SECTION_HEAD } from './tokens';
-import { SectionFooter } from './section-footer';
-import type { SelectEventsData } from '../../data/setup-queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD } from '@/modules/shows/ui/show-manager/tokens';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
+import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 
-/**
- * "Selected Classes" — what checking groups above has actually put on the show.
- *
- * Grouped by division, because that is the unit the picker works in: showing
- * eighteen individual test rows for three checked levels would bury the fact
- * that the organizer made three decisions, not eighteen.
- */
 export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
   const groups = new Map<string, { count: number; fee: number; location: string | null }>();
   for (const cls of data.classes) {
@@ -30,53 +32,55 @@ export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
             Nothing selected yet — check a division under any test above and it lands here.
           </p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="w-full min-w-[520px] border-collapse text-[13.5px]">
-              <caption className="sr-only">Classes selected for this show</caption>
-              <thead>
-                <tr className="border-b border-[#E9EDEB]">
-                  <th
-                    scope="col"
-                    className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                  >
-                    Division
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                  >
-                    Location
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                  >
-                    Fee
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                  >
-                    Classes
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...groups].map(([division, info]) => (
-                  <tr key={division} className="border-b border-[#EEF2F0]">
-                    <td className="px-2.5 py-2">
-                      <strong>{division}</strong>
-                    </td>
-                    <td className="px-2.5 py-2">{info.location ?? 'No location set'}</td>
-                    <td className="px-2.5 py-2 text-right">{formatMoney(info.fee)}</td>
-                    <td className="px-2.5 py-2 text-right">
-                      <strong>{info.count}</strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table className="min-w-[520px] border-collapse text-[13.5px]">
+            <TableCaption className="sr-only">Classes selected for this show</TableCaption>
+            <TableHeader>
+              <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+                <TableHead
+                  scope="col"
+                  className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                >
+                  Division
+                </TableHead>
+                <TableHead
+                  scope="col"
+                  className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                >
+                  Location
+                </TableHead>
+                <TableHead
+                  scope="col"
+                  className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                >
+                  Fee
+                </TableHead>
+                <TableHead
+                  scope="col"
+                  className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                >
+                  Classes
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...groups].map(([division, info]) => (
+                <TableRow key={division} className="border-b border-[#EEF2F0] hover:bg-transparent">
+                  <TableCell className="px-2.5 py-2 whitespace-normal">
+                    <strong>{division}</strong>
+                  </TableCell>
+                  <TableCell className="px-2.5 py-2 whitespace-normal">
+                    {info.location ?? 'No location set'}
+                  </TableCell>
+                  <TableCell className="px-2.5 py-2 text-right whitespace-normal">
+                    {formatMoney(info.fee)}
+                  </TableCell>
+                  <TableCell className="px-2.5 py-2 text-right whitespace-normal">
+                    <strong>{info.count}</strong>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </Card>
 

@@ -11,15 +11,6 @@ import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Select Events — Field & Arena' };
 
-/**
- * Show Manager, Select Events tab: /dashboard/shows/[showId]/select-events.
- *
- * Three cards in the design's order — the ticket sales window, the catalog
- * picker, then what the picker has produced. Like the Setup tab this reads the
- * show directly rather than through getOrganizerContext, so an id the caller
- * cannot see renders not-found instead of silently falling back to their first
- * show.
- */
 export default async function SelectEventsPage({
   params,
 }: {

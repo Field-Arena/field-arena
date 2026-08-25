@@ -4,16 +4,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { saveShowExpenses } from '../data/mutations';
-import type { SaveShowExpensesInput } from '../schemas';
+import { saveShowExpenses } from '@/modules/shows/data/mutations';
+import type { SaveShowExpensesInput } from '@/modules/shows/schemas';
 
-/**
- * The Financial tab's expense editor.
- *
- * Silent on success like the rest of the autosaving cards — the row the
- * organizer just edited already shows its new value, and a toast per keystroke-
- * ending blur would be noise. Failures still speak up.
- */
 export function useSaveShowExpenses() {
   const router = useRouter();
 
@@ -27,4 +20,3 @@ export function useSaveShowExpenses() {
     },
   });
 }
-

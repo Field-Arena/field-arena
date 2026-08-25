@@ -6,16 +6,9 @@ import { PrinterIcon } from 'lucide-react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { formatMoney } from '@/shared/lib/format/currency';
-import type { ShowEntries } from '../../data/setup-queries';
+import { groupEntriesByClass } from '@/modules/shows/utils/group-entries-by-class';
+import type { ShowEntries } from '@/modules/shows/data/setup-queries';
 
-/**
- * Entries — every class entry sold, ported from showTicketsList.
- *
- * Grouped by class with a count and subtotal per group, because the question
- * "Entries sold" gets clicked to answer is how full each class is, not "list
- * every entry". The class filter narrows to the one class someone is actually
- * asking about — building a start list at the in-gate.
- */
 export function EntriesListScreen({
   data,
   canViewMoney,
@@ -26,16 +19,10 @@ export function EntriesListScreen({
   const [classFilter, setClassFilter] = useState('');
 
   const shown = classFilter ? data.entries.filter((e) => e.cls === classFilter) : data.entries;
-
-  const groups: { cls: string; rows: typeof shown }[] = [];
-  for (const entry of shown) {
-    const last = groups.at(-1);
-    if (last?.cls === entry.cls) last.rows.push(entry);
-    else groups.push({ cls: entry.cls, rows: [entry] });
-  }
+  const groups = groupEntriesByClass(shown);
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div>
           <ScreenTitle className="mb-1.5">Entries</ScreenTitle>
@@ -61,7 +48,7 @@ export function EntriesListScreen({
       </div>
 
       <div className="mb-3 flex flex-wrap items-baseline gap-2">
-        <h2 className="font-[family-name:var(--font-nr)] text-[19px] font-semibold text-forest">
+        <h2 className="text-forest font-[family-name:var(--font-nr)] text-[19px] font-semibold">
           {data.showName}
         </h2>
         <span className="text-[12px] text-[#7A8781]">
@@ -70,7 +57,6 @@ export function EntriesListScreen({
         </span>
       </div>
 
-      {/* Nothing to narrow when there is only one class. */}
       {data.classes.length > 1 && (
         <select
           value={classFilter}
@@ -98,9 +84,8 @@ export function EntriesListScreen({
 
             return (
               <Card key={group.cls} className="p-5">
-                <div className="mb-2.5 border-b border-[#E9EDEB] pb-2 text-[13.5px] font-bold text-forest">
-                  {group.cls} — {group.rows.length}{' '}
-                  {group.rows.length === 1 ? 'entry' : 'entries'}
+                <div className="text-forest mb-2.5 border-b border-[#E9EDEB] pb-2 text-[13.5px] font-bold">
+                  {group.cls} — {group.rows.length} {group.rows.length === 1 ? 'entry' : 'entries'}
                   {canViewMoney && ` · ${formatMoney(subtotal)}`}
                 </div>
 

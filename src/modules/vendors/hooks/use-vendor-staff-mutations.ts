@@ -4,15 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { approveVendorBooking, rejectVendorBooking } from '../data/mutations';
-import type { ReviewVendorBookingInput } from '../schemas';
-
-/**
- * Organizer/staff review of a pending vendor application — the missing half
- * of the pending → approved → paid flow createVendorCheckoutSession gates on.
- * Mirrors modules/vendors/hooks/use-vendor-mutations.ts's own hooks exactly,
- * just calling the staff-side Server Actions instead of the vendor's own.
- */
+import { approveVendorBooking, rejectVendorBooking } from '@/modules/vendors/data/mutations';
+import type { ReviewVendorBookingInput } from '@/modules/vendors/schemas';
 
 export function useApproveVendorBooking() {
   const router = useRouter();

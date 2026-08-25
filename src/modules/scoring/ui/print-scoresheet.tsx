@@ -1,23 +1,14 @@
 import { formatTimestamp } from '@/shared/lib/format/date';
-import { errorDeduction, scoreLabel, sheetPct } from '../scoring-engine';
-import { toSheet } from '../utils';
-import type { RideEntry, ScoreRow, TestDefinition } from '../types';
+import { errorDeduction, scoreLabel, sheetPct } from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
+import type { RideEntry, ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
-/** "2 pts" / "0.5%" / "Elimination" / "0 pts" — matches legacy's `dedText`. */
 function deductionText(errors: number, test: TestDefinition): string {
   const ded = errorDeduction(errors, test);
   if (ded === 'ELIM') return 'Elimination';
   return ded.amount ? `${String(ded.amount)}${ded.mode === 'pct' ? '%' : ' pts'}` : '0 pts';
 }
 
-/**
- * The printable paper test sheet, ported from showrunner-scoring.html's
- * hidden `#print-card`. Reuses the same `[data-print-report]` /
- * `hidden print:block` mechanism the Awards screen already established
- * (`awards-screen.tsx`) — the app's global print stylesheet only shows
- * content marked this way, so a scoring page carries its own copy rather
- * than duplicating that stylesheet rule.
- */
 export function PrintScoresheet({
   showName,
   className,
