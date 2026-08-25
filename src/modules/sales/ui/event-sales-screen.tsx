@@ -1,8 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
 import {
   Table,
   TableHeader,
@@ -16,10 +22,9 @@ import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import { SALES_PAGE_SIZE } from '@/modules/sales/constants';
+import { STATUS_LABEL } from '@/modules/sales/constants';
 import type { SaleRow, SalesStats } from '@/modules/sales/types';
-import { buildSalesCsv } from '@/modules/sales/utils/build-sales-csv';
-import { salesCsvFilename } from '@/modules/sales/utils/sales-csv-filename';
+import { useEventSalesScreen } from '@/modules/sales/hooks/use-event-sales-screen';
 import { RefundDialog } from '@/modules/sales/ui/refund-dialog';
 import { ChargeMoreDialog } from '@/modules/sales/ui/charge-more-dialog';
 import { EventSalesViewTabs } from '@/modules/sales/ui/event-sales-view-tabs';
@@ -28,12 +33,6 @@ const STATUS_TONE: Record<SaleRow['status'], StatusTone> = {
   paid: 'success',
   partial: 'warn',
   refunded: 'neutral',
-};
-
-const STATUS_LABEL: Record<SaleRow['status'], string> = {
-  paid: 'Paid',
-  partial: 'Partially refunded',
-  refunded: 'Refunded',
 };
 
 const HEAD_CELL_CLASS =
@@ -63,32 +62,24 @@ export function EventSalesScreen({
   rows: SaleRow[];
   stats: SalesStats;
 }) {
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | SaleRow['type']>('all');
-  const [page, setPage] = useState(0);
-  const [refundTarget, setRefundTarget] = useState<SaleRow | null>(null);
-  const [chargeTarget, setChargeTarget] = useState<SaleRow | null>(null);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (typeFilter !== 'all' && r.type !== typeFilter) return false;
-      if (!q) return true;
-      return (
-        r.customer.toLowerCase().includes(q) ||
-        r.showName.toLowerCase().includes(q) ||
-        String(r.amountTotal).includes(q) ||
-        STATUS_LABEL[r.status].toLowerCase().includes(q)
-      );
-    });
-  }, [rows, search, typeFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / SALES_PAGE_SIZE));
-  const clampedPage = Math.min(page, totalPages - 1);
-  const pageRows = filtered.slice(
-    clampedPage * SALES_PAGE_SIZE,
-    clampedPage * SALES_PAGE_SIZE + SALES_PAGE_SIZE,
-  );
+  const {
+    search,
+    updateSearch,
+    typeFilter,
+    updateTypeFilter,
+    filteredCount,
+    pageRows,
+    totalPages,
+    clampedPage,
+    goToPreviousPage,
+    goToNextPage,
+    exportCsv,
+    printReport,
+    refundTarget,
+    setRefundTarget,
+    chargeTarget,
+    setChargeTarget,
+  } = useEventSalesScreen(rows, showName);
 
   const statTiles: { label: string; value: React.ReactNode; sub: React.ReactNode }[] = [
     {
@@ -132,27 +123,31 @@ export function EventSalesScreen({
         <Input
           value={search}
           onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(0);
+            updateSearch(e.target.value);
           }}
           placeholder="Search name, show, date, total, status…"
           className="h-auto min-w-[260px] flex-[2_1_260px] rounded-[10px] border-[#D9E1DD] px-3.5 py-2.5 text-sm outline-none focus-visible:ring-0"
         />
-        <select
+        <Select
           value={typeFilter}
-          onChange={(e) => {
-            setTypeFilter(e.target.value as 'all' | SaleRow['type']);
-            setPage(0);
+          onValueChange={(value) => {
+            updateTypeFilter(value as 'all' | SaleRow['type']);
           }}
-          className="rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
-          aria-label="Filter by type"
         >
-          <option value="all">All types</option>
-          <option value="Rider">Rider</option>
-          <option value="Vendor">Vendor</option>
-        </select>
+          <SelectTrigger
+            aria-label="Filter by type"
+            className="h-auto rounded-[10px] border-[#D9E1DD] px-3 py-2.5 text-sm"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            <SelectItem value="Rider">Rider</SelectItem>
+            <SelectItem value="Vendor">Vendor</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-[13px] text-[#98A29D]">
-          {filtered.length} record{filtered.length === 1 ? '' : 's'}
+          {filteredCount} record{filteredCount === 1 ? '' : 's'}
         </span>
       </div>
 
@@ -172,27 +167,7 @@ export function EventSalesScreen({
         <Button
           type="button"
           variant="ghost"
-          onClick={() => {
-            const csv = buildSalesCsv(
-              filtered.map((r) => ({
-                customer: r.customer,
-                type: r.type,
-                showName: r.showName,
-                date: r.date,
-                amountTotal: r.amountTotal,
-                statusLabel: STATUS_LABEL[r.status],
-              })),
-            );
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = salesCsvFilename(showName);
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-          }}
+          onClick={exportCsv}
           className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
         >
           ⬇ Export Contact List
@@ -200,9 +175,7 @@ export function EventSalesScreen({
         <Button
           type="button"
           variant="ghost"
-          onClick={() => {
-            window.print();
-          }}
+          onClick={printReport}
           className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
         >
           🖨 Print / Export PDF
@@ -308,9 +281,7 @@ export function EventSalesScreen({
               type="button"
               variant="ghost"
               disabled={clampedPage === 0}
-              onClick={() => {
-                setPage((p) => Math.max(0, p - 1));
-              }}
+              onClick={goToPreviousPage}
               className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
             >
               ← Previous
@@ -322,9 +293,7 @@ export function EventSalesScreen({
               type="button"
               variant="ghost"
               disabled={clampedPage >= totalPages - 1}
-              onClick={() => {
-                setPage((p) => Math.min(totalPages - 1, p + 1));
-              }}
+              onClick={goToNextPage}
               className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
             >
               Next →

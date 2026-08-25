@@ -5,7 +5,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
 import { ROUTES } from '@/shared/constants/routes';
 import { refundSaleSchema, chargeMoreSchema } from '@/modules/sales/schemas';
 import { REFUND_AMOUNT_EPSILON, MAX_CHARGE_RECORD_ATTEMPTS } from '@/modules/sales/constants';
@@ -125,7 +125,6 @@ export async function chargeMore(input: unknown): Promise<void> {
         off_session: true,
         confirm: true,
       },
-
       { idempotencyKey: `charge-${parsed.saleId}-${Date.now().toString()}` },
     );
     paymentIntentId = paymentIntent.id;

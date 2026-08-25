@@ -1,6 +1,7 @@
 'use client';
 
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 
 export function AmountField({
   id,
@@ -21,12 +22,12 @@ export function AmountField({
 }) {
   return (
     <div>
-      <label
+      <Label
         htmlFor={id}
         className="mb-1.5 block text-[12px] font-bold tracking-[.08em] text-[#6E7C76] uppercase"
       >
         {label}
-      </label>
+      </Label>
       <Input
         id={id}
         type="number"
