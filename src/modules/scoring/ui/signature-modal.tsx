@@ -12,10 +12,14 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { IconX } from '@/shared/ui/organizer/icons';
-import { ModalEyebrow, modalBodyClass, modalContentClass, modalFooterClass } from '@/shared/ui/organizer/modal-kit';
+import {
+  ModalEyebrow,
+  modalBodyClass,
+  modalContentClass,
+  modalFooterClass,
+} from '@/shared/ui/organizer/modal-kit';
 import { cn } from '@/shared/lib/utils';
 
-/** "Sign & Submit", ported from showrunner-scoring.html's openSignatureModal. */
 export function SignatureModal({
   open,
   onOpenChange,
@@ -49,7 +53,7 @@ export function SignatureModal({
         <div className={modalBodyClass}>
           <div className="rounded-xl border border-[#E9EDEB] bg-[#FBFAF5] p-6 text-center">
             <p className="mb-1 text-[12px] text-[#7A8781]">Signed by</p>
-            <p className="font-[Newsreader,serif] text-3xl text-ink-deep italic">{judgeName}</p>
+            <p className="text-ink-deep font-[Newsreader,serif] text-3xl italic">{judgeName}</p>
           </div>
         </div>
 
@@ -62,7 +66,12 @@ export function SignatureModal({
           >
             Cancel
           </GhostButton>
-          <GoldButton type="button" disabled={isPending} className={cn(isPending && 'opacity-70')} onClick={onConfirm}>
+          <GoldButton
+            type="button"
+            disabled={isPending}
+            className={cn(isPending && 'opacity-70')}
+            onClick={onConfirm}
+          >
             {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
             {isPending ? 'Submitting…' : 'Sign & Submit'}
           </GoldButton>

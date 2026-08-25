@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-/** Ported from the Admin Console design export's icons.tsx — the icon set its own components (StatCard, StatusPill, …) are drawn with. */
 interface P {
   size?: number;
   className?: string;

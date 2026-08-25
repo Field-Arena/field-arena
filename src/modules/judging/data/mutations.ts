@@ -6,27 +6,9 @@ import {
   assignJudgeToClassesSchema,
   assignScribeToClassesSchema,
   setClassPanelSchema,
-} from '../schemas';
+} from '@/modules/judging/schemas';
+import { JUDGING_PATH } from '@/modules/judging/constants';
 
-/**
- * Seats a judge on a class's panel — the write side of what
- * `listMyAssignments` (data/queries.ts) reads from `class_panel`, which had
- * no write path anywhere in this codebase before this.
- *
- * Ported from legacy's addJudgeToClass/realSyncPanel (showstaff.html
- * ~9679-9696, 9646-9656), called from the "+ Add User" modal's Judge-classes
- * checklist right after the new staff row is created — adapted to this
- * schema's real seat model rather than legacy's: legacy used the judge's own
- * id as a free-text seat identifier directly; here `class_panel.seat_id`
- * follows the seeded 'J1'/'J2'/... convention (see supabase/seed.sql's
- * judge-panel block), enforced by a real `unique (class_id, seat_id)`
- * constraint.
- *
- * Fills the first open seat (no judge yet) on each class if one exists,
- * otherwise opens a fresh 'J{n}' seat — good enough for "check some classes
- * while inviting a judge," not a full multi-judge seat picker, which the
- * per-class panel screen already owns and this does not attempt to replace.
- */
 export async function assignJudgeToClasses(input: unknown): Promise<void> {
   const { staffId, classIds } = assignJudgeToClassesSchema.parse(input);
   const supabase = await createServerClient();
@@ -62,9 +44,7 @@ export async function assignJudgeToClasses(input: unknown): Promise<void> {
     return {
       class_id: classId,
       seat_id: `J${String(n)}`,
-      // 'C' matches the seeded single-judge default; a second-or-later seat
-      // opened here has no natural default position, left for the per-class
-      // panel screen to set.
+
       position: n === 1 ? 'C' : null,
       judge_staff_id: staffId,
     };
@@ -75,22 +55,9 @@ export async function assignJudgeToClasses(input: unknown): Promise<void> {
     .upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/judging');
+  revalidatePath(JUDGING_PATH);
 }
 
-/**
- * Seats a scribe on a class's panel — the scribe-side counterpart of
- * `assignJudgeToClasses` above, called from the same "+ Add User" modal's
- * class checklist when the invited role is Scribe instead of Judge.
- *
- * A scribe records for a specific judge's seat, so this prefers an existing
- * seat that already has a judge but no scribe yet (the real pairing case)
- * over opening a brand-new seat — but falls back to opening one if every
- * seat on this class already has a scribe, same "good enough for check some
- * classes while inviting" scope as the judge version; a seat with neither a
- * judge nor a scribe yet is filled in either order, whichever gets assigned
- * first.
- */
 export async function assignScribeToClasses(input: unknown): Promise<void> {
   const { staffId, classIds } = assignScribeToClassesSchema.parse(input);
   const supabase = await createServerClient();
@@ -136,20 +103,9 @@ export async function assignScribeToClasses(input: unknown): Promise<void> {
     .upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/judging');
+  revalidatePath(JUDGING_PATH);
 }
 
-/**
- * Sets the head-judge panel seat (J1 / position C) for a set of classes at once
- * — the write path behind Setup → Venue's "Assign Judges" dialog.
- *
- * Unlike assignJudgeToClasses / assignScribeToClasses above (which open a fresh
- * seat on every call, for the incremental "+ Add User" checklist), this is
- * idempotent: it upserts the one J1 seat, so re-assigning a ring replaces its
- * judge/scribe rather than stacking extra seats. A null id clears that role.
- * Guarded by class_panel_write (canEditShow), so only show staff who may edit
- * the show can call it.
- */
 export async function setClassPanel(input: unknown): Promise<void> {
   const { classIds, judgeStaffId, scribeStaffId } = setClassPanelSchema.parse(input);
   const supabase = await createServerClient();
@@ -162,8 +118,10 @@ export async function setClassPanel(input: unknown): Promise<void> {
     scribe_staff_id: scribeStaffId,
   }));
 
-  const { error } = await supabase.from('class_panel').upsert(rows, { onConflict: 'class_id,seat_id' });
+  const { error } = await supabase
+    .from('class_panel')
+    .upsert(rows, { onConflict: 'class_id,seat_id' });
   if (error) throw new Error(error.message);
 
-  revalidatePath('/dashboard/judging');
+  revalidatePath(JUDGING_PATH);
 }

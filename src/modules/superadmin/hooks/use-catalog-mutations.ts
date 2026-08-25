@@ -7,15 +7,9 @@ import {
   createScoringSheet,
   updateScoringSheet,
   deleteScoringSheet,
-} from '../data/mutations';
-import type { CreateSheetInput, UpdateSheetInput } from '../schemas';
+} from '@/modules/superadmin/data/mutations';
+import type { CreateSheetInput, UpdateSheetInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
-
-/**
- * Scoring-catalog mutation hooks. Toasts and refreshes live here per layers.md;
- * each server action revalidates the catalog paths and router.refresh pulls the
- * re-rendered list/detail into view.
- */
 
 function errorMessage(error: unknown, fallback: string): string {
   return readableError(error, fallback);

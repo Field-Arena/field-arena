@@ -1,27 +1,23 @@
 'use client';
 
-import { useRiderScorecard } from '../hooks/use-rider-scorecard';
+import { useRiderScorecard } from '@/modules/riders/hooks/use-rider-scorecard';
 import {
   LEGACY_COLOR,
   LEGACY_GEORGIA,
   legacyTableCellStyle,
   legacyTableHeadCellStyle,
   legacyTableStyle,
-} from './legacy-theme';
-import type { RiderScorecard, RiderScorecardCard } from '../types';
+} from '@/modules/riders/ui/legacy-theme';
+import type { RiderScorecard, RiderScorecardCard } from '@/modules/riders/types';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/ui/shadcn/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/shared/ui/shadcn/dialog';
 
-/**
- * "View scorecard ↗" — opens the signed judge sheet(s) for one entry.
- * Mirrors legacy's openScorecard/#scorecard-modal (rider.html), reused by
- * both the Schedule tab's "your rides" rows and the Results view. Uses the
- * app's own Dialog primitive for the overlay/positioning mechanics (legacy's
- * own modal has no equivalent worth reproducing structurally — it's a plain
- * `display:flex` show/hide div), but the panel content is pixel-matched to
- * legacy's card/table language via the same legacy-theme tokens the rest of
- * the dashboard uses.
- */
 export function ScorecardLink({ entryId }: { entryId: string }) {
   const { state, load, reset } = useRiderScorecard();
 
@@ -51,7 +47,11 @@ export function ScorecardLink({ entryId }: { entryId: string }) {
       </DialogTrigger>
       <DialogContent
         className="max-h-[85vh] max-w-2xl overflow-y-auto"
-        style={{ background: LEGACY_COLOR.cream, border: `1px solid ${LEGACY_COLOR.border}`, color: LEGACY_COLOR.ink }}
+        style={{
+          background: LEGACY_COLOR.cream,
+          border: `1px solid ${LEGACY_COLOR.border}`,
+          color: LEGACY_COLOR.ink,
+        }}
       >
         <DialogHeader>
           <DialogTitle style={{ fontFamily: LEGACY_GEORGIA, color: LEGACY_COLOR.hunterDeep }}>
@@ -96,7 +96,13 @@ function ScorecardBody({ scorecard }: { scorecard: RiderScorecard }) {
           key={`${card.judgeName ?? 'judge'}-${String(index)}`}
           style={
             index > 0
-              ? { borderTop: `1px dashed ${LEGACY_COLOR.border}`, paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }
+              ? {
+                  borderTop: `1px dashed ${LEGACY_COLOR.border}`,
+                  paddingTop: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }
               : { display: 'flex', flexDirection: 'column', gap: 10 }
           }
         >

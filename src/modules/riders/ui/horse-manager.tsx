@@ -1,24 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useCreateHorse, useDeleteHorse, useUpdateHorse } from '../hooks/use-horse-mutations';
-import { HorseDocumentUpload } from './horse-document-upload';
-import type { DocumentRequirement, HorseWithDocumentUrls } from '../types';
+import {
+  useCreateHorse,
+  useDeleteHorse,
+  useUpdateHorse,
+} from '@/modules/riders/hooks/use-horse-mutations';
+import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
+import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 
-/**
- * Horse list — add, edit, remove, and per-requirement document upload.
- * Mirrors legacy's #dtab-horse dashboard tab (rider.html), minus the "Upload
- * later" onboarding framing: there is no multi-step wizard here to defer
- * past yet, so every horse card always shows its full document checklist.
- *
- * A horse's registered `name` is never editable here — no input for it
- * exists anywhere in this file, matching the DB trigger
- * (assert_horse_name_immutable) that would reject the write anyway.
- */
 export function HorseManager({
   horses,
   documentRequirements,
@@ -40,7 +34,7 @@ export function HorseManager({
       </CardHeader>
       <CardContent className="space-y-4">
         {horses.length === 0 && (
-          <p className="text-sm text-fa-muted">No horses on your account yet — add one below.</p>
+          <p className="text-fa-muted text-sm">No horses on your account yet — add one below.</p>
         )}
 
         {horses.map((horse) => (
@@ -65,7 +59,7 @@ export function HorseManager({
                 setNewHorseName(event.target.value);
               }}
             />
-            <p className="text-xs text-fa-muted">
+            <p className="text-fa-muted text-xs">
               Registered name — this can&apos;t be changed once added.
             </p>
           </div>
@@ -90,9 +84,9 @@ function HorseCard({
   const uploadsByRequirement = new Map(horse.documentUploads.map((u) => [u.requirementId, u]));
 
   return (
-    <div className="space-y-3 rounded-lg border border-line p-3">
+    <div className="border-line space-y-3 rounded-lg border p-3">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-forest">{horse.name}</div>
+        <div className="text-forest text-sm font-semibold">{horse.name}</div>
         <Button
           type="button"
           variant="ghost"
@@ -141,7 +135,7 @@ function HorseCard({
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-forest">
+      <label className="text-forest flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           defaultChecked={horse.is_stallion ?? false}

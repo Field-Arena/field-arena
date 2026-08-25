@@ -4,9 +4,10 @@ import { OrganizerShell } from '@/modules/staff/ui/organizer-shell';
 import { SuperAdminShell } from '@/modules/superadmin/ui/superadmin-shell';
 import { PendingWorkspace } from '@/shared/ui/pending-workspace';
 import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/modules/superadmin/data/impersonation';
+import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getPreviewingAsShowAdmin } from '@/modules/staff/data/preview-role';
 import { getSelectedOrg } from '@/modules/staff/data/org-selection';
+import { getUserWorkspaceRoles } from '@/modules/staff/data/workspace-roles';
 import { getRailRole } from '@/shared/lib/rail-role';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
@@ -68,6 +69,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ? { orgId: null, memberOrgs: [] }
     : await getSelectedOrg(profile);
 
+  // Workspaces this staff user may switch between (their platform_role + any
+  // per-show staff roles). Only meaningful for genuine non-SuperAdmin staff —
+  // the SuperAdmin rail already shows every role.
+  const availableRoles =
+    role === 'SuperAdmin' || impersonating ? [] : await getUserWorkspaceRoles(profile);
+
   return (
     <OrganizerShell
       profile={profile}
@@ -77,6 +84,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       railRoleCookie={railRoleCookie}
       selectedOrgId={selectedOrgId}
       memberOrgs={memberOrgs}
+      availableRoles={availableRoles}
     >
       {children}
     </OrganizerShell>
