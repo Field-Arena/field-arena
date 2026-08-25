@@ -3,23 +3,16 @@
 import { useState, type MouseEvent } from 'react';
 import { fa } from '@/shared/lib/organizer-theme';
 import { cn } from '@/shared/lib/utils';
-import { truncateHorseName } from '../../utils';
-import { useRenameStall, useToggleStallClosed } from '../../hooks/use-stable-chart-mutations';
+import { Button } from '@/shared/ui/shadcn/button';
+import { truncateHorseName } from '@/modules/shows/utils/truncate-horse-name';
+import {
+  useRenameStall,
+  useToggleStallClosed,
+} from '@/modules/shows/hooks/use-stable-chart-mutations';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { PromptDialog } from '@/shared/ui/prompt-dialog';
-import type { StableChartStall } from '../../data/stable-chart-queries';
+import type { StableChartStall } from '@/modules/shows/data/stable-chart-queries';
 
-/**
- * One stall — ported from showstaff.html's `stallBoxHtml` (~14008). Click to
- * rename (unless closed), a self-contained Open/Closed pill that toggles
- * without triggering the rename click (`stopPropagation`, same as legacy).
- *
- * Rename and the closing-an-occupied-stall warning both use this app's own
- * dialogs (PromptDialog / ConfirmDialog) rather than `window.prompt()` and
- * `window.confirm()`. The native ones announce "localhost:3000 says", cannot
- * be styled, and block the tab — every confirm across this app was moved off
- * them for the same reason.
- */
 export function StallBox({
   showId,
   stableId,
@@ -45,8 +38,7 @@ export function StallBox({
 
   function handleToggleClosed(event: MouseEvent) {
     event.stopPropagation();
-    // Only closing an occupied stall needs a warning — it clears the horse's
-    // assignment. Reopening one takes nothing away.
+
     if (!closed && occupied) {
       setConfirmClose(true);
       return;
@@ -69,10 +61,12 @@ export function StallBox({
           handleRename();
         }
       }}
-      title={closed ? 'This stall is closed — click Open to reopen it' : 'Click to rename this stall'}
+      title={
+        closed ? 'This stall is closed — click Open to reopen it' : 'Click to rename this stall'
+      }
       className={cn(
         'min-w-[120px] rounded-lg border-2 px-2.5 py-2 text-center',
-        closed ? 'cursor-default' : 'cursor-pointer'
+        closed ? 'cursor-default' : 'cursor-pointer',
       )}
       style={{ borderColor, background: bgColor }}
     >
@@ -85,7 +79,7 @@ export function StallBox({
           <div className="mt-0.5 truncate text-[11px] text-[#7A8781]">
             {truncateHorseName(stall.riderName ?? '')}
           </div>
-          <div className="truncate text-[11px] font-bold text-ink-deep">
+          <div className="text-ink-deep truncate text-[11px] font-bold">
             {truncateHorseName(stall.horseName ?? '')}
             {stall.isStallion && (
               <span title="Stallion" style={{ color: fa.goldFg }}>
@@ -100,11 +94,12 @@ export function StallBox({
 
       {!closed && !occupied && <div className="mt-0.5 text-[11px] text-[#7A8781]">Empty</div>}
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={handleToggleClosed}
         disabled={toggleClosed.isPending}
-        className="mt-1 rounded-md border px-2.5 py-0.5 text-[10.5px] font-bold"
+        className="mt-1 h-auto rounded-md border px-2.5 py-0.5 text-[10.5px] font-bold hover:bg-transparent"
         style={{
           borderColor: closed ? fa.red : fa.green,
           background: closed ? fa.redTint : fa.greenTint,
@@ -113,7 +108,7 @@ export function StallBox({
         }}
       >
         {closed ? 'Closed' : 'Open'}
-      </button>
+      </Button>
 
       <PromptDialog
         open={renaming}
@@ -146,7 +141,7 @@ export function StallBox({
               onSuccess: () => {
                 setConfirmClose(false);
               },
-            }
+            },
           );
         }}
       />

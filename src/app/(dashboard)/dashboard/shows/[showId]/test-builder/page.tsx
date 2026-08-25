@@ -9,19 +9,7 @@ import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Test Builder — Field & Arena' };
 
-/**
- * Show Manager, Test Builder tab: /dashboard/shows/[showId]/test-builder.
- *
- * The library itself is org-scoped (the same test gets reused across shows),
- * but the tab is reached through one show's Show Manager, so this still reads
- * that show directly rather than through getOrganizerContext(showId) — same
- * reasoning as the rest of Show Manager.
- */
-export default async function TestBuilderPage({
-  params,
-}: {
-  params: Promise<{ showId: string }>;
-}) {
+export default async function TestBuilderPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const data = isUuid(showId) ? await getTestBuilderPageData(showId) : null;
 

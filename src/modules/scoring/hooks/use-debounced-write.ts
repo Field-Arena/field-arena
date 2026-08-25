@@ -1,20 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { MARK_DEBOUNCE_MS } from '../constants';
+import { MARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
 
-/**
- * Debounces writes across a dynamic set of fields (one movement/collective
- * mark stepper each) behind a single hook instance, keyed by field id —
- * legacy's own per-field window: 400ms for marks (`postMarkDebounced`),
- * 500ms for remarks (`_remarkDebounce`), a separate, slower timer.
- * `flush(key)` or `flushAll()` runs any pending write immediately; called
- * before Sign & Submit so the last-touched value is never lost to a window
- * that hasn't fired yet (`flushMarkDebounce`).
- */
 export function useDebouncedWrite<Value>(
   write: (key: string, value: Value) => void,
-  debounceMs: number = MARK_DEBOUNCE_MS
+  debounceMs: number = MARK_DEBOUNCE_MS,
 ) {
   const writeRef = useRef(write);
   const timeouts = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -30,7 +21,7 @@ export function useDebouncedWrite<Value>(
         clearTimeout(t);
       });
     },
-    []
+    [],
   );
 
   const flush = useCallback((key: string) => {
@@ -60,10 +51,10 @@ export function useDebouncedWrite<Value>(
           const finalValue = pending.current.get(key);
           pending.current.delete(key);
           if (finalValue !== undefined) writeRef.current(key, finalValue);
-        }, debounceMs)
+        }, debounceMs),
       );
     },
-    [debounceMs]
+    [debounceMs],
   );
 
   return { debounced, flush, flushAll };

@@ -3,33 +3,42 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/shared/ui/organizer/card';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from '@/shared/ui/shadcn/table';
+import { cn } from '@/shared/lib/utils';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { calcPlatformFee } from '@/shared/lib/fees';
-import { useUpdateClassReview, useRemoveClass } from '../../hooks/use-schedule-review-mutations';
-import type { ScheduleReviewData } from '../../data/setup-queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE, SM_ROW_INPUT } from './tokens';
-import { SectionFooter } from './section-footer';
+import {
+  useUpdateClassReview,
+  useRemoveClass,
+} from '@/modules/shows/hooks/use-schedule-review-mutations';
+import type { ScheduleReviewData } from '@/modules/shows/data/setup-queries';
+import {
+  SM_CARD_PAD,
+  SM_SECTION_HEAD,
+  SM_NOTE,
+  SM_ROW_INPUT,
+} from '@/modules/shows/ui/show-manager/tokens';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
-/**
- * "Review" — every class on this show, editable in one table, ported from
- * showstaff.html's renderReviewView. Location stays read-only here: it's set
- * from the show's rings back in Select Events, not re-editable per class.
- * "Estimated entries per class" is the legacy view's own local-only
- * projection input (smReviewEntriesPerClass) — it drives the totals below but
- * has no backing column, same as the source.
- */
+const REVIEW_TABLE_HEAD =
+  'px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
+
 export function ReviewCard({ data }: { data: ScheduleReviewData }) {
   const [rows, setRows] = useState(data.classes);
   const [entriesPerClass, setEntriesPerClass] = useState(5);
   const { mutate: update } = useUpdateClassReview();
   const { mutate: remove } = useRemoveClass();
 
-  /**
-   * Each field commits as its own request carrying only that one field — see
-   * updateClassReviewSchema's note on why a merged full-row payload here
-   * would let two fields blurring close together race and clobber each
-   * other's write.
-   */
   function commit(id: string, patch: Partial<(typeof rows)[number]>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     update({ classId: id, showId: data.showId, ...patch });
@@ -66,147 +75,143 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
           </p>
         ) : (
           <>
-            <div style={{ overflowX: 'auto' }}>
-              <table className="w-full min-w-[900px] border-collapse text-[13.5px]">
-                <caption className="sr-only">Classes on this show, editable</caption>
-                <thead>
-                  <tr className="border-b border-[#E9EDEB]">
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Event
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Class
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Division
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Location
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Arena
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Judges
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Entry fee
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
-                    >
-                      Platform fee
-                    </th>
-                    <th scope="col" className="px-2.5 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b border-[#EEF2F0] transition-colors [&>td]:align-middle hover:bg-[#FAFBF8]"
-                    >
-                      <td className="px-2.5 py-2">
-                        <span
-                          className="block max-w-[150px] truncate text-[#6E7C76]"
-                          title={c.event ?? undefined}
-                        >
-                          {c.event ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-2.5 py-2 whitespace-nowrap">
-                        <strong>{c.displayName ?? c.label}</strong>
-                      </td>
-                      <td className="px-2.5 py-2 whitespace-nowrap">{c.division ?? '—'}</td>
-                      <td className="px-2.5 py-2 whitespace-nowrap">{c.location ?? '—'}</td>
-                      <td className="px-2.5 py-2">
-                        <input
-                          defaultValue={c.arena ?? ''}
-                          className={`${SM_ROW_INPUT} w-[150px]!`}
-                          onBlur={(e) => {
-                            commit(c.id, { arena: e.target.value || null });
-                          }}
-                        />
-                      </td>
-                      <td className="px-2.5 py-2">
-                        <input
-                          type="number"
-                          min={1}
-                          step={1}
-                          defaultValue={c.judgesCount}
-                          className={`${SM_ROW_INPUT} w-[64px]! appearance-none`}
-                          onBlur={(e) => {
-                            const n = Number.parseInt(e.target.value, 10);
-                            commit(c.id, { judgesCount: Number.isFinite(n) && n > 0 ? n : 1 });
-                          }}
-                        />
-                      </td>
-                      <td className="px-2.5 py-2 text-right">
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          defaultValue={c.fee}
-                          className={`${SM_ROW_INPUT} w-[90px]! appearance-none text-right`}
-                          onBlur={(e) => {
-                            const n = Number.parseFloat(e.target.value);
-                            commit(c.id, { fee: Number.isFinite(n) && n >= 0 ? n : 0 });
-                          }}
-                        />
-                      </td>
-                      <td className="px-2.5 py-2 text-right whitespace-nowrap">
-                        {formatMoney(calcPlatformFee(c.fee, data.feeModel))}
-                      </td>
-                      <td className="px-2.5 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            commitRemove(c.id);
-                          }}
-                          className="hover:text-status-danger bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table className="w-full min-w-[900px] border-collapse text-[13.5px]">
+              <TableCaption className="sr-only">Classes on this show, editable</TableCaption>
+              <TableHeader>
+                <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Event
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Class
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Division
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Location
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Arena
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Sponsor
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
+                    Judges
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD, 'text-right')}>
+                    Entry fee
+                  </TableHead>
+                  <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD, 'text-right')}>
+                    Platform fee
+                  </TableHead>
+                  <TableHead scope="col" className="h-auto px-2.5 py-2" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((c) => (
+                  <TableRow
+                    key={c.id}
+                    className="border-b border-[#EEF2F0] transition-colors hover:bg-[#FAFBF8] [&>td]:align-middle"
+                  >
+                    <TableCell className="px-2.5 py-2 whitespace-normal">
+                      <span
+                        className="block max-w-[150px] truncate text-[#6E7C76]"
+                        title={c.event ?? undefined}
+                      >
+                        {c.event ?? '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap">
+                      <strong>{c.displayName ?? c.label}</strong>
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap">
+                      {c.division ?? '—'}
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap">
+                      {c.location ?? '—'}
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-normal">
+                      <Input
+                        defaultValue={c.arena ?? ''}
+                        className={cn('h-auto', SM_ROW_INPUT, 'w-[150px]!')}
+                        onBlur={(e) => {
+                          commit(c.id, { arena: e.target.value || null });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-normal">
+                      <Input
+                        defaultValue={c.sponsor ?? ''}
+                        placeholder="—"
+                        className={cn('h-auto', SM_ROW_INPUT, 'w-[160px]!')}
+                        onBlur={(e) => {
+                          commit(c.id, { sponsor: e.target.value.trim() || null });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 whitespace-normal">
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        defaultValue={c.judgesCount}
+                        className={cn('h-auto', SM_ROW_INPUT, 'w-[64px]! appearance-none')}
+                        onBlur={(e) => {
+                          const n = Number.parseInt(e.target.value, 10);
+                          commit(c.id, { judgesCount: Number.isFinite(n) && n > 0 ? n : 1 });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 text-right whitespace-normal">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        defaultValue={c.fee}
+                        className={cn(
+                          'h-auto',
+                          SM_ROW_INPUT,
+                          'w-[90px]! appearance-none text-right',
+                        )}
+                        onBlur={(e) => {
+                          const n = Number.parseFloat(e.target.value);
+                          commit(c.id, { fee: Number.isFinite(n) && n >= 0 ? n : 0 });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 text-right whitespace-nowrap">
+                      {formatMoney(calcPlatformFee(c.fee, data.feeModel))}
+                    </TableCell>
+                    <TableCell className="px-2.5 py-2 text-right whitespace-normal">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          commitRemove(c.id);
+                        }}
+                        className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
+                      >
+                        Remove
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
             <div className="bg-cream mt-[18px] flex items-center gap-2.5 rounded-[8px] px-4 py-3">
               <label htmlFor="entries-per-class" className="m-0 text-[13px]">
                 Estimated entries per class
               </label>
-              <input
+              <Input
                 id="entries-per-class"
                 type="number"
                 min={0}
                 step={1}
                 value={entriesPerClass}
-                className={`${SM_ROW_INPUT} w-[70px]! appearance-none`}
+                className={cn('h-auto', SM_ROW_INPUT, 'w-[70px]! appearance-none')}
                 onChange={(e) => {
                   const n = Number.parseInt(e.target.value, 10);
                   setEntriesPerClass(Number.isFinite(n) && n >= 0 ? n : 0);

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RIDE_MINUTES } from '../constants';
-import { scheduleDelta, type ScheduleStatus } from '../utils';
+import { RIDE_MINUTES } from '@/modules/scoring/constants';
+import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
 
 const STATUS_CLASSES: Record<ScheduleStatus, string> = {
   ahead: 'border-[#BFE0CB] bg-[#DCEFE1] text-[#2E7D46]',
@@ -27,7 +27,6 @@ function formatClockTime(now: Date): string {
   return `${String(h)}:${m}:${s} ${ampm}`;
 }
 
-/** Counts down from RIDE_MINUTES, then counts up past zero as "+M:SS over" — ported from legacy's `fmtCountdown`. */
 function formatCountdown(rideStartedAt: string, now: Date): { text: string; over: boolean } {
   const elapsedSec = (now.getTime() - new Date(rideStartedAt).getTime()) / 1000;
   const remainingSec = Math.round(RIDE_MINUTES * 60 - elapsedSec);
@@ -38,14 +37,6 @@ function formatCountdown(rideStartedAt: string, now: Date): { text: string; over
   return { text: `${over ? '+' : ''}${String(m)}:${s}${over ? ' over' : ''}`, over };
 }
 
-/**
- * Live actual-time + ring-vs-schedule banner, ported from legacy's
- * liveClockCardHtml — but driven by the class's real `classes.time` and
- * `scoring_pos` rather than legacy's client-fabricated start time. The Ride
- * Time countdown only renders once `rideStartedAt` is set — a real
- * server-stamped anchor (see getScoringState), not legacy's client-seeded
- * fake one — so it's simply absent rather than fabricated until then.
- */
 export function LiveClockStrip({
   scheduledTime,
   ringLabel,
@@ -60,8 +51,12 @@ export function LiveClockStrip({
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const id = setInterval(() => { setNow(new Date()); }, 1000);
-    return () => { clearInterval(id); };
+    const id = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => {
+      clearInterval(id);
+    };
   }, []);
 
   const schedule = scheduleDelta(scheduledTime, pos, now);
@@ -70,13 +65,19 @@ export function LiveClockStrip({
   return (
     <div className="mb-6 flex flex-wrap items-stretch gap-4">
       <div className="flex-1 basis-40 rounded-xl border border-[#E9EDEB] bg-white p-[12px_16px] text-center">
-        <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">Actual time</div>
-        <div className="font-[Newsreader,serif] text-2xl font-bold text-ink-deep">{formatClockTime(now)}</div>
+        <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
+          Actual time
+        </div>
+        <div className="text-ink-deep font-[Newsreader,serif] text-2xl font-bold">
+          {formatClockTime(now)}
+        </div>
       </div>
 
       {countdown && (
         <div className="flex-1 basis-40 rounded-xl border border-[#E9EDEB] bg-white p-[12px_16px] text-center">
-          <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">Ride time</div>
+          <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
+            Ride time
+          </div>
           <div
             className={`font-[Newsreader,serif] text-2xl font-bold ${countdown.over ? 'text-[#B23A3A]' : 'text-ink-deep'}`}
           >
@@ -102,8 +103,8 @@ export function LiveClockStrip({
       <p className="basis-full text-[12px] text-[#7A8781]">
         Ride spacing: {RIDE_MINUTES} min/rider, from the class&apos;s scheduled start.{' '}
         <span className="font-semibold text-[#2E7D46]">Green</span> = ahead of schedule ·{' '}
-        <span className="font-semibold text-[#8A6D14]">Yellow</span> = on time or up to 1 min behind ·{' '}
-        <span className="font-semibold text-[#B0447A]">Pink</span> = 1–10 min behind ·{' '}
+        <span className="font-semibold text-[#8A6D14]">Yellow</span> = on time or up to 1 min behind
+        · <span className="font-semibold text-[#B0447A]">Pink</span> = 1–10 min behind ·{' '}
         <span className="font-semibold text-[#B23A3A]">Red</span> = more than 10 min behind.
       </p>
     </div>

@@ -5,41 +5,23 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import { calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { VendorAgreementDialog } from '@/modules/vendors/ui/vendor-agreement-dialog';
 import { VendorPayButton } from '@/modules/vendors/ui/vendor-pay-button';
 import { VendorCheckoutConfirmation } from '@/modules/vendors/ui/vendor-checkout-confirmation';
+import { previewAmountDue } from '@/modules/vendors/utils/preview-amount-due';
 
 export const metadata: Metadata = { title: 'My Bookings — Field & Arena' };
 
-/** Client-preview only — the real total is priced server-side at "Pay now" time by data/checkout.ts's priceVendorBooking. Same all-in-flat-8% formula, just computed from the plain catalog prices listMyBookings already returns. */
-function previewAmountDue(items: { qty: number; price: number }[]): number {
-  return items.reduce((sum, item) => sum + item.qty * (item.price + calcPlatformFeeFlat8(item.price)), 0);
-}
-
-/**
- * "My Bookings" — ported from vendor.html's first tab: booth space reserved
- * across every organizer and show. Booth browsing/applying moved to its own
- * page at /dashboard/vendor/discover, matching this workspace's nav (each
- * ROLE_NAV entry is its own route, same as Judge/Announcer's split).
- *
- * `?booking=<id>&checkoutSession=<id>` (Stripe's success_url, set in
- * createVendorCheckoutSession) short-circuits the page into a confirmation
- * view, resolved server-side — same pattern as
- * app/rider/shows/[showId]/page.tsx's own return-from-Stripe handling.
- * `?checkoutCanceled=1` (Stripe's cancel_url) is a quieter notice on top of
- * the normal bookings list, not a separate screen.
- *
- * A vendor's identity is platform-wide rather than tied to one organizer, so
- * this is not scoped to an organization.
- */
 export default async function VendorPage({
   searchParams,
 }: {
   searchParams: Promise<{ booking?: string; checkoutSession?: string; checkoutCanceled?: string }>;
 }) {
-  const { booking: confirmBookingId, checkoutSession: checkoutSessionId, checkoutCanceled } =
-    await searchParams;
+  const {
+    booking: confirmBookingId,
+    checkoutSession: checkoutSessionId,
+    checkoutCanceled,
+  } = await searchParams;
 
   if (confirmBookingId && checkoutSessionId) {
     const result = await confirmVendorCheckoutSession({
@@ -62,6 +44,11 @@ export default async function VendorPage({
 
   const paid = bookings.filter((b) => b.status === 'paid').length;
   const spend = bookings.reduce((sum, b) => sum + (b.amountTotal ?? 0), 0);
+  const stats = [
+    { label: 'Bookings', value: bookings.length },
+    { label: 'Paid', value: paid },
+    { label: 'Total booked', value: formatMoney(spend), revenue: true },
+  ];
 
   return (
     <>
@@ -80,18 +67,12 @@ export default async function VendorPage({
 
       <div className="dash-card">
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-          <div className="stat">
-            <div className="stat-label">Bookings</div>
-            <div className="stat-value">{bookings.length}</div>
-          </div>
-          <div className="stat">
-            <div className="stat-label">Paid</div>
-            <div className="stat-value">{paid}</div>
-          </div>
-          <div className="stat revenue">
-            <div className="stat-label">Total booked</div>
-            <div className="stat-value">{formatMoney(spend)}</div>
-          </div>
+          {stats.map((stat) => (
+            <div key={stat.label} className={stat.revenue ? 'stat revenue' : 'stat'}>
+              <div className="stat-label">{stat.label}</div>
+              <div className="stat-value">{stat.value}</div>
+            </div>
+          ))}
         </div>
 
         {bookings.length === 0 ? (
@@ -161,9 +142,6 @@ export default async function VendorPage({
                   {booking.status === 'approved' && (
                     <div style={{ marginTop: 8 }}>
                       {booking.agreementSignedAt ? (
-                        // Mirrors legacy's own waiver-style gate (vendor.html's
-                        // openRealPay): a vendor must sign the booth agreement
-                        // before payment is offered.
                         <VendorPayButton
                           bookingId={booking.id}
                           amountDue={previewAmountDue(booking.items)}

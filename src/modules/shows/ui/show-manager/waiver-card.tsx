@@ -4,16 +4,10 @@ import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { IconCheck } from '@/shared/ui/organizer/icons';
-import { useSaveWaiverText, useApproveWaiver } from '../../hooks/use-show-mutations';
-import { WAIVER_TEXT_DEFAULT } from '../../schemas';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from './tokens';
+import { useSaveWaiverText, useApproveWaiver } from '@/modules/shows/hooks/use-show-mutations';
+import { WAIVER_TEXT_DEFAULT } from '@/modules/shows/schemas';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * "Waiver of Liability" — the one field setShowPublished already gates
- * Go Live on (waiver_approved_text === waiver_text). Approve sends the
- * textarea's current value, not a re-read of the saved row, so it can never
- * approve something the organizer hasn't actually looked at just now.
- */
 export function WaiverCard({
   showId,
   waiverText,
@@ -23,7 +17,9 @@ export function WaiverCard({
   waiverText: string | null;
   waiverApprovedText: string | null;
 }) {
-  const [text, setText] = useState(waiverText === null || waiverText === '' ? WAIVER_TEXT_DEFAULT : waiverText);
+  const [text, setText] = useState(
+    waiverText === null || waiverText === '' ? WAIVER_TEXT_DEFAULT : waiverText,
+  );
   const [approvedText, setApprovedText] = useState(waiverApprovedText);
   const { mutate: save, isPending: saving } = useSaveWaiverText();
   const { mutate: approve, isPending: approving } = useApproveWaiver({
@@ -53,7 +49,7 @@ export function WaiverCard({
         value={text}
         rows={8}
         spellCheck={false}
-        className="w-full resize-y rounded-[6px] border border-[#AEB8B3] bg-white px-3.5 py-3 font-sans text-[13px] leading-[1.6] text-ink-deep outline-none focus-visible:border-gold"
+        className="text-ink-deep focus-visible:border-gold w-full resize-y rounded-[6px] border border-[#AEB8B3] bg-white px-3.5 py-3 font-sans text-[13px] leading-[1.6] outline-none"
         onChange={(e) => {
           setText(e.target.value);
         }}

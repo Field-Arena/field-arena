@@ -14,7 +14,11 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Label } from '@/shared/ui/shadcn/label';
-import { PERMISSION_KEYS, PERMISSION_LABELS, type PermissionKey } from '@/shared/constants/permissions';
+import {
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  type PermissionKey,
+} from '@/shared/constants/permissions';
 import { ADD_USER_ROLES } from '../constants';
 import {
   useChangeStaffRole,
@@ -23,36 +27,21 @@ import {
   useReassignStaffShow,
   useUpdateStaffDetails,
 } from '../hooks/use-user-directory-mutations';
+import { splitName } from '../utils';
 import type { UserDirectoryRow } from '../types';
 import type { ChangeStaffRoleInput } from '../schemas';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
-/** row.firstName/lastName is null for rows created before that split was tracked (e.g. superadmin's addOrgStaff) — falls back to splitting the combined name so the fields still start populated. */
-function splitName(row: UserDirectoryRow): { firstName: string; lastName: string } {
-  if (row.firstName || row.lastName) return { firstName: row.firstName ?? '', lastName: row.lastName ?? '' };
-  const [firstName = '', ...rest] = row.name.trim().split(/\s+/);
-  return { firstName, lastName: rest.join(' ') };
+function splitRowName(row: UserDirectoryRow): { firstName: string; lastName: string } {
+  if (row.firstName || row.lastName)
+    return { firstName: row.firstName ?? '', lastName: row.lastName ?? '' };
+  const { first, last } = splitName(row.name);
+  return { firstName: first, lastName: last };
 }
 
 const SELECT_CLASS =
   'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
 
-/**
- * The edit surface for one staff_assignments row — role and the full
- * permission set — opened by clicking a staff row in the "All Users" table or
- * from the "User Permissions" list. Ported from the useful part of legacy's
- * `openUserEdit`/`userPermissionsModalContent`: this app already resolves
- * permissions correctly (`resolveStaffPermissions`), so what was missing was
- * an editing surface, not the resolution logic.
- *
- * Riders and vendors have no staff_assignments row and are not editable
- * through this dialog — the caller only opens it for `kind === 'staff'` rows.
- *
- * The Dialog itself always mounts (so it can animate closed); its edit-buffer
- * form is a separate component keyed by `row.key`, so switching to a
- * different row remounts fresh local state instead of syncing it from a prop
- * in an effect.
- */
 export function StaffEditDialog({
   row,
   shows,
@@ -93,8 +82,10 @@ function StaffEditForm({
 }) {
   const [role, setRole] = useState(row.role);
   const [showId, setShowId] = useState(row.showId);
-  const [draft, setDraft] = useState<Record<PermissionKey, boolean>>(row.permissions ?? emptyPermissions());
-  const initialName = splitName(row);
+  const [draft, setDraft] = useState<Record<PermissionKey, boolean>>(
+    row.permissions ?? emptyPermissions(),
+  );
+  const initialName = splitRowName(row);
   const [firstName, setFirstName] = useState(initialName.firstName);
   const [lastName, setLastName] = useState(initialName.lastName);
   const [email, setEmail] = useState(row.email ?? '');
@@ -109,9 +100,7 @@ function StaffEditForm({
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const roleOptions = [...new Set<string>([...ADD_USER_ROLES, row.role])];
-  // The row's own show is always an option even if it's somehow missing from
-  // `shows` (e.g. stale props), so the select never silently shows a value
-  // that isn't in its own option list.
+
   const showOptions = shows.some((s) => s.id === row.showId)
     ? shows
     : [{ id: row.showId, name: row.showName }, ...shows];
@@ -125,7 +114,7 @@ function StaffEditForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-serif text-xl text-hunter-deep">{row.name}</DialogTitle>
+        <DialogTitle className="text-hunter-deep font-serif text-xl">{row.name}</DialogTitle>
         <DialogDescription>
           {row.role} on {row.showName}. Role and permission changes apply to this show only.
         </DialogDescription>
@@ -179,14 +168,14 @@ function StaffEditForm({
       </div>
 
       {role === 'Announcer' && (
-        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#EDF0EE] px-3 py-2.5 text-[13.5px] text-ink-deep transition-colors hover:bg-[#F5F7F6]">
+        <label className="text-ink-deep flex cursor-pointer items-center gap-3 rounded-lg border border-[#EDF0EE] px-3 py-2.5 text-[13.5px] transition-colors hover:bg-[#F5F7F6]">
           <input
             type="checkbox"
             checked={isSteward}
             onChange={(e) => {
               setIsSteward(e.target.checked);
             }}
-            className="size-4 accent-hunter-deep"
+            className="accent-hunter-deep size-4"
           />
           Steward
         </label>
@@ -251,14 +240,14 @@ function StaffEditForm({
       <ul className="space-y-1.5">
         {PERMISSION_KEYS.map((key) => (
           <li key={key}>
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#EDF0EE] px-3 py-2.5 text-[13.5px] text-ink-deep transition-colors hover:bg-[#F5F7F6]">
+            <label className="text-ink-deep flex cursor-pointer items-center gap-3 rounded-lg border border-[#EDF0EE] px-3 py-2.5 text-[13.5px] transition-colors hover:bg-[#F5F7F6]">
               <input
                 type="checkbox"
                 checked={draft[key]}
                 onChange={(event) => {
                   setDraft((prev) => ({ ...prev, [key]: event.target.checked }));
                 }}
-                className="size-4 accent-hunter-deep"
+                className="accent-hunter-deep size-4"
               />
               {PERMISSION_LABELS[key]}
             </label>

@@ -9,12 +9,6 @@ import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
-/**
- * Show Manager, Documents tab: /dashboard/shows/[showId]/documents.
- *
- * Reads the show directly rather than through getOrganizerContext(showId),
- * same as the rest of Show Manager — see the Setup tab's page.tsx for why.
- */
 export default async function ShowDocumentsPage({
   params,
 }: {

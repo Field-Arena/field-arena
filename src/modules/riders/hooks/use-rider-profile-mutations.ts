@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { updateRiderProfile } from '../data/mutations';
-import type { RiderProfileUpdateInput } from '../schemas';
+import { updateRiderProfile } from '@/modules/riders/data/mutations';
+import type { RiderProfileUpdateInput } from '@/modules/riders/schemas';
 
 export function useUpdateRiderProfile(options?: { onSuccess?: () => void }) {
   return useMutation({

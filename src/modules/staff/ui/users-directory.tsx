@@ -22,20 +22,6 @@ const FILTER_SELECT_CLASS =
 
 const STATUS_ORDER: UserDirectoryStatus[] = ['onboard', 'pending', 'not_invited'];
 
-/**
- * The organizer "All Users" directory — org-wide, across every show, ported
- * from showstaff.html's `renderUserDirectory()`/`updateUserDirTable()`.
- * All filtering/sorting happens client-side against the full row set the
- * Server Component page already composed (`listAllUsersAcrossShows`), since
- * it's a bounded, already-fetched list — the same "search-as-you-type without
- * a round trip" behaviour the legacy view had.
- *
- * Two independent show selections live on this screen, matching the design:
- * the "SHOW" section's dropdown is the *target* for Add User / Upload /
- * Export / Permissions (you're always adding/exporting for one show), while
- * the "All Users" filter row's "All shows" dropdown *filters* the directory
- * (defaults to showing every show at once).
- */
 export function UsersDirectory({
   rows,
   shows,
@@ -45,7 +31,7 @@ export function UsersDirectory({
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
   initialShowId: string;
-  /** This show's classes, for Add User's Judge/Scribe-classes checklist. */
+
   classesByShow: Record<string, ClassOption[]>;
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
@@ -89,10 +75,6 @@ export function UsersDirectory({
       .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
   }, [rows, roleFilter, showFilter, statusFilter, cogginsOnly, search]);
 
-  // Client-side pagination (BUG-ORGUSERS-001): the directory can hold hundreds of
-  // rows, so only one page is rendered at a time. `effectivePage` is clamped to
-  // the current result count, so narrowing the filters can never strand the view
-  // on an empty page — no separate reset-on-filter effect is needed.
   const PAGE_SIZE = 25;
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const effectivePage = Math.min(Math.max(1, page), pageCount);
@@ -351,7 +333,7 @@ export function UsersDirectory({
                   onClick={() => {
                     setPage(effectivePage - 1);
                   }}
-                  className="rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold text-ink-deep transition-colors hover:border-gold disabled:opacity-40"
+                  className="text-ink-deep hover:border-gold rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold transition-colors disabled:opacity-40"
                 >
                   Previous
                 </button>
@@ -364,7 +346,7 @@ export function UsersDirectory({
                   onClick={() => {
                     setPage(effectivePage + 1);
                   }}
-                  className="rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold text-ink-deep transition-colors hover:border-gold disabled:opacity-40"
+                  className="text-ink-deep hover:border-gold rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold transition-colors disabled:opacity-40"
                 >
                   Next
                 </button>

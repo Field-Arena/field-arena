@@ -1,29 +1,16 @@
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
-import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '../../constants';
-import { SM_GREEN_BTN } from './tokens';
+import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/constants';
+import { SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
 
-/**
- * The "what to do next" footer every Show Manager section ends on — one
- * component instead of the three hand-rolled Continue blocks this replaces
- * (Select Events, Rider Entries, Schedule/Review) plus the sections that had
- * none at all (Setup, Run Show, Documents). Order and copy come from
- * SHOW_MANAGER_SECTIONS, the same list ShowManagerShell's tab bar reads, so
- * this can't drift out of sync with the tabs.
- *
- * `blockedReason`, when set, doesn't disable the Continue link — it just
- * states the unmet requirement underneath, same "warn, don't block" pattern
- * as RiderEntriesPanel's NotPublishedBanner. Organizers can still move
- * ahead; they just aren't left guessing why something isn't ready yet.
- */
 export function SectionFooter({
   currentTab,
   showId,
   blockedReason,
 }: {
   currentTab: ShowManagerTab;
-  /** Only needed to build the Continue link — omit it on the last section (Test Builder), which has none. */
+
   showId?: string;
   blockedReason?: string | null;
 }) {

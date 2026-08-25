@@ -3,7 +3,6 @@
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import type { PermissionKey } from '@/shared/constants/permissions';
 
-/** Skip / Scratch / Disqualify / Undo — each gated by its own permission, matching legacy exactly. */
 export function RideActionsBar({
   permissions,
   disabled,

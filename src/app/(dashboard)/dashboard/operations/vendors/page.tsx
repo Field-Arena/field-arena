@@ -5,13 +5,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Vendors — Field & Arena' };
 
-/**
- * "Vendors" — `ROLE_NAV.ShowStaff`'s own top-level item, ported from
- * showstaff-ops.html's Vendors tab. Legacy 403s the whole resource without
- * `canViewMoney` (api/shows/[id]/[resource].js), so this only fetches
- * `listVendors` when permitted — an unconditional fetch would leak vendor
- * contact data into the client bundle regardless of what's rendered.
- */
 export default async function OperationsVendorsPage({
   searchParams,
 }: {

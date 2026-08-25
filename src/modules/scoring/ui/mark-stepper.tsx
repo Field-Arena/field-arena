@@ -2,16 +2,11 @@
 
 import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
-import { MARK_DEFAULT, MARK_MAX, MARK_MIN, MARK_STEP } from '../constants';
-import { clampMark } from '../scoring-engine';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { MARK_DEFAULT, MARK_MAX, MARK_MIN, MARK_STEP } from '@/modules/scoring/constants';
+import { clampMark } from '@/modules/scoring/scoring-engine';
 
-/**
- * ▲▼ / scroll-wheel / arrow-key / type-in mark entry, ported from
- * showrunner-scoring.html's `markStepperHtml`. A blank mark defaults to 6
- * the first time it's touched (`MARK_DEFAULT`), not 0 — a judge nudging a
- * fresh mark up or down from nothing should land near where dressage marks
- * actually cluster.
- */
 export function MarkStepper({
   value,
   enteredBy,
@@ -24,9 +19,7 @@ export function MarkStepper({
   onChange: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(value === null ? '' : String(value));
-  // Adjusting state from a prop change during render (not an effect) — React's
-  // own documented pattern for this, since the poll updates `value` and the
-  // draft text should follow it unless the field is mid-edit.
+
   const [lastValue, setLastValue] = useState(value);
   if (value !== lastValue) {
     setLastValue(value);
@@ -52,7 +45,7 @@ export function MarkStepper({
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="relative">
-        <input
+        <Input
           type="text"
           inputMode="decimal"
           value={draft}
@@ -84,36 +77,39 @@ export function MarkStepper({
           max={MARK_MAX}
           step={MARK_STEP}
           className={cn(
-            'h-9 w-16 rounded-[8px] border border-[#D9E1DD] text-center text-[15px] font-semibold text-ink-deep',
-            'outline-none focus-visible:border-gold',
-            locked && 'bg-[#F1F4F3] text-[#8B9591]'
+            'h-auto px-0 py-0',
+            'text-ink-deep h-9 w-16 rounded-[8px] border border-[#D9E1DD] text-center text-[15px] font-semibold',
+            'focus-visible:border-gold outline-none',
+            'disabled:bg-[#F1F4F3] disabled:text-[#8B9591] disabled:opacity-100',
           )}
         />
       </span>
 
       <span className="flex flex-col gap-0.5">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           disabled={locked}
           onClick={() => {
             step(MARK_STEP);
           }}
           aria-label="Increase mark"
-          className="grid size-5 place-items-center rounded-[4px] border border-[#D9E1DD] text-[10px] leading-none text-ink-deep hover:border-gold disabled:opacity-40"
+          className="text-ink-deep hover:border-gold grid size-5 h-auto place-items-center rounded-[4px] border border-[#D9E1DD] px-0 py-0 text-[10px] leading-none font-normal hover:bg-transparent disabled:opacity-40"
         >
           ▲
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           disabled={locked}
           onClick={() => {
             step(-MARK_STEP);
           }}
           aria-label="Decrease mark"
-          className="grid size-5 place-items-center rounded-[4px] border border-[#D9E1DD] text-[10px] leading-none text-ink-deep hover:border-gold disabled:opacity-40"
+          className="text-ink-deep hover:border-gold grid size-5 h-auto place-items-center rounded-[4px] border border-[#D9E1DD] px-0 py-0 text-[10px] leading-none font-normal hover:bg-transparent disabled:opacity-40"
         >
           ▼
-        </button>
+        </Button>
       </span>
 
       {enteredBy && (

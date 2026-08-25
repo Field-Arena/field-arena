@@ -6,27 +6,22 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
-import { AuthAlert, AuthEyebrow, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
+import {
+  AuthAlert,
+  AuthEyebrow,
+  AuthSubmit,
+  PasswordStrengthMeter,
+} from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { readableError } from '@/shared/lib/error-message';
-import { vendorSignUpSchema, type VendorSignUpInput } from '../schemas';
+import { Button } from '@/shared/ui/shadcn/button';
+import { vendorSignUpSchema, type VendorSignUpInput } from '@/modules/vendors/schemas';
 import {
   useResendVendorSignUpCode,
   useSignUpVendor,
   useVerifyVendorSignUpCode,
-} from '../hooks/use-vendor-auth-mutations';
+} from '@/modules/vendors/hooks/use-vendor-auth-mutations';
 
-/**
- * "Claim your vendor account" — the bridge from applyToShowPublic's
- * genuinely anonymous application back to a real account, matching legacy's
- * vendor.html mounting Clerk's SignUp widget directly on the page for an
- * unauthenticated visitor (see app/vendor-apply/account/page.tsx's own doc
- * comment). Once this account exists, RLS reconciles it against any earlier
- * application(s) by email automatically — no separate "claim" step.
- *
- * Same design-system primitives and two-step (account/verify) shape as
- * auth's SignUpForm and riders' RiderAuthForm.
- */
 export function VendorSignUpForm() {
   const [step, setStep] = useState<'account' | 'verify'>('account');
   const [email, setEmail] = useState('');
@@ -68,27 +63,28 @@ export function VendorSignUpForm() {
   if (step === 'verify') {
     return (
       <div className="[animation:fa-in_.22s_ease-out_both]">
-        <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[32px] font-medium leading-[1.08] tracking-[-.02em] text-forest">
+        <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.08] font-medium tracking-[-.02em]">
           Verify your email
         </h1>
-        <p className="mb-[22px] text-[15px] leading-[1.58] text-fa-muted">
+        <p className="text-fa-muted mb-[22px] text-[15px] leading-[1.58]">
           We sent a {EMAIL_CODE_LENGTH}-digit code to confirm this address.
         </p>
 
-        <div className="mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border border-line-mint bg-mint py-2.5 pl-3.5 pr-3">
-          <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
-          <span className="text-sm font-medium text-forest">{email}</span>
-          <button
+        <div className="border-line-mint bg-mint mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border py-2.5 pr-3 pl-3.5">
+          <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
+          <span className="text-forest text-sm font-medium">{email}</span>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               setStep('account');
               setCode('');
               verify.reset();
             }}
-            className="ml-0.5 border-l border-line-mint-2 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:text-gold"
+            className="border-line-mint-2 text-fa-muted hover:text-gold ml-0.5 h-auto rounded-none border-l bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
           >
             Change
-          </button>
+          </Button>
         </div>
 
         <form
@@ -103,22 +99,32 @@ export function VendorSignUpForm() {
 
           {verify.isError && (
             <div className="mb-[18px]">
-              <AuthAlert tone="error">{readableError(verify.error, 'That code did not check out')}</AuthAlert>
+              <AuthAlert tone="error">
+                {readableError(verify.error, 'That code did not check out')}
+              </AuthAlert>
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-4 border-b border-line pb-[26px]">
-            <span className="text-[13.5px] text-fa-muted">Didn&apos;t get it? Check spam, or</span>
-            <button
+          <div className="border-line flex items-center justify-between gap-4 border-b pb-[26px]">
+            <span className="text-fa-muted text-[13.5px]">Didn&apos;t get it? Check spam, or</span>
+            <Button
               type="button"
+              variant="ghost"
               disabled={cooldown > 0 || resend.isPending}
               onClick={() => {
-                resend.mutate({ email }, { onSuccess: () => { setCooldown(RESEND_COOLDOWN_SECONDS); } });
+                resend.mutate(
+                  { email },
+                  {
+                    onSuccess: () => {
+                      setCooldown(RESEND_COOLDOWN_SECONDS);
+                    },
+                  },
+                );
               }}
-              className="text-[13.5px] font-bold text-forest transition-colors hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="text-forest hover:text-gold h-auto rounded-none bg-transparent px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
             >
               {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
-            </button>
+            </Button>
           </div>
 
           <div className="mt-[26px]">
@@ -134,10 +140,10 @@ export function VendorSignUpForm() {
   return (
     <div className="[animation:fa-in_.22s_ease-out_both]">
       <AuthEyebrow>Vendor account</AuthEyebrow>
-      <h1 className="mb-2.5 mt-3 font-[family-name:var(--font-nr)] text-[32px] font-medium leading-[1.08] tracking-[-.02em] text-forest">
+      <h1 className="text-forest mt-3 mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.08] font-medium tracking-[-.02em]">
         Claim your vendor account
       </h1>
-      <p className="mb-[30px] text-[15px] leading-[1.58] text-fa-muted">
+      <p className="text-fa-muted mb-[30px] text-[15px] leading-[1.58]">
         Create an account with the same email you applied with, and your applications show up here
         automatically — sign the booth agreement and pay once an organizer approves you.
       </p>
@@ -193,7 +199,9 @@ export function VendorSignUpForm() {
         ) : (
           signUp.isError && (
             <div className="mt-5">
-              <AuthAlert tone="error">{readableError(signUp.error, 'Could not create your account')}</AuthAlert>
+              <AuthAlert tone="error">
+                {readableError(signUp.error, 'Could not create your account')}
+              </AuthAlert>
             </div>
           )
         )}
@@ -204,9 +212,12 @@ export function VendorSignUpForm() {
           </AuthSubmit>
         </div>
 
-        <p className="mt-[18px] text-center text-[12.5px] text-fa-muted-2">
+        <p className="text-fa-muted-2 mt-[18px] text-center text-[12.5px]">
           Already have a vendor account?{' '}
-          <a href="/login" className="border-b border-gold font-semibold text-forest transition-colors hover:border-forest">
+          <a
+            href="/login"
+            className="border-gold text-forest hover:border-forest border-b font-semibold transition-colors"
+          >
             Sign in
           </a>
           .
