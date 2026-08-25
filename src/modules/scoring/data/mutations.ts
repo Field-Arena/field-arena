@@ -116,9 +116,6 @@ async function writeMark(params: {
       .eq('seat_id', params.seatId);
     if (error) throw error;
   }
-
-  // No revalidatePath here deliberately — see the module doc comment at the
-  // top of this file.
 }
 
 export async function setMark(input: unknown) {

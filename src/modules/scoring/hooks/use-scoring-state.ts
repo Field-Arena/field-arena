@@ -16,8 +16,7 @@ export function useScoringState(classId: string, initialState: ClassScoringState
       const next = (await res.json()) as ClassScoringState;
       setState(next);
     } catch {
-      // A missed poll just tries again next tick — see the mark-write retry
-      // banner for the write-side equivalent of this same tolerance.
+      // noop
     } finally {
       setIsSyncing(false);
     }

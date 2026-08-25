@@ -4,6 +4,8 @@ import { useImperativeHandle, useState, type Ref } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
+import { Textarea } from '@/shared/ui/shadcn/textarea';
 import { useDebouncedWrite } from '@/modules/scoring/hooks/use-debounced-write';
 import { REMARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
 import { MarkStepper } from '@/modules/scoring/ui/mark-stepper';
@@ -163,12 +165,12 @@ export function TestSheet({
       </details>
 
       <div className="mt-2 flex flex-col gap-1.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-        <label
+        <Label
           htmlFor="final-remarks"
           className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase"
         >
           Final remarks
-        </label>
+        </Label>
         <FinalRemarksField
           initialValue={score?.finalRemarks ?? ''}
           disabled={locked}
@@ -239,7 +241,7 @@ function FinalRemarksField({
 }) {
   const { draft, setDraft, onFocus, onBlur } = useSyncedDraft(initialValue);
   return (
-    <textarea
+    <Textarea
       id="final-remarks"
       value={draft}
       disabled={disabled}

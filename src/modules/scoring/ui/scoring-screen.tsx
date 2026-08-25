@@ -1,18 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { Button } from '@/shared/ui/shadcn/button';
 import type { PermissionKey } from '@/shared/constants/permissions';
-import { AUTO_ADVANCE_GRACE_MS, UNDO_WINDOW_MS } from '@/modules/scoring/constants';
 import { isSheetComplete } from '@/modules/scoring/scoring-engine';
 import { toSheet } from '@/modules/scoring/utils/to-sheet';
 import { useScoringState } from '@/modules/scoring/hooks/use-scoring-state';
+import { blankScore, useScoringScreen } from '@/modules/scoring/hooks/use-scoring-screen';
 import {
-  useAdvanceRide,
   useDisqualifyRide,
   useScratchRide,
   useSetCollective,
@@ -28,7 +25,7 @@ import {
   usePublishResults,
   useUnpublishResults,
 } from '@/modules/scoring/hooks/use-scoring-mutations';
-import { TestSheet, type TestSheetHandle } from '@/modules/scoring/ui/test-sheet';
+import { TestSheet } from '@/modules/scoring/ui/test-sheet';
 import { ScoreTally } from '@/modules/scoring/ui/score-tally';
 import { ErrorOfCoursePanel } from '@/modules/scoring/ui/error-of-course-panel';
 import { PanelStatusStrip } from '@/modules/scoring/ui/panel-status-strip';
@@ -44,7 +41,7 @@ import { ScoringToolbar } from '@/modules/scoring/ui/scoring-toolbar';
 import { NotARealTestBanner } from '@/modules/scoring/ui/not-a-real-test-banner';
 import { LiveClockStrip } from '@/modules/scoring/ui/live-clock-strip';
 import { PrintScoresheet } from '@/modules/scoring/ui/print-scoresheet';
-import type { ClassScoringState, MySeat, ScoreRow } from '@/modules/scoring/types';
+import type { ClassScoringState, MySeat } from '@/modules/scoring/types';
 
 export function ScoringScreen({
   classId,
@@ -61,35 +58,23 @@ export function ScoringScreen({
 }) {
   const { state, refetch, applyOptimistic } = useScoringState(classId, initialState);
 
-  const currentEntry = useMemo(() => {
-    if (state.classState.workingInEntryId) {
-      return (
-        state.entries.find((e) => e.id === state.classState.workingInEntryId) ??
-        state.holdingEntries.find((e) => e.id === state.classState.workingInEntryId) ??
-        null
-      );
-    }
-    return state.entries[state.classState.pos] ?? null;
-  }, [state]);
-
-  const test = currentEntry?.testOverride ?? state.test;
-  const myScore = currentEntry
-    ? state.scores.find((s) => s.entryId === currentEntry.id && s.seatId === mySeat?.seatId)
-    : undefined;
-
-  const sheetHandleRef = useRef<TestSheetHandle>(null);
-  const [signatureOpen, setSignatureOpen] = useState(false);
-  const [reasonModal, setReasonModal] = useState<'disqualify' | null>(null);
-  const [lastUndo, setLastUndo] = useState<{ entryId: string; kind: 'skip' | 'terminal' } | null>(
-    null,
-  );
-  const [autoAdvanceCancelled, setAutoAdvanceCancelled] = useState(false);
-
-  const [lastEntryId, setLastEntryId] = useState(currentEntry?.id);
-  if (currentEntry?.id !== lastEntryId) {
-    setLastEntryId(currentEntry?.id);
-    setAutoAdvanceCancelled(false);
-  }
+  const {
+    currentEntry,
+    test,
+    myScore,
+    sheetHandleRef,
+    signatureOpen,
+    setSignatureOpen,
+    reasonModal,
+    setReasonModal,
+    lastUndo,
+    setLastUndo,
+    autoAdvanceCancelled,
+    setAutoAdvanceCancelled,
+    allSeatsReady,
+    afterAction,
+    updateMyScore,
+  } = useScoringScreen({ classId, state, mySeat, refetch, applyOptimistic });
 
   const setMark = useSetMark();
   const setCollective = useSetCollective();
@@ -97,7 +82,6 @@ export function ScoringScreen({
   const setRemark = useSetRemark();
   const setFinalRemarks = useSetFinalRemarks();
   const submit = useSubmitScoresheet();
-  const advance = useAdvanceRide();
   const scratch = useScratchRide();
   const disqualify = useDisqualifyRide();
   const skip = useSkipRide();
@@ -106,46 +90,6 @@ export function ScoringScreen({
   const toggleOpen = useToggleScoringOpen();
   const publish = usePublishResults();
   const unpublish = useUnpublishResults();
-
-  useEffect(() => {
-    if (!lastUndo) return;
-    const id = setTimeout(() => {
-      setLastUndo(null);
-    }, UNDO_WINDOW_MS);
-    return () => {
-      clearTimeout(id);
-    };
-  }, [lastUndo]);
-
-  const allSeatsReady = Boolean(
-    currentEntry &&
-    state.panel.every(
-      (seat) =>
-        state.scores.find((s) => s.entryId === currentEntry.id && s.seatId === seat.seatId)
-          ?.submitted,
-    ),
-  );
-
-  useEffect(() => {
-    if (!allSeatsReady || autoAdvanceCancelled || !currentEntry) return;
-    const id = setTimeout(() => {
-      advance.mutate(
-        { classId, entryId: currentEntry.id },
-        {
-          onSuccess: () => {
-            void refetch();
-          },
-          onError: (error) => {
-            toast.error(error instanceof Error ? error.message : 'Could not advance');
-          },
-        },
-      );
-    }, AUTO_ADVANCE_GRACE_MS);
-    return () => {
-      clearTimeout(id);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allSeatsReady, autoAdvanceCancelled, currentEntry?.id]);
 
   if (!currentEntry) {
     return (
@@ -182,48 +126,6 @@ export function ScoringScreen({
   const seatRole = mySeat?.role ?? 'judge';
   const complete = test ? isSheetComplete(toSheet(myScore ?? blankScore()), test) : false;
   const canSubmit = seatRole === 'judge' && complete && !myScore?.submitted;
-
-  function blankScore(): Omit<
-    ScoreRow,
-    'id' | 'entryId' | 'seatId' | 'signedBy' | 'signedAt' | 'updatedAt'
-  > {
-    return {
-      movements: {},
-      collectives: {},
-      errors: 0,
-      errorAt: {},
-      remarks: {},
-      finalRemarks: '',
-      submitted: false,
-    };
-  }
-
-  function afterAction() {
-    void refetch();
-  }
-
-  function updateMyScore(updater: (score: ScoreRow) => ScoreRow) {
-    if (!mySeat || !currentEntry) return;
-    applyOptimistic((prev) => {
-      const existing = prev.scores.find(
-        (s) => s.entryId === currentEntry.id && s.seatId === mySeat.seatId,
-      );
-      const idx = existing ? prev.scores.indexOf(existing) : -1;
-      const base: ScoreRow = existing ?? {
-        id: `optimistic-${currentEntry.id}-${mySeat.seatId}`,
-        entryId: currentEntry.id,
-        seatId: mySeat.seatId,
-        signedBy: null,
-        signedAt: null,
-        updatedAt: new Date(0).toISOString(),
-        ...blankScore(),
-      };
-      const updated = updater(base);
-      const scores =
-        idx >= 0 ? prev.scores.map((s, i) => (i === idx ? updated : s)) : [...prev.scores, updated];
-      return { ...prev, scores };
-    });
-  }
 
   return (
     <ScreenShell state={state}>
