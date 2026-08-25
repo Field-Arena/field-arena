@@ -10,6 +10,7 @@ import { ResultsView } from '@/modules/riders/ui/results-view';
 import { ScheduleTab } from '@/modules/riders/ui/schedule-tab';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
+import { Button } from '@/shared/ui/shadcn/button';
 import type {
   AddOnWithRemaining,
   ClassWithCapacity,
@@ -132,18 +133,16 @@ export function RiderShowDashboard({
           {NAV_ITEMS.map((item) => {
             const active = activeTab === item.key;
             return (
-              <button
+              <Button
                 key={item.key}
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setActiveTab(item.key);
                 }}
+                className="h-auto justify-start gap-3 rounded-none hover:bg-transparent"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
                   padding: '12px 22px',
-                  borderRadius: 0,
                   fontSize: 13.5,
                   fontWeight: active ? 700 : 600,
                   border: 'none',
@@ -151,23 +150,24 @@ export function RiderShowDashboard({
                   color: active ? '#fff' : 'rgba(255,255,255,0.75)',
                   background: active ? 'rgba(201,162,39,0.14)' : 'transparent',
                   textAlign: 'left',
-                  cursor: 'pointer',
                 }}
               >
                 <NavIcon name={item.icon} size={18} />
                 {item.label}
-              </button>
+              </Button>
             );
           })}
         </nav>
         <div style={{ flex: 1 }} />
         <div style={{ padding: '12px 22px' }}>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               signOut.mutate();
             }}
             disabled={signOut.isPending}
+            className="h-auto w-full hover:bg-transparent disabled:opacity-100"
             style={{
               width: '100%',
               background: 'transparent',
@@ -178,11 +178,10 @@ export function RiderShowDashboard({
               fontFamily: 'inherit',
               fontWeight: 600,
               fontSize: 14,
-              cursor: 'pointer',
             }}
           >
             {signOut.isPending ? 'Signing out…' : 'Sign out'}
-          </button>
+          </Button>
         </div>
       </aside>
 

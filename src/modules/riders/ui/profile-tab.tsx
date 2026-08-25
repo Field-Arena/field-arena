@@ -11,6 +11,8 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import type { RiderProfileUpdateInput } from '@/modules/riders/schemas';
 import type { RiderRow } from '@/modules/riders/types';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
 
 type EditableField = keyof RiderProfileUpdateInput;
 
@@ -118,15 +120,16 @@ function EditableRow({
         <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: LEGACY_COLOR.ink }}>{currentValue || 'Not set'}</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             style={{ ...legacyButtonGhostStyle, padding: '4px 10px', fontSize: 12 }}
             onClick={() => {
               setEditing(true);
             }}
           >
             Edit
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -135,7 +138,7 @@ function EditableRow({
   return (
     <div style={rowStyle}>
       <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
-      <input
+      <Input
         autoFocus
         type={type}
         defaultValue={currentValue}

@@ -135,7 +135,7 @@ function HorseCard({
         </div>
       </div>
 
-      <label className="text-forest flex items-center gap-2 text-sm">
+      <Label className="text-forest flex items-center gap-2 text-sm font-normal">
         <input
           type="checkbox"
           defaultChecked={horse.is_stallion ?? false}
@@ -144,7 +144,7 @@ function HorseCard({
           }}
         />
         Is your horse a stallion?
-      </label>
+      </Label>
 
       {documentRequirements.length > 0 && (
         <div className="space-y-2">

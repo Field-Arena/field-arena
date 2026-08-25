@@ -14,6 +14,9 @@ import {
   legacyCardStyle,
 } from '@/modules/riders/ui/legacy-theme';
 import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 
 const fieldInputStyle: CSSProperties = {
   fontFamily: 'inherit',
@@ -53,15 +56,17 @@ export function HorseTabView({
         }}
       >
         <LegacySecTitle style={{ margin: 0 }}>Horses</LegacySecTitle>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          className="h-auto active:translate-y-0"
           style={legacyButtonGhostStyle}
           onClick={() => {
             setAdding(true);
           }}
         >
           ➕ Add a Horse
-        </button>
+        </Button>
       </div>
 
       {horses.length === 0 && !adding && (
@@ -93,7 +98,7 @@ export function HorseTabView({
           }}
         >
           <div style={{ flex: 1 }}>
-            <label
+            <Label
               style={{
                 display: 'block',
                 fontSize: 11,
@@ -102,8 +107,8 @@ export function HorseTabView({
               }}
             >
               Horse&apos;s registered name
-            </label>
-            <input
+            </Label>
+            <Input
               autoFocus
               placeholder="e.g. Midnight Runner"
               value={newHorseName}
@@ -116,8 +121,9 @@ export function HorseTabView({
               This can&apos;t be changed once added.
             </p>
           </div>
-          <button
+          <Button
             type="submit"
+            className="h-auto active:translate-y-0"
             style={{
               fontFamily: 'inherit',
               fontWeight: 600,
@@ -132,7 +138,7 @@ export function HorseTabView({
             disabled={createHorse.isPending || !newHorseName.trim()}
           >
             {createHorse.isPending ? 'Adding…' : 'Add horse'}
-          </button>
+          </Button>
         </form>
       )}
     </div>
@@ -169,8 +175,10 @@ function LegacyHorseCard({
         }}
       >
         <div style={{ fontWeight: 700, color: LEGACY_COLOR.ink }}>{horse.name}</div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          className="h-auto active:translate-y-0"
           style={{ ...legacyButtonGhostStyle, padding: '4px 10px', fontSize: 12 }}
           disabled={deleteHorse.isPending}
           onClick={() => {
@@ -179,7 +187,7 @@ function LegacyHorseCard({
           }}
         >
           Remove horse
-        </button>
+        </Button>
       </div>
 
       <div
@@ -190,12 +198,12 @@ function LegacyHorseCard({
         }}
       >
         <div>
-          <label
+          <Label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
             Stable name
-          </label>
-          <input
+          </Label>
+          <Input
             defaultValue={horse.stable ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -204,12 +212,12 @@ function LegacyHorseCard({
           />
         </div>
         <div>
-          <label
+          <Label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
             Trainer name
-          </label>
-          <input
+          </Label>
+          <Input
             defaultValue={horse.trainer ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -218,12 +226,12 @@ function LegacyHorseCard({
           />
         </div>
         <div>
-          <label
+          <Label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
             Trainer phone
-          </label>
-          <input
+          </Label>
+          <Input
             type="tel"
             defaultValue={horse.trainer_phone ?? ''}
             style={fieldInputStyle}
@@ -234,7 +242,7 @@ function LegacyHorseCard({
         </div>
       </div>
 
-      <label
+      <Label
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -252,7 +260,7 @@ function LegacyHorseCard({
           }}
         />
         Is your horse a stallion?
-      </label>
+      </Label>
 
       {documentRequirements.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>

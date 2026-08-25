@@ -10,6 +10,7 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import type { RiderScorecard, RiderScorecardCard } from '@/modules/riders/types';
 import { formatTimestamp } from '@/shared/lib/format/date';
+import { Button } from '@/shared/ui/shadcn/button';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export function ScorecardLink({ entryId }: { entryId: string }) {
   const { state, load, reset } = useRiderScorecard();
@@ -29,8 +38,9 @@ export function ScorecardLink({ entryId }: { entryId: string }) {
       }}
     >
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="link"
           style={{
             background: 'none',
             border: 'none',
@@ -43,7 +53,7 @@ export function ScorecardLink({ entryId }: { entryId: string }) {
           }}
         >
           View scorecard ↗
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent
         className="max-h-[85vh] max-w-2xl overflow-y-auto"
@@ -120,47 +130,47 @@ function ScorecardCardView({ card }: { card: RiderScorecardCard }) {
         <strong>Judge:</strong> {card.judgeName ?? '—'} at {card.position ?? '—'}
       </p>
 
-      <table style={legacyTableStyle}>
-        <thead>
-          <tr>
-            <th style={legacyTableHeadCellStyle}>#</th>
-            <th style={legacyTableHeadCellStyle}>Movement</th>
-            <th style={legacyTableHeadCellStyle}>Score</th>
-            <th style={legacyTableHeadCellStyle}>Remark</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table style={legacyTableStyle}>
+        <TableHeader>
+          <TableRow>
+            <TableHead style={legacyTableHeadCellStyle}>#</TableHead>
+            <TableHead style={legacyTableHeadCellStyle}>Movement</TableHead>
+            <TableHead style={legacyTableHeadCellStyle}>Score</TableHead>
+            <TableHead style={legacyTableHeadCellStyle}>Remark</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {card.movements.map((movement) => (
-            <tr key={movement.num}>
-              <td style={legacyTableCellStyle}>{movement.num}</td>
-              <td style={legacyTableCellStyle}>
+            <TableRow key={movement.num}>
+              <TableCell style={legacyTableCellStyle}>{movement.num}</TableCell>
+              <TableCell style={legacyTableCellStyle}>
                 {movement.text}
                 {movement.coef > 1 ? ` (×${String(movement.coef)})` : ''}
-              </td>
-              <td style={legacyTableCellStyle}>{movement.value ?? '—'}</td>
-              <td style={legacyTableCellStyle}>{movement.remark}</td>
-            </tr>
+              </TableCell>
+              <TableCell style={legacyTableCellStyle}>{movement.value ?? '—'}</TableCell>
+              <TableCell style={legacyTableCellStyle}>{movement.remark}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       {card.collectives.length > 0 && (
-        <table style={legacyTableStyle}>
-          <thead>
-            <tr>
-              <th style={legacyTableHeadCellStyle}>Collective</th>
-              <th style={legacyTableHeadCellStyle}>Score</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table style={legacyTableStyle}>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={legacyTableHeadCellStyle}>Collective</TableHead>
+              <TableHead style={legacyTableHeadCellStyle}>Score</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {card.collectives.map((collective) => (
-              <tr key={collective.key}>
-                <td style={legacyTableCellStyle}>{collective.label}</td>
-                <td style={legacyTableCellStyle}>{collective.value ?? '—'}</td>
-              </tr>
+              <TableRow key={collective.key}>
+                <TableCell style={legacyTableCellStyle}>{collective.label}</TableCell>
+                <TableCell style={legacyTableCellStyle}>{collective.value ?? '—'}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
 
       {card.finalRemarks && (

@@ -6,6 +6,7 @@ import type { ClassWithCapacity, QualTypeRow } from '@/modules/riders/types';
 import { Badge } from '@/shared/ui/shadcn/badge';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
+import { Label } from '@/shared/ui/shadcn/label';
 
 export function ClassPicker({
   classes,
@@ -68,7 +69,7 @@ export function ClassPicker({
               {isSelected && qualTypes.length > 0 && (
                 <div className="border-line flex flex-wrap gap-x-4 gap-y-1 border-t px-3 py-2">
                   {qualTypes.map((qual) => (
-                    <label
+                    <Label
                       key={qual.id}
                       className="text-forest flex cursor-pointer items-center gap-1.5 text-xs font-medium"
                     >
@@ -83,7 +84,7 @@ export function ClassPicker({
                       {qual.price != null && (
                         <span className="text-fa-muted">(+${qual.price.toFixed(2)})</span>
                       )}
-                    </label>
+                    </Label>
                   ))}
                 </div>
               )}

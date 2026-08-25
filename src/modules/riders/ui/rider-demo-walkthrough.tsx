@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { StepPillNav, type StepPillNavStep } from '@/shared/ui/step-pill-nav';
 import { SUPERADMIN_CONSOLE_ROUTE } from '@/modules/riders/constants';
-import { useEntryCartStore } from '@/modules/riders/store';
+import { useRiderDemoWalkthrough } from '@/modules/riders/hooks/use-rider-demo-walkthrough';
 import { ClassPicker } from '@/modules/riders/ui/class-picker';
 import { AddOnPicker } from '@/modules/riders/ui/addon-picker';
 import { RiderDemoAccountStep } from '@/modules/riders/ui/rider-demo-account-step';
@@ -151,15 +150,7 @@ export function RiderDemoWalkthrough({
 }: {
   showBackToConsole?: boolean;
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const reset = useEntryCartStore((state) => state.reset);
-
-  useEffect(() => {
-    reset();
-    return () => {
-      reset();
-    };
-  }, [reset]);
+  const { activeIndex, goTo, goPrev, goNext } = useRiderDemoWalkthrough(STEPS.length);
 
   return (
     <>
@@ -176,13 +167,9 @@ export function RiderDemoWalkthrough({
       <StepPillNav
         steps={STEPS}
         activeIndex={activeIndex}
-        onJump={setActiveIndex}
-        onPrev={() => {
-          setActiveIndex((i) => Math.max(0, i - 1));
-        }}
-        onNext={() => {
-          setActiveIndex((i) => Math.min(STEPS.length - 1, i + 1));
-        }}
+        onJump={goTo}
+        onPrev={goPrev}
+        onNext={goNext}
       >
         <div className="mx-auto max-w-2xl space-y-6">
           {activeIndex === 0 && (
@@ -194,14 +181,14 @@ export function RiderDemoWalkthrough({
           {activeIndex === 1 && (
             <RiderDemoAccountStep
               onNext={() => {
-                setActiveIndex(2);
+                goTo(2);
               }}
             />
           )}
           {activeIndex === 2 && (
             <RiderDemoDetailsStep
               onNext={() => {
-                setActiveIndex(3);
+                goTo(3);
               }}
             />
           )}
@@ -211,7 +198,7 @@ export function RiderDemoWalkthrough({
               addOns={DEMO_ADD_ONS}
               qualTypes={DEMO_QUAL_TYPES}
               onNext={() => {
-                setActiveIndex(4);
+                goTo(4);
               }}
             />
           )}

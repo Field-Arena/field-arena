@@ -1,31 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
 import Link from 'next/link';
 import { riderSignUpSchema, type RiderSignUpInput } from '@/modules/riders/schemas';
-import {
-  useResendRiderSignUpCode,
-  useSignUpRider,
-  useVerifyRiderSignUpCode,
-} from '@/modules/riders/hooks/use-rider-auth-mutations';
-import type { RiderSignUpStep } from '@/modules/riders/types';
+import { useRiderSignUpFlow } from '@/modules/riders/hooks/use-rider-signup-flow';
 import { ROUTES } from '@/shared/constants/routes';
-import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
+import { EMAIL_CODE_LENGTH } from '@/shared/constants/auth-code';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 
 export function RiderAuthForm() {
-  const [step, setStep] = useState<RiderSignUpStep>('account');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const flow = useRiderSignUpFlow();
 
   const signUpForm = useForm<RiderSignUpInput>({
     resolver: zodResolver(riderSignUpSchema),
@@ -33,36 +22,10 @@ export function RiderAuthForm() {
     mode: 'onSubmit',
   });
 
-  const signUp = useSignUpRider({
-    onVerifyNeeded: (confirmedEmail) => {
-      setFormError(null);
-      setAlreadyRegistered(false);
-      setEmail(confirmedEmail);
-      setCode('');
-      setStep('verify');
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-    },
-    onAlreadyRegistered: () => {
-      setAlreadyRegistered(true);
-    },
-  });
-  const verify = useVerifyRiderSignUpCode();
-  const resend = useResendRiderSignUpCode();
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setTimeout(() => {
-      setCooldown((seconds) => seconds - 1);
-    }, 1000);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [cooldown]);
-
   const password = useWatch({ control: signUpForm.control, name: 'password' });
   const { errors } = signUpForm.formState;
 
-  if (step === 'verify') {
+  if (flow.step === 'verify') {
     return (
       <div className="[animation:fa-in_.22s_ease-out_both]">
         <h2 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.02em]">
@@ -74,16 +37,11 @@ export function RiderAuthForm() {
 
         <div className="border-line-mint bg-mint mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border py-2.5 pr-3 pl-3.5">
           <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
-          <span className="text-forest text-sm font-medium">{email}</span>
+          <span className="text-forest text-sm font-medium">{flow.email}</span>
           <Button
             type="button"
             variant="ghost"
-            onClick={() => {
-              setStep('account');
-              setCode('');
-              setFormError(null);
-              verify.reset();
-            }}
+            onClick={flow.changeEmail}
             className="border-line-mint-2 text-fa-muted hover:text-gold ml-0.5 h-auto rounded-none border-l px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
           >
             Change
@@ -93,27 +51,20 @@ export function RiderAuthForm() {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            setFormError(null);
-            verify.mutate(
-              { email, token: code },
-              {
-                onSuccess: (outcome) => {
-                  if (outcome.status === 'error') setFormError(outcome.message);
-                },
-                onError: (error) => {
-                  setFormError(error.message);
-                },
-              },
-            );
+            flow.submitVerify();
           }}
         >
           <div className="mb-[18px]">
-            <EmailCodeInput value={code} onChange={setCode} disabled={verify.isPending} />
+            <EmailCodeInput
+              value={flow.code}
+              onChange={flow.setCode}
+              disabled={flow.isVerifying}
+            />
           </div>
 
-          {formError && (
+          {flow.formError && (
             <div className="mb-[18px]">
-              <AuthAlert tone="error">{formError}</AuthAlert>
+              <AuthAlert tone="error">{flow.formError}</AuthAlert>
             </div>
           )}
 
@@ -122,25 +73,16 @@ export function RiderAuthForm() {
             <Button
               type="button"
               variant="ghost"
-              disabled={cooldown > 0 || resend.isPending}
-              onClick={() => {
-                resend.mutate(
-                  { email },
-                  {
-                    onSuccess: () => {
-                      setCooldown(RESEND_COOLDOWN_SECONDS);
-                    },
-                  },
-                );
-              }}
+              disabled={flow.cooldown > 0 || flow.isResending}
+              onClick={flow.resendCode}
               className="text-forest hover:text-gold h-auto rounded-none px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:opacity-100 disabled:hover:text-[#9AA6A0]"
             >
-              {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
+              {flow.cooldown > 0 ? `Resend in ${String(flow.cooldown)}s` : 'Send a new code'}
             </Button>
           </div>
 
           <div className="mt-[22px]">
-            <AuthSubmit pending={verify.isPending} pendingLabel="Verifying…">
+            <AuthSubmit pending={flow.isVerifying} pendingLabel="Verifying…">
               Verify and continue
             </AuthSubmit>
           </div>
@@ -161,18 +103,7 @@ export function RiderAuthForm() {
       <form
         noValidate
         onSubmit={(event) => {
-          void signUpForm.handleSubmit((values) => {
-            setFormError(null);
-            setAlreadyRegistered(false);
-            signUp.mutate(values, {
-              onSuccess: (outcome) => {
-                if (outcome.status === 'error') setFormError(outcome.message);
-              },
-              onError: (error) => {
-                setFormError(error.message);
-              },
-            });
-          })(event);
+          void signUpForm.handleSubmit(flow.submitSignUp)(event);
         }}
       >
         <AuthField
@@ -195,7 +126,7 @@ export function RiderAuthForm() {
           <PasswordStrengthMeter password={password} />
         </div>
 
-        {alreadyRegistered ? (
+        {flow.alreadyRegistered ? (
           <div className="mt-5">
             <AuthAlert tone="error">
               An account already exists for this email.{' '}
@@ -206,15 +137,15 @@ export function RiderAuthForm() {
             </AuthAlert>
           </div>
         ) : (
-          formError && (
+          flow.formError && (
             <div className="mt-5">
-              <AuthAlert tone="error">{formError}</AuthAlert>
+              <AuthAlert tone="error">{flow.formError}</AuthAlert>
             </div>
           )
         )}
 
         <div className="mt-7">
-          <AuthSubmit pending={signUp.isPending} pendingLabel="Creating account…">
+          <AuthSubmit pending={flow.isSigningUp} pendingLabel="Creating account…">
             Continue
           </AuthSubmit>
         </div>

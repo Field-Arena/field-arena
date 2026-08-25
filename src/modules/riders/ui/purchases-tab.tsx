@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { useSaveStablingDates } from '@/modules/riders/hooks/use-stabling-mutations';
+import { useStablingForm } from '@/modules/riders/hooks/use-stabling-form';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { computeStablingSummary } from '@/modules/riders/utils/compute-stabling-summary';
 import { feeForEntry } from '@/modules/riders/utils/fee-for-entry';
@@ -25,6 +25,18 @@ import type {
   ShowRow,
 } from '@/modules/riders/types';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
+import { Button } from '@/shared/ui/shadcn/button';
+import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 function classDisplayName(cls: { label: string; displayName: string | null }): string {
   return (cls.displayName?.trim() ?? '') || cls.label;
@@ -63,29 +75,29 @@ export function PurchasesTab({
       <LegacySecTitle>Your entries &amp; purchases</LegacySecTitle>
 
       <div style={legacyBlockTitleStyle}>Class entries</div>
-      <table style={legacyTableStyle}>
-        <thead>
-          <tr>
-            <th style={legacyTableHeadCellStyle}>Class</th>
-            <th style={legacyTableHeadCellStyle}>Division</th>
-            <th style={legacyTableHeadCellStyle}>Date · time · ring</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Fee</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table style={legacyTableStyle}>
+        <TableHeader>
+          <TableRow>
+            <TableHead style={legacyTableHeadCellStyle}>Class</TableHead>
+            <TableHead style={legacyTableHeadCellStyle}>Division</TableHead>
+            <TableHead style={legacyTableHeadCellStyle}>Date · time · ring</TableHead>
+            <TableHead style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Fee</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {entries.length === 0 && (
-            <tr>
-              <td style={legacyTableCellStyle} colSpan={4}>
+            <TableRow>
+              <TableCell style={legacyTableCellStyle} colSpan={4}>
                 No classes entered yet.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
           {entries.map((entry) => {
             const fee = feeForEntry(orders, entry.classId, entry.horseId);
             const subtitle = entry.class ? classSubtitle(entry.class) : null;
             return (
-              <tr key={entry.id}>
-                <td style={legacyTableCellStyle}>
+              <TableRow key={entry.id}>
+                <TableCell style={legacyTableCellStyle}>
                   {entry.class ? classDisplayName(entry.class) : 'Class'}
                   {subtitle && (
                     <div
@@ -94,23 +106,23 @@ export function PurchasesTab({
                       {subtitle}
                     </div>
                   )}
-                </td>
-                <td style={legacyTableCellStyle}>{entry.class?.division}</td>
-                <td style={legacyTableCellStyle}>
+                </TableCell>
+                <TableCell style={legacyTableCellStyle}>{entry.class?.division}</TableCell>
+                <TableCell style={legacyTableCellStyle}>
                   {entry.class
                     ? [entry.class.date, entry.class.time, entry.class.arena]
                         .filter(Boolean)
                         .join(' · ')
                     : ''}
-                </td>
-                <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+                </TableCell>
+                <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
                   {fee != null ? formatMoneyExact(fee) : '—'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       <div style={legacyBlockTitleStyle}>
         Stabling &amp; add-ons{' '}
@@ -130,46 +142,54 @@ export function PurchasesTab({
           Auto-filled from checkout
         </span>
       </div>
-      <table style={legacyTableStyle}>
-        <thead>
-          <tr>
-            <th style={legacyTableHeadCellStyle}>Item</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Qty</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Price</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={legacyTableCellStyle}>Class entries ({entries.length})</td>
-            <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>{entries.length}</td>
-            <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>—</td>
-            <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+      <Table style={legacyTableStyle}>
+        <TableHeader>
+          <TableRow>
+            <TableHead style={legacyTableHeadCellStyle}>Item</TableHead>
+            <TableHead style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Qty</TableHead>
+            <TableHead style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>
+              Price
+            </TableHead>
+            <TableHead style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>
+              Total
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell style={legacyTableCellStyle}>Class entries ({entries.length})</TableCell>
+            <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+              {entries.length}
+            </TableCell>
+            <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>—</TableCell>
+            <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
               {formatMoneyExact(summary.classEntriesTotal)}
-            </td>
-          </tr>
+            </TableCell>
+          </TableRow>
           {summary.addOnLines.map((line, index) => (
-            <tr key={`${line.label}-${String(index)}`}>
-              <td style={legacyTableCellStyle}>{line.label}</td>
-              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>{line.qty}</td>
-              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+            <TableRow key={`${line.label}-${String(index)}`}>
+              <TableCell style={legacyTableCellStyle}>{line.label}</TableCell>
+              <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+                {line.qty}
+              </TableCell>
+              <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
                 {formatMoneyExact(line.unitPrice)}
-              </td>
-              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+              </TableCell>
+              <TableCell style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
                 {formatMoneyExact(line.amount)}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell
               style={{ ...legacyTableCellStyle, fontWeight: 700, borderBottom: 'none' }}
               colSpan={3}
             >
               Total paid
-            </td>
-            <td
+            </TableCell>
+            <TableCell
               style={{
                 ...legacyTableCellStyle,
                 fontWeight: 700,
@@ -178,21 +198,23 @@ export function PurchasesTab({
               }}
             >
               {formatMoneyExact(summary.totalPaid)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' }}>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          className="h-auto active:translate-y-0"
           style={legacyButtonGhostStyle}
           onClick={() => {
             setShowReceipt((value) => !value);
           }}
         >
           {showReceipt ? 'Hide receipt' : '🧾 View receipt'}
-        </button>
+        </Button>
       </div>
       {showReceipt && (
         <Receipt
@@ -248,23 +270,25 @@ function Receipt({
         Receipt — {show.name}
       </p>
       <p style={{ margin: '0 0 10px' }}>Hi {rider.first_name ?? 'there'},</p>
-      <table style={{ width: '100%', fontSize: 13 }}>
-        <tbody>
-          <tr>
-            <td>Class entries ({entriesCount})</td>
-            <td style={{ textAlign: 'right' }}>{formatMoneyExact(summary.classEntriesTotal)}</td>
-          </tr>
+      <Table style={{ width: '100%', fontSize: 13 }}>
+        <TableBody>
+          <TableRow>
+            <TableCell>Class entries ({entriesCount})</TableCell>
+            <TableCell style={{ textAlign: 'right' }}>
+              {formatMoneyExact(summary.classEntriesTotal)}
+            </TableCell>
+          </TableRow>
           {summary.addOnLines.map((line, index) => (
-            <tr key={`${line.label}-${String(index)}`}>
-              <td>
+            <TableRow key={`${line.label}-${String(index)}`}>
+              <TableCell>
                 {line.label}
                 {line.qty > 1 ? ` (×${String(line.qty)})` : ''}
-              </td>
-              <td style={{ textAlign: 'right' }}>{formatMoneyExact(line.amount)}</td>
-            </tr>
+              </TableCell>
+              <TableCell style={{ textAlign: 'right' }}>{formatMoneyExact(line.amount)}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       <p style={{ fontWeight: 700, color: LEGACY_COLOR.hunterDeep, margin: '10px 0 0' }}>
         Total paid: {formatMoneyExact(summary.totalPaid)}
       </p>
@@ -284,9 +308,7 @@ function Receipt({
 function AutoField({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <label
-        style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
-      >
+      <Label style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}>
         {label}{' '}
         <span
           style={{
@@ -300,8 +322,8 @@ function AutoField({ label, value }: { label: string; value: number }) {
         >
           Auto
         </span>
-      </label>
-      <input
+      </Label>
+      <Input
         readOnly
         value={value}
         style={{ ...fieldInputStyle, background: LEGACY_COLOR.hunterPale }}
@@ -317,9 +339,16 @@ function StablingForm({
   order: OrderRow | null;
   stabling: { stalls: number; tack: number; shavings: number; nights: number };
 }) {
-  const [arrivalDate, setArrivalDate] = useState(order?.arrival_date ?? '');
-  const [departureDate, setDepartureDate] = useState(order?.departure_date ?? '');
-  const saveStabling = useSaveStablingDates();
+  const {
+    arrivalDate,
+    setArrivalDate,
+    departureDate,
+    setDepartureDate,
+    submit,
+    isPending,
+    isSuccess,
+    canSubmit,
+  } = useStablingForm(order);
 
   return (
     <div>
@@ -331,12 +360,12 @@ function StablingForm({
         }}
       >
         <div>
-          <label
+          <Label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
             Arrival date <span style={{ color: LEGACY_COLOR.red }}>*</span>
-          </label>
-          <input
+          </Label>
+          <Input
             type="date"
             value={arrivalDate}
             style={fieldInputStyle}
@@ -346,12 +375,12 @@ function StablingForm({
           />
         </div>
         <div>
-          <label
+          <Label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
             Departure date <span style={{ color: LEGACY_COLOR.red }}>*</span>
-          </label>
-          <input
+          </Label>
+          <Input
             type="date"
             value={departureDate}
             style={fieldInputStyle}
@@ -367,18 +396,16 @@ function StablingForm({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, gap: 12 }}>
-        <button
+        <Button
           type="button"
+          className="h-auto active:translate-y-0"
           style={legacyButtonPrimaryStyle}
-          disabled={!order || saveStabling.isPending || !arrivalDate || !departureDate}
-          onClick={() => {
-            if (!order) return;
-            saveStabling.mutate({ orderId: order.id, arrivalDate, departureDate });
-          }}
+          disabled={!canSubmit || isPending}
+          onClick={submit}
         >
-          {saveStabling.isPending ? 'Saving…' : 'Save stabling details'}
-        </button>
-        {saveStabling.isSuccess && (
+          {isPending ? 'Saving…' : 'Save stabling details'}
+        </Button>
+        {isSuccess && (
           <span style={{ fontSize: 12.5, color: LEGACY_COLOR.green, fontWeight: 600 }}>
             ✓ Saved — the show has your dates.
           </span>
