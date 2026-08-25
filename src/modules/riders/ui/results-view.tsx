@@ -11,6 +11,15 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import type { RiderEntryDetail } from '@/modules/riders/types';
+import { Button } from '@/shared/ui/shadcn/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 function classDisplayName(cls: { label: string; displayName: string | null }): string {
   return (cls.displayName?.trim() ?? '') || cls.label;
@@ -30,13 +39,14 @@ export function ResultsView({
 
   return (
     <div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         style={{ ...legacyButtonGhostStyle, marginBottom: 14 }}
         onClick={onBack}
       >
         ← Back to My Schedule
-      </button>
+      </Button>
 
       <div style={legacyCardStyle}>
         <LegacySecTitle>Results</LegacySecTitle>
@@ -73,24 +83,26 @@ export function ResultsView({
                     {subtitle}
                   </div>
                 )}
-                <table style={legacyTableStyle}>
-                  <thead>
-                    <tr>
-                      <th style={legacyTableHeadCellStyle}>Score</th>
-                      <th style={legacyTableHeadCellStyle}>Status</th>
-                      <th style={legacyTableHeadCellStyle} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td style={legacyTableCellStyle}>{Number(entry.finalPct).toFixed(3)}%</td>
-                      <td style={legacyTableCellStyle}>{entry.status}</td>
-                      <td style={legacyTableCellStyle}>
+                <Table style={legacyTableStyle}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={legacyTableHeadCellStyle}>Score</TableHead>
+                      <TableHead style={legacyTableHeadCellStyle}>Status</TableHead>
+                      <TableHead style={legacyTableHeadCellStyle} />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell style={legacyTableCellStyle}>
+                        {Number(entry.finalPct).toFixed(3)}%
+                      </TableCell>
+                      <TableCell style={legacyTableCellStyle}>{entry.status}</TableCell>
+                      <TableCell style={legacyTableCellStyle}>
                         <ScorecardLink entryId={entry.id} />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
             );
           })

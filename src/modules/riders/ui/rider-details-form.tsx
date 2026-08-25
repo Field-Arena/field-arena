@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RIDER_CATEGORIES } from '@/modules/riders/constants';
 import { riderDetailsFormSchema, type RiderDetailsFormInput } from '@/modules/riders/schemas';
@@ -8,6 +8,14 @@ import { useUpdateRiderProfile } from '@/modules/riders/hooks/use-rider-profile-
 import type { RiderRow } from '@/modules/riders/types';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthSubmit } from '@/shared/ui/auth/auth-primitives';
+import { Label } from '@/shared/ui/shadcn/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
 
 const SELECT_LABEL_CLASSES =
   'mb-[9px] block text-xs font-bold uppercase tracking-[.1em] text-forest';
@@ -110,17 +118,27 @@ export function RiderDetailsForm({ rider }: { rider: RiderRow }) {
           <AuthField label="FEI number" placeholder="e.g. 10012345" {...form.register('fei')} />
 
           <div>
-            <label htmlFor="rd-category" className={SELECT_LABEL_CLASSES}>
+            <Label htmlFor="rd-category" className={SELECT_LABEL_CLASSES}>
               Rider class category
-            </label>
-            <select id="rd-category" {...form.register('category')} className={SELECT_CLASSES}>
-              <option value="">Select category…</option>
-              {RIDER_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Controller
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="rd-category" className={SELECT_CLASSES}>
+                    <SelectValue placeholder="Select category…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RIDER_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors.category && (
               <p className="text-alert-fg mt-2 text-[13px]">{errors.category.message}</p>
             )}

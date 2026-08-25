@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useSignWaiver } from '@/modules/riders/hooks/use-waiver-mutations';
+import { useWaiverForm } from '@/modules/riders/hooks/use-waiver-form';
 import type { WaiverSignatureRow } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-
-const SCROLL_BOTTOM_THRESHOLD_PX = 10;
 
 export function WaiverForm({
   showId,
@@ -19,31 +16,21 @@ export function WaiverForm({
   waiverText: string;
   existingSignature: WaiverSignatureRow | null;
 }) {
-  const textRef = useRef<HTMLDivElement>(null);
-  const [scrolledToBottom, setScrolledToBottom] = useState(!!existingSignature);
-  const [fullName, setFullName] = useState(existingSignature?.full_name ?? '');
-  const [signatureDate, setSignatureDate] = useState(
-    existingSignature?.signature_date ?? new Date().toISOString().slice(0, 10),
-  );
-  const [agreed, setAgreed] = useState(!!existingSignature);
-  const signWaiver = useSignWaiver();
-  const signed = !!existingSignature || signWaiver.isSuccess;
-
-  const checkScrolled = () => {
-    const el = textRef.current;
-    if (!el || scrolledToBottom) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_BOTTOM_THRESHOLD_PX) {
-      setScrolledToBottom(true);
-    }
-  };
-
-  useEffect(() => {
-    checkScrolled();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount, same as legacy's one-shot check
-  }, []);
-
-  const canSign =
-    scrolledToBottom && fullName.trim().length > 0 && signatureDate.trim().length > 0 && agreed;
+  const {
+    textRef,
+    scrolledToBottom,
+    checkScrolled,
+    fullName,
+    setFullName,
+    signatureDate,
+    setSignatureDate,
+    agreed,
+    setAgreed,
+    signed,
+    canSign,
+    isPending,
+    sign,
+  } = useWaiverForm({ showId, existingSignature });
 
   return (
     <Card>
@@ -89,8 +76,9 @@ export function WaiverForm({
           </div>
         </div>
 
-        <label className="text-forest flex items-start gap-2 text-sm">
+        <Label htmlFor="waiver-agree" className="text-forest items-start gap-2 text-sm font-normal">
           <input
+            id="waiver-agree"
             type="checkbox"
             checked={agreed}
             disabled={signed || !scrolledToBottom}
@@ -100,19 +88,13 @@ export function WaiverForm({
             className="mt-0.5"
           />
           I have read and agree to the terms above.
-        </label>
+        </Label>
 
         {signed ? (
           <p className="text-sm font-medium text-green-700">✓ Signed</p>
         ) : (
-          <Button
-            type="button"
-            disabled={!canSign || signWaiver.isPending}
-            onClick={() => {
-              signWaiver.mutate({ showId, fullName: fullName.trim(), signatureDate });
-            }}
-          >
-            {signWaiver.isPending ? 'Signing…' : 'Sign waiver'}
+          <Button type="button" disabled={!canSign || isPending} onClick={sign}>
+            {isPending ? 'Signing…' : 'Sign waiver'}
           </Button>
         )}
       </CardContent>

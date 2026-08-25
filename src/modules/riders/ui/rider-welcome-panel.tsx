@@ -7,6 +7,7 @@ import {
   legacyButtonGhostStyle,
 } from '@/modules/riders/ui/legacy-theme';
 import type { RiderRow } from '@/modules/riders/types';
+import { Button } from '@/shared/ui/shadcn/button';
 
 export function RiderWelcomePanel({ rider }: { rider: RiderRow }) {
   const signOut = useSignOutRider();
@@ -25,8 +26,10 @@ export function RiderWelcomePanel({ rider }: { rider: RiderRow }) {
           manage your horses, and see your schedule and results there.
         </p>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        className="h-auto hover:bg-transparent active:translate-y-0 disabled:opacity-100"
         style={legacyButtonGhostStyle}
         onClick={() => {
           signOut.mutate();
@@ -34,7 +37,7 @@ export function RiderWelcomePanel({ rider }: { rider: RiderRow }) {
         disabled={signOut.isPending}
       >
         {signOut.isPending ? 'Signing out…' : 'Sign out'}
-      </button>
+      </Button>
     </div>
   );
 }

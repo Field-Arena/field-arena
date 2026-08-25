@@ -18,6 +18,15 @@ import {
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { formatDateRange } from '@/shared/lib/format/date';
 import type { ClassWithCapacity, RiderEntryDetail, ShowRow } from '@/modules/riders/types';
+import { Button } from '@/shared/ui/shadcn/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 function entryClassName(cls: { label: string; displayName: string | null }): string {
   return (cls.displayName?.trim() ?? '') || cls.label;
@@ -109,9 +118,14 @@ export function ScheduleTab({
         >
           <LegacySecTitle style={{ margin: 0 }}>Your rides</LegacySecTitle>
           {hasResults && (
-            <button type="button" style={legacyButtonGhostStyle} onClick={onViewResults}>
+            <Button
+              type="button"
+              variant="ghost"
+              style={legacyButtonGhostStyle}
+              onClick={onViewResults}
+            >
               🏆 View Results
-            </button>
+            </Button>
           )}
         </div>
         <p style={legacySecNoteStyle}>
@@ -153,17 +167,17 @@ export function ScheduleTab({
       <div style={legacyCardStyle}>
         <LegacySecTitle>Full event schedule</LegacySecTitle>
         <p style={legacySecNoteStyle}>Every class at this show. Your entries are highlighted.</p>
-        <table style={legacyTableStyle}>
-          <thead>
-            <tr>
-              <th style={legacyTableHeadCellStyle}>Date</th>
-              <th style={legacyTableHeadCellStyle}>Time</th>
-              <th style={legacyTableHeadCellStyle}>Ring</th>
-              <th style={legacyTableHeadCellStyle}>Class</th>
-              <th style={legacyTableHeadCellStyle}>Division</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table style={legacyTableStyle}>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={legacyTableHeadCellStyle}>Date</TableHead>
+              <TableHead style={legacyTableHeadCellStyle}>Time</TableHead>
+              <TableHead style={legacyTableHeadCellStyle}>Ring</TableHead>
+              <TableHead style={legacyTableHeadCellStyle}>Class</TableHead>
+              <TableHead style={legacyTableHeadCellStyle}>Division</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {classes.map((cls) => {
               const subtitle = classSubtitle({
                 label: cls.label,
@@ -172,11 +186,14 @@ export function ScheduleTab({
               });
               const mine = enteredClassIds.has(cls.id);
               return (
-                <tr key={cls.id} style={mine ? { background: LEGACY_COLOR.hunterPale } : undefined}>
-                  <td style={legacyTableCellStyle}>{(cls.date ?? '') || 'TBD'}</td>
-                  <td style={legacyTableCellStyle}>{(cls.time ?? '') || 'TBD'}</td>
-                  <td style={legacyTableCellStyle}>{cls.arena}</td>
-                  <td style={legacyTableCellStyle}>
+                <TableRow
+                  key={cls.id}
+                  style={mine ? { background: LEGACY_COLOR.hunterPale } : undefined}
+                >
+                  <TableCell style={legacyTableCellStyle}>{(cls.date ?? '') || 'TBD'}</TableCell>
+                  <TableCell style={legacyTableCellStyle}>{(cls.time ?? '') || 'TBD'}</TableCell>
+                  <TableCell style={legacyTableCellStyle}>{cls.arena}</TableCell>
+                  <TableCell style={legacyTableCellStyle}>
                     {classDisplayName(cls)}
                     {mine && (
                       <span style={{ ...legacyPillStyle('ok'), marginLeft: 8 }}>
@@ -190,13 +207,13 @@ export function ScheduleTab({
                         {subtitle}
                       </div>
                     )}
-                  </td>
-                  <td style={legacyTableCellStyle}>{cls.division}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell style={legacyTableCellStyle}>{cls.division}</TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
