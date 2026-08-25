@@ -5,25 +5,13 @@ import { Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { useUpdateSettlement } from '../hooks/use-settlement-mutations';
+import { useUpdateSettlement } from '@/modules/superadmin/hooks/use-settlement-mutations';
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-field bg-white px-4 py-3 text-[14.5px] text-hunter-deep ' +
   'focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/[.16]';
 const LABEL = 'mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-fa-muted-2';
 
-/**
- * Payout cadence and holdback, per organizer.
- *
- * These are real columns (organizations.payout_cadence, holdback_percent), not a
- * Stripe setting, which is why they are editable while the Connect panel above is
- * read-only: what Stripe owns is read live from Stripe, and what we own is stored
- * and edited here.
- *
- * Holdback is submitted as null when the field is empty. The column treats null
- * as no holdback, and "0" would be the same outcome spelled differently — so the
- * empty field means none rather than zero percent.
- */
 export function SettlementSettings({
   orgId,
   payoutCadence,
@@ -41,14 +29,15 @@ export function SettlementSettings({
   const parsed = trimmed === '' ? null : Number(trimmed);
   const invalid = parsed !== null && (!Number.isFinite(parsed) || parsed < 0 || parsed > 100);
   const dirty =
-    cadence !== payoutCadence || (parsed ?? null) !== (holdbackPercent === 0 ? null : holdbackPercent);
+    cadence !== payoutCadence ||
+    (parsed ?? null) !== (holdbackPercent === 0 ? null : holdbackPercent);
 
   return (
-    <section className="rounded-xl border border-line-mint bg-[#F3F0E7] p-7">
-      <h2 className="mb-1.5 font-[family-name:var(--font-nr)] text-[22px] font-medium text-hunter-deep">
+    <section className="border-line-mint rounded-xl border bg-[#F3F0E7] p-7">
+      <h2 className="text-hunter-deep mb-1.5 font-[family-name:var(--font-nr)] text-[22px] font-medium">
         Settlement settings
       </h2>
-      <p className="mb-6 max-w-[620px] text-[13.5px] leading-[1.6] text-fa-muted">
+      <p className="text-fa-muted mb-6 max-w-[620px] text-[13.5px] leading-[1.6]">
         Real, per-organizer — how often this organizer is paid, and whether a holdback is reserved
         against refunds and disputes before the rest transfers.
       </p>
@@ -92,9 +81,13 @@ export function SettlementSettings({
           type="button"
           disabled={isPending || invalid || !dirty}
           onClick={() => {
-            mutate({ id: orgId, payoutCadence: cadence as 'daily' | 'weekly', holdbackPercent: parsed });
+            mutate({
+              id: orgId,
+              payoutCadence: cadence as 'daily' | 'weekly',
+              holdbackPercent: parsed,
+            });
           }}
-          className="h-auto rounded-[10px] bg-hunter-deep px-6 py-3 text-sm font-bold text-paper hover:bg-gold hover:text-hunter-deep disabled:opacity-45"
+          className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep h-auto rounded-[10px] px-6 py-3 text-sm font-bold disabled:opacity-45"
         >
           {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
           {isPending ? 'Saving…' : 'Save'}
@@ -102,7 +95,7 @@ export function SettlementSettings({
       </div>
 
       {invalid && (
-        <p role="alert" className="mt-3 text-[13px] text-alert-fg">
+        <p role="alert" className="text-alert-fg mt-3 text-[13px]">
           Holdback must be a number between 0 and 100.
         </p>
       )}

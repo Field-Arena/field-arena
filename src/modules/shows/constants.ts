@@ -37,8 +37,8 @@ export const SM_HIERARCHY = {
     Handler: ['Amateur / Junior / Young Rider Handler'],
   },
   'Dressage Seat Equitation': {
-    Equitation: ['Dressage Seat Equitation', 'Individual Pattern'],
-    'Dressage Seat Medals': ['Dressage Seat Medals', 'Individual Pattern'],
+    Equitation: ['Dressage Seat Equitation'],
+    'Dressage Seat Medals': ['Dressage Seat Medals'],
   },
   'Developing Horse / Young Horse': {
     'Young Horse': ['Four-Year-Old Dressage Test'],

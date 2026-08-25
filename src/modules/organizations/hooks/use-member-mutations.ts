@@ -10,13 +10,13 @@ import {
   deleteMember,
   importMembers,
   updateMember,
-} from '../data/mutations';
+} from '@/modules/organizations/data/mutations';
 import type {
   AddMembersToShowInput,
   CreateMemberInput,
   ImportMembersInput,
   UpdateMemberInput,
-} from '../schemas';
+} from '@/modules/organizations/schemas';
 
 const message = readableError;
 
@@ -78,12 +78,10 @@ export function useImportMembers(options?: Options) {
   return useMutation({
     mutationFn: (input: ImportMembersInput) => importMembers(input),
     onSuccess: ({ added, skipped }) => {
-      // Skipped rows are the ones already in the database by email, which is
-      // the normal outcome of re-uploading a longer version of the same list.
       toast.success(
         skipped > 0
           ? `${String(added)} added, ${String(skipped)} already in your database`
-          : `${String(added)} added`
+          : `${String(added)} added`,
       );
       router.refresh();
       options?.onSuccess?.();
@@ -102,15 +100,17 @@ export function useAddMembersToShow(options?: Options) {
     onSuccess: ({ added, skipped, ridersSkipped }) => {
       const notes: string[] = [];
       if (skipped > 0) notes.push(`${String(skipped)} already on the show`);
-      // Called out separately: this one is a limitation, not a duplicate.
+
       if (ridersSkipped > 0) {
         notes.push(
-          `${String(ridersSkipped)} rider${ridersSkipped === 1 ? '' : 's'} skipped — riders join by entering the show themselves`
+          `${String(ridersSkipped)} rider${ridersSkipped === 1 ? '' : 's'} skipped — riders join by entering the show themselves`,
         );
       }
 
       toast.success(
-        notes.length > 0 ? `${String(added)} added · ${notes.join(' · ')}` : `${String(added)} added`
+        notes.length > 0
+          ? `${String(added)} added · ${notes.join(' · ')}`
+          : `${String(added)} added`,
       );
       router.refresh();
       options?.onSuccess?.();

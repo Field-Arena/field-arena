@@ -71,6 +71,7 @@ export const updateClassReviewSchema = z.object({
   arena: z.string().trim().max(120).nullable().optional(),
   judgesCount: z.coerce.number().int().min(1).max(9).optional(),
   fee: z.coerce.number().min(0).max(100000).optional(),
+  sponsor: z.string().trim().max(120).nullable().optional(),
 });
 
 export type UpdateClassReviewInput = z.input<typeof updateClassReviewSchema>;
@@ -177,7 +178,7 @@ export const updateSchedulePrefsSchema = z.object({
   buffer: z.coerce.number().int().min(0).max(15),
   upper: z.coerce.number().int().min(0).max(15),
   end: clockTime,
-  order: z.enum(['low', 'high']),
+  order: z.enum(['low', 'high', 'custom']),
   warmup: z.enum(['yes', 'no']),
   lunch: z.boolean(),
   extraBreaks: z.coerce.number().int().min(0).max(6),
@@ -188,6 +189,13 @@ export const updateSchedulePrefsSchema = z.object({
 });
 
 export type UpdateSchedulePrefsInput = z.input<typeof updateSchedulePrefsSchema>;
+
+export const reorderClassesSchema = z.object({
+  showId: z.uuid(),
+  orderedClassIds: z.array(z.uuid()).min(1).max(500),
+});
+
+export type ReorderClassesInput = z.input<typeof reorderClassesSchema>;
 
 export const updateContactSchema = z.object({
   showId: z.uuid(),
@@ -313,6 +321,7 @@ export const addCustomClassSchema = z.object({
   name: z.string().trim().min(2, 'Name this class').max(160),
   division: optionalText(120),
   fee: z.coerce.number().min(0).max(100000),
+  sponsor: optionalText(120),
 });
 
 export type AddCustomClassInput = z.input<typeof addCustomClassSchema>;
@@ -438,6 +447,61 @@ const testCollectiveSchema = z.object({
     .max(10, 'Coefficient must be between 1 and 10'),
 });
 
+/* ── Score-sheet engine (phase 1) — the discipline-neutral structure ──────
+   Test → Sections → Scored items → Instructions, plus penalties and a scoring
+   config. All optional/defaulted below so the existing movements/collectives
+   payload still validates unchanged (backward compatible). */
+
+const templateInstructionSchema = z.object({
+  id: z.string(),
+  marker: z.string().trim().max(24).default(''),
+  instruction: z.string().trim().max(300).default(''),
+  gait: z.string().trim().max(80).default(''),
+  direction: z.string().trim().max(60).default(''),
+});
+
+const templateItemSchema = z.object({
+  id: z.string(),
+  label: z.string().trim().max(300).default(''),
+  directive: z.string().trim().max(600).default(''),
+  maxScore: z.coerce.number().min(0).max(1000).default(10),
+  coef: z.coerce.number().min(1).max(20).default(1),
+  required: z.boolean().default(true),
+  instructions: z.array(templateInstructionSchema).max(30).default([]),
+});
+
+const templateSectionSchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1, 'Name this section').max(80),
+  /** movements · collective · technical · artistic · conformation · rider · penalties … */
+  type: z.string().trim().max(40).default('scored'),
+  subtotal: z.boolean().default(true),
+  items: z.array(templateItemSchema).max(120).default([]),
+});
+
+const templatePenaltySchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1).max(120),
+  /** fixed · progressive · one_time · section · overall · elimination · disqualification */
+  penaltyType: z.string().trim().max(40).default('fixed'),
+  value: z.string().trim().max(160).default(''),
+  repeat: z.boolean().default(false),
+  elimination: z.boolean().default(false),
+});
+
+const scoringConfigSchema = z.object({
+  scoreType: z.string().trim().max(40).default('0-10'),
+  applyCoefficients: z.boolean().default(true),
+  finalDisplay: z.string().trim().max(40).default('percentage'),
+  formula: z.string().trim().max(60).default('earned_over_possible'),
+});
+
+export type TemplateInstructionInput = z.input<typeof templateInstructionSchema>;
+export type TemplateItemInput = z.input<typeof templateItemSchema>;
+export type TemplateSectionInput = z.input<typeof templateSectionSchema>;
+export type TemplatePenaltyInput = z.input<typeof templatePenaltySchema>;
+export type ScoringConfigInput = z.input<typeof scoringConfigSchema>;
+
 export const saveTestTemplateSchema = z.object({
   id: z.uuid().optional(),
   orgId: z.uuid(),
@@ -446,6 +510,19 @@ export const saveTestTemplateSchema = z.object({
   sourceLabel: optionalText(160),
   movements: z.array(testMovementSchema).max(60).default([]),
   collectives: z.array(testCollectiveSchema).max(20).default([]),
+
+  // New structured fields — all optional so old payloads keep validating.
+  discipline: optionalText(80),
+  sheetType: optionalText(60),
+  governingBody: optionalText(80),
+  versionYear: optionalText(16),
+  arenaSize: optionalText(40),
+  rideTime: optionalText(40),
+  scoringMethod: optionalText(60),
+  maxPoints: z.coerce.number().min(0).max(100000).optional(),
+  sections: z.array(templateSectionSchema).max(40).default([]),
+  penalties: z.array(templatePenaltySchema).max(40).default([]),
+  scoringConfig: scoringConfigSchema.optional(),
 });
 
 export type SaveTestTemplateInput = z.input<typeof saveTestTemplateSchema>;

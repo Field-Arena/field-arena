@@ -34,44 +34,11 @@ import type { ShowListItem } from '@/modules/shows/data/queries';
 const SELECT_CLASS =
   'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
 
-/** A show's class, for the Judge/Scribe-classes checklist — id+label only. */
 export interface ClassOption {
   id: string;
   label: string;
 }
 
-/**
- * "+ Add User" — organizer-facing equivalent of the legacy `openAddUserModal`
- * (showstaff.html ~line 8931), ported against `addStaffUser` (the
- * organizer-scoped sibling of superadmin's `addOrgStaff`). Title, subtitle
- * copy (dynamic per show, matching legacy's own string-built version),
- * required split first/last name fields, the Email/User-type row, the
- * "also a member of your organization" section, and the "Invite" button
- * label are all ported from that function. Role choices are `ADD_USER_ROLES`
- * — Rider is deliberately absent; see that constant's doc comment for why.
- *
- * No "Show" field is rendered: legacy's modal never has one either — it
- * opens already scoped to whatever show the organizer was looking at
- * (`staffShowId`). Here that's the SHOW section's own picker, one level up
- * (`defaultShowId`); the id still travels with the form as a hidden field
- * so `addStaffUser` gets it, it's just not asked for twice.
- *
- * Four roles change the form's shape, all matching legacy exactly:
- *  - Vendor swaps the split name fields for a single "Business name" input
- *    (legacy's `nameFieldsHtml('as', true)`) and hides the scratch/money
- *    checkboxes, which only ever meant something for real show staff.
- *  - Judge and Scribe each reveal a checklist of the target show's classes
- *    (legacy's `judgeClassChecklistHtml` — shared between the two roles the
- *    same way judge-scribe.html itself was) — `addStaffUser` seats the
- *    person on every checked class via `assignJudgeToClasses`/
- *    `assignScribeToClasses` once the invite succeeds.
- *  - Rider does nothing real on submit — matching legacy's own add-user
- *    modal, which pushes a fake in-memory row and shows a generic success
- *    toast with no API call, no email, and no invite-acceptance page behind
- *    it (see ADD_USER_ROLES's doc comment). The scratch/money checkboxes are
- *    hidden for it too, same reasoning as Vendor: they don't mean anything
- *    for a role this form never actually creates.
- */
 export function AddUserDialog({
   shows,
   defaultShowId,
@@ -153,10 +120,6 @@ export function AddUserDialog({
           onSubmit={(event) => {
             void form.handleSubmit((values) => {
               if (values.role === 'Rider') {
-                // Matches legacy's own add-user modal exactly: no API call,
-                // no email, nothing persisted — just the same generic
-                // success toast it always showed regardless of what
-                // happened underneath.
                 toast.success(`${values.email} added.`);
                 setOpen(false);
                 form.reset(resetDefaults);
@@ -260,7 +223,7 @@ export function AddUserDialog({
                               'classIds',
                               e.target.checked
                                 ? [...classIds, cls.id]
-                                : classIds.filter((id) => id !== cls.id)
+                                : classIds.filter((id) => id !== cls.id),
                             );
                           }}
                         />

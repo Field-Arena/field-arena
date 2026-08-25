@@ -36,6 +36,7 @@ export interface ClassRow {
   resultsPublished: boolean;
   ribbonPlaces: number;
   awardScope: string;
+  runOrder: number | null;
 }
 
 export async function listClasses(showId: string): Promise<ClassRow[]> {
@@ -44,7 +45,7 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
   const { data, error } = await supabase
     .from('classes')
     .select(
-      'id, label, display_name, division, location, fee, judges_count, date, time, scoring_open, results_published, ribbon_places, award_scope',
+      'id, label, display_name, division, location, fee, judges_count, date, time, scoring_open, results_published, ribbon_places, award_scope, run_order',
     )
     .eq('show_id', showId)
     .order('label');
@@ -81,6 +82,7 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
     resultsPublished: c.results_published ?? false,
     ribbonPlaces: c.ribbon_places ?? 6,
     awardScope: c.award_scope,
+    runOrder: c.run_order,
   }));
 }
 
@@ -323,7 +325,7 @@ export interface SchedulePrefs {
   buffer: number;
   upper: number;
   end: string;
-  order: 'low' | 'high';
+  order: 'low' | 'high' | 'custom';
   warmup: 'yes' | 'no';
   lunch: boolean;
   extraBreaks: number;
@@ -770,6 +772,7 @@ export interface ScheduleReviewClassRow {
   fee: number;
   platformFee: number;
   entryCount: number;
+  sponsor: string | null;
 }
 
 export interface ScheduleReviewData {
@@ -803,7 +806,9 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
     supabase.from('organizations').select('fee_model').eq('id', show.org_id).maybeSingle(),
     supabase
       .from('classes')
-      .select('id, event, label, display_name, division, location, arena, judges_count, fee')
+      .select(
+        'id, event, label, display_name, division, location, arena, judges_count, fee, sponsor',
+      )
       .eq('show_id', showId)
       .order('label'),
   ]);
@@ -839,6 +844,7 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
       fee,
       platformFee: calcPlatformFee(fee, feeModel),
       entryCount: counts.get(c.id) ?? 0,
+      sponsor: c.sponsor,
     };
   });
 
@@ -870,6 +876,46 @@ export interface TestTemplateCollective {
   coef: number;
 }
 
+/* Score-sheet engine (phase 1) read shapes — mirror the jsonb columns added in
+   20260818120000_scoring_template_structure.sql. */
+export interface TemplateInstruction {
+  id: string;
+  marker: string;
+  instruction: string;
+  gait: string;
+  direction: string;
+}
+export interface TemplateItem {
+  id: string;
+  label: string;
+  directive: string;
+  maxScore: number;
+  coef: number;
+  required: boolean;
+  instructions: TemplateInstruction[];
+}
+export interface TemplateSection {
+  id: string;
+  name: string;
+  type: string;
+  subtotal: boolean;
+  items: TemplateItem[];
+}
+export interface TemplatePenalty {
+  id: string;
+  name: string;
+  penaltyType: string;
+  value: string;
+  repeat: boolean;
+  elimination: boolean;
+}
+export interface TemplateScoringConfig {
+  scoreType: string;
+  applyCoefficients: boolean;
+  finalDisplay: string;
+  formula: string;
+}
+
 export interface TestTemplateRow {
   id: string;
   name: string;
@@ -878,6 +924,18 @@ export interface TestTemplateRow {
   movements: TestTemplateMovement[];
   collectives: TestTemplateCollective[];
   updatedAt: string;
+  // Score-sheet engine (phase 1) — the structured fields.
+  discipline: string | null;
+  sheetType: string | null;
+  governingBody: string | null;
+  versionYear: string | null;
+  arenaSize: string | null;
+  rideTime: string | null;
+  scoringMethod: string | null;
+  maxPoints: number | null;
+  sections: TemplateSection[];
+  penalties: TemplatePenalty[];
+  scoringConfig: TemplateScoringConfig | null;
 }
 
 export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[]> {
@@ -885,7 +943,9 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
 
   const { data, error } = await supabase
     .from('test_templates')
-    .select('id, name, level, source_label, movements, collectives, updated_at')
+    .select(
+      'id, name, level, source_label, movements, collectives, updated_at, discipline, sheet_type, governing_body, version_year, arena_size, ride_time, scoring_method, max_points, sections, penalties, scoring_config',
+    )
     .eq('org_id', orgId)
     .order('name');
   if (error) throw error;
@@ -898,6 +958,17 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
     movements: (t.movements ?? []) as unknown as TestTemplateMovement[],
     collectives: (t.collectives ?? []) as unknown as TestTemplateCollective[],
     updatedAt: t.updated_at,
+    discipline: t.discipline ?? null,
+    sheetType: t.sheet_type ?? null,
+    governingBody: t.governing_body ?? null,
+    versionYear: t.version_year ?? null,
+    arenaSize: t.arena_size ?? null,
+    rideTime: t.ride_time ?? null,
+    scoringMethod: t.scoring_method ?? null,
+    maxPoints: t.max_points ?? null,
+    sections: (t.sections ?? []) as unknown as TemplateSection[],
+    penalties: (t.penalties ?? []) as unknown as TemplatePenalty[],
+    scoringConfig: (t.scoring_config ?? null) as unknown as TemplateScoringConfig | null,
   }));
 }
 
@@ -1199,7 +1270,7 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
-    .select('id, label, display_name, event, location, date, min_per_ride')
+    .select('id, label, display_name, event, location, date, min_per_ride, run_order')
     .eq('show_id', showId)
     .order('label');
   if (classError) throw classError;
@@ -1296,6 +1367,7 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
         ring: c.location,
         pinnedDay: null,
         minPerRide: c.min_per_ride,
+        runOrder: c.run_order,
         order: byClass.get(c.id) ?? [],
       })),
     {

@@ -1,15 +1,18 @@
-import type { TestDefinition } from './scoring-engine';
+import type { TestDefinition } from '@/modules/scoring/scoring-engine';
 
-export type { TestDefinition, TestMovement, TestCollective, Sheet, Score } from './scoring-engine';
+export type {
+  TestDefinition,
+  TestMovement,
+  TestCollective,
+  Sheet,
+  Score,
+} from '@/modules/scoring/scoring-engine';
 
-/** One mark's value plus who last wrote it — the judge-locks-scribe rule reads this. */
 export interface MarkEntry {
   value: number | null;
   enteredBy: 'judge' | 'scribe' | null;
 }
 
-/** A `scores` row, camelCased. Richer than scoring-engine's `Sheet` — carries
- *  per-mark authorship, which the pure calc functions don't need. */
 export interface ScoreRow {
   id: string;
   entryId: string;
@@ -35,7 +38,6 @@ export interface PanelSeat {
   scribeName: string | null;
 }
 
-/** A `class_entries` row, camelCased. */
 export interface RideEntry {
   id: string;
   num: string;
@@ -53,7 +55,7 @@ export interface RideEntry {
   reason: string | null;
   finalizedAt: string | null;
   testOverride: TestDefinition | null;
-  /** When this entry first became the current ride — null until then. Real anchor for the Ride Time countdown, not a fabricated one. */
+
   rideStartedAt: string | null;
 }
 
@@ -61,7 +63,8 @@ export interface ClassScoringState {
   classId: string;
   showName: string;
   className: string;
-  /** Null when neither `class_tests` nor a catalog match resolved one — see queries.ts. */
+  sponsor: string | null;
+
   test: TestDefinition | null;
   panel: PanelSeat[];
   entries: RideEntry[];
@@ -69,20 +72,19 @@ export interface ClassScoringState {
   scores: ScoreRow[];
   classState: {
     open: boolean;
-    /** Index into `entries` (ride_order sorted) — "the first unfinished entry." */
+
     pos: number;
     workingInEntryId: string | null;
     resultsPublished: boolean;
   };
-  /** `classes.time`, 'HH:MM' or null — the ring's scheduled start for this class. */
+
   scheduledTime: string | null;
-  /** `classes.location` — the ring name, or null if not set. */
+
   ring: string | null;
 }
 
 export type SeatRole = 'judge' | 'scribe';
 
-/** Which seat, if any, the signed-in caller holds on this class's panel. */
 export interface MySeat {
   seatId: string;
   role: SeatRole;

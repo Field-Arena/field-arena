@@ -11,16 +11,6 @@ export interface CalendlyLead {
   demoAt: string | null;
 }
 
-/**
- * Upsert a sales lead from a Calendly `invitee.created` booking (ported from
- * field-and-arena-main api/leads.js `upsertLeadFromCalendly`).
- *
- * Idempotent: matches an existing lead by `calendly_event_uri` first so a
- * webhook retry for the same booking updates rather than duplicates, then falls
- * back to `email`. Either way the lead lands in the Sales Funnel as
- * `demo_scheduled`. Runs through the service-role client because the webhook is
- * public and unauthenticated — the signature check on the route is its gate.
- */
 export async function upsertLeadFromCalendly(lead: CalendlyLead): Promise<void> {
   const admin = createAdminClient();
 

@@ -3,30 +3,23 @@ import type { Metadata } from 'next';
 import { getRingStatus } from '@/modules/announcements/data/queries';
 import { listStaff } from '@/modules/shows/data/setup-queries';
 import { getShowStats } from '@/modules/shows/data/queries';
-import { getMyPermissions, listMyShows, listStabling, listVendors } from '@/modules/operations/data/queries';
+import {
+  getMyPermissions,
+  listMyShows,
+  listStabling,
+  listVendors,
+} from '@/modules/operations/data/queries';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 
 export const metadata: Metadata = { title: 'Show Operations — Field & Arena' };
 
-/** `.stat` is styled for a `div`; the dashboard has no global anchor reset, so a `.stat` rendered as a Link needs its own color/underline override. */
-const statLinkStyle: React.CSSProperties = { color: 'inherit', textDecoration: 'none', display: 'block' };
+const statLinkStyle: React.CSSProperties = {
+  color: 'inherit',
+  textDecoration: 'none',
+  display: 'block',
+};
 
-/**
- * The show-staff operations board, ported from showstaff-ops.html: ring status,
- * directories and stabling.
- *
- * `getRingStatus` is reused from the announcer module rather than duplicated —
- * both roles need the same "what is happening in each ring" view, and the
- * legacy views built it twice. `listMyShows` is this module's own copy,
- * though (see `data/queries.ts`'s doc comment on why this module doesn't
- * reach into another module's internals) — it was pointed at the announcer's
- * copy by mistake even though an identical one already existed here.
- *
- * The Vendors KPI is fetched only when `canViewMoney` is granted — legacy
- * 403s the entire vendors resource without it, so this mirrors the same gate
- * `dashboard/operations/vendors/page.tsx` applies to its own page.
- */
 export default async function OperationsPage({
   searchParams,
 }: {
@@ -101,7 +94,6 @@ export default async function OperationsPage({
           )}
         </div>
 
-        {/* Riders/Horses/Stalled/Vendors, each linking to its own top-level nav item — ported from showstaff-ops.html's clickable KPI tiles (`.kpi-click`, `onclick="showTab(...)"`). */}
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
           <Link href={navHref('riders')} className="stat" style={statLinkStyle}>
             <div className="stat-label">Riders</div>
@@ -161,8 +153,8 @@ export default async function OperationsPage({
                       )}
                       {ring.upNext[0] && (
                         <div style={{ marginTop: ring.current ? 4 : 0 }}>
-                          <span className="now-eyebrow">Next up</span>{' '}
-                          #{ring.upNext[0].num} {ring.upNext[0].rider ?? '—'}
+                          <span className="now-eyebrow">Next up</span> #{ring.upNext[0].num}{' '}
+                          {ring.upNext[0].rider ?? '—'}
                         </div>
                       )}
                     </div>

@@ -35,6 +35,7 @@ export function CustomClassDialog({
   const [name, setName] = useState('');
   const [division, setDivision] = useState('');
   const [fee, setFee] = useState(String(DEFAULT_CLASS_FEE));
+  const [sponsor, setSponsor] = useState('');
 
   const add = useAddCustomClass({ onSuccess: onClose });
   const divisions = [
@@ -108,6 +109,21 @@ export function CustomClassDialog({
               }}
             />
           </div>
+
+          <div>
+            <Label htmlFor="cc-sponsor" className={SM_LABEL}>
+              Sponsor (optional)
+            </Label>
+            <Input
+              id="cc-sponsor"
+              className={cn('h-auto', SM_INPUT)}
+              placeholder="e.g. Presented by Willowbrook Farm"
+              value={sponsor}
+              onChange={(e) => {
+                setSponsor(e.target.value);
+              }}
+            />
+          </div>
         </div>
 
         <DialogFooter>
@@ -125,7 +141,7 @@ export function CustomClassDialog({
             className={cn('h-auto', SM_GREEN_BTN)}
             disabled={add.isPending || name.trim().length < 2}
             onClick={() => {
-              add.mutate({ showId: data.showId, name, division, fee });
+              add.mutate({ showId: data.showId, name, division, fee, sponsor });
             }}
           >
             {add.isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}

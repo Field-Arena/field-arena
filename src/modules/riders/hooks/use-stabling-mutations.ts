@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { saveStablingDates } from '../data/mutations';
-import type { StablingSaveInput } from '../schemas';
+import { saveStablingDates } from '@/modules/riders/data/mutations';
+import type { StablingSaveInput } from '@/modules/riders/schemas';
 
 export function useSaveStablingDates(options?: { onSuccess?: () => void }) {
   return useMutation({

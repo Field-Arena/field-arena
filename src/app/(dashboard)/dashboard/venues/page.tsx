@@ -6,19 +6,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Venues — Field & Arena' };
 
-/**
- * The organization's reusable venue library — org-wide, not show-scoped,
- * matching Member Database's own full-screen treatment: address and contact
- * details, the ring layout and the stable/stall structure are typed once
- * (`modules/organizations`) and picked up by any show at that venue.
- * Per-show stall *assignments* deliberately do not live here — those are
- * inherently per-show and belong on shows.stable_chart.
- *
- * Organizer/SuperAdmin only, matching legacy's ORG_MANAGER_ONLY_RESOURCES
- * (api/organizations/[id]/[resource].js) — see members/page.tsx's doc
- * comment for the full reasoning; the venue library carries the same
- * org-wide-not-per-show restriction.
- */
 export default async function VenuesPage() {
   const context = await getOrganizerContext();
 

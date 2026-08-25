@@ -7,7 +7,7 @@ export interface ScheduleRules {
 
   end: string;
 
-  order: 'low' | 'high';
+  order: 'low' | 'high' | 'custom';
 
   warmup: 'yes' | 'no';
   lunch: boolean;
@@ -54,6 +54,7 @@ export interface ScheduleClass {
   pinnedDay: number | null;
 
   minPerRide: number | null;
+  runOrder: number | null;
   order: ScheduleEntry[];
 }
 
@@ -166,11 +167,19 @@ function assignRings(
   const count = Math.max(1, rings.length);
   const ringIndexByName = new Map(rings.map((ring, i) => [ring.name, i]));
 
-  const ordered = [...classes].sort((a, b) =>
-    rules.order === 'high'
+  const ordered = [...classes].sort((a, b) => {
+    if (rules.order === 'custom') {
+      // Manual running order: classes with an explicit run_order first (ascending),
+      // any without one fall to the end keeping a stable level-based order.
+      const ao = a.runOrder ?? Number.MAX_SAFE_INTEGER;
+      const bo = b.runOrder ?? Number.MAX_SAFE_INTEGER;
+      if (ao !== bo) return ao - bo;
+      return levelRank(a.discipline) - levelRank(b.discipline);
+    }
+    return rules.order === 'high'
       ? levelRank(b.discipline) - levelRank(a.discipline)
-      : levelRank(a.discipline) - levelRank(b.discipline),
-  );
+      : levelRank(a.discipline) - levelRank(b.discipline);
+  });
 
   const buckets = Array.from({ length: count }, () => ({
     mins: 0,

@@ -2,22 +2,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { verifyCalendlySignature } from '@/shared/lib/calendly';
 import { upsertLeadFromCalendly } from '@/modules/superadmin/data/calendly';
 
-/**
- * Calendly's server-to-server "invitee.created" webhook — fires when someone
- * books the demo call on the client's Calendly page. Ported from
- * field-and-arena-main api/calendly-webhook.js.
- *
- * A route handler, not a Server Action: Calendly POSTs here directly with no
- * Field & Arena session, and the only trust boundary is the HMAC signature over
- * the raw body (verifyCalendlySignature). The booking lands in the Sales Funnel
- * as a `demo_scheduled` lead (upsertLeadFromCalendly, idempotent on retries).
- *
- * Setup: add Organization / Website / "how many shows per year" as custom
- * questions on the Calendly event type, then create the webhook subscription
- * pointed at {SITE}/api/webhooks/calendly with signing-key
- * CALENDLY_WEBHOOK_SIGNING_KEY.
- */
-
 interface CalendlyQuestion {
   question?: string;
   answer?: string;
@@ -35,11 +19,6 @@ interface CalendlyWebhookBody {
   payload?: CalendlyPayload;
 }
 
-/**
- * Match a Calendly custom question by fuzzy substring — organizers phrase
- * answers to differently-worded questions, and a real answer shouldn't be
- * dropped over a wording mismatch.
- */
 function answerFor(qanda: CalendlyQuestion[], matchers: string[]): string | null {
   const hit = qanda.find((qa) => {
     const q = (qa.question ?? '').toLowerCase();
@@ -57,8 +36,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // The raw, unparsed body is required — the signature is computed over these
-  // exact bytes, and re-serializing a parsed body can differ byte-for-byte.
   const rawBody = await request.text();
   const signature = request.headers.get('calendly-webhook-signature');
   if (!verifyCalendlySignature(rawBody, signature, signingKey)) {
