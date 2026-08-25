@@ -2,8 +2,8 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { updateSettlement } from '../data/mutations';
-import type { UpdateSettlementInput } from '../schemas';
+import { updateSettlement } from '@/modules/superadmin/data/mutations';
+import type { UpdateSettlementInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
 export function useUpdateSettlement() {

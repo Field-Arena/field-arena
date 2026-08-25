@@ -6,13 +6,6 @@ import { VendorApplyDialog } from '@/modules/vendors/ui/vendor-apply-dialog';
 
 export const metadata: Metadata = { title: 'Reserve Space — Field & Arena' };
 
-/**
- * "Discover Shows" — ported from vendor.html's second tab: every published
- * show, across every organizer, that currently has real booth space on sale.
- * Applying submits a real pending vendor_bookings row for the organizer to
- * review (applyToVendorShow) — see listBookableShows's doc comment for why
- * actually paying for an approved application is not part of this port.
- */
 export default async function VendorDiscoverPage() {
   const shows = await listBookableShows();
 

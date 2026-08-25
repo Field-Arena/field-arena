@@ -1,13 +1,13 @@
-import { earned, marksEnteredCount, maxPoints, scoreLabel, sheetPct } from '../scoring-engine';
-import { toSheet } from '../utils';
-import type { ScoreRow, TestDefinition } from '../types';
+import {
+  earned,
+  marksEnteredCount,
+  maxPoints,
+  scoreLabel,
+  sheetPct,
+} from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
+import type { ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
-/**
- * The three live-tally cards, ported from legacy's `tally()` — this judge's
- * running %, points earned so far, and how many of the test's marks have a
- * value — shown above the scoresheet so a judge/scribe sees the number
- * moving as they go, not only once the whole sheet is submitted.
- */
 export function ScoreTally({ score, test }: { score: ScoreRow | undefined; test: TestDefinition }) {
   const sheet = toSheet(
     score ?? {
@@ -17,7 +17,7 @@ export function ScoreTally({ score, test }: { score: ScoreRow | undefined; test:
       finalRemarks: '',
       remarks: {},
       submitted: false,
-    }
+    },
   );
 
   const pct = sheetPct(sheet, test);
@@ -26,32 +26,37 @@ export function ScoreTally({ score, test }: { score: ScoreRow | undefined; test:
   const totalMarks = test.movements.length + test.collectives.length;
   const entered = marksEnteredCount(sheet, test);
 
+  const cards = [
+    { key: 'pct', size: 'text-[26px]', value: scoreLabel(pct), label: "This judge's %" },
+    {
+      key: 'points',
+      size: 'text-[22px]',
+      value: `${String(points)} / ${String(max)}`,
+      label: 'Points earned',
+    },
+    {
+      key: 'marks',
+      size: 'text-[22px]',
+      value: `${String(entered)} / ${String(totalMarks)}`,
+      label: 'Marks entered',
+    },
+  ] as const;
+
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <div className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px] text-center">
-        <div className="font-[Newsreader,serif] text-[26px] font-bold text-ink-deep">
-          {scoreLabel(pct)}
+      {cards.map((card) => (
+        <div
+          key={card.key}
+          className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px] text-center"
+        >
+          <div className={`font-[Newsreader,serif] ${card.size} text-ink-deep font-bold`}>
+            {card.value}
+          </div>
+          <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
+            {card.label}
+          </div>
         </div>
-        <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
-          This judge&apos;s %
-        </div>
-      </div>
-      <div className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px] text-center">
-        <div className="font-[Newsreader,serif] text-[22px] font-bold text-ink-deep">
-          {points} / {max}
-        </div>
-        <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
-          Points earned
-        </div>
-      </div>
-      <div className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px] text-center">
-        <div className="font-[Newsreader,serif] text-[22px] font-bold text-ink-deep">
-          {entered} / {totalMarks}
-        </div>
-        <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
-          Marks entered
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

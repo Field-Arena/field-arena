@@ -12,14 +12,15 @@ import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
+import { Input } from '@/shared/ui/shadcn/input';
 import {
   useOpenTicketSales,
   useCloseTicketSales,
   useApproveSchedule,
-} from '../../hooks/use-run-show-mutations';
-import type { RunShowData } from '../../data/queries';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from './tokens';
-import { SectionFooter } from './section-footer';
+} from '@/modules/shows/hooks/use-run-show-mutations';
+import type { RunShowData } from '@/modules/shows/data/queries';
+import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 const STAT_TINTS = [
   { bg: '#E3EDFB', fg: '#2E5FA8' },
@@ -29,14 +30,6 @@ const STAT_TINTS = [
   { bg: fa.goldTint, fg: fa.gold },
 ] as const;
 
-/**
- * "Run Show" — live-day status, ported from what showstaff.html's runner
- * stage actually has real data for. Live scoring and an announcer view have
- * no implementation yet (judging/scoring/announcements are data-layer only
- * so far), so those stay toast stubs rather than dead links, same pattern as
- * Venue's "Assign Judges" (Stable Chart, the other stub that card used to
- * carry, is real now — see modules/shows/ui/stable-chart/).
- */
 export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canViewMoney: boolean }) {
   const currentIndex = SHOW_STAGES.findIndex((s) => s.key === data.stage);
   const openSales = useOpenTicketSales();
@@ -157,8 +150,7 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
               Approve schedule &amp; go live
             </PrimaryButton>
           )}
-          {/* The announcer dashboard is real — ring status, running order and
-              published results. This used to be a fake door saying otherwise. */}
+
           <Link href={`/dashboard/announcing?show=${data.showId}`} className={ghostButtonClass}>
             Announcer view
           </Link>
@@ -169,11 +161,7 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
           >
             Start live scoring
           </GhostButton>
-          {/* Ported from showstaff.html's smCopyTicketLink — the link a
-              vendor needs to apply with no account of their own (see
-              app/vendor-apply/[showId]/page.tsx). Only offered once the show
-              is published: that page 404s on an unpublished show, same gate
-              getPublicVendorApplyShow applies. */}
+
           {data.published && (
             <GhostButton
               onClick={() => {
@@ -185,11 +173,6 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
           )}
         </div>
 
-        {/* Ported from legacy's publishStateCardHtml (showstaff.html) — the
-            one place an organizer could actually get the real rider ticket
-            link, which had no equivalent anywhere in this app until now
-            (only the Stage Actions publish/unpublish buttons existed, with
-            no way to see or copy the link itself afterward). */}
         {data.published && (
           <div
             className="mt-5 rounded-xl p-4"
@@ -200,14 +183,14 @@ export function RunShowCard({ data, canViewMoney }: { data: RunShowData; canView
               {data.publishedAt ? ` since ${formatTimestamp(data.publishedAt)}` : ''}.
             </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <input
+              <Input
                 type="text"
                 readOnly
                 value={ticketLinkUrl(data.showId)}
                 onClick={(event) => {
                   event.currentTarget.select();
                 }}
-                className="text-ink-deep min-w-[220px] flex-1 rounded-md border border-[#D9E1DD] bg-white px-2.5 py-[7px] text-[12.5px]"
+                className="text-ink-deep h-auto min-w-[220px] flex-1 rounded-md border border-[#D9E1DD] bg-white px-2.5 py-[7px] text-[12.5px]"
               />
               <GhostButton
                 onClick={() => {

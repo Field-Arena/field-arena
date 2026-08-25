@@ -4,17 +4,12 @@ import { listOrganizations } from '@/modules/superadmin/data/queries';
 import { OrganizationsTable } from '@/modules/superadmin/ui/organizations-table';
 import { ConsoleStatBar } from '@/modules/superadmin/ui/console-stat-bar';
 import { OrganizerStatusFilter } from '@/modules/superadmin/ui/organizer-status-filter';
+import { summarizeOrganizations } from '@/modules/superadmin/utils/summarize-organizations';
 
 export const metadata: Metadata = {
   title: 'Super Admin — Field & Arena',
 };
 
-/**
- * "Clients — Organizers": the view the console opens on.
- *
- * The numbers are real rows, where the legacy console's were a hardcoded
- * client-side array.
- */
 export default async function SuperAdminOverviewPage({
   searchParams,
 }: {
@@ -23,31 +18,17 @@ export default async function SuperAdminOverviewPage({
   const { q, status } = await searchParams;
   const all = await listOrganizations();
 
-  // Filtered here rather than in the database: the organizer list is small and
-  // already fetched in full for the totals, so a second round trip per keystroke
-  // would cost more than it saves. Name and location both match, since an
-  // organizer is often looked up by the town a show runs in.
   const query = q?.trim().toLowerCase();
   const searched = query
     ? all.filter((org) =>
         [org.name, org.city, org.region].some((field) =>
-          (field ?? '').toLowerCase().includes(query)
-        )
+          (field ?? '').toLowerCase().includes(query),
+        ),
       )
     : all;
 
-  // Totals describe the platform, so they always reflect every organization —
-  // narrowing them to the current search would make them read as platform
-  // figures while silently meaning something else.
-  const onboarded = all.filter((org) => org.onboarded).length;
-  const pending = all.length - onboarded;
-  const totalShows = all.reduce((sum, org) => sum + org.showCount, 0);
-  const totalRiders = all.reduce((sum, org) => sum + org.riderCount, 0);
-  const withShows = all.filter((org) => org.showCount > 0).length;
+  const { onboarded, pending, totalShows, totalRiders, withShows } = summarizeOrganizations(all);
 
-  // The status filter narrows what the table shows, on top of whatever the
-  // search box already narrowed — so a search plus "Pending" combine rather
-  // than reset each other.
   const activeStatus = status === 'onboard' || status === 'pending' ? status : 'all';
   const organizations =
     activeStatus === 'all'
@@ -57,13 +38,13 @@ export default async function SuperAdminOverviewPage({
   return (
     <div>
       <div className="mb-[30px] max-w-[640px]">
-        <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[.18em] text-gold">
+        <div className="text-gold mb-3 text-[10.5px] font-bold tracking-[.18em] uppercase">
           Command center
         </div>
-        <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[32px] font-medium leading-[1.06] tracking-[-.022em] text-forest">
+        <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.022em]">
           Clients — Organizers
         </h1>
-        <p className="m-0 text-[14.5px] leading-[1.6] text-fa-muted">
+        <p className="text-fa-muted m-0 text-[14.5px] leading-[1.6]">
           Your organizers are the platform&rsquo;s clients. Enter any one of them to work exactly as
           they do &mdash; switch back from the top bar at any time.
         </p>
@@ -110,7 +91,7 @@ export default async function SuperAdminOverviewPage({
           counts={{ all: all.length, onboard: onboarded, pending }}
           q={q}
         />
-        <span className="text-[12.5px] text-fa-muted-2">
+        <span className="text-fa-muted-2 text-[12.5px]">
           Showing {organizations.length} of {all.length} organizers
           {q && ` matching “${q}”`}
         </span>

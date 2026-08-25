@@ -1,12 +1,3 @@
-/**
- * Colour and shell tokens for the organizer workspace's Admin Console design
- * (Dashboard, Show Manager, and siblings) — ported verbatim from the design
- * export's src/lib/organizer-theme.ts. Distinct from the public-site tokens
- * in globals.css: those are Tailwind theme vars for the marketing pages,
- * this is a plain object because the design export's own components (Card,
- * StatCard, StatusPill, …) consume it as inline style values (tintBg/tintFg,
- * pill bg/border/fg) rather than utility classes.
- */
 export const fa = {
   ink: '#16261F',
   inkDeep: '#0D2C23',

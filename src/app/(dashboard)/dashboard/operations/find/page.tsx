@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
-import { getMyPermissions, listHorsesDirectory, listMyShows, listRidersDirectory, listVendors } from '@/modules/operations/data/queries';
+import {
+  getMyPermissions,
+  listHorsesDirectory,
+  listMyShows,
+  listRidersDirectory,
+  listVendors,
+} from '@/modules/operations/data/queries';
 import { FindPanel } from '@/modules/operations/ui/find-panel';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Find — Field & Arena' };
 
-/** "Find" — `ROLE_NAV.ShowStaff`'s own top-level item, ported from showstaff-ops.html's Find tab. */
 export default async function OperationsFindPage({
   searchParams,
 }: {
@@ -39,8 +44,7 @@ export default async function OperationsFindPage({
     listHorsesDirectory(currentShow.id),
     getMyPermissions(currentShow.id),
   ]);
-  // Matches legacy's blanket 403 on the whole vendors resource — fetched only
-  // when permitted, same reasoning as the Vendors page itself.
+
   const vendors = permissions.canViewMoney ? await listVendors(currentShow.id) : [];
 
   return (
@@ -78,7 +82,12 @@ export default async function OperationsFindPage({
         </div>
       </div>
 
-      <FindPanel riders={riders} horses={horses} vendors={vendors} canViewVendors={permissions.canViewMoney} />
+      <FindPanel
+        riders={riders}
+        horses={horses}
+        vendors={vendors}
+        canViewVendors={permissions.canViewMoney}
+      />
     </>
   );
 }

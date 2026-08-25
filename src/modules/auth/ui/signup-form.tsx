@@ -6,30 +6,25 @@ import { ROUTES } from '@/shared/constants/routes';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
-import { signUpSchema, type SignUpInput } from '../schemas';
-import { useSignUp, useVerifyEmail, useResendEmailCode } from '../hooks/use-auth-mutations';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
-import type { SignUpStep } from '../types';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
+import { Button } from '@/shared/ui/shadcn/button';
+import { signUpSchema, type SignUpInput } from '@/modules/auth/schemas';
+import {
+  useSignUp,
+  useVerifyEmail,
+  useResendEmailCode,
+} from '@/modules/auth/hooks/use-auth-mutations';
+import type { SignUpStep } from '@/modules/auth/types';
 
-/**
- * Two-step self-service sign-up: create the account, then confirm the emailed
- * code.
- *
- * Which step runs is decided by the SERVER, not assumed here — Supabase only
- * withholds the session when email confirmation is switched on for the project,
- * and if it is off the account is live immediately and the verify step would be
- * an empty ceremony. See SignUpOutcome.
- */
 export function SignUpForm() {
   const [step, setStep] = useState<SignUpStep>('account');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  // Expected failures arrive as data rather than as a thrown error, so they are
-  // held here instead of read off mutation.error.
+
   const [formError, setFormError] = useState<string | null>(null);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
 
@@ -54,8 +49,6 @@ export function SignUpForm() {
   const verify = useVerifyEmail();
   const resend = useResendEmailCode();
 
-  // Resend cooldown. Cleared on unmount so a user who navigates away mid-count
-  // does not leave an interval running against a dead component.
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => {
@@ -66,37 +59,35 @@ export function SignUpForm() {
     };
   }, [cooldown]);
 
-  // useWatch, not form.watch(): watch() returns a fresh function each render,
-  // which the React Compiler cannot memoize, so it bails out of optimising this
-  // whole component. useWatch subscribes to the one field instead.
   const password = useWatch({ control: form.control, name: 'password' });
   const { errors } = form.formState;
 
   if (step === 'verify') {
     return (
       <div className="[animation:fa-in_.22s_ease-out_both]">
-        <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[40px] font-medium leading-[1.04] tracking-[-.022em] text-forest">
+        <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[40px] leading-[1.04] font-medium tracking-[-.022em]">
           Verify your email
         </h1>
-        <p className="mb-[22px] text-[15.5px] leading-[1.58] text-fa-muted">
+        <p className="text-fa-muted mb-[22px] text-[15.5px] leading-[1.58]">
           We sent a {EMAIL_CODE_LENGTH}-digit code to confirm this address.
         </p>
 
-        <div className="mb-[30px] inline-flex items-center gap-2.5 rounded-[10px] border border-line-mint bg-mint py-2.5 pl-3.5 pr-3">
-          <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
-          <span className="text-sm font-medium text-forest">{email}</span>
-          <button
+        <div className="border-line-mint bg-mint mb-[30px] inline-flex items-center gap-2.5 rounded-[10px] border py-2.5 pr-3 pl-3.5">
+          <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
+          <span className="text-forest text-sm font-medium">{email}</span>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               setStep('account');
               setCode('');
               setFormError(null);
               verify.reset();
             }}
-            className="ml-0.5 border-l border-line-mint-2 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:text-gold"
+            className="border-line-mint-2 text-fa-muted hover:text-gold h-auto rounded-none border-l bg-transparent px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
           >
             Change
-          </button>
+          </Button>
         </div>
 
         <form
@@ -112,7 +103,7 @@ export function SignUpForm() {
                 onError: (error) => {
                   setFormError(error.message);
                 },
-              }
+              },
             );
           }}
         >
@@ -126,10 +117,11 @@ export function SignUpForm() {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-4 border-b border-line pb-[26px]">
-            <span className="text-[13.5px] text-fa-muted">Didn&apos;t get it? Check spam, or</span>
-            <button
+          <div className="border-line flex items-center justify-between gap-4 border-b pb-[26px]">
+            <span className="text-fa-muted text-[13.5px]">Didn&apos;t get it? Check spam, or</span>
+            <Button
               type="button"
+              variant="ghost"
               disabled={cooldown > 0 || resend.isPending}
               onClick={() => {
                 resend.mutate(
@@ -138,13 +130,13 @@ export function SignUpForm() {
                     onSuccess: () => {
                       setCooldown(RESEND_COOLDOWN_SECONDS);
                     },
-                  }
+                  },
                 );
               }}
-              className="text-[13.5px] font-bold text-forest transition-colors hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
             >
               {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
-            </button>
+            </Button>
           </div>
 
           <div className="mt-[26px]">
@@ -159,10 +151,10 @@ export function SignUpForm() {
 
   return (
     <div className="[animation:fa-in_.22s_ease-out_both]">
-      <h1 className="mb-2.5 font-[family-name:var(--font-nr)] text-[40px] font-medium leading-[1.04] tracking-[-.022em] text-forest">
+      <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[40px] leading-[1.04] font-medium tracking-[-.022em]">
         Create your account
       </h1>
-      <p className="mb-[34px] text-[15.5px] leading-[1.58] text-fa-muted">
+      <p className="text-fa-muted mb-[34px] text-[15.5px] leading-[1.58]">
         Start with your email. You can add your organization, disciplines, and team after.
       </p>
 
@@ -227,20 +219,18 @@ export function SignUpForm() {
           </AuthSubmit>
         </div>
 
-        {/* The design underlines these with a 1px GOLD border rather than a text
-            underline — see Signup Page.dc.html. */}
-        <p className="mt-[18px] text-center text-[12.5px] leading-[1.6] text-fa-muted-2">
+        <p className="text-fa-muted-2 mt-[18px] text-center text-[12.5px] leading-[1.6]">
           By continuing you agree to the{' '}
           <Link
             href="/terms-of-service"
-            className="border-b border-gold font-semibold text-forest transition-colors hover:border-forest"
+            className="border-gold text-forest hover:border-forest border-b font-semibold transition-colors"
           >
             Terms of Service
           </Link>{' '}
           and{' '}
           <Link
             href="/privacy-policy"
-            className="border-b border-gold font-semibold text-forest transition-colors hover:border-forest"
+            className="border-gold text-forest hover:border-forest border-b font-semibold transition-colors"
           >
             Privacy Policy
           </Link>

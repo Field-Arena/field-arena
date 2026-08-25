@@ -1,49 +1,24 @@
-/**
- * The master-schedule builder, ported from showstaff.html's
- * buildMasterSchedule / assignRings / extraBreaksFor.
- *
- * Pure on purpose: it takes classes, entries, rings and rules and returns
- * arenas of timed items. Nothing here reads Supabase or the DOM, so the rules
- * below — which are the part a wrong schedule shows up in as real people
- * double-booked at a real show — can be reasoned about and tested on their own.
- *
- * The scheduling rules it implements, in the legacy's own order of priority:
- *
- *  1. A class pinned to a day never lands on another day, not even as a last
- *     resort.
- *  2. A rider never rides twice inside the required gap — 30 minutes on the
- *     same horse, 55 on a different one. This is the hard rule: it is never
- *     violated, and the schedule runs longer instead.
- *  3. Rings stay compact. A conflict is first resolved by reordering the ring's
- *     own queue; waiting idle is the last resort.
- *  4. Breaks happen at the same moment in every ring. Each ring runs to a real
- *     ride boundary within a tolerance window, then all of them pause together.
- *  5. Nothing is atomic below one ride, so a break may fall inside a class and
- *     the class picks up afterwards.
- */
-
 export interface ScheduleRules {
-  /** Minutes of riding per ride. */
   perMin: number;
-  /** Minutes between rides. */
+
   buffer: number;
-  /** Extra minutes per ride for upper-level classes (Third, Fourth, FEI). */
+
   upper: number;
-  /** Latest finish, 'HH:MM'. Overridden per day by dayEndTimes. */
+
   end: string;
-  /** Which end of the level range runs first. */
-  order: 'low' | 'high';
-  /** 'yes' reserves the last ring for warm-up, so nothing schedules into it. */
+
+  order: 'low' | 'high' | 'custom';
+
   warmup: 'yes' | 'no';
   lunch: boolean;
   lunchAt: string;
   lunchDur: number;
   extraBreaks: number;
   extraBreakMin: number;
-  /** One entry per show day; '' means "use the ring's own start". */
+
   dayStartTimes: string[];
   dayEndTimes: string[];
-  /** Both default to the legacy's 30/55 when absent. */
+
   hardRuleEnabled?: boolean;
   hardRuleSameHorseMin?: number;
   hardRuleDiffHorseMin?: number;
@@ -52,17 +27,16 @@ export interface ScheduleRules {
 export interface RingConfig {
   name: string;
   size: 'standard' | 'small';
-  /** 'HH:MM'. This ring's own first-ride time. */
+
   start: string;
 }
 
 export interface ScheduleEntry {
-  /** class_entries.id — what scratch and reorder act on. */
   entryId: string;
   num: string;
   name: string;
   horse: string;
-  /** The real horses.id where one exists — see horseKey for why it is preferred. */
+
   horseId: string | null;
   division: string;
   quals: string[];
@@ -70,23 +44,23 @@ export interface ScheduleEntry {
 }
 
 export interface ScheduleClass {
-  /** The class's stable key — its id. */
   cls: string;
   label: string;
-  /** Third Level / Fourth Level / FEI get the upper-level ride time. */
+
   discipline: string;
-  /** Ring name this class is pinned to, or null to auto-balance. */
+
   ring: string | null;
-  /** Day index this class is pinned to, or null. */
+
   pinnedDay: number | null;
-  /** Per-class ride-time override in minutes, or null for the rules' value. */
+
   minPerRide: number | null;
+  runOrder: number | null;
   order: ScheduleEntry[];
 }
 
 export interface ScheduleRide {
   type: 'ride';
-  /** The class's id. */
+
   cls: string;
   entryId: string;
   label: string;
@@ -97,7 +71,7 @@ export interface ScheduleRide {
   quals: string[];
   qualifying: boolean;
   day: number;
-  /** Minutes from midnight. */
+
   start: number;
   end: number;
   status: string;
@@ -131,33 +105,23 @@ export interface ConflictDetail {
 
 export interface MasterSchedule {
   arenas: Arena[];
-  /** Set when the class list is implausibly large — see RIDE_CEILING. */
+
   tooLarge: number | null;
   conflictsAvoided: number;
   conflictsWaited: number;
   conflicts: { avoided: ConflictDetail[]; waited: ConflictDetail[] };
 }
 
-/**
- * A real show never legitimately reaches this many rides — even a large
- * multi-day rated show tops out in the low hundreds. The legacy build added
- * this ceiling after a show whose class list had ballooned to hundreds of
- * duplicated classes crashed the browser tab: the conflict search is O(rides)
- * per ride with up to 200 retries each, across up to 60 day-building passes.
- * Returning an empty-but-valid schedule is a visible, safe degradation.
- */
 const RIDE_CEILING = 2000;
 
 const DEFAULT_SAME_HORSE_GAP = 30;
 const DEFAULT_DIFF_HORSE_GAP = 55;
 
-/** 'HH:MM' → minutes from midnight. */
 export function toMin(time: string): number {
   const [h = 0, m = 0] = (time || '0:0').split(':').map(Number);
   return h * 60 + m;
 }
 
-/** Minutes from midnight → '9:05 AM'. */
 export function fmtTime(min: number): string {
   const wrapped = ((min % 1440) + 1440) % 1440;
   const h = Math.floor(wrapped / 60);
@@ -185,44 +149,42 @@ function isUpperLevel(discipline: string): boolean {
   return discipline === 'Third Level' || discipline === 'Fourth Level' || discipline === 'FEI';
 }
 
-/** Minutes one ride of this class takes, including the between-rides buffer. */
 export function stepMinutesForClass(cls: ScheduleClass, rules: ScheduleRules): number {
   if (cls.minPerRide != null) return cls.minPerRide + rules.buffer;
   return rules.perMin + rules.buffer + (isUpperLevel(cls.discipline) ? rules.upper : 0);
 }
 
-/**
- * The rings classes may actually be scheduled into.
- *
- * With warm-up on, the last ring is reserved and gets no classes — so it also
- * gets no arena, which is what stops anything being placed there.
- */
 export function competitionRings(rings: RingConfig[], rules: ScheduleRules): RingConfig[] {
   if (rules.warmup === 'yes' && rings.length > 1) return rings.slice(0, -1);
   return rings;
 }
 
-/**
- * Distributes classes across rings by total time.
- *
- * A class with an explicit ring goes there regardless of balance; everything
- * else lands in whichever ring currently has the least time booked.
- */
 function assignRings(
   classes: ScheduleClass[],
   rules: ScheduleRules,
-  rings: RingConfig[]
+  rings: RingConfig[],
 ): ScheduleClass[][] {
   const count = Math.max(1, rings.length);
   const ringIndexByName = new Map(rings.map((ring, i) => [ring.name, i]));
 
-  const ordered = [...classes].sort((a, b) =>
-    rules.order === 'high'
+  const ordered = [...classes].sort((a, b) => {
+    if (rules.order === 'custom') {
+      // Manual running order: classes with an explicit run_order first (ascending),
+      // any without one fall to the end keeping a stable level-based order.
+      const ao = a.runOrder ?? Number.MAX_SAFE_INTEGER;
+      const bo = b.runOrder ?? Number.MAX_SAFE_INTEGER;
+      if (ao !== bo) return ao - bo;
+      return levelRank(a.discipline) - levelRank(b.discipline);
+    }
+    return rules.order === 'high'
       ? levelRank(b.discipline) - levelRank(a.discipline)
-      : levelRank(a.discipline) - levelRank(b.discipline)
-  );
+      : levelRank(a.discipline) - levelRank(b.discipline);
+  });
 
-  const buckets = Array.from({ length: count }, () => ({ mins: 0, classes: [] as ScheduleClass[] }));
+  const buckets = Array.from({ length: count }, () => ({
+    mins: 0,
+    classes: [] as ScheduleClass[],
+  }));
 
   for (const cls of ordered) {
     const mins = cls.order.length * stepMinutesForClass(cls, rules);
@@ -249,18 +211,10 @@ interface PlannedBreak {
   label: string;
   at: number;
   dur: number;
-  /** How far past its target time it may drift to reach a ride boundary. */
+
   tol: number;
 }
 
-/**
- * The short breaks beyond lunch, spread across the day.
- *
- * Split between morning and afternoon in proportion to how long each half of
- * the day is, then evenly spaced inside each half — the legacy's own
- * arrangement, so an organizer who set "2 extra breaks" gets one either side of
- * lunch on a normal day rather than both crammed into the morning.
- */
 function extraBreaksFor(rules: ScheduleRules, rings: RingConfig[]): PlannedBreak[] {
   const n = rules.extraBreaks || 0;
   if (n <= 0) return [];
@@ -268,7 +222,7 @@ function extraBreaksFor(rules: ScheduleRules, rings: RingConfig[]): PlannedBreak
   const dur = rules.extraBreakMin || 10;
   const dayStart = rings.reduce(
     (min, ring) => Math.min(min, toMin(ring.start)),
-    toMin(rings[0]?.start ?? '08:00')
+    toMin(rings[0]?.start ?? '08:00'),
   );
   const dayEnd = toMin(rules.end);
 
@@ -302,14 +256,6 @@ function extraBreaksFor(rules: ScheduleRules, rings: RingConfig[]): PlannedBreak
   return out;
 }
 
-/**
- * Identity used for the same-horse gap.
- *
- * The real horses.id wins over the free-text name: two different horses can
- * share a name, and treating that as "same horse" would apply the shorter gap
- * and double-book a rider. Only entries with no id at all — organizer-seeded or
- * moved — fall back to the name.
- */
 function horseKey(horseId: string | null, horseName: string): string | null {
   if (horseId) return `id:${horseId}`;
   return horseName ? `name:${horseName}` : null;
@@ -328,10 +274,11 @@ interface RiderWindow {
 export function buildMasterSchedule(
   classes: ScheduleClass[],
   rules: ScheduleRules,
-  allRings: RingConfig[]
+  allRings: RingConfig[],
 ): MasterSchedule {
   const rings = competitionRings(allRings, rules);
-  const usableRings = rings.length > 0 ? rings : [{ name: 'Ring 1', size: 'standard' as const, start: '08:00' }];
+  const usableRings =
+    rings.length > 0 ? rings : [{ name: 'Ring 1', size: 'standard' as const, start: '08:00' }];
   const buckets = assignRings(classes, rules, usableRings);
 
   interface QueuedRide {
@@ -403,18 +350,12 @@ export function buildMasterSchedule(
       ? (rules.hardRuleSameHorseMin ?? DEFAULT_SAME_HORSE_GAP)
       : (rules.hardRuleDiffHorseMin ?? DEFAULT_DIFF_HORSE_GAP);
 
-  /**
-   * The window this ride would collide with, or null.
-   *
-   * Day-scoped because start/end are minutes-of-day, not a continuous
-   * timeline — a rider's Day 1 ride has no bearing on a Day 2 one.
-   */
   function conflictWindow(
     num: string,
     horse: string | null,
     day: number,
     start: number,
-    end: number
+    end: number,
   ): RiderWindow | null {
     if (rules.hardRuleEnabled === false) return null;
     const windows = riderWindows.get(num);
@@ -428,13 +369,12 @@ export function buildMasterSchedule(
     );
   }
 
-  /** The earliest start at or after `floor` with no remaining conflict. */
   function earliestSafeStart(
     num: string,
     horse: string | null,
     day: number,
     floor: number,
-    dur: number
+    dur: number,
   ): number {
     let start = floor;
     for (let guard = 0; guard < 200; guard++) {
@@ -442,7 +382,7 @@ export function buildMasterSchedule(
       if (!win) return start;
       start = Math.max(start + 1, win.end + gapFor(horse, win.horse));
     }
-    // A pathological pileup of 200 overlapping windows — best effort past here.
+
     return start;
   }
 
@@ -471,14 +411,6 @@ export function buildMasterSchedule(
     const dayEndOverride = rules.dayEndTimes[day];
     const end = dayEndOverride ? toMin(dayEndOverride) : toMin(rules.end);
 
-    /**
-     * Places rides in one ring until nothing more fits.
-     *
-     * `cap` is a break's tolerance window — a capped call stops at a real ride
-     * boundary rather than running a ride into break time. The uncapped
-     * "finish out the day" pass may run past `end` when the hard rule forces a
-     * wait, which is exactly what the rule allows.
-     */
     function fill(i: number, cap: number | null): void {
       const arena = arenas[i];
       if (!arena) return;
@@ -492,8 +424,6 @@ export function buildMasterSchedule(
           const ride = arena.queue[0];
           if (!ride) break;
 
-          // A day pin is harder than everything below it — rotate and let
-          // something else have today's slot.
           if (ride.pinnedDay != null && ride.pinnedDay !== day) {
             arena.queue.push(ride);
             arena.queue.shift();
@@ -503,14 +433,12 @@ export function buildMasterSchedule(
 
           const clock = clocks[i] ?? 0;
           if (cap != null && clock + ride.step > cap) return;
-          if (clock + ride.step > end) return; // rolls to the next day
+          if (clock + ride.step > end) return;
 
           const horse = horseKey(ride.horseId, ride.horse);
           const win = conflictWindow(ride.num, horse, day, clock, clock + ride.step);
 
           if (win) {
-            // Defer rather than wait: the clock has not moved, so whichever
-            // ride comes up next gets the same slot and the ring stays compact.
             arena.queue.push(ride);
             arena.queue.shift();
             stalled++;
@@ -561,8 +489,6 @@ export function buildMasterSchedule(
           madeProgress = true;
         }
 
-        // Everything left conflicts and reordering could not resolve it — this
-        // is where the hard rule bites. Wait for the gap, never force it.
         if (arena.queue.length > 0 && stalled >= arena.queue.length) {
           const ride = arena.queue[0];
           if (!ride) return;
@@ -574,7 +500,9 @@ export function buildMasterSchedule(
           if (cap != null && safeStart + ride.step > cap) return;
 
           const waited = safeStart > clock;
-          const win = waited ? conflictWindow(ride.num, horse, day, clock, clock + ride.step) : null;
+          const win = waited
+            ? conflictWindow(ride.num, horse, day, clock, clock + ride.step)
+            : null;
 
           arena.items.push({
             type: 'ride',
@@ -634,13 +562,9 @@ export function buildMasterSchedule(
     };
 
     for (const planned of dayBreaks) {
-      // Let every ring run as far as it can without passing target+tolerance —
-      // the swing that keeps anyone from being cut off mid-ride.
       const cap = planned.at + planned.tol;
       for (let i = 0; i < arenas.length; i++) fill(i, cap);
 
-      // The break moment is the latest boundary any still-active ring reached;
-      // every ring pauses there together.
       let sync = -1;
       for (let i = 0; i < arenas.length; i++) {
         if (hasMoreToday(i) && (clocks[i] ?? 0) > sync) sync = clocks[i] ?? 0;

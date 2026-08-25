@@ -1,16 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { POLL_INTERVAL_MS } from '../constants';
-import type { ClassScoringState } from '../types';
+import { POLL_INTERVAL_MS } from '@/modules/scoring/constants';
+import type { ClassScoringState } from '@/modules/scoring/types';
 
-/**
- * Seeds from the Server Component's initial read, then polls
- * `/api/scoring/[classId]` every 4s — legacy's own interval, so two people
- * on the same class (a judge and a scribe, or two judges) see each other's
- * marks and panel-readiness without a manual refresh. Paused while the tab
- * isn't visible, matching legacy's `document.hidden` check.
- */
 export function useScoringState(classId: string, initialState: ClassScoringState) {
   const [state, setState] = useState(initialState);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -40,7 +33,6 @@ export function useScoringState(classId: string, initialState: ClassScoringState
     };
   }, [refetch]);
 
-  /** Merge a locally-known-good change in immediately, ahead of the next poll. */
   const applyOptimistic = useCallback((updater: (prev: ClassScoringState) => ClassScoringState) => {
     setState(updater);
   }, []);
