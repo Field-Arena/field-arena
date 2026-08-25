@@ -1,12 +1,20 @@
 'use client';
 
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
+import { Label } from '@/shared/ui/shadcn/label';
+import {
   CATALOG_DISCIPLINES,
   CATALOG_SCORE_TYPES,
   CATALOG_FAMILY_META,
   SHEET_FAMILIES,
 } from '@/modules/superadmin/constants';
-import { INPUT, LABEL, SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
+import { LABEL, SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
 
 type SheetFamily = (typeof SHEET_FAMILIES)[number];
@@ -102,23 +110,21 @@ export function SheetDetailsForm({
         ))}
         {selectFields.map((s) => (
           <div key={s.key}>
-            <label htmlFor={s.id} className={LABEL}>
+            <Label htmlFor={s.id} className={LABEL}>
               {s.label}
-            </label>
-            <select
-              id={s.id}
-              value={s.value}
-              onChange={(e) => {
-                s.onChange(e.target.value);
-              }}
-              className={INPUT}
-            >
-              {s.options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select value={s.value} onValueChange={s.onChange}>
+              <SelectTrigger id={s.id} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {s.options.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         ))}
       </div>

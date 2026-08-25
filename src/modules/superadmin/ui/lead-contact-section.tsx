@@ -1,24 +1,39 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Label } from '@/shared/ui/shadcn/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
 import { LEAD_STATUSES } from '@/modules/superadmin/constants';
 import type { LeadRow } from '@/modules/superadmin/types';
-import { useUpdateLead } from '@/modules/superadmin/hooks/use-lead-mutations';
-import { SECTION, H2, GRID, LABEL, INPUT, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
+import { useLeadContactForm } from '@/modules/superadmin/hooks/use-lead-contact-form';
+import { SECTION, H2, GRID, LABEL, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
 import { Field } from '@/modules/superadmin/ui/lead-detail-field';
 
 export function ContactSection({ lead }: { lead: LeadRow }) {
-  const [orgName, setOrgName] = useState(lead.org_name);
-  const [contactName, setContactName] = useState(lead.contact_name ?? '');
-  const [email, setEmail] = useState(lead.email ?? '');
-  const [phone, setPhone] = useState(lead.phone ?? '');
-  const [website, setWebsite] = useState(lead.website ?? '');
-  const [shows, setShows] = useState(
-    lead.shows_per_year != null ? String(lead.shows_per_year) : '',
-  );
-  const [status, setStatus] = useState(lead.status ?? 'new');
-  const update = useUpdateLead({ successMessage: 'Contact saved' });
+  const {
+    orgName,
+    setOrgName,
+    contactName,
+    setContactName,
+    email,
+    setEmail,
+    phone,
+    setPhone,
+    website,
+    setWebsite,
+    shows,
+    setShows,
+    status,
+    setStatus,
+    update,
+    save,
+  } = useLeadContactForm(lead);
 
   const fields: {
     key: string;
@@ -75,23 +90,21 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
           />
         ))}
         <div>
-          <label htmlFor="ld-status" className={LABEL}>
+          <Label htmlFor="ld-status" className={LABEL}>
             Status
-          </label>
-          <select
-            id="ld-status"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-            }}
-            className={INPUT}
-          >
-            {LEAD_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          </Label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger id="ld-status" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LEAD_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="mt-[22px] flex flex-wrap items-center gap-3.5 border-t border-[#EEF2EF] pt-5">
@@ -100,18 +113,7 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
           variant="ghost"
           disabled={update.isPending}
           className={`h-auto hover:bg-transparent ${SAVE}`}
-          onClick={() => {
-            update.mutate({
-              id: lead.id,
-              orgName,
-              contactName,
-              email,
-              phone,
-              website,
-              status: status as (typeof LEAD_STATUSES)[number]['value'],
-              showsPerYear: shows.trim() ? Math.max(0, Math.floor(Number(shows) || 0)) : null,
-            });
-          }}
+          onClick={save}
         >
           {update.isPending ? 'Saving…' : 'Save'}
         </Button>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRightIcon, Loader2Icon, UploadIcon } from 'lucide-react';
 import {
@@ -17,6 +17,13 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
+import {
   CATALOG_DISCIPLINES,
   CATALOG_FAMILY_META,
   CATALOG_SCORE_TYPES,
@@ -25,9 +32,6 @@ import {
 import { createSheetSchema, type CreateSheetInput } from '@/modules/superadmin/schemas';
 import { useCreateScoringSheet } from '@/modules/superadmin/hooks/use-catalog-mutations';
 import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
-
-const SELECT =
-  'w-full rounded-lg border border-[#D7CFBB] bg-white px-3.5 py-3 text-[14px] text-[#16261F] focus-visible:border-gold focus-visible:outline-none';
 
 export function UploadSheetDialog() {
   const [open, setOpen] = useState(false);
@@ -109,33 +113,66 @@ export function UploadSheetDialog() {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="us-discipline">Discipline</Label>
-              <select id="us-discipline" className={SELECT} {...form.register('discipline')}>
-                {CATALOG_DISCIPLINES.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={form.control}
+                name="discipline"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="us-discipline" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATALOG_DISCIPLINES.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="us-family">Scoring family</Label>
-              <select id="us-family" className={SELECT} {...form.register('family')}>
-                {SHEET_FAMILIES.map((f) => (
-                  <option key={f} value={f}>
-                    {CATALOG_FAMILY_META[f]?.label ?? f}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={form.control}
+                name="family"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="us-family" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SHEET_FAMILIES.map((f) => (
+                        <SelectItem key={f} value={f}>
+                          {CATALOG_FAMILY_META[f]?.label ?? f}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="us-score">Score type</Label>
-              <select id="us-score" className={SELECT} {...form.register('governingBody')}>
-                {CATALOG_SCORE_TYPES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={form.control}
+                name="governingBody"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="us-score" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATALOG_SCORE_TYPES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
 

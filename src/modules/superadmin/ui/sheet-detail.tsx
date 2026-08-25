@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, Loader2Icon, Trash2Icon } from 'lucide-react';
 import {
   Dialog,
@@ -13,13 +11,9 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
-import { CATALOG_FAMILY_META, SHEET_FAMILIES } from '@/modules/superadmin/constants';
+import { CATALOG_FAMILY_META } from '@/modules/superadmin/constants';
 import type { ScoringSheet } from '@/modules/superadmin/types';
-import { readSheetDef, type SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
-import {
-  useUpdateScoringSheet,
-  useDeleteScoringSheet,
-} from '@/modules/superadmin/hooks/use-catalog-mutations';
+import { useSheetDetailForm } from '@/modules/superadmin/hooks/use-sheet-detail-form';
 import { SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { SheetDetailsForm } from '@/modules/superadmin/ui/sheet-details-form';
 import { SheetMovementsEditor } from '@/modules/superadmin/ui/sheet-movements-editor';
@@ -35,52 +29,29 @@ const FAM_FALLBACK = {
   bd: '#E2E8E4',
 };
 
-type SheetFamily = (typeof SHEET_FAMILIES)[number];
-
 export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
-  const router = useRouter();
-  const initial = readSheetDef(sheet.def);
-
-  const [title, setTitle] = useState(sheet.title);
-  const [level, setLevel] = useState(sheet.level ?? '');
-  const [discipline, setDiscipline] = useState(sheet.discipline ?? 'Dressage');
-  const [scoreType, setScoreType] = useState(sheet.governing_body ?? 'Independent');
-  const [family, setFamily] = useState<SheetFamily>(
-    (sheet.family as SheetFamily | null) ?? 'unassigned',
-  );
-  const [def, setDef] = useState<SheetDefShape>(initial);
-
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const update = useUpdateScoringSheet();
-  const remove = useDeleteScoringSheet({
-    onSuccess: () => {
-      router.push('/dashboard/superadmin/catalog');
-    },
-  });
+  const {
+    title,
+    setTitle,
+    level,
+    setLevel,
+    discipline,
+    setDiscipline,
+    scoreType,
+    setScoreType,
+    family,
+    setFamily,
+    def,
+    setDef,
+    confirmOpen,
+    setConfirmOpen,
+    update,
+    remove,
+    save,
+  } = useSheetDetailForm(sheet);
 
   const fam = CATALOG_FAMILY_META[family] ?? FAM_FALLBACK;
   const isMovement = family === 'movement';
-
-  function save() {
-    const maxPointsNum = def.maxPoints.trim() ? Number(def.maxPoints) : undefined;
-    update.mutate({
-      id: sheet.id,
-      title,
-      level,
-      discipline,
-      family,
-      governingBody: scoreType,
-      def: {
-        arena: def.arena || undefined,
-        rideTime: def.rideTime || undefined,
-        maxPoints: Number.isFinite(maxPointsNum) ? maxPointsNum : undefined,
-        intro: def.intro || undefined,
-        errorScheduleText: def.errorScheduleText || undefined,
-        movements: def.movements,
-        collectives: def.collectives,
-      },
-    });
-  }
 
   return (
     <div className="mx-auto max-w-[1000px] space-y-5">

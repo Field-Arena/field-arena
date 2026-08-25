@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2Icon } from 'lucide-react';
 import {
@@ -15,13 +15,17 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { addOrgStaffSchema, type AddOrgStaffInput } from '@/modules/superadmin/schemas';
 import { useAddOrgStaff } from '@/modules/superadmin/hooks/use-org-staff-mutations';
 import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
-
-const SELECT_CLASS =
-  'w-full rounded-lg border border-field bg-white px-3 py-2 text-[14px] text-hunter-deep focus-visible:border-gold focus-visible:outline-none';
 
 export function AddOrgStaffDialog({
   orgName,
@@ -86,13 +90,24 @@ export function AddOrgStaffDialog({
         >
           <div className="space-y-1.5">
             <Label htmlFor="aos-show">Show</Label>
-            <select id="aos-show" className={SELECT_CLASS} {...form.register('showId')}>
-              {shows.map((show) => (
-                <option key={show.id} value={show.id}>
-                  {show.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="showId"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="aos-show" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shows.map((show) => (
+                      <SelectItem key={show.id} value={show.id}>
+                        {show.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <FormField
@@ -114,13 +129,24 @@ export function AddOrgStaffDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="aos-role">Role</Label>
-            <select id="aos-role" className={SELECT_CLASS} {...form.register('role')}>
-              {GRANTABLE_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="aos-role" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GRANTABLE_ROLES.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <DialogFooter>

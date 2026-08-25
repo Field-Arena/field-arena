@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import { Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { useUpdateSettlement } from '@/modules/superadmin/hooks/use-settlement-mutations';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
+import { useSettlementSettingsForm } from '@/modules/superadmin/hooks/use-settlement-settings-form';
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-field bg-white px-4 py-3 text-[14.5px] text-hunter-deep ' +
@@ -21,16 +27,8 @@ export function SettlementSettings({
   payoutCadence: string;
   holdbackPercent: number | null;
 }) {
-  const [cadence, setCadence] = useState(payoutCadence);
-  const [holdback, setHoldback] = useState(holdbackPercent === null ? '' : String(holdbackPercent));
-  const { mutate, isPending } = useUpdateSettlement();
-
-  const trimmed = holdback.trim();
-  const parsed = trimmed === '' ? null : Number(trimmed);
-  const invalid = parsed !== null && (!Number.isFinite(parsed) || parsed < 0 || parsed > 100);
-  const dirty =
-    cadence !== payoutCadence ||
-    (parsed ?? null) !== (holdbackPercent === 0 ? null : holdbackPercent);
+  const { cadence, setCadence, holdback, setHoldback, invalid, dirty, isPending, save } =
+    useSettlementSettingsForm({ orgId, payoutCadence, holdbackPercent });
 
   return (
     <section className="border-line-mint rounded-xl border bg-[#F3F0E7] p-7">
@@ -47,17 +45,15 @@ export function SettlementSettings({
           <Label htmlFor="payout-cadence" className={LABEL}>
             Payout cadence
           </Label>
-          <select
-            id="payout-cadence"
-            value={cadence}
-            onChange={(event) => {
-              setCadence(event.target.value);
-            }}
-            className={`${FIELD} appearance-none`}
-          >
-            <option value="weekly">Weekly</option>
-            <option value="daily">Daily</option>
-          </select>
+          <Select value={cadence} onValueChange={setCadence}>
+            <SelectTrigger id="payout-cadence" className={`${FIELD} w-full`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="daily">Daily</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="min-w-[220px] flex-1">
@@ -80,13 +76,7 @@ export function SettlementSettings({
         <Button
           type="button"
           disabled={isPending || invalid || !dirty}
-          onClick={() => {
-            mutate({
-              id: orgId,
-              payoutCadence: cadence as 'daily' | 'weekly',
-              holdbackPercent: parsed,
-            });
-          }}
+          onClick={save}
           className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep h-auto rounded-[10px] px-6 py-3 text-sm font-bold disabled:opacity-45"
         >
           {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}

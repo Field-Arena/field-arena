@@ -1,6 +1,7 @@
 'use client';
 
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { LABEL, INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
 
 export function Field({
@@ -17,9 +18,9 @@ export function Field({
   const id = `sd-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`;
   return (
     <div>
-      <label htmlFor={id} className={LABEL}>
+      <Label htmlFor={id} className={LABEL}>
         {label}
-      </label>
+      </Label>
       <Input
         id={id}
         value={value}

@@ -3,6 +3,7 @@
 import type { ComponentProps } from 'react';
 import type { FieldError } from 'react-hook-form';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 
 const FIELD_LABEL =
   'mb-2 block text-[11px] font-bold uppercase tracking-[.12em] text-hunter-deep whitespace-nowrap';
@@ -28,9 +29,9 @@ export function Field({
 
   return (
     <div>
-      <label htmlFor={id} className={FIELD_LABEL}>
+      <Label htmlFor={id} className={FIELD_LABEL}>
         {label}
-      </label>
+      </Label>
       <Input
         id={id}
         type={type}

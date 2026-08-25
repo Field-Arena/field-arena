@@ -1,6 +1,6 @@
 'use client';
 
-import type { FieldError } from 'react-hook-form';
+import type { FieldError, UseFormRegisterReturn } from 'react-hook-form';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 
@@ -19,7 +19,7 @@ export function FormField({
   type?: string;
   placeholder?: string;
   autoComplete?: string;
-  registration: Record<string, unknown>;
+  registration: UseFormRegisterReturn;
 }) {
   const errorId = `${id}-error`;
 

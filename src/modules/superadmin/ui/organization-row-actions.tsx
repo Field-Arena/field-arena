@@ -224,7 +224,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                 />
               ))}
             </div>
-            <FeeModelField id={`eo-feemodel-${org.id}`} registration={form.register('feeModel')} />
+            <FeeModelField id={`eo-feemodel-${org.id}`} control={form.control} />
 
             <DialogFooter>
               <Button

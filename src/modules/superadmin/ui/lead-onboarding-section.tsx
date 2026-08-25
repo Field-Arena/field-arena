@@ -1,28 +1,27 @@
 'use client';
 
-import { useState } from 'react';
 import { Loader2Icon, MailIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import type { LeadRow } from '@/modules/superadmin/types';
-import type { ChecklistItem } from '@/modules/superadmin/schemas';
-import { toChecklist } from '@/modules/superadmin/utils/to-checklist';
-import {
-  useUpdateLead,
-  useSendLeadOnboarding,
-} from '@/modules/superadmin/hooks/use-lead-mutations';
+import { useLeadOnboardingForm } from '@/modules/superadmin/hooks/use-lead-onboarding-form';
 import { SECTION, H2, LABEL, INPUT, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
 
 export function OnboardingSection({ lead }: { lead: LeadRow }) {
-  const [when, setWhen] = useState(lead.onboarding_at ? lead.onboarding_at.slice(0, 16) : '');
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(
-    toChecklist(lead.onboarding_checklist),
-  );
-  const schedule = useUpdateLead({ successMessage: 'Onboarding scheduled' });
-  const saveChecklist = useUpdateLead({ successMessage: 'Checklist updated' });
-  const send = useSendLeadOnboarding();
-
-  const done = checklist.filter((c) => c.done).length;
+  const {
+    when,
+    setWhen,
+    checklist,
+    done,
+    toggleItem,
+    schedule,
+    saveSchedule,
+    saveChecklist,
+    persistChecklist,
+    send,
+    sendOnboardingEmail,
+  } = useLeadOnboardingForm(lead);
 
   return (
     <section className={SECTION}>
@@ -30,9 +29,9 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
 
       <div className="flex flex-wrap items-end gap-3.5">
         <div className="min-w-[220px] flex-[1_1_260px]">
-          <label htmlFor="ld-when" className={LABEL}>
+          <Label htmlFor="ld-when" className={LABEL}>
             Onboarding date and time
-          </label>
+          </Label>
           <Input
             id="ld-when"
             type="datetime-local"
@@ -48,9 +47,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
           variant="ghost"
           disabled={schedule.isPending}
           className={`h-auto hover:bg-transparent ${SAVE} px-[26px]`}
-          onClick={() => {
-            schedule.mutate({ id: lead.id, onboardingAt: when ? when : null });
-          }}
+          onClick={saveSchedule}
         >
           {schedule.isPending ? 'Saving…' : 'Schedule'}
         </Button>
@@ -76,9 +73,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               type="button"
               variant="ghost"
               onClick={() => {
-                setChecklist((prev) =>
-                  prev.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)),
-                );
+                toggleItem(item.id);
               }}
               className="flex h-auto w-full items-start justify-start gap-3 border-b border-[#EEF2EF] px-[18px] py-3.5 text-left last:border-b-0 hover:bg-[#FAFCFB]"
             >
@@ -122,9 +117,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               variant="ghost"
               disabled={saveChecklist.isPending}
               className="text-hunter-deep hover:text-gold h-auto px-0 py-0 text-[12.5px] font-bold underline underline-offset-2 hover:bg-transparent disabled:opacity-60"
-              onClick={() => {
-                saveChecklist.mutate({ id: lead.id, onboardingChecklist: checklist });
-              }}
+              onClick={persistChecklist}
             >
               {saveChecklist.isPending ? 'Saving…' : 'Save checklist'}
             </Button>
@@ -138,9 +131,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
           variant="ghost"
           disabled={send.isPending}
           className="bg-gold text-hunter-deep hover:bg-gold-light inline-flex h-auto items-center gap-2 rounded-[9px] px-5 py-3 text-[13.5px] font-bold transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
-          onClick={() => {
-            send.mutate(lead.id);
-          }}
+          onClick={sendOnboardingEmail}
         >
           {send.isPending ? (
             <Loader2Icon className="size-[15px] animate-spin" aria-hidden />

@@ -11,6 +11,13 @@ import {
   DialogTitle,
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
 import { cn } from '@/shared/lib/utils';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import type { DirectoryStaff } from '@/modules/superadmin/types';
@@ -50,24 +57,30 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
           Vendor
         </span>
       ) : (
-        <select
+        <Select
           value={staff.role}
           disabled={changeRole.isPending}
-          onChange={(event) => {
+          onValueChange={(value) => {
             changeRole.mutate({
               staffId: staff.id,
-              role: event.target.value as (typeof GRANTABLE_ROLES)[number],
+              role: value as (typeof GRANTABLE_ROLES)[number],
             });
           }}
-          className="text-hunter-deep focus-visible:border-gold rounded-[7px] border border-[#D7E0DA] bg-white px-2 py-[7px] text-[12.5px] focus-visible:outline-none disabled:opacity-50"
-          aria-label={`Role for ${staff.name}`}
         >
-          {GRANTABLE_ROLES.filter((r) => r !== 'Vendor').map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            className="text-hunter-deep h-auto w-fit rounded-[7px] border-[#D7E0DA] bg-white px-2 py-[7px] text-[12.5px] disabled:opacity-50"
+            aria-label={`Role for ${staff.name}`}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {GRANTABLE_ROLES.filter((r) => r !== 'Vendor').map((role) => (
+              <SelectItem key={role} value={role}>
+                {role}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       <span className="text-fa-muted text-[12px] leading-[1.4]" title={staff.showName}>

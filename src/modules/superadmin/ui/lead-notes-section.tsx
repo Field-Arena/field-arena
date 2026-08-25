@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Textarea } from '@/shared/ui/shadcn/textarea';
 import type { LeadRow } from '@/modules/superadmin/types';
 import { useUpdateLead } from '@/modules/superadmin/hooks/use-lead-mutations';
 import { SECTION, H2, INPUT, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
@@ -13,7 +14,7 @@ export function NotesSection({ lead }: { lead: LeadRow }) {
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-4`}>Notes</h2>
-      <textarea
+      <Textarea
         value={notes}
         onChange={(e) => {
           setNotes(e.target.value);
