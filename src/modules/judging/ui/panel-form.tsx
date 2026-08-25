@@ -104,7 +104,7 @@ export function PanelForm({
             onClick={() => {
               setChecked(allChecked ? new Set() : new Set(classes.map((c) => c.id)));
             }}
-            className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[12px] font-semibold hover:bg-transparent"
+            className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[12px] font-semibold hover:bg-transparent active:translate-y-0"
           >
             {allChecked ? 'Clear all' : 'Select all'}
           </Button>
