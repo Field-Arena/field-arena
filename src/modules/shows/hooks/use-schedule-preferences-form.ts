@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import type { UpdateSchedulePrefsInput } from '@/modules/shows/schemas';
-import type { SchedulePrefs } from '@/modules/shows/data/setup-queries';
-import { useUpdateSchedulePrefs } from '@/modules/shows/hooks/use-show-mutations';
+import type { SchedulePrefs, ClassRow } from '@/modules/shows/data/setup-queries';
+import { useUpdateSchedulePrefs, useReorderClasses } from '@/modules/shows/hooks/use-show-mutations';
 import { showDayDates } from '@/modules/shows/utils/show-day-dates';
 
 export function useSchedulePreferencesForm({
@@ -13,6 +13,7 @@ export function useSchedulePreferencesForm({
   prefs,
   dayStartTimes,
   dayEndTimes,
+  classes,
 }: {
   showId: string;
   startDate: string | null;
@@ -20,6 +21,7 @@ export function useSchedulePreferencesForm({
   prefs: SchedulePrefs;
   dayStartTimes: string[];
   dayEndTimes: string[];
+  classes: ClassRow[];
 }) {
   const days = showDayDates(startDate ?? '', endDate ?? '');
   const effDays = days.length ? days : ['__day1__'];
@@ -39,6 +41,28 @@ export function useSchedulePreferencesForm({
   const [dayEnds, setDayEnds] = useState<string[]>(effDays.map((_, i) => dayEndTimes[i] ?? ''));
 
   const { mutate } = useUpdateSchedulePrefs();
+  const { mutate: reorder } = useReorderClasses();
+  const [manualOrder, setManualOrder] = useState<ClassRow[]>(() =>
+    [...classes].sort((a, b) => {
+      const ao = a.runOrder ?? Number.MAX_SAFE_INTEGER;
+      const bo = b.runOrder ?? Number.MAX_SAFE_INTEGER;
+      if (ao !== bo) return ao - bo;
+      return a.label.localeCompare(b.label);
+    }),
+  );
+
+  function moveClass(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= manualOrder.length) return;
+    const next = [...manualOrder];
+    const a = next[index];
+    const b = next[target];
+    if (!a || !b) return;
+    next[index] = b;
+    next[target] = a;
+    setManualOrder(next);
+    reorder({ showId, orderedClassIds: next.map((c) => c.id) });
+  }
 
   const rateFields: {
     id: string;
@@ -104,7 +128,7 @@ export function useSchedulePreferencesForm({
     save({ dayEndTimes: next });
   }
 
-  function changeOrder(next: 'low' | 'high') {
+  function changeOrder(next: 'low' | 'high' | 'custom') {
     setOrder(next);
     save({ order: next });
   }
@@ -139,5 +163,7 @@ export function useSchedulePreferencesForm({
     setDayStart,
     setDayEnd,
     save,
+    manualOrder,
+    moveClass,
   };
 }
