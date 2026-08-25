@@ -9,20 +9,7 @@ import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Schedule / Review — Field & Arena' };
 
-/**
- * Show Manager, Schedule / Review tab: /dashboard/shows/[showId]/schedule.
- *
- * One card, ported from showstaff.html's renderReviewView: every class on the
- * show, editable in place (arena, judges, fee), with a removal control and a
- * local-only entries-per-class projection. Reads the show directly rather
- * than through getOrganizerContext(showId), same as the other Show Manager
- * tabs — see setup's page.tsx for why.
- */
-export default async function SchedulePage({
-  params,
-}: {
-  params: Promise<{ showId: string }>;
-}) {
+export default async function SchedulePage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const data = isUuid(showId) ? await getScheduleReviewData(showId) : null;
 

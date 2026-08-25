@@ -172,6 +172,11 @@ export function ScoringScreen({
                 {currentEntry.horse ? ` · ${currentEntry.horse}` : ''}
               </h2>
               <p className="text-[13px] text-[#7A8781]">{test.name}</p>
+              {state.sponsor && (
+                <p className="text-forest text-[12px] font-semibold">
+                  Presented by {state.sponsor}
+                </p>
+              )}
             </div>
             <PanelStatusStrip panel={state.panel} scores={state.scores} entryId={currentEntry.id} />
           </div>

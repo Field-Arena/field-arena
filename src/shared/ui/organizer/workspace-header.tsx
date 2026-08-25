@@ -6,42 +6,6 @@ import { fa } from '@/shared/lib/organizer-theme';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import type { ShowListItem, ShowStats } from '@/modules/shows/data/queries';
 
-/**
- * The organizer workspace's page header — lifecycle stepper, org/show picker,
- * the six-stat-card row, and a ring/clock strip — ported from the Admin
- * Console design's `wsLifecycle`/`wsStats`/`wsRings` block (Field & Arena
- * Admin Console.dc.html, "Show lifecycle" section, ~lines 840-910).
- *
- * The design repeats this exact combination above several organizer screens
- * (Dashboard, Show Manager tabs, and — per the legacy showstaff.html — the
- * Users directory too), which is why it lives here rather than inside any one
- * module: the staff module's Dashboard and the shows module's Show Manager
- * shell already each carry their own copy of the stepper/picker/stat-row
- * (see dashboard-overview.tsx and show-manager-shell.tsx), and this component
- * is the reusable version for whoever reaches for it next — the Users page
- * wires it in now, nothing else was changed to adopt it.
- *
- * Two deliberate departures from the mock:
- *
- *  - The stat row is the shared `ShowStatsRow`, which labels the money card
- *    "Revenue (settled)" rather than the design's "Revenue (all-in)". That
- *    split (settled vs. entry value) is a real, intentional distinction
- *    already established in this codebase — ShowStats' own doc comment notes
- *    the legacy dashboard conflated the two under one misleading figure. This
- *    header does not reintroduce that.
- *  - The ring strip shows each configured ring's name only, not a schedule
- *    offset ("+6m" etc). Those offsets are static mock values in the design
- *    source (`WS_RINGS`), not a computed drift from real timing data — no
- *    live-scoring/schedule-actual data exists yet to compute one honestly.
- *    The clock itself is real (the viewer's live local time).
- *
- * `newShowSlot`/`trailingSlot` are render props rather than a built-in
- * "+ New Show" / "Awards" button so this shared component never has to import
- * from `modules/shows` or `modules/staff` — the caller supplies whatever
- * concrete, mutation-backed button belongs there. `trailingSlot` is rendered
- * whenever passed; whether that's stage-gated (the design only shows Awards
- * once a show is Live) is the caller's call, not this component's.
- */
 export function WorkspaceHeader({
   orgName,
   shows,
@@ -72,8 +36,8 @@ export function WorkspaceHeader({
         {SHOW_STAGES.map((s, i) => (
           <span key={s.key} className="contents">
             <span
-              className={`inline-flex items-center gap-2 whitespace-nowrap text-[13px] ${
-                i === currentIndex ? 'font-semibold text-forest' : 'text-[#5A6B63]'
+              className={`inline-flex items-center gap-2 text-[13px] whitespace-nowrap ${
+                i === currentIndex ? 'text-forest font-semibold' : 'text-[#5A6B63]'
               }`}
             >
               <span
@@ -92,7 +56,7 @@ export function WorkspaceHeader({
 
       <Card className="mb-[18px] p-[16px_18px_18px]">
         <div className="mb-3.5 flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-forest">
+          <span className="text-forest inline-flex items-center gap-2 text-[13.5px] font-semibold">
             <span className="size-[7px] rounded-full" style={{ background: fa.gold }} />
             {orgName}
           </span>
@@ -102,7 +66,7 @@ export function WorkspaceHeader({
               <select
                 name="show"
                 defaultValue={currentShow.id}
-                className="min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm text-ink-deep"
+                className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
                 aria-label="Select show"
               >
                 {shows.map((show) => (
@@ -114,7 +78,7 @@ export function WorkspaceHeader({
               </select>
               <button
                 type="submit"
-                className="rounded-[10px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[13px] font-semibold text-[#0D2C23] transition-colors hover:border-gold"
+                className="hover:border-gold rounded-[10px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[13px] font-semibold text-[#0D2C23] transition-colors"
               >
                 Switch
               </button>
@@ -129,7 +93,7 @@ export function WorkspaceHeader({
 
         {rings.length > 0 && (
           <div className="mt-4 flex items-stretch overflow-hidden rounded-[10px] border border-[#E9EDEB]">
-            <span className="inline-flex items-center gap-2 whitespace-nowrap bg-[#0D2C23] px-4 py-2.5 font-mono text-sm font-bold text-gold">
+            <span className="text-gold inline-flex items-center gap-2 bg-[#0D2C23] px-4 py-2.5 font-mono text-sm font-bold whitespace-nowrap">
               <LiveClock /> · {rings.length} ring{rings.length === 1 ? '' : 's'}
             </span>
             {rings.map((ring, i) => {
@@ -151,7 +115,6 @@ export function WorkspaceHeader({
   );
 }
 
-/** Rose / mint / amber, cycled per ring — the design's own WS_RINGS tint pairs. */
 const RING_TINTS = [
   { bg: '#FBE7EE', fg: '#8E3A57' },
   { bg: '#E4F0E8', fg: '#1A5B3C' },

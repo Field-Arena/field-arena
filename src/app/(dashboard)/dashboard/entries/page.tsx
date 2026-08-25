@@ -6,7 +6,6 @@ import { EntriesListScreen } from '@/modules/shows/ui/lists/entries-list-screen'
 
 export const metadata: Metadata = { title: 'Entries — Field & Arena' };
 
-/** Every class entry sold for the focused show — the Dashboard's "Entries sold" card. */
 export default async function EntriesPage({
   searchParams,
 }: {

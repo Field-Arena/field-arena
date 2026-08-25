@@ -9,10 +9,46 @@ import { Textarea } from '@/shared/ui/shadcn/textarea';
 import { useDebouncedWrite } from '@/modules/scoring/hooks/use-debounced-write';
 import { REMARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
 import { MarkStepper } from '@/modules/scoring/ui/mark-stepper';
-import type { ScoreRow, TestDefinition } from '@/modules/scoring/types';
+import type {
+  ScoreRow,
+  Sheet,
+  TestCollective,
+  TestDefinition,
+  TestMovement,
+} from '@/modules/scoring/types';
+import {
+  maxForCollectives,
+  maxForMovements,
+  subtotalForCollectives,
+  subtotalForMovements,
+} from '@/modules/scoring/scoring-engine';
 
 export interface TestSheetHandle {
   flushPendingWrites: () => void;
+}
+
+interface SectionGroup<T> {
+  section: string;
+  items: T[];
+}
+
+/** Group items by their `section`, preserving first-appearance order. Returns
+ *  null when no item carries a section (legacy flat tests render unchanged). */
+function groupBySection<T extends { section?: string }>(items: T[]): SectionGroup<T>[] | null {
+  if (!items.some((item) => item.section)) return null;
+  const groups: SectionGroup<T>[] = [];
+  const indexBySection = new Map<string, number>();
+  for (const item of items) {
+    const section = item.section ?? '';
+    const existing = indexBySection.get(section);
+    if (existing === undefined) {
+      indexBySection.set(section, groups.length);
+      groups.push({ section, items: [item] });
+    } else {
+      groups[existing]?.items.push(item);
+    }
+  }
+  return groups;
 }
 
 export function TestSheet({
@@ -72,6 +108,89 @@ export function TestSheet({
     return locked || (enteredBy === 'judge' && seatRole === 'scribe');
   }
 
+  const movementGroups = groupBySection(test.movements);
+  const collectiveGroups = groupBySection(test.collectives);
+
+  const movementMarks: Record<string, number | null> = {};
+  for (const m of test.movements)
+    movementMarks[String(m.num)] = movements[String(m.num)]?.value ?? null;
+  const collectiveMarks: Record<string, number | null> = {};
+  for (const c of test.collectives) collectiveMarks[c.key] = collectives[c.key]?.value ?? null;
+  const markSheet: Sheet = {
+    movements: movementMarks,
+    collectives: collectiveMarks,
+    errors: score?.errors ?? 0,
+    remarks,
+    finalRemarks: score?.finalRemarks ?? '',
+    submitted: score?.submitted ?? false,
+  };
+
+  const movementRow = (m: TestMovement) => {
+    const mark = movements[String(m.num)];
+    return (
+      <div
+        key={m.num}
+        className="flex flex-wrap items-center gap-3 rounded-xl border border-[#E9EDEB] bg-white p-[14px_16px]"
+      >
+        <span className="w-6 flex-none text-[13px] font-bold text-[#7A8781]">{m.num}</span>
+        <span className="text-ink-deep min-w-[220px] flex-1 text-[13.5px]">{m.text}</span>
+
+        <MarkStepper
+          value={mark?.value ?? null}
+          enteredBy={mark?.enteredBy ?? null}
+          locked={isLockedFor(mark?.enteredBy ?? null)}
+          onChange={(value) => {
+            movementWrite.debounced(String(m.num), value);
+          }}
+        />
+
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={locked}
+          onClick={() => {
+            onToggleError(m.num);
+          }}
+          aria-pressed={Boolean(errorAt[String(m.num)])}
+          aria-label="Toggle error of course"
+          className={cn(
+            'grid size-8 h-auto flex-none place-items-center rounded-[8px] border px-0 py-0 text-[15px] font-normal hover:bg-transparent disabled:opacity-40',
+            errorAt[String(m.num)]
+              ? 'border-[#E3B8B8] bg-[#F7E1E1] text-[#B23A3A]'
+              : 'hover:border-gold border-[#D9E1DD] bg-white text-[#B4BFB9]',
+          )}
+        >
+          ⚠
+        </Button>
+
+        <RemarkField
+          value={remarks[String(m.num)] ?? ''}
+          disabled={locked}
+          onChange={(text) => {
+            remarkWrite.debounced(String(m.num), text);
+          }}
+        />
+      </div>
+    );
+  };
+
+  const collectiveRow = (c: TestCollective) => {
+    const mark = collectives[c.key];
+    return (
+      <div key={c.key} className="flex items-center gap-3">
+        <span className="text-ink-deep min-w-[180px] flex-1 text-[13.5px]">{c.label}</span>
+        <MarkStepper
+          value={mark?.value ?? null}
+          enteredBy={mark?.enteredBy ?? null}
+          locked={isLockedFor(mark?.enteredBy ?? null)}
+          onChange={(value) => {
+            collectiveWrite.debounced(c.key, value);
+          }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-2.5">
       <details
@@ -88,78 +207,40 @@ export function TestSheet({
             : ''}
         </summary>
 
-        {test.movements.map((m) => {
-          const mark = movements[String(m.num)];
-          return (
-            <div
-              key={m.num}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-[#E9EDEB] bg-white p-[14px_16px]"
-            >
-              <span className="w-6 flex-none text-[13px] font-bold text-[#7A8781]">{m.num}</span>
-              <span className="text-ink-deep min-w-[220px] flex-1 text-[13.5px]">{m.text}</span>
-
-              <MarkStepper
-                value={mark?.value ?? null}
-                enteredBy={mark?.enteredBy ?? null}
-                locked={isLockedFor(mark?.enteredBy ?? null)}
-                onChange={(value) => {
-                  movementWrite.debounced(String(m.num), value);
-                }}
-              />
-
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={locked}
-                onClick={() => {
-                  onToggleError(m.num);
-                }}
-                aria-pressed={Boolean(errorAt[String(m.num)])}
-                aria-label="Toggle error of course"
-                className={cn(
-                  'grid size-8 h-auto flex-none place-items-center rounded-[8px] border px-0 py-0 text-[15px] font-normal hover:bg-transparent disabled:opacity-40',
-                  errorAt[String(m.num)]
-                    ? 'border-[#E3B8B8] bg-[#F7E1E1] text-[#B23A3A]'
-                    : 'hover:border-gold border-[#D9E1DD] bg-white text-[#B4BFB9]',
-                )}
-              >
-                ⚠
-              </Button>
-
-              <RemarkField
-                value={remarks[String(m.num)] ?? ''}
-                disabled={locked}
-                onChange={(text) => {
-                  remarkWrite.debounced(String(m.num), text);
-                }}
-              />
-            </div>
-          );
-        })}
+        {movementGroups
+          ? movementGroups.map((group) => (
+              <div key={group.section} className="flex flex-col gap-2.5">
+                <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
+                  {group.section}
+                </span>
+                {group.items.map(movementRow)}
+                <div className="pr-1 text-right text-[12px] font-semibold text-[#7A8781]">
+                  Section subtotal {subtotalForMovements(markSheet, group.items)} /{' '}
+                  {maxForMovements(group.items)}
+                </div>
+              </div>
+            ))
+          : test.movements.map(movementRow)}
 
         {test.collectives.length > 0 && (
           <div className="mt-2 flex flex-col gap-2.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
             <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
               Collective marks
             </span>
-            {test.collectives.map((c) => {
-              const mark = collectives[c.key];
-              return (
-                <div key={c.key} className="flex items-center gap-3">
-                  <span className="text-ink-deep min-w-[180px] flex-1 text-[13.5px]">
-                    {c.label}
-                  </span>
-                  <MarkStepper
-                    value={mark?.value ?? null}
-                    enteredBy={mark?.enteredBy ?? null}
-                    locked={isLockedFor(mark?.enteredBy ?? null)}
-                    onChange={(value) => {
-                      collectiveWrite.debounced(c.key, value);
-                    }}
-                  />
-                </div>
-              );
-            })}
+            {collectiveGroups
+              ? collectiveGroups.map((group) => (
+                  <div key={group.section} className="flex flex-col gap-2.5">
+                    <span className="text-[11px] font-semibold text-[#7A8781]">
+                      {group.section}
+                    </span>
+                    {group.items.map(collectiveRow)}
+                    <div className="pr-1 text-right text-[12px] font-semibold text-[#7A8781]">
+                      Section subtotal {subtotalForCollectives(markSheet, group.items)} /{' '}
+                      {maxForCollectives(group.items)}
+                    </div>
+                  </div>
+                ))
+              : test.collectives.map(collectiveRow)}
           </div>
         )}
       </details>

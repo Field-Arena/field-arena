@@ -18,35 +18,17 @@ import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-
 import { MerchandiseCard } from '@/modules/shows/ui/show-manager/merchandise-card';
 import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
 import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
+import { ShareShowLink } from '@/modules/shows/ui/show-manager/share-show-link';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
+import { env } from '@/shared/lib/env';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
+import { ROUTES } from '@/shared/constants/routes';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
-/**
- * Show Manager, Setup tab: /dashboard/shows/[showId].
- *
- * A readiness meter (real per-section checks from getShowCompleteness), then
- * all eight of the design's Setup cards, in the design's own order: Show
- * Details, Venue, Contact, Prize list, Class divisions, Required Documents
- * + Merchandise Sales (side by side), Waiver of Liability, Schedule
- * preferences.
- *
- * getShowSetupDetail is called directly rather than through
- * getOrganizerContext(showId) — that helper falls back to the caller's
- * first show when the requested id isn't found (right for the `?show=`
- * picker pages it was built for, wrong here: silently landing on a
- * different show than the one in the URL would be confusing at best). A
- * missing/RLS-blocked id renders the not-found panel below instead.
- *
- * The isUuid check comes first because a malformed id (e.g. a stale
- * "/shows/new" link, now shadowed by this dynamic segment since that route
- * was replaced by an instant-create button) is not "not found" to Postgres —
- * it is a raw invalid-input-syntax error, uncaught unless ruled out here.
- */
 export default async function ShowManagerPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const show = isUuid(showId) ? await getShowSetupDetail(showId) : null;
@@ -83,6 +65,10 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
       canViewMoney={context.canViewMoney}
     >
       <ReadinessMeter completeness={completeness} />
+      <ShareShowLink
+        url={`${env.siteUrl}/show/${show.id}`}
+        browseUrl={`${env.siteUrl}${ROUTES.browseShows}`}
+      />
       <div id="show-details" className="scroll-mt-24">
         <ShowDetailsCard show={show} />
       </div>
@@ -135,6 +121,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
         prefs={show.schedulePrefs}
         dayStartTimes={show.dayStartTimes}
         dayEndTimes={show.dayEndTimes}
+        classes={classes}
       />
       <SectionFooter
         currentTab="Setup"

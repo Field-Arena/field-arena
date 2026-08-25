@@ -24,7 +24,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   const { data: cls, error: classError } = await supabase
     .from('classes')
     .select(
-      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published, time, location',
+      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published, time, location, sponsor',
     )
     .eq('id', classId)
     .single();
@@ -168,6 +168,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     classId,
     showName: showRes.data.name,
     className: cls.label,
+    sponsor: cls.sponsor,
     test,
     panel,
     entries,

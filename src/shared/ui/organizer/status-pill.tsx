@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
-/** Ported from the Admin Console design export's StatusPill.tsx. */
 export interface StatusPillProps {
   children: React.ReactNode;
   icon?: React.ReactNode;
@@ -16,8 +15,8 @@ export function StatusPill({ children, icon, bg, border, fg, className }: Status
     <span
       className={cn(
         'inline-flex items-center gap-[7px] rounded-full px-3 py-[5px]',
-        'whitespace-nowrap border text-xs font-bold',
-        className
+        'border text-xs font-bold whitespace-nowrap',
+        className,
       )}
       style={{ background: bg, borderColor: border, color: fg }}
     >

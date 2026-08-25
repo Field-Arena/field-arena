@@ -1,17 +1,13 @@
 'use client';
 
 import { useRef } from 'react';
+import { Button } from '@/shared/ui/shadcn/button';
 import {
   useUploadVendorDocument,
   useRemoveVendorDocument,
-} from '../hooks/use-vendor-mutations';
-import type { VendorDocumentRequirement, VendorDocumentUpload } from '../data/queries';
+} from '@/modules/vendors/hooks/use-vendor-mutations';
+import type { VendorDocumentRequirement, VendorDocumentUpload } from '@/modules/vendors/types';
 
-/**
- * One row of a booking's document checklist — ported from vendor.html's
- * documentsView(): a file input + "Upload" when nothing is on file yet, or
- * "View"/"Delete" once something is.
- */
 export function VendorDocumentRow({
   bookingId,
   requirement,
@@ -31,16 +27,17 @@ export function VendorDocumentRow({
       {upload ? (
         <>
           <span className="doc-meta">Uploaded{upload.verified ? ' · Verified' : ''}</span>
-          <button
+          <Button
             type="button"
-            className="btn-link"
+            variant="ghost"
+            className="btn-link h-auto rounded-none bg-transparent px-0 py-0 text-base font-normal hover:bg-transparent"
             disabled={removeMutation.isPending}
             onClick={() => {
               removeMutation.mutate({ bookingId, requirementId: requirement.id });
             }}
           >
             Delete
-          </button>
+          </Button>
         </>
       ) : (
         <>
@@ -61,14 +58,17 @@ export function VendorDocumentRow({
               });
             }}
           />
-          <button
+          <Button
             type="button"
-            className="btn-link"
+            variant="ghost"
+            className="btn-link h-auto rounded-none bg-transparent px-0 py-0 text-base font-normal hover:bg-transparent"
             disabled={uploadMutation.isPending}
-            onClick={() => { inputRef.current?.click(); }}
+            onClick={() => {
+              inputRef.current?.click();
+            }}
           >
             {uploadMutation.isPending ? 'Uploading…' : '↑ Upload'}
-          </button>
+          </Button>
         </>
       )}
     </div>

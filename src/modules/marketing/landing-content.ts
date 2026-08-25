@@ -1,11 +1,3 @@
-/**
- * Landing-page copy, verbatim from the design reference
- * (Field & Arena Landing.dc.html). It is the live site's copy, tightened — do
- * not paraphrase it while editing components.
- *
- * The grids are repetitive by design, so they live here as typed arrays the
- * sections map over rather than as hand-written markup twelve times.
- */
 import { ROUTES } from '@/shared/constants/routes';
 
 export const NAV_LINKS = [
@@ -16,33 +8,13 @@ export const NAV_LINKS = [
   { label: 'Learning Center', href: '/learning-center' },
 ] as const;
 
-/**
- * Deep link that opens the demo dialog on load, for sharing and campaigns.
- *
- * In-page triggers do NOT use it — they render DemoTrigger, which flips the
- * store. The design's own `#demo` anchor only scrolled to the closing panel,
- * whose button pointed back at itself; a button labelled "Book a demo" has to
- * actually book one.
- *
- * None of these are pointed at /signup either. Booking a demo and creating an
- * account are different asks: self-service sign-up creates a rider, while
- * everyone these buttons address is a prospective organizer, invited after a
- * conversation. Sending them to a rider sign-up form would be the wrong door.
- */
 export const DEMO_DEEP_LINK = '/?demo=1';
 
-/**
- * The client's Calendly scheduling link. Surfaced from the Book-a-demo dialog so
- * a visitor can pick a real time; the booking then arrives back as a lead via
- * /api/webhooks/calendly (status `demo_scheduled`). Override per environment
- * with NEXT_PUBLIC_CALENDLY_URL without touching this default.
- */
 export const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ?? 'https://calendly.com/ameforward/30min';
 export const LOGIN_HREF = ROUTES.login;
 export const SIGNUP_HREF = ROUTES.signup;
 
-// ── Hero ───────────────────────────────────────────────────────────────────
 export const HERO = {
   badge: 'Horse shows, finally connected',
   lead: 'Entries, payments, scheduling, officials, show-day operations, scoring, results, vendors, volunteers, and communication — connected in one system built for equestrian competition.',
@@ -76,7 +48,6 @@ export const DISCIPLINE_MARQUEE = [
   'Multi-Discipline',
 ] as const;
 
-// ── The problem ────────────────────────────────────────────────────────────
 export const PROBLEM = {
   lead: 'Every discipline has its own rules, terminology, class structures, and scoring methods. But organizers across the sport face the same operational problems: scattered entries, complicated schedules, manual calculations, last-minute changes, delayed results, too many separate systems.',
   leadStrong:
@@ -105,7 +76,6 @@ export const PROBLEM = {
   ],
 } as const;
 
-// ── Platform ───────────────────────────────────────────────────────────────
 export const PLATFORM = {
   lead: 'Organizers, officials, staff, exhibitors, vendors, and volunteers each get a purpose-built workspace — while the underlying event data stays connected.',
   cards: [
@@ -142,7 +112,6 @@ export const PLATFORM = {
   ],
 } as const;
 
-// ── Product tour ───────────────────────────────────────────────────────────
 export const TOUR = {
   aside:
     'No mockups. This is the real organizer workspace, with live demo data standing in for yours.',
@@ -169,7 +138,6 @@ export const TOUR = {
   ],
 } as const;
 
-// ── Disciplines ────────────────────────────────────────────────────────────
 export const DISCIPLINES = {
   lead: 'Shared operational needs, handled once. Each discipline keeps its own class structures, terminology, rules, and scoring workflows.',
   cards: [
@@ -201,7 +169,6 @@ export const DISCIPLINES = {
   },
 } as const;
 
-// ── Roles ──────────────────────────────────────────────────────────────────
 export const ROLES = [
   {
     title: 'Organizers & administrators',
@@ -229,7 +196,6 @@ export const ROLES = [
   },
 ] as const;
 
-// ── Workflow ───────────────────────────────────────────────────────────────
 export const WORKFLOW = [
   {
     step: '1',
@@ -253,7 +219,6 @@ export const WORKFLOW = [
   },
 ] as const;
 
-// ── Benefits ───────────────────────────────────────────────────────────────
 export const BENEFITS = {
   lead: 'Designed to cut repeated data entry and give organizers a clearer operational picture — without forcing officials, staff, volunteers, or exhibitors to learn an enterprise system.',
   metrics: [
@@ -267,13 +232,11 @@ export const BENEFITS = {
   quoteCaption: 'Field & Arena product principle',
 } as const;
 
-// ── Final CTA ──────────────────────────────────────────────────────────────
 export const FINAL_CTA = {
   lead: "We'll tailor the walkthrough to your discipline, competition format, event size, and current process.",
   finePrint: "No setup fee to look. Bring a past show and we'll build it live.",
 } as const;
 
-// ── Footer ─────────────────────────────────────────────────────────────────
 export const FOOTER = {
   blurb:
     'Modern infrastructure for planning, operating, scoring, and growing equestrian competitions across disciplines.',
@@ -306,10 +269,7 @@ export const FOOTER = {
     },
     {
       heading: 'Get started',
-      // The reference lists Book a demo · Log in · Support. "Support" is
-      // dropped rather than wired to a placeholder anchor — the README asks for
-      // real hrefs and there is no support page yet. "Create an account" is the
-      // one addition: the reference predates the signup flow.
+
       links: [
         { label: 'Book a demo', href: '/#demo' },
         { label: 'Create an account', href: ROUTES.signup },
@@ -319,11 +279,6 @@ export const FOOTER = {
   ],
 } as const;
 
-// ── Book a demo ────────────────────────────────────────────────────────────
-/**
- * The demo-request form's two closed lists. Kept closed rather than free text so
- * the Sales Funnel can group leads without normalising typed answers later.
- */
 export const DEMO_DISCIPLINES = [
   'Dressage',
   'Western Dressage',
@@ -339,14 +294,6 @@ export const DEMO_DISCIPLINES = [
 
 export const DEMO_VOLUMES = ['1–3', '4–10', '11–25', '26–50', 'More than 50'] as const;
 
-/**
- * Shows-per-year stored on the lead, keyed by the range the visitor picked.
- *
- * The lead table holds an integer, the form asks a range. The LOW end of each
- * range is stored: it is the only figure the answer actually guarantees, so
- * pipeline sizing built on it under-promises rather than over-promises. The
- * chosen label is written to notes as well, so nothing is lost.
- */
 export const DEMO_VOLUME_TO_SHOWS: Record<string, number> = {
   '1–3': 1,
   '4–10': 4,

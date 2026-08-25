@@ -7,33 +7,15 @@ import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { cn } from '@/shared/lib/utils';
 import type { AttentionItem } from '@/modules/shows/data/queries';
 
-/**
- * "Needs your attention" — the first thing on the dashboard.
- *
- * Ported from showstaff.html's attentionCardHtml. It sits above the stat cards
- * rather than among them because "is anything broken right now" is the question
- * an organizer lands with, and a grid of equally-weighted tiles answers it last.
- *
- * Every row is a real signal computed from real rows — see getShowAttention.
- * Nothing is padded in to keep the card from looking empty; when there is
- * nothing wrong the card does not render at all.
- */
 export function AttentionCard({ items }: { items: AttentionItem[] }) {
-  /**
-   * Dismissal is per session, not stored.
-   *
-   * The organizer can clear it off the screen while they work through
-   * something, and it comes back next time they land on the dashboard — a
-   * persisted dismissal would let a show quietly stay unpublished forever.
-   */
   const [dismissed, setDismissed] = useState(false);
 
   if (items.length === 0 || dismissed) return null;
 
   return (
-    <Card className="mb-3.5 border-l-4 border-l-gold p-[16px_20px_10px]">
+    <Card className="border-l-gold mb-3.5 border-l-4 p-[16px_20px_10px]">
       <div className="flex items-center justify-between gap-2.5">
-        <h2 className="font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest">
+        <h2 className="text-forest font-[family-name:var(--font-nr)] text-[17px] font-semibold">
           Needs your attention
         </h2>
         <button
@@ -56,14 +38,11 @@ export function AttentionCard({ items }: { items: AttentionItem[] }) {
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[13.5px] font-semibold">
-                {/* Severity is carried in the dot as well as the order, so the
-                    difference between "this blocks going live" and "this wants
-                    a decision" reads without counting rows. */}
                 <span
                   aria-hidden
                   className={cn(
                     'inline-block size-[7px] flex-none rounded-full',
-                    item.severity === 'warn' ? 'bg-[#B23A3A]' : 'bg-gold'
+                    item.severity === 'warn' ? 'bg-[#B23A3A]' : 'bg-gold',
                   )}
                 />
                 {item.label}

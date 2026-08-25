@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { listLeads } from '@/modules/superadmin/data/queries';
 import { FunnelBoard, type LeadListItem } from '@/modules/superadmin/ui/funnel-board';
+import { summarizeLeadFunnel } from '@/modules/superadmin/utils/summarize-lead-funnel';
 
 export const metadata: Metadata = {
   title: 'Sales Funnel — SuperAdmin Console',
@@ -8,30 +9,10 @@ export const metadata: Metadata = {
 
 const NR = 'font-[family-name:var(--font-nr)]';
 
-/**
- * The Sales Funnel, matching the Admin Console design: a "Pipeline" header, six
- * stat tiles, then the interactive board (search, closing-rate breakdown, and the
- * newest-targets table). Data is read here and the counts computed once; the
- * board is the only client piece.
- */
 export default async function SalesFunnelPage() {
   const leads = await listLeads();
 
-  const counts: Record<string, number> = {};
-  for (const lead of leads) {
-    const key = lead.status ?? 'new';
-    counts[key] = (counts[key] ?? 0) + 1;
-  }
-
-  // Closing rate: of the leads that reached a real outcome (demo done, onboarding,
-  // won, or lost), how many became customers. New and demo-scheduled are excluded —
-  // they have not had a real chance yet. Matches the legacy formula exactly.
-  const resolved =
-    (counts.demo_completed ?? 0) +
-    (counts.onboarding ?? 0) +
-    (counts.customer ?? 0) +
-    (counts.lost ?? 0);
-  const closingRate = resolved ? Math.round(((counts.customer ?? 0) / resolved) * 100) : null;
+  const { counts, closingRate } = summarizeLeadFunnel(leads);
 
   const tiles: { label: string; value: string }[] = [
     { label: 'Total leads', value: String(leads.length) },
@@ -54,13 +35,15 @@ export default async function SalesFunnelPage() {
   return (
     <div className="space-y-7">
       <div className="max-w-[680px]">
-        <div className="mb-3 text-[10.5px] font-bold uppercase tracking-[0.18em] text-gold">
+        <div className="text-gold mb-3 text-[10.5px] font-bold tracking-[0.18em] uppercase">
           Pipeline
         </div>
-        <h1 className={`${NR} mb-2.5 text-[32px] font-medium leading-[1.06] tracking-[-.022em] text-hunter-deep`}>
+        <h1
+          className={`${NR} text-hunter-deep mb-2.5 text-[32px] leading-[1.06] font-medium tracking-[-.022em]`}
+        >
           Sales Funnel
         </h1>
-        <p className="text-[14.5px] leading-[1.6] text-fa-muted">
+        <p className="text-fa-muted text-[14.5px] leading-[1.6]">
           The master target list — organizations we&apos;re selling Field &amp; Arena to. Leads land
           here automatically when someone books a demo through Calendly, or add one yourself below.
         </p>
@@ -72,7 +55,7 @@ export default async function SalesFunnelPage() {
           return (
             <div
               key={tile.label}
-              className="flex min-w-[138px] flex-[1_1_150px] flex-col gap-1.5 rounded-[11px] border border-[#E7E0D0] bg-[#F6F3EC] px-[18px] pb-[15px] pt-4"
+              className="flex min-w-[138px] flex-[1_1_150px] flex-col gap-1.5 rounded-[11px] border border-[#E7E0D0] bg-[#F6F3EC] px-[18px] pt-4 pb-[15px]"
             >
               <span
                 className={`${NR} text-[30px] leading-none`}
@@ -80,7 +63,7 @@ export default async function SalesFunnelPage() {
               >
                 {tile.value}
               </span>
-              <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2">
+              <span className="text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] whitespace-nowrap uppercase">
                 {tile.label}
               </span>
             </div>

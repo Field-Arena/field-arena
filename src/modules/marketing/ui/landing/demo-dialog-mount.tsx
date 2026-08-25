@@ -2,16 +2,9 @@
 
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DemoDialog } from './demo-dialog';
-import { useDemoDialogStore } from '../../store';
+import { DemoDialog } from '@/modules/marketing/ui/landing/demo-dialog';
+import { useDemoDialogStore } from '@/modules/marketing/store';
 
-/**
- * Mounts the demo dialog once per page and honours a `?demo=1` deep link.
- *
- * The param is read ONCE on mount, not used as the open state — see the store
- * for why. That keeps a shared or bookmarked link working while every in-page
- * trigger stays a plain button.
- */
 export function DemoDialogMount() {
   const params = useSearchParams();
   const deepLinked = params.get('demo') !== null;

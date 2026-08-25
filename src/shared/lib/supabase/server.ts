@@ -6,12 +6,6 @@ import { env } from '@/shared/lib/env';
 import { withoutPersistence, hardenAuthCookie } from './session-persistence';
 
 export async function createServerClient({
-  /**
-   * False when the visitor unticked "Keep me signed in on this device", which
-   * turns Supabase's dated auth cookies into session cookies. See
-   * session-persistence.ts — the proxy has to be told the same thing, or the
-   * next navigation writes the dates back.
-   */
   persistSession = true,
 }: { persistSession?: boolean } = {}) {
   const cookieStore = await cookies();

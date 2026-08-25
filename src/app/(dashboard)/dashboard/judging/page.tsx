@@ -2,12 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import {
-  buildDemoAssignments,
-  buildDemoPanelContacts,
-  buildTodaySnapshot,
-  classifyAssignment,
-} from '@/modules/judging/utils';
+import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
+import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
+import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
+import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
 import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
@@ -16,12 +14,6 @@ import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview
 
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
-/**
- * The Judge and Scribe workspace's "My Assignments" tab, rebuilt to match
- * Judge Workspace.dc.html — today's ring times, then everything upcoming.
- * Not scoped to one show, unlike the organizer pages: an official works
- * across organizations and needs one list of everything they are booked on.
- */
 export default async function JudgingPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realPanelContacts] = await Promise.all([
