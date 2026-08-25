@@ -14,34 +14,6 @@ interface HorseUpload {
   expirationDate?: string;
 }
 
-/**
- * The org-wide "All Users" directory: every show's staff, every rider actually
- * entered per show, and every vendor booking — one flat list. Ported from
- * showstaff.html's `allUsersAcrossShows()` (~line 9522), against this app's
- * real schema instead of the legacy's in-memory fixtures.
- *
- * Three sources, matching the legacy's three branches exactly in spirit:
- *
- *  1. **Staff** — every `staff_assignments` row across every show in `shows`,
- *     except role='Vendor' (vendors are sourced from vendor_bookings below,
- *     never from staff_assignments — legacy explicitly skips them here too).
- *
- *  2. **Riders** — one row per rider actually entered in each show, derived
- *     from `class_entries` the same way `getShowStats`/the Horses page do:
- *     `class_entries.rider` (free text) is the universal display source,
- *     `rider_id` only when a real rider account exists behind the entry. This
- *     port groups by **rider**, not by rider-and-horse the way legacy's
- *     `realRiderRowsForShow` does — the task is "one row per rider entered",
- *     and a rider with two horses in the same show is one person on this
- *     directory. Their Coggins status folds in every horse they entered (see
- *     below): non-compliant if any one of them is.
- *
- *  3. **Vendors** — every `vendor_bookings` row, one row each.
- *
- * Status (`not_invited`/`pending`/`onboard`) is not a stored column for any of
- * these — see each section below for how it is derived, since the three kinds
- * don't share one signal.
- */
 export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<UserDirectoryRow[]> {
   const showIds = shows.map((s) => s.id);
   if (showIds.length === 0) return [];
@@ -88,9 +60,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     entries = data;
   }
 
-  // The show's Coggins requirement, matched loosely by label — organizers can
-  // reword these ("Coggins test", "Current Coggins", etc.), so a strict equal
-  // would silently stop matching the moment someone edits the wording.
   const cogginsReqByShow = new Map<string, DocumentRequirement | null>();
   for (const row of showDocsResult.data) {
     const requirements = (row.document_requirements ?? []) as unknown as DocumentRequirement[];
@@ -98,10 +67,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     cogginsReqByShow.set(row.id, match);
   }
 
-  // One rider group per (show, rider identity), identity being the real
-  // rider_id when an account exists behind the entry, else the trimmed,
-  // lowercased display name — the same fallback getShowStats/HorsesPage use
-  // for an organizer-imported roster with no accounts behind it at all.
   interface RiderGroup {
     name: string;
     riderId: string | null;
@@ -159,15 +124,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     horseRecords.data.map((h) => [h.id, (h.document_uploads ?? []) as HorseUpload[]]),
   );
 
-  // ── Staff status: `staff_assignments.status` is only ever 'pending' |
-  // 'accepted' in this schema and doesn't distinguish "never provisioned"
-  // from "invited but hasn't signed in" — and `user_id` is only ever set by
-  // the seed script, never by any real invite-acceptance flow in this app
-  // yet. The provisioning signal that actually exists is the one
-  // addStaffUser (below, in mutations.ts) writes: a `public.users` row keyed
-  // by this same email. So status here mirrors listOrganizations'
-  // Pending/Onboarded derivation — matched by email, not staff_assignments'
-  // own (currently-unreliable) user_id/status columns.
   const staffEmails = [
     ...new Set(
       staffResult.data.map((s) => s.email?.trim().toLowerCase()).filter((e): e is string => !!e),
@@ -196,7 +152,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
 
   const rows: UserDirectoryRow[] = [];
 
-  // 1. Staff
   for (const s of staffResult.data) {
     const show = showById.get(s.show_id);
     if (!show) continue;
@@ -233,7 +188,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     });
   }
 
-  // 2. Riders
   for (const [showId, groups] of ridersByShow) {
     const show = showById.get(showId);
     if (!show) continue;
@@ -259,11 +213,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
         phone,
         showId,
         showName: show.name,
-        // Riders don't go through the staff invite flow this pill otherwise
-        // tracks — a rider row exists because they already have a live entry
-        // on the show, so "On board" is the honest default for every rider
-        // row, matching showstaff.html's own hardcoded 'onboard' for real
-        // riders.
+
         status: 'onboard',
         isSteward: false,
         canScratchSkipDq: false,
@@ -275,7 +225,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     }
   }
 
-  // 3. Vendors
   for (const v of vendorResult.data) {
     const show = showById.get(v.show_id);
     if (!show) continue;
@@ -292,11 +241,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       phone: v.phone,
       showId: v.show_id,
       showName: show.name,
-      // vendor_bookings.status tracks the booking, not an account invite —
-      // mapped onto the same three-state pill as the closest honest reading:
-      // a paid/approved booking reads as "On board", a pending one as
-      // "Pending", anything else (rejected, or no status at all) as
-      // "Not invited".
+
       status:
         v.status === 'paid' || v.status === 'approved'
           ? 'onboard'
@@ -315,15 +260,6 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
   return rows;
 }
 
-/**
- * A rider's Coggins compliance for one show, folding in every horse they
- * entered. Non-compliant if *any* horse is; compliant only if every horse
- * with a resolvable record is. Not applicable at all when the show has no
- * Coggins-like requirement configured, or when none of the rider's entries
- * resolve to a real horse record (an organizer-imported roster row has a
- * horse name but no horses table row to attach documents to — see
- * HorsesPage's identical "Roster entry — no rider account" case).
- */
 function resolveCogginsStatus(
   horseIds: Set<string>,
   requirement: DocumentRequirement | null,

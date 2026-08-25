@@ -3,39 +3,28 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
-import {
-  asBooleanMap,
-  asStringMap,
-  isJsonRecord,
-  parseMarkMap,
-  parseTestDefinition,
-  resolveScoringPermissions,
-} from '../utils';
-import type { ClassScoringState, MySeat, PanelSeat, RideEntry, ScoreRow } from '../types';
+import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
+import { asStringMap } from '@/modules/scoring/utils/as-string-map';
+import { isJsonRecord } from '@/modules/scoring/utils/is-json-record';
+import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
+import { parseTestDefinition } from '@/modules/scoring/utils/parse-test-definition';
+import { resolveScoringPermissions } from '@/modules/scoring/utils/resolve-scoring-permissions';
+import type {
+  ClassScoringState,
+  MySeat,
+  PanelSeat,
+  RideEntry,
+  ScoreRow,
+} from '@/modules/scoring/types';
 import type { Json } from '@/shared/types/database.types';
 
-/**
- * Everything the live-scoring screen needs for one class, in one read —
- * mirrors legacy's `GET /api/shows/:id/scoring?classId=` response shape.
- *
- * Test resolution: `class_tests` first; if that class has never been
- * scored against a real test yet, falls back to `classes.catalog_id` →
- * `scoring_catalog.def`, and persists that fallback into `class_tests` so
- * subsequent reads hit the seeded row directly — matching legacy's own
- * write-in-a-GET behavior. Uses `upsert` rather than legacy's plain
- * `insert` (`class_tests.class_id` is unique) so two concurrent first-reads
- * can't race into a duplicate-key error; same persisted end state, same
- * user-visible behavior, just crash-safe under concurrency. Returns null
- * (never a fabricated definition) if neither resolves — the UI shows an
- * honest "no test defined" state, matching legacy's own banner.
- */
 export async function getScoringState(classId: string): Promise<ClassScoringState> {
   const supabase = await createServerClient();
 
   const { data: cls, error: classError } = await supabase
     .from('classes')
     .select(
-      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published, time, location'
+      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published, time, location, sponsor',
     )
     .eq('id', classId)
     .single();
@@ -55,14 +44,14 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     supabase
       .from('class_entries')
       .select(
-        'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override, ride_started_at'
+        'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override, ride_started_at',
       )
       .eq('class_id', classId)
       .order('ride_order'),
     supabase
       .from('scores')
       .select(
-        'id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted, signed_by, signed_at, updated_at'
+        'id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted, signed_by, signed_at, updated_at',
       )
       .eq('class_id', classId),
   ]);
@@ -72,7 +61,9 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   if (entriesRes.error) throw entriesRes.error;
   if (scoresRes.error) throw scoresRes.error;
 
-  let test = classTestRes.data ? parseTestDefinition(classTestRes.data.name, classTestRes.data) : null;
+  let test = classTestRes.data
+    ? parseTestDefinition(classTestRes.data.name, classTestRes.data)
+    : null;
 
   if (!test && cls.catalog_id) {
     const { data: catalog, error: catalogError } = await supabase
@@ -84,11 +75,6 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     test = catalog?.def ? parseTestDefinition(catalog.title, catalog.def) : null;
 
     if (test) {
-      // Test resolution is infrastructure, not a user-authorized write —
-      // legacy's own version ran with no permission gate at all. Seeded
-      // with the admin client so a plain Judge/Scribe (no canEditShow)
-      // isn't blocked by `class_tests_write`'s RLS on their own first
-      // load of an under-configured class.
       const admin = createAdminClient();
       const { error: seedError } = await admin.from('class_tests').upsert(
         {
@@ -97,7 +83,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
           movements: test.movements as unknown as Json,
           collectives: test.collectives as unknown as Json,
         },
-        { onConflict: 'class_id' }
+        { onConflict: 'class_id' },
       );
       if (seedError) throw seedError;
     }
@@ -107,7 +93,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     ...new Set(
       panelRes.data
         .flatMap((p) => [p.judge_staff_id, p.scribe_staff_id])
-        .filter((id): id is string => id !== null)
+        .filter((id): id is string => id !== null),
     ),
   ];
   const { data: staffRows, error: staffError } =
@@ -148,12 +134,6 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   const entries = allEntries.filter((e) => !e.holding);
   const holdingEntries = allEntries.filter((e) => e.holding);
 
-  // Same "write in a read" shape as the class_tests catalog fallback above —
-  // the moment the screen resolves who's currently being ridden, stamp a
-  // real anchor for the Ride Time countdown if this is the first time this
-  // entry has ever been current. Mirrors ScoringScreen's own currentEntry
-  // resolution (workingInEntryId, else entries[scoring_pos]) so the two never
-  // disagree about who "now" is.
   const currentEntry = cls.working_in_entry_id
     ? (allEntries.find((e) => e.id === cls.working_in_entry_id) ?? null)
     : (entries[cls.scoring_pos ?? 0] ?? null);
@@ -188,6 +168,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     classId,
     showName: showRes.data.name,
     className: cls.label,
+    sponsor: cls.sponsor,
     test,
     panel,
     entries,
@@ -204,12 +185,6 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   };
 }
 
-/**
- * The test definition for one class, resolved the same way getScoringState
- * resolves it (class_tests, else catalog fallback) — used by mutations that
- * need to compute a percentage (advanceRide) without pulling in the whole
- * scoring-state read.
- */
 export async function getTestForClass(classId: string) {
   const supabase = await createServerClient();
 
@@ -244,7 +219,6 @@ export interface PanelCandidate {
   role: 'Judge' | 'Scribe';
 }
 
-/** Every Judge/Scribe staffed on this class's show — populates the live Panel Assignment editor's selects. */
 export async function listPanelCandidates(classId: string): Promise<PanelCandidate[]> {
   const supabase = await createServerClient();
 
@@ -263,11 +237,13 @@ export async function listPanelCandidates(classId: string): Promise<PanelCandida
   if (error) throw error;
 
   return data
-    .filter((s): s is typeof s & { role: 'Judge' | 'Scribe' } => s.role === 'Judge' || s.role === 'Scribe')
+    .filter(
+      (s): s is typeof s & { role: 'Judge' | 'Scribe' } =>
+        s.role === 'Judge' || s.role === 'Scribe',
+    )
     .map((s) => ({ staffId: s.id, name: s.name, role: s.role }));
 }
 
-/** Which seat, if any, the signed-in caller holds on this class's panel. */
 export async function getMySeat(classId: string): Promise<MySeat | null> {
   const profile = await getStaffProfile();
   if (!profile) return null;
@@ -321,13 +297,6 @@ export async function getMySeat(classId: string): Promise<MySeat | null> {
 
 const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
 
-/**
- * The signed-in caller's effective scoring permissions for this class's show
- * — org-level roles hold every permission implicitly (they're never a
- * staff_assignments row at all, same convention `modules/staff/utils.ts`
- * documents); everyone else resolves through `resolveScoringPermissions`
- * against their own staff_assignments row.
- */
 export async function getMyScoringPermissions(classId: string) {
   const profile = await getStaffProfile();
   const allTrue = Object.fromEntries(PERMISSION_KEYS.map((k) => [k, true])) as Record<

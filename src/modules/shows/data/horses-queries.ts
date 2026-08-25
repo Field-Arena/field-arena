@@ -1,21 +1,10 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getDocumentRequirements, type DocumentRequirement } from './setup-queries';
-import { COGGINS_LABEL } from '../constants';
-
-/**
- * The Horses screen's reads: one row per horse entered in the show, built
- * from the entry roster rather than the horses table directly — an
- * organizer-imported roster carries horse *names* with no horses row behind
- * them (`horseId: null`), and listing only real records would show an empty
- * page for a show with a full start list. Where a real horses row does
- * exist, its document_uploads are cross-referenced against the show's own
- * document_requirements. Manually-added horses (shows.manual_horses) are
- * appended the same way legacy does — no real record, no documents.
- *
- * Ported from showstaff.html's showHorsesList() (~13638-13802) and its
- * helpers horseDocCellHtml/horseIsComplete/horseBigCheckHtml (~13505-13546).
- */
+import {
+  getDocumentRequirements,
+  type DocumentRequirement,
+} from '@/modules/shows/data/setup-queries';
+import { COGGINS_LABEL } from '@/modules/shows/constants';
 
 export interface ManualHorseEntry {
   id: string;
@@ -36,30 +25,30 @@ export interface HorseDocumentStatus {
   requirementId: string;
   label: string;
   uploaded: boolean;
-  /** Signed (horse-documents is a private bucket) — null when not uploaded. */
+
   url: string | null;
   expirationDate: string | null;
   requiresExpiration: boolean;
   requiresApproval: boolean;
   verified: boolean;
-  /** Uploaded, but past its expiration date. */
+
   expired: boolean;
-  /** Uploaded and current, but still awaiting a staff verification. */
+
   needsApproval: boolean;
 }
 
 export interface HorseRow {
   key: string;
-  /** Null for a roster entry with no real horses row, or a manually-added horse — see the module doc comment. Required to verify a document or send a reminder. */
+
   horseId: string | null;
   horseName: string;
   riderLabel: string;
-  /** Null when there is no real rider account to email — hides/disables the Remind action. */
+
   riderEmail: string | null;
   classesCount: number;
   isStallion: boolean;
   documents: HorseDocumentStatus[];
-  /** Every requirement satisfied: uploaded, not expired, and verified wherever approval is required. */
+
   complete: boolean;
   missingLabels: string[];
   needsVerification: boolean;
@@ -84,7 +73,6 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
   if (!showResult.data) return null;
   const show = showResult.data;
 
-  // Blank-label rows (still being typed in Setup) aren't a real document requirement yet.
   const docReqs = requirements.filter((r) => r.label.trim());
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -109,7 +97,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
       .select('horse, rider, horse_id, rider_id')
       .in(
         'class_id',
-        classes.map((c) => c.id)
+        classes.map((c) => c.id),
       );
     if (error) throw error;
 
@@ -153,8 +141,6 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
     }
   }
 
-  // Real per-rider email for the "Remind" action: from the entry's own
-  // rider_id where present, falling back to the horse record's rider_id.
   const riderIds = new Set<string>();
   for (const g of byHorse.values()) {
     if (g.riderId) riderIds.add(g.riderId);
@@ -174,15 +160,16 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
     for (const r of riders) emailByRiderId.set(r.id, r.email);
   }
 
-  // Signed URLs for every uploaded document, batched across every row so a
-  // large roster resolves in parallel rather than one row at a time.
   async function resolveDocuments(uploads: RawUpload[]): Promise<HorseDocumentStatus[]> {
     return Promise.all(
       docReqs.map(async (req): Promise<HorseDocumentStatus> => {
         const up = uploads.find((u) => u.requirementId === req.id);
         const uploaded = !!up;
         const expired =
-          uploaded && !!req.requiresExpiration && !!up.expirationDate && up.expirationDate < todayStr;
+          uploaded &&
+          !!req.requiresExpiration &&
+          !!up.expirationDate &&
+          up.expirationDate < todayStr;
         const needsApproval = uploaded && !!req.requiresApproval && !up.verified;
 
         let url: string | null = null;
@@ -205,7 +192,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
           expired,
           needsApproval,
         };
-      })
+      }),
     );
   }
 

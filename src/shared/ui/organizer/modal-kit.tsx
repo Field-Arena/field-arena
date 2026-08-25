@@ -1,14 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
-/**
- * The shared add/edit-dialog chrome from the design handoff's "Modals (shared
- * pattern)" section: a small gold rule + uppercase eyebrow above the serif
- * title, an `#F5F7F6` body on a deeper-shadowed shell, and a tinted footer bar
- * — used by AddHorseDialog, VenueFormDialog and AddUserDialog so the three
- * add/edit flows read as one family rather than three separately-styled
- * dialogs.
- */
 export const modalContentClass =
   'gap-0 rounded-2xl border border-[#E9EDEB] bg-[#F5F7F6] p-0 shadow-[0_40px_90px_rgba(9,26,21,.42)] sm:max-w-[480px]';
 

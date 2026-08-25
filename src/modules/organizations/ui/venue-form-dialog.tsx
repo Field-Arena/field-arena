@@ -14,8 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
-import { Input } from '@/shared/ui/shadcn/input';
-import { Label } from '@/shared/ui/shadcn/label';
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { IconX } from '@/shared/ui/organizer/icons';
 import {
@@ -25,12 +23,14 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { cn } from '@/shared/lib/utils';
-import { RING_SIZES, MAX_RINGS } from '../constants';
-import { venueDetailsSchema, type VenueDetailsInput } from '../schemas';
-import { useCreateVenue, useUpdateVenue } from '../hooks/use-venue-mutations';
-import { StableConfigDialog } from './stable-config-dialog';
-import { VT_LABEL, VT_INPUT, VT_ROW_INPUT, VT_NOTE, VT_SECTION_LABEL } from './venue-tokens';
-import type { VenueListItem, VenueRing, VenueStable } from '../types';
+import { MAX_RINGS } from '@/modules/organizations/constants';
+import { venueDetailsSchema, type VenueDetailsInput } from '@/modules/organizations/schemas';
+import { useCreateVenue, useUpdateVenue } from '@/modules/organizations/hooks/use-venue-mutations';
+import { StableConfigDialog } from '@/modules/organizations/ui/stable-config-dialog';
+import { VenueDetailsFields } from '@/modules/organizations/ui/venue-details-fields';
+import { VenueRingEditor } from '@/modules/organizations/ui/venue-ring-editor';
+import { VenueStableList } from '@/modules/organizations/ui/venue-stable-list';
+import type { VenueListItem, VenueRing, VenueStable } from '@/modules/organizations/types';
 
 function detailsDefaults(venue?: VenueListItem): VenueDetailsInput {
   return {
@@ -42,22 +42,6 @@ function detailsDefaults(venue?: VenueListItem): VenueDetailsInput {
   };
 }
 
-/**
- * Add/edit for one venue in the org's reusable library — showstaff.html's
- * locationEditorHtml (~line 5296), one dialog for name/address/contact plus
- * a saved ring layout and a saved stable/stall layout, all persisted
- * together on Save (see the createVenue/updateVenue doc comments for why
- * there is no separate save path for rings/stables).
- *
- * The ring editor is a deliberate copy of Show Manager's VenueCard
- * (modules/shows/ui/show-manager/venue-card.tsx) — same "Number of
- * rings/arenas" count field resizing a row list of name+size inputs, same
- * row layout and tokens (see venue-tokens.ts's doc comment for why those are
- * a local copy rather than an import). This dialog also manages rings and
- * stables as plain component state rather than react-hook-form fields, the
- * same way VenueCard manages its own ring rows with `useState` — the form
- * only wraps name/address/website/phone/contact (see venueDetailsSchema).
- */
 export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; trigger: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [rings, setRings] = useState<VenueRing[]>(venue?.rings ?? []);
@@ -172,179 +156,23 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
             noValidate
           >
             <div className={modalBodyClass + ' min-h-0 flex-1 overflow-y-auto'}>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="vf-name">
-                    Location name <span className="text-status-danger">*</span>
-                  </Label>
-                  <Input
-                    id="vf-name"
-                    placeholder="e.g. Wills Park Equestrian"
-                    {...form.register('name')}
-                  />
-                  {errors.name && (
-                    <p role="alert" className="text-status-danger text-[13px]">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
-                <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="vf-address">Address</Label>
-                  <Input id="vf-address" {...form.register('address')} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="vf-website">Website</Label>
-                  <Input id="vf-website" type="url" {...form.register('website')} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="vf-phone">Phone</Label>
-                  <Input id="vf-phone" type="tel" {...form.register('phone')} />
-                </div>
-                <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="vf-contact">Contact</Label>
-                  <Input id="vf-contact" {...form.register('contact')} />
-                </div>
-              </div>
+              <VenueDetailsFields register={form.register} errors={errors} />
 
-              <div>
-                <label className={VT_SECTION_LABEL}>Rings / arenas at this location</label>
-                <div className="mb-2.5 max-w-[160px]">
-                  <label htmlFor="vf-ring-count" className={VT_LABEL}>
-                    Number of rings/arenas
-                  </label>
-                  <input
-                    id="vf-ring-count"
-                    type="number"
-                    min={0}
-                    max={MAX_RINGS}
-                    value={rings.length}
-                    className={VT_INPUT}
-                    onChange={(e) => {
-                      setRingCount(e.target.value);
-                    }}
-                  />
-                </div>
+              <VenueRingEditor
+                rings={rings}
+                onSetCount={setRingCount}
+                onRename={renameRing}
+                onResize={resizeRing}
+              />
 
-                {rings.length === 0 ? (
-                  <p className="mb-1 text-[13px] text-[#7A8781] italic">
-                    No rings yet — add at least one
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {rings.map((ring, i) => (
-                      <div
-                        key={i}
-                        className="grid grid-cols-[22px_minmax(0,1fr)_170px] items-center gap-2.5"
-                      >
-                        <span className="text-forest text-[13px] font-bold">{i + 1}</span>
-                        <input
-                          value={ring.name}
-                          placeholder="e.g. Ring 1, Warm-up Ring"
-                          className={VT_ROW_INPUT}
-                          onChange={(e) => {
-                            renameRing(i, e.target.value);
-                          }}
-                        />
-                        <select
-                          value={ring.size}
-                          className={VT_ROW_INPUT + ' appearance-none'}
-                          onChange={(e) => {
-                            resizeRing(i, e.target.value as VenueRing['size']);
-                          }}
-                        >
-                          {RING_SIZES.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#E9EDEB] pt-4">
-                <label className={VT_SECTION_LABEL}>Stables at this location</label>
-                <p className={VT_NOTE}>
-                  Build the real stall layout once here — name each stall, mark any out of service —
-                  and every show at this venue picks it up ready to go, with the same stall names on
-                  the printed signage every time.
-                </p>
-
-                {stables.length === 0 ? (
-                  <p className="mb-2.5 text-[13px] text-[#7A8781] italic">
-                    No stables yet — add at least one
-                  </p>
-                ) : (
-                  <div className="mb-2.5 flex flex-col gap-2">
-                    {stables.map((stable, i) => {
-                      const stallCount = stable.stalls.length;
-                      const closedCount = stable.stalls.filter((s) => s.closed).length;
-                      return (
-                        <div key={i} className="rounded-[10px] border border-[#EDF0EE] p-3">
-                          <div className="mb-2 flex items-center gap-2">
-                            <input
-                              value={stable.name}
-                              aria-label="Stable name"
-                              placeholder="e.g. Stable A, North Barn"
-                              className={VT_ROW_INPUT + ' flex-1'}
-                              onChange={(e) => {
-                                renameStable(i, e.target.value);
-                              }}
-                            />
-                            <label className="flex items-center gap-1.5 text-[11px] whitespace-nowrap text-[#7A8781]">
-                              Rows
-                              <input
-                                type="number"
-                                min={1}
-                                value={stable.rowCount}
-                                className="w-[52px] rounded-lg border border-[#D9E1DD] px-2 py-1.5 text-[12.5px]"
-                                onChange={(e) => {
-                                  setStableRows(i, parseInt(e.target.value, 10) || 1);
-                                }}
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              className="text-status-danger text-[12.5px] font-semibold whitespace-nowrap hover:underline"
-                              onClick={() => {
-                                removeStable(i);
-                              }}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap items-center justify-between gap-2.5">
-                            <span className="text-[12.5px] text-[#6E7C76]">
-                              {stallCount
-                                ? `${String(stallCount)} stall${stallCount === 1 ? '' : 's'} built${closedCount ? ` · ${String(closedCount)} out of service` : ''}`
-                                : 'No stalls built yet'}
-                            </span>
-                            <button
-                              type="button"
-                              className="hover:border-gold rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#0D2C23] transition-colors"
-                              onClick={() => {
-                                setConfiguringStable(i);
-                              }}
-                            >
-                              {stallCount ? 'Configure stalls →' : 'Build stalls →'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  className="hover:border-gold rounded-[10px] border border-[#D9E1DD] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-[#0D2C23] transition-colors"
-                  onClick={addStable}
-                >
-                  + Add stable
-                </button>
-              </div>
+              <VenueStableList
+                stables={stables}
+                onRename={renameStable}
+                onSetRows={setStableRows}
+                onRemove={removeStable}
+                onAdd={addStable}
+                onConfigure={setConfiguringStable}
+              />
             </div>
 
             <DialogFooter className={modalFooterClass}>

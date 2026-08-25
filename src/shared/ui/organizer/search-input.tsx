@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
-/** Ported from the Admin Console design export's SearchInput.tsx. */
 export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   containerClassName?: string;
 }
@@ -15,8 +14,8 @@ export function SearchInput({
   return (
     <span
       className={cn(
-        'relative inline-flex flex-1 basis-[280px] items-center min-w-[240px]',
-        containerClassName
+        'relative inline-flex min-w-[240px] flex-1 basis-[280px] items-center',
+        containerClassName,
       )}
     >
       <svg
@@ -36,10 +35,10 @@ export function SearchInput({
       <input
         autoComplete={autoComplete}
         className={cn(
-          'w-full box-border rounded-[10px] border border-[#D9E1DD] bg-white',
-          'py-[11px] pl-9 pr-3.5 text-[13.5px] text-[#16261F]',
-          'placeholder:text-[#98A29D] focus:outline-none focus:border-[#C9A227]',
-          className
+          'box-border w-full rounded-[10px] border border-[#D9E1DD] bg-white',
+          'py-[11px] pr-3.5 pl-9 text-[13.5px] text-[#16261F]',
+          'placeholder:text-[#98A29D] focus:border-[#C9A227] focus:outline-none',
+          className,
         )}
         {...props}
       />

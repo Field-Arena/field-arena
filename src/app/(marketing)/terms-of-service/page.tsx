@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { TermsOfServiceContent } from '@/modules/marketing/content/legal';
+import { TermsOfServiceContent } from '@/modules/marketing/content/legal/terms-of-service-content';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | Field & Arena',

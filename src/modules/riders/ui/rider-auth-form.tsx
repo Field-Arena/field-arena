@@ -5,36 +5,20 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
 import Link from 'next/link';
-import { riderSignUpSchema, type RiderSignUpInput } from '../schemas';
+import { riderSignUpSchema, type RiderSignUpInput } from '@/modules/riders/schemas';
 import {
   useResendRiderSignUpCode,
   useSignUpRider,
   useVerifyRiderSignUpCode,
-} from '../hooks/use-rider-auth-mutations';
-import type { RiderSignUpStep } from '../types';
+} from '@/modules/riders/hooks/use-rider-auth-mutations';
+import type { RiderSignUpStep } from '@/modules/riders/types';
 import { ROUTES } from '@/shared/constants/routes';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
+import { Button } from '@/shared/ui/shadcn/button';
 
-/**
- * Self-service rider sign-up — "buy first, account second," reachable from
- * any show's public ticket page with no prior invite. Same two-step shape
- * as auth module's SignUpForm (create account → confirm the emailed code)
- * and now the same shared UI kit (`@/shared/ui/auth/*`) and copy patterns —
- * mail chip with "Change", resend cooldown, password strength meter — so a
- * rider signing up sees the same polish a staff member does, not a plainer
- * cousin of it. Only the data layer differs: this calls riders' own
- * signUpRider (self-service, no invite check), never auth's
- * signUpWithPassword.
- *
- * Sign-IN is not duplicated here: an existing rider already reaches the
- * standard /login form and lands correctly at ROUTES.rider (see
- * provisionedDestination in auth/data/mutations.ts) — only sign-up needed a
- * rider-specific path, since that is the one place the staff invite-only rule
- * would otherwise reject them.
- */
 export function RiderAuthForm() {
   const [step, setStep] = useState<RiderSignUpStep>('account');
   const [email, setEmail] = useState('');
@@ -65,8 +49,6 @@ export function RiderAuthForm() {
   const verify = useVerifyRiderSignUpCode();
   const resend = useResendRiderSignUpCode();
 
-  // Resend cooldown — cleared on unmount so a rider who navigates away
-  // mid-count doesn't leave an interval running against a dead component.
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => {
@@ -77,37 +59,35 @@ export function RiderAuthForm() {
     };
   }, [cooldown]);
 
-  // useWatch, not form.watch(): watch() returns a fresh function each render,
-  // which the React Compiler cannot memoize, so it bails out of optimising
-  // this whole component.
   const password = useWatch({ control: signUpForm.control, name: 'password' });
   const { errors } = signUpForm.formState;
 
   if (step === 'verify') {
     return (
       <div className="[animation:fa-in_.22s_ease-out_both]">
-        <h2 className="mb-2.5 font-[family-name:var(--font-nr)] text-[32px] font-medium leading-[1.06] tracking-[-.02em] text-forest">
+        <h2 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.02em]">
           Verify your email
         </h2>
-        <p className="mb-[22px] text-[15px] leading-[1.58] text-fa-muted">
+        <p className="text-fa-muted mb-[22px] text-[15px] leading-[1.58]">
           We sent a {EMAIL_CODE_LENGTH}-digit code to confirm this address.
         </p>
 
-        <div className="mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border border-line-mint bg-mint py-2.5 pl-3.5 pr-3">
-          <MailIcon className="size-[15px] text-fa-muted" aria-hidden />
-          <span className="text-sm font-medium text-forest">{email}</span>
-          <button
+        <div className="border-line-mint bg-mint mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border py-2.5 pr-3 pl-3.5">
+          <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
+          <span className="text-forest text-sm font-medium">{email}</span>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               setStep('account');
               setCode('');
               setFormError(null);
               verify.reset();
             }}
-            className="ml-0.5 border-l border-line-mint-2 py-0.5 pl-[11px] text-[12.5px] font-bold text-fa-muted transition-colors hover:text-gold"
+            className="border-line-mint-2 text-fa-muted hover:text-gold ml-0.5 h-auto rounded-none border-l px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
           >
             Change
-          </button>
+          </Button>
         </div>
 
         <form
@@ -123,7 +103,7 @@ export function RiderAuthForm() {
                 onError: (error) => {
                   setFormError(error.message);
                 },
-              }
+              },
             );
           }}
         >
@@ -137,10 +117,11 @@ export function RiderAuthForm() {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-4 border-b border-line pb-[22px]">
-            <span className="text-[13.5px] text-fa-muted">Didn&apos;t get it? Check spam, or</span>
-            <button
+          <div className="border-line flex items-center justify-between gap-4 border-b pb-[22px]">
+            <span className="text-fa-muted text-[13.5px]">Didn&apos;t get it? Check spam, or</span>
+            <Button
               type="button"
+              variant="ghost"
               disabled={cooldown > 0 || resend.isPending}
               onClick={() => {
                 resend.mutate(
@@ -149,13 +130,13 @@ export function RiderAuthForm() {
                     onSuccess: () => {
                       setCooldown(RESEND_COOLDOWN_SECONDS);
                     },
-                  }
+                  },
                 );
               }}
-              className="text-[13.5px] font-bold text-forest transition-colors hover:text-gold disabled:cursor-default disabled:text-[#9AA6A0] disabled:hover:text-[#9AA6A0]"
+              className="text-forest hover:text-gold h-auto rounded-none px-0 py-0 text-[13.5px] font-bold transition-colors hover:bg-transparent disabled:cursor-default disabled:text-[#9AA6A0] disabled:opacity-100 disabled:hover:text-[#9AA6A0]"
             >
               {cooldown > 0 ? `Resend in ${String(cooldown)}s` : 'Send a new code'}
-            </button>
+            </Button>
           </div>
 
           <div className="mt-[22px]">
@@ -170,10 +151,10 @@ export function RiderAuthForm() {
 
   return (
     <div className="[animation:fa-in_.22s_ease-out_both]">
-      <h2 className="mb-2.5 font-[family-name:var(--font-nr)] text-[32px] font-medium leading-[1.06] tracking-[-.02em] text-forest">
+      <h2 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.02em]">
         Create your account
       </h2>
-      <p className="mb-[26px] text-[15px] leading-[1.58] text-fa-muted">
+      <p className="text-fa-muted mb-[26px] text-[15px] leading-[1.58]">
         One login to enter classes at any Field &amp; Arena show.
       </p>
 

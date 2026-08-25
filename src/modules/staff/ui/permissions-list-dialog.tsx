@@ -14,14 +14,6 @@ import { IconSettings } from '@/shared/ui/organizer/icons';
 import { PERMISSION_KEYS } from '@/shared/constants/permissions';
 import type { UserDirectoryRow } from '../types';
 
-/**
- * "User Permissions" — a fast way into each staff member's permission editor,
- * ported from legacy's `openAccessLevelsModal`: a per-show list of staff,
- * each showing a live "N/13 on" permission count that opens the full editor
- * (StaffEditDialog) on click. The legacy version also let a role be changed
- * right from this list; that's already the first field inside the editor
- * dialog it opens into here, so it isn't duplicated a second time.
- */
 export function PermissionsListDialog({
   staff,
   showName,

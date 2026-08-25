@@ -1,16 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useDemoDialogStore } from '../../store';
+import { Button } from '@/shared/ui/shadcn/button';
+import { cn } from '@/shared/lib/utils';
+import { useDemoDialogStore } from '@/modules/marketing/store';
 
-/**
- * Opens the demo dialog.
- *
- * A button, not a link: the dialog is not a destination, and making it one meant
- * a navigation that remounted the dialog mid-submit (see the store). Every
- * "Book a demo" across the site renders this, which keeps the sections that use
- * it server components — only the trigger itself ships.
- */
 export function DemoTrigger({
   children,
   className,
@@ -23,8 +17,17 @@ export function DemoTrigger({
   const openDialog = useDemoDialogStore((state) => state.openDialog);
 
   return (
-    <button type="button" onClick={openDialog} className={className} aria-label={ariaLabel}>
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={openDialog}
+      aria-label={ariaLabel}
+      className={cn(
+        'h-auto rounded-none px-0 py-0 text-base font-normal hover:bg-transparent',
+        className,
+      )}
+    >
       {children}
-    </button>
+    </Button>
   );
 }
