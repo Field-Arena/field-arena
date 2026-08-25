@@ -84,13 +84,11 @@ export type DeleteVenueInput = z.input<typeof deleteVenueSchema>;
 const memberFields = {
   firstName: optionalText(120),
   lastName: optionalText(120),
-
   name: z.string().trim().min(1, 'A name is required').max(200),
   role: z.enum(MEMBER_TYPES),
   email: z.union([z.email('Enter a valid email address'), z.literal('')]).optional(),
   phone: optionalText(60),
   membershipStatus: z.enum(['active', 'inactive']),
-
   membershipExpires: z
     .union([
       z
@@ -101,7 +99,6 @@ const memberFields = {
     ])
     .optional(),
   notes: optionalText(1000),
-
   extraFields: z.record(z.string().max(120), z.string().max(500)).optional(),
 };
 
