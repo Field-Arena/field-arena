@@ -1,4 +1,13 @@
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from '@/shared/ui/shadcn/table';
 import type { ShowDocument } from '@/modules/announcements/data/queries';
 
 export function ShowDocumentsTable({ documents }: { documents: ShowDocument[] }) {
@@ -12,20 +21,22 @@ export function ShowDocumentsTable({ documents }: { documents: ShowDocument[] })
   }
 
   return (
-    <div style={{ overflowX: 'auto', marginTop: 16 }}>
-      <table>
-        <caption className="sr-only">Show documents</caption>
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col" />
-          </tr>
-        </thead>
-        <tbody>
+    <div style={{ marginTop: 16 }}>
+      <Table>
+        <TableCaption className="sr-only">Show documents</TableCaption>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead scope="col" className="h-auto px-0 py-2 text-left">
+              Name
+            </TableHead>
+            <TableHead scope="col" className="h-auto px-0 py-2" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {documents.map((d) => (
-            <tr key={d.id}>
-              <td>{d.name}</td>
-              <td className="r">
+            <TableRow key={d.id} className="hover:bg-transparent">
+              <TableCell className="px-0 py-2 whitespace-normal">{d.name}</TableCell>
+              <TableCell className="px-0 py-2 text-right whitespace-normal">
                 {d.url ? (
                   <a
                     href={d.url}
@@ -38,11 +49,11 @@ export function ShowDocumentsTable({ documents }: { documents: ShowDocument[] })
                 ) : (
                   <span className="card-meta">Unavailable</span>
                 )}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

@@ -1,4 +1,13 @@
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from '@/shared/ui/shadcn/table';
 import type { ResultRow } from '@/modules/announcements/data/queries';
 
 export function LiveResultsTable({ results }: { results: ResultRow[] }) {
@@ -12,40 +21,46 @@ export function LiveResultsTable({ results }: { results: ResultRow[] }) {
   }
 
   return (
-    <div style={{ overflowX: 'auto', marginTop: 16 }}>
-      <table>
-        <caption className="sr-only">Live results</caption>
-        <thead>
-          <tr>
-            <th scope="col">Class</th>
-            <th scope="col" className="r">
+    <div style={{ marginTop: 16 }}>
+      <Table>
+        <TableCaption className="sr-only">Live results</TableCaption>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead scope="col" className="h-auto px-0 py-2 text-left">
+              Class
+            </TableHead>
+            <TableHead scope="col" className="h-auto px-0 py-2 text-right">
               Place
-            </th>
-            <th scope="col">Rider</th>
-            <th scope="col">Horse</th>
-            <th scope="col" className="r">
+            </TableHead>
+            <TableHead scope="col" className="h-auto px-0 py-2 text-left">
+              Rider
+            </TableHead>
+            <TableHead scope="col" className="h-auto px-0 py-2 text-left">
+              Horse
+            </TableHead>
+            <TableHead scope="col" className="h-auto px-0 py-2 text-right">
               Score
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {results.map((row) => (
-            <tr key={`${row.classLabel}-${row.num}`}>
-              <td>{row.classLabel}</td>
-              <td className="r">
+            <TableRow key={`${row.classLabel}-${row.num}`} className="hover:bg-transparent">
+              <TableCell className="px-0 py-2 whitespace-normal">{row.classLabel}</TableCell>
+              <TableCell className="px-0 py-2 text-right whitespace-normal">
                 <strong>{row.place}</strong>
-              </td>
-              <td>
+              </TableCell>
+              <TableCell className="px-0 py-2 whitespace-normal">
                 #{row.num} {row.rider ?? '—'}
-              </td>
-              <td>{row.horse ?? '—'}</td>
-              <td className="r">
+              </TableCell>
+              <TableCell className="px-0 py-2 whitespace-normal">{row.horse ?? '—'}</TableCell>
+              <TableCell className="px-0 py-2 text-right whitespace-normal">
                 <span className="pct">{row.finalPct ?? '—'}</span>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
