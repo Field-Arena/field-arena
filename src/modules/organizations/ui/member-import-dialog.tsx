@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,39 +10,21 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
-import { useImportMembers } from '@/modules/organizations/hooks/use-member-mutations';
-import {
-  detectMemberCsvColumns,
-  type ParsedMemberCsvColumn,
-} from '@/modules/organizations/utils/detect-member-csv-columns';
-import { buildMemberRowsFromCsv } from '@/modules/organizations/utils/build-member-rows-from-csv';
+import { useMemberImport } from '@/modules/organizations/hooks/use-member-import';
 
 export function MemberImportDialog({ onClose }: { onClose: () => void }) {
-  const [columns, setColumns] = useState<ParsedMemberCsvColumn[]>([]);
-  const [dataLines, setDataLines] = useState<string[]>([]);
-  const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
-  const [fileName, setFileName] = useState('');
-
-  const importMembers = useImportMembers({ onSuccess: onClose });
-
-  function parse(text: string) {
-    const result = detectMemberCsvColumns(text);
-    if ('error' in result) {
-      setError(result.error);
-      return;
-    }
-
-    setError(null);
-    setColumns(result.columns);
-    setDataLines(result.dataLines);
-    setExcluded(new Set());
-  }
-
-  const pickable = columns.filter(
-    (c) => c.field !== 'name' && c.field !== 'firstName' && c.field !== 'lastName',
-  );
-  const rowCount = dataLines.length;
+  const {
+    columns,
+    fileName,
+    error,
+    excluded,
+    pickable,
+    rowCount,
+    loadFile,
+    toggleExcluded,
+    submit,
+    isPending,
+  } = useMemberImport({ onSuccess: onClose });
 
   return (
     <Dialog
@@ -70,8 +51,7 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                setFileName(file.name);
-                void file.text().then(parse);
+                loadFile(file);
               }}
             />
           ) : (
@@ -97,12 +77,7 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
                         type="checkbox"
                         checked={!excluded.has(col.header)}
                         onChange={() => {
-                          setExcluded((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(col.header)) next.delete(col.header);
-                            else next.add(col.header);
-                            return next;
-                          });
+                          toggleExcluded(col.header);
                         }}
                       />
                       {col.header}
@@ -123,19 +98,8 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            type="button"
-            disabled={columns.length === 0 || importMembers.isPending}
-            onClick={() => {
-              const rows = buildMemberRowsFromCsv(dataLines, columns, excluded);
-              if (rows.length === 0) {
-                setError('No rows in that file had a name.');
-                return;
-              }
-              importMembers.mutate({ rows });
-            }}
-          >
-            {importMembers.isPending ? 'Importing…' : 'Import →'}
+          <Button type="button" disabled={columns.length === 0 || isPending} onClick={submit}>
+            {isPending ? 'Importing…' : 'Import →'}
           </Button>
         </DialogFooter>
       </DialogContent>

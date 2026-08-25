@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import type { ReactNode } from 'react';
 import { Loader2Icon } from 'lucide-react';
 import {
   Dialog,
@@ -23,103 +21,40 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { cn } from '@/shared/lib/utils';
-import { MAX_RINGS } from '@/modules/organizations/constants';
-import { venueDetailsSchema, type VenueDetailsInput } from '@/modules/organizations/schemas';
-import { useCreateVenue, useUpdateVenue } from '@/modules/organizations/hooks/use-venue-mutations';
+import { useVenueForm } from '@/modules/organizations/hooks/use-venue-form';
 import { StableConfigDialog } from '@/modules/organizations/ui/stable-config-dialog';
 import { VenueDetailsFields } from '@/modules/organizations/ui/venue-details-fields';
 import { VenueRingEditor } from '@/modules/organizations/ui/venue-ring-editor';
 import { VenueStableList } from '@/modules/organizations/ui/venue-stable-list';
-import type { VenueListItem, VenueRing, VenueStable } from '@/modules/organizations/types';
-
-function detailsDefaults(venue?: VenueListItem): VenueDetailsInput {
-  return {
-    name: venue?.name ?? '',
-    address: venue?.address ?? '',
-    website: venue?.website ?? '',
-    phone: venue?.phone ?? '',
-    contact: venue?.contact ?? '',
-  };
-}
+import type { VenueListItem } from '@/modules/organizations/types';
 
 export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; trigger: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const [rings, setRings] = useState<VenueRing[]>(venue?.rings ?? []);
-  const [stables, setStables] = useState<VenueStable[]>(venue?.stables ?? []);
-  const [configuringStable, setConfiguringStable] = useState<number | null>(null);
-  const isEdit = !!venue;
-
-  const form = useForm<VenueDetailsInput>({
-    resolver: zodResolver(venueDetailsSchema),
-    defaultValues: detailsDefaults(venue),
-  });
+  const {
+    open,
+    onOpenChange,
+    isEdit,
+    form,
+    rings,
+    stables,
+    configuringStable,
+    setConfiguringStable,
+    activeStable,
+    setActiveStable,
+    isPending,
+    setRingCount,
+    renameRing,
+    resizeRing,
+    addStable,
+    removeStable,
+    renameStable,
+    setStableRows,
+    submit,
+  } = useVenueForm(venue);
   const { errors } = form.formState;
-
-  const create = useCreateVenue({
-    onSuccess: () => {
-      setOpen(false);
-    },
-  });
-  const update = useUpdateVenue({
-    onSuccess: () => {
-      setOpen(false);
-    },
-  });
-  const isPending = create.isPending || update.isPending;
-
-  function resetDraft() {
-    form.reset(detailsDefaults(venue));
-    setRings(venue?.rings ?? []);
-    setStables(venue?.stables ?? []);
-  }
-
-  function setRingCount(raw: string) {
-    const count = Math.max(0, Math.min(MAX_RINGS, Number(raw) || 0));
-    const next = Array.from(
-      { length: count },
-      (_, i) => rings[i] ?? { name: `Ring ${String(i + 1)}`, size: 'standard' as const },
-    );
-    setRings(next);
-  }
-
-  function renameRing(i: number, name: string) {
-    setRings(rings.map((r, idx) => (idx === i ? { ...r, name } : r)));
-  }
-
-  function resizeRing(i: number, size: VenueRing['size']) {
-    setRings(rings.map((r, idx) => (idx === i ? { ...r, size } : r)));
-  }
-
-  function addStable() {
-    setStables([
-      ...stables,
-      { name: `Stable ${String(stables.length + 1)}`, rowCount: 1, stalls: [] },
-    ]);
-  }
-
-  function removeStable(i: number) {
-    setStables(stables.filter((_, idx) => idx !== i));
-  }
-
-  function renameStable(i: number, name: string) {
-    setStables(stables.map((s, idx) => (idx === i ? { ...s, name } : s)));
-  }
-
-  function setStableRows(i: number, rowCount: number) {
-    setStables(stables.map((s, idx) => (idx === i ? { ...s, rowCount } : s)));
-  }
-
-  const activeStable = configuringStable != null ? (stables[configuringStable] ?? null) : null;
 
   return (
     <>
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (next) resetDraft();
-        }}
-      >
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
 
         <DialogContent
@@ -144,13 +79,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
 
           <form
             onSubmit={(event) => {
-              void form.handleSubmit((values) => {
-                if (isEdit) {
-                  update.mutate({ ...values, rings, stables, id: venue.id });
-                } else {
-                  create.mutate({ ...values, rings, stables });
-                }
-              })(event);
+              void form.handleSubmit(submit)(event);
             }}
             className="flex min-h-0 flex-1 flex-col"
             noValidate
@@ -179,7 +108,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
               <GhostButton
                 type="button"
                 onClick={() => {
-                  setOpen(false);
+                  onOpenChange(false);
                 }}
               >
                 Cancel
@@ -199,10 +128,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
         onOpenChange={(next) => {
           if (!next) setConfiguringStable(null);
         }}
-        onChange={(next) => {
-          if (configuringStable == null) return;
-          setStables(stables.map((s, idx) => (idx === configuringStable ? next : s)));
-        }}
+        onChange={setActiveStable}
       />
     </>
   );
