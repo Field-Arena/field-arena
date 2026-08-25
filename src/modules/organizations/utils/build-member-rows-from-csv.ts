@@ -33,7 +33,6 @@ export function buildMemberRowsFromCsv(
       name: name.trim(),
       firstName,
       lastName,
-
       role: role ?? 'Member',
       email: record.email ?? '',
       phone: record.phone ?? '',

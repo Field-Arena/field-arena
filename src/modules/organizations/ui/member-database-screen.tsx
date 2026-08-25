@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
@@ -15,20 +14,11 @@ import {
   TableRow,
 } from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
-import {
-  MEMBER_COLUMNS,
-  MEMBER_ROW_CAP,
-  type MemberColumnKey,
-} from '@/modules/organizations/constants';
+import { MEMBER_ROW_CAP, type MemberColumnKey } from '@/modules/organizations/constants';
 import type { MemberRow } from '@/modules/organizations/data/queries';
-import { buildMembersCsv } from '@/modules/organizations/utils/build-members-csv';
-import { useAddMembersToShow } from '@/modules/organizations/hooks/use-member-mutations';
+import { useMemberDatabase } from '@/modules/organizations/hooks/use-member-database';
 import { MemberEditDialog } from '@/modules/organizations/ui/member-edit-dialog';
 import { MemberImportDialog } from '@/modules/organizations/ui/member-import-dialog';
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function MemberDatabaseScreen({
   members,
@@ -37,59 +27,36 @@ export function MemberDatabaseScreen({
   members: MemberRow[];
   shows: { id: string; name: string }[];
 }) {
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
-  const [columnsOpen, setColumnsOpen] = useState(false);
-  const [checked, setChecked] = useState<Set<string>>(new Set());
-  const [editing, setEditing] = useState<MemberRow | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [targetShow, setTargetShow] = useState(shows[0]?.id ?? '');
-
-  const addToShow = useAddMembersToShow({
-    onSuccess: () => {
-      setChecked(new Set());
-    },
-  });
-
-  const columns = useMemo(() => {
-    const extraKeys = [...new Set(members.flatMap((m) => Object.keys(m.extraFields)))].sort();
-    return [
-      ...MEMBER_COLUMNS.map((c) => ({ key: c.key, label: c.label, extra: false })),
-      ...extraKeys.map((k) => ({ key: `extra:${k}`, label: k, extra: true })),
-    ];
-  }, [members]);
-
-  const roles = useMemo(
-    () => [...new Set(members.map((m) => m.role).filter((r): r is string => !!r))].sort(),
-    [members],
-  );
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return members
-      .filter((m) => {
-        if (roleFilter && m.role !== roleFilter) return false;
-        if (!q) return true;
-        return m.name.toLowerCase().includes(q) || (m.email ?? '').toLowerCase().includes(q);
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [members, search, roleFilter]);
-
-  const shown = filtered.slice(0, MEMBER_ROW_CAP);
-  const visibleCols = columns.filter((c) => !hiddenCols.has(c.key));
-  const today = todayIso();
-
-  function exportCsv() {
-    const csv = buildMembersCsv(members);
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'field-and-arena-member-database.csv';
-    link.click();
-    URL.revokeObjectURL(url);
-  }
+  const {
+    search,
+    setSearch,
+    roleFilter,
+    setRoleFilter,
+    columnsOpen,
+    setColumnsOpen,
+    checked,
+    toggleChecked,
+    toggleAllChecked,
+    clearChecked,
+    editing,
+    setEditing,
+    adding,
+    setAdding,
+    closeEditDialog,
+    importing,
+    setImporting,
+    targetShow,
+    setTargetShow,
+    addToShow,
+    columns,
+    roles,
+    filtered,
+    shown,
+    visibleCols,
+    toggleHiddenCol,
+    today,
+    exportCsv,
+  } = useMemberDatabase({ members, shows });
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
@@ -147,13 +114,7 @@ export function MemberDatabaseScreen({
           >
             {addToShow.isPending ? 'Adding…' : 'Add to Show →'}
           </PrimaryButton>
-          <GhostButton
-            onClick={() => {
-              setChecked(new Set());
-            }}
-          >
-            Clear
-          </GhostButton>
+          <GhostButton onClick={clearChecked}>Clear</GhostButton>
         </Card>
       )}
 
@@ -215,14 +176,9 @@ export function MemberDatabaseScreen({
                   >
                     <input
                       type="checkbox"
-                      checked={!hiddenCols.has(col.key)}
+                      checked={!col.hidden}
                       onChange={() => {
-                        setHiddenCols((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(col.key)) next.delete(col.key);
-                          else next.add(col.key);
-                          return next;
-                        });
+                        toggleHiddenCol(col.key);
                       }}
                     />
                     {col.label}
@@ -258,14 +214,7 @@ export function MemberDatabaseScreen({
                       title="Selects every match, not just the rows shown"
                       checked={filtered.length > 0 && filtered.every((m) => checked.has(m.id))}
                       onChange={(e) => {
-                        setChecked((prev) => {
-                          const next = new Set(prev);
-                          for (const m of filtered) {
-                            if (e.target.checked) next.add(m.id);
-                            else next.delete(m.id);
-                          }
-                          return next;
-                        });
+                        toggleAllChecked(e.target.checked);
                       }}
                     />
                   </TableHead>
@@ -302,12 +251,7 @@ export function MemberDatabaseScreen({
                           checked={checked.has(member.id)}
                           aria-label={`Select ${member.name}`}
                           onChange={(e) => {
-                            setChecked((prev) => {
-                              const next = new Set(prev);
-                              if (e.target.checked) next.add(member.id);
-                              else next.delete(member.id);
-                              return next;
-                            });
+                            toggleChecked(member.id, e.target.checked);
                           }}
                         />
                       </TableCell>
@@ -320,7 +264,6 @@ export function MemberDatabaseScreen({
                           key={col.key}
                           className={cn(
                             'py-2 whitespace-normal',
-
                             (col.key === 'notes' || col.extra) && 'text-[12px] text-[#7A8781]',
                             col.key === 'membershipExpires' &&
                               expired &&
@@ -355,14 +298,7 @@ export function MemberDatabaseScreen({
       </Card>
 
       {(editing ?? adding) && (
-        <MemberEditDialog
-          key={editing?.id ?? 'new'}
-          member={editing}
-          onClose={() => {
-            setEditing(null);
-            setAdding(false);
-          }}
-        />
+        <MemberEditDialog key={editing?.id ?? 'new'} member={editing} onClose={closeEditDialog} />
       )}
 
       {importing && (
