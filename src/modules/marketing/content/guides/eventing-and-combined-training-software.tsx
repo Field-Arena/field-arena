@@ -3,6 +3,14 @@ import { ArticleShell } from '@/modules/marketing/ui/article-shell';
 import { GuideBreadcrumb } from '@/modules/marketing/content/guides/guide-breadcrumb';
 import { DemoLink } from '@/modules/marketing/content/guides/demo-link';
 import { CtaBand } from '@/modules/marketing/content/guides/cta-band';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export function EventingAndCombinedTrainingSoftware(): ReactElement {
   return (
@@ -142,36 +150,36 @@ export function EventingAndCombinedTrainingSoftware(): ReactElement {
 
         <hr />
         <h2>Field-Arena vs. Traditional Event Management Methods</h2>
-        <table className="compare">
-          <thead>
-            <tr>
-              <th>Traditional Process</th>
-              <th>Field-Arena</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Multiple spreadsheets</td>
-              <td>One connected system</td>
-            </tr>
-            <tr>
-              <td>Manual score calculations</td>
-              <td>Integrated scoring workflow</td>
-            </tr>
-            <tr>
-              <td>Separate records</td>
-              <td>Centralized competitor information</td>
-            </tr>
-            <tr>
-              <td>Repeated data entry</td>
-              <td>Connected event data</td>
-            </tr>
-            <tr>
-              <td>Slow results preparation</td>
-              <td>Faster results management</td>
-            </tr>
-          </tbody>
-        </table>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Traditional Process</TableHead>
+              <TableHead>Field-Arena</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>Multiple spreadsheets</TableCell>
+              <TableCell>One connected system</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Manual score calculations</TableCell>
+              <TableCell>Integrated scoring workflow</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Separate records</TableCell>
+              <TableCell>Centralized competitor information</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Repeated data entry</TableCell>
+              <TableCell>Connected event data</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Slow results preparation</TableCell>
+              <TableCell>Faster results management</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
 
         <div className="callout">
           Generic event software was not designed for horse sports. Field-Arena understands horse

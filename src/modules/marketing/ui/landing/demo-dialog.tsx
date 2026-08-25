@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller } from 'react-hook-form';
 import { ArrowRightIcon, CheckIcon, CircleAlertIcon, Loader2Icon } from 'lucide-react';
 import {
   Dialog,
@@ -14,10 +12,17 @@ import {
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Textarea } from '@/shared/ui/shadcn/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/shadcn/select';
 import { cn } from '@/shared/lib/utils';
 import { DEMO_DISCIPLINES, DEMO_VOLUMES, CALENDLY_URL } from '@/modules/marketing/landing-content';
-import { demoRequestSchema, type DemoRequestInput } from '@/modules/marketing/schemas';
-import { useDemoRequest } from '@/modules/marketing/hooks/use-demo-request';
+import { useDemoDialog } from '@/modules/marketing/hooks/use-demo-dialog';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
 const FIELD =
@@ -32,31 +37,8 @@ export function DemoDialog({
   open: boolean;
   onOpenChange: (next: boolean) => void;
 }) {
-  const [sent, setSent] = useState(false);
-  const request = useDemoRequest();
-
-  const form = useForm<DemoRequestInput>({
-    resolver: zodResolver(demoRequestSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      organization: '',
-      discipline: 'Dressage',
-      volume: '4–10',
-      notes: '',
-    },
-  });
-
+  const { sent, form, request, close, submit } = useDemoDialog(onOpenChange);
   const { errors } = form.formState;
-
-  function close(next: boolean) {
-    onOpenChange(next);
-    if (!next) {
-      setSent(false);
-      form.reset();
-      request.reset();
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -119,13 +101,7 @@ export function DemoDialog({
               noValidate
               className="mt-2 space-y-4"
               onSubmit={(event) => {
-                void form.handleSubmit((values) => {
-                  request.mutate(values, {
-                    onSuccess: () => {
-                      setSent(true);
-                    },
-                  });
-                })(event);
+                void form.handleSubmit(submit)(event);
               }}
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -180,29 +156,47 @@ export function DemoDialog({
                   <Label htmlFor="demo-discipline" className={LABEL}>
                     Discipline
                   </Label>
-                  <select
-                    id="demo-discipline"
-                    className={cn(FIELD, 'appearance-none')}
-                    {...form.register('discipline')}
-                  >
-                    {DEMO_DISCIPLINES.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
-                  </select>
+                  <Controller
+                    control={form.control}
+                    name="discipline"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="demo-discipline" className={cn(FIELD, 'w-full')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DEMO_DISCIPLINES.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="demo-volume" className={LABEL}>
                     Shows per year
                   </Label>
-                  <select
-                    id="demo-volume"
-                    className={cn(FIELD, 'appearance-none')}
-                    {...form.register('volume')}
-                  >
-                    {DEMO_VOLUMES.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
-                  </select>
+                  <Controller
+                    control={form.control}
+                    name="volume"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="demo-volume" className={cn(FIELD, 'w-full')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DEMO_VOLUMES.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -210,7 +204,7 @@ export function DemoDialog({
                 <Label htmlFor="demo-notes" className={LABEL}>
                   Anything else? <span className="font-medium normal-case">(optional)</span>
                 </Label>
-                <textarea
+                <Textarea
                   id="demo-notes"
                   rows={3}
                   placeholder="Entries, scoring, scheduling, volunteers, results, finances…"
