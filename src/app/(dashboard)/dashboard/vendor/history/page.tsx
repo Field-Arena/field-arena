@@ -5,19 +5,6 @@ import { formatMoney } from '@/shared/lib/format/currency';
 
 export const metadata: Metadata = { title: 'History — Field & Arena' };
 
-/**
- * "History" — ported from vendor.html's fourth tab: shows this vendor has
- * vended at.
- *
- * Legacy filtered on a `status === 'completed'` the real backend never
- * actually produced (vendor_bookings.status there was only ever 'pending' or
- * 'confirmed' — see the port's own note on that in queries.ts's listMyBookings
- * doc comment); the legacy History tab was effectively dead for a real
- * vendor. This schema's status enum adds a genuine terminal 'paid' state, so
- * History here is real: paid bookings whose show has already happened —
- * intentionally different from legacy's dead code, not a gap, since it is
- * the only interpretation that gives this tab any real data to show.
- */
 export default async function VendorHistoryPage() {
   const bookings = await listMyBookings();
   const today = new Date().toISOString().slice(0, 10);
@@ -36,7 +23,10 @@ export default async function VendorHistoryPage() {
 
       <div className="dash-card">
         {past.length === 0 ? (
-          <EmptyPanel title="No completed shows yet" note="Paid bookings appear here once their show has passed." />
+          <EmptyPanel
+            title="No completed shows yet"
+            note="Paid bookings appear here once their show has passed."
+          />
         ) : (
           <table>
             <thead>

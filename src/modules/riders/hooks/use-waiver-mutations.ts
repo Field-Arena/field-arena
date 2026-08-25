@@ -3,8 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
-import { signWaiver } from '../data/mutations';
-import type { WaiverSignInput } from '../schemas';
+import { signWaiver } from '@/modules/riders/data/mutations';
+import type { WaiverSignInput } from '@/modules/riders/schemas';
 
 export function useSignWaiver(options?: { onSuccess?: () => void }) {
   return useMutation({

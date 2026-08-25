@@ -2,11 +2,6 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { GUIDE_SLUGS, getGuide } from '@/modules/marketing/content/guides';
 
-/**
- * Guides are static prose, so all nine are pre-rendered at build time.
- * `dynamicParams: false` makes any other slug a 404 instead of an attempt to
- * render a guide that does not exist.
- */
 export const dynamicParams = false;
 
 export function generateStaticParams() {

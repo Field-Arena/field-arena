@@ -9,16 +9,18 @@ import {
   signOutRider,
   signUpRider,
   verifyRiderSignUpCode,
-} from '../data/mutations';
-import type { RiderResendCodeInput, RiderSignUpInput, RiderVerifyInput } from '../schemas';
-import type { RiderResendOutcome, RiderSignUpOutcome, RiderVerifyOutcome } from '../types';
+} from '@/modules/riders/data/mutations';
+import type {
+  RiderResendCodeInput,
+  RiderSignUpInput,
+  RiderVerifyInput,
+} from '@/modules/riders/schemas';
+import type {
+  RiderResendOutcome,
+  RiderSignUpOutcome,
+  RiderVerifyOutcome,
+} from '@/modules/riders/types';
 
-/**
- * Every outcome here is DATA, not a thrown error — see RiderSignUpOutcome.
- * Same shape as auth module's useSignUp, kept as its own hook rather than
- * reused: it calls riders' own signUpRider (self-service, no invite check),
- * not auth's signUpWithPassword.
- */
 export function useSignUpRider(options?: {
   onVerifyNeeded?: (email: string) => void;
   onAlreadyRegistered?: () => void;
