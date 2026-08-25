@@ -13,21 +13,12 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Incomplete Shows — Field & Arena' };
 
-/**
- * "View incomplete shows →" from the Dashboard — every unpublished show for
- * the org, with a real per-section completeness breakdown behind each
- * "INCOMPLETE" badge. See getShowCompleteness for why the breakdown only
- * covers sections this app can actually check.
- */
 export default async function IncompleteShowsPage() {
   const context = await getOrganizerContext();
 
   if (!context.orgId) {
     return (
-      <EmptyPanel
-        title="No organization"
-        note="This account is not attached to an organization."
-      />
+      <EmptyPanel title="No organization" note="This account is not attached to an organization." />
     );
   }
 
@@ -36,7 +27,7 @@ export default async function IncompleteShowsPage() {
     shows.map(async (show) => ({
       show,
       completeness: await getShowCompleteness(show.id),
-    }))
+    })),
   );
 
   return <IncompleteShowsScreen orgName={context.orgName} rows={rows} />;

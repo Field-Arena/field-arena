@@ -11,12 +11,6 @@ import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 
 export const metadata: Metadata = { title: 'Stable Chart — Field & Arena' };
 
-/**
- * "Stable Chart" — a sub-route of Horses (reached from, and returns to, the
- * Horses screen — see horses-screen.tsx's "🏠 Stable Chart" button), matching
- * legacy's showStableChart() (~14042). `?show=` and the WorkspaceHeader
- * chrome are wired exactly like horses/page.tsx.
- */
 export default async function StableChartPage({
   searchParams,
 }: {
@@ -27,7 +21,7 @@ export default async function StableChartPage({
 
   if (!context.currentShow) {
     return (
-      <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
         <EmptyPanel title="No shows yet" note="The stable chart is per show." />
       </div>
     );
@@ -47,7 +41,7 @@ export default async function StableChartPage({
     .filter((name): name is string => !!name);
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-ink-deep">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <WorkspaceHeader
         orgName={context.orgName}
         shows={context.shows}

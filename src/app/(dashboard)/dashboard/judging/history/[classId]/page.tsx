@@ -6,11 +6,6 @@ import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 
 export const metadata: Metadata = { title: 'Placings — Field & Arena' };
 
-/**
- * History drill-down, level 2: one completed class's placings, each row
- * linking to that rider's full scorecard (level 3). Ported from
- * judge-scribe.html's `historyView()` event-detail state.
- */
 export default async function HistoryClassPlacingsPage({
   params,
 }: {
@@ -24,7 +19,7 @@ export default async function HistoryClassPlacingsPage({
       <div className="mb-[22px]">
         <Link
           href="/dashboard/judging/history"
-          className="mb-2 inline-block text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+          className="hover:text-gold mb-2 inline-block text-[13px] font-semibold text-[#5A6B63]"
         >
           ← Back to History
         </Link>

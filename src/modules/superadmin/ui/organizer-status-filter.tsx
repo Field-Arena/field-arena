@@ -1,15 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 
-/**
- * The "All / Onboard / Pending" pill row above the organizers table.
- *
- * Plain links carrying a `status` search param, not a client toggle — the
- * table it filters is a Server Component reading `searchParams`, and a click
- * here is a discrete choice rather than something that needs debouncing the
- * way free-text search does (see OrganizerSearch). Keeping it server-rendered
- * means the table never needs a client boundary.
- */
 export interface OrganizerStatusCounts {
   all: number;
   onboard: number;
@@ -48,7 +39,7 @@ export function OrganizerStatusFilter({
               'inline-flex h-8 items-center rounded-full px-3.5 text-[12.5px] font-semibold transition-colors',
               active === tab.key
                 ? 'bg-forest text-paper'
-                : 'border border-line bg-white text-forest hover:border-gold'
+                : 'border-line text-forest hover:border-gold border bg-white',
             )}
           >
             {tab.label} {tab.count}
