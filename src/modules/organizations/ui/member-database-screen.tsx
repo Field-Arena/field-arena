@@ -6,35 +6,30 @@ import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
 import { SearchInput } from '@/shared/ui/organizer/search-input';
 import { StatusBadge } from '@/shared/ui/status-badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
 import {
   MEMBER_COLUMNS,
-  MEMBER_CSV_HEADERS,
   MEMBER_ROW_CAP,
   type MemberColumnKey,
-} from '../constants';
-import type { MemberRow } from '../data/queries';
-import { useAddMembersToShow } from '../hooks/use-member-mutations';
-import { MemberEditDialog } from './member-edit-dialog';
-import { MemberImportDialog } from './member-import-dialog';
+} from '@/modules/organizations/constants';
+import type { MemberRow } from '@/modules/organizations/data/queries';
+import { buildMembersCsv } from '@/modules/organizations/utils/build-members-csv';
+import { useAddMembersToShow } from '@/modules/organizations/hooks/use-member-mutations';
+import { MemberEditDialog } from '@/modules/organizations/ui/member-edit-dialog';
+import { MemberImportDialog } from '@/modules/organizations/ui/member-import-dialog';
 
-/** Today in ISO, for the expired check. */
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function csvCell(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
-/**
- * The organization's contact database — ported from showstaff.html's
- * renderMemberDb / updateMemberDbTable.
- *
- * One list of everyone the organization deals with, independent of any show.
- * Checking people and adding them to a show *copies* them in; they stay here
- * either way, which is the distinction the screen's own note draws.
- */
 export function MemberDatabaseScreen({
   members,
   shows,
@@ -58,12 +53,6 @@ export function MemberDatabaseScreen({
     },
   });
 
-  /**
-   * The toggleable columns: the fixed six, plus one per custom field any
-   * imported row carries — memberColumnDefs concatenates `extra:` columns the
-   * same way, so a spreadsheet's own columns are as visible as the built-in
-   * ones instead of only surfacing inside a person's detail.
-   */
   const columns = useMemo(() => {
     const extraKeys = [...new Set(members.flatMap((m) => Object.keys(m.extraFields)))].sort();
     return [
@@ -93,31 +82,8 @@ export function MemberDatabaseScreen({
   const today = todayIso();
 
   function exportCsv() {
-    const headers = [...MEMBER_CSV_HEADERS];
-    const extraKeys = [...new Set(members.flatMap((m) => Object.keys(m.extraFields)))].sort();
-    const lines = [[...headers, ...extraKeys].map(csvCell).join(',')];
-
-    for (const m of members) {
-      // A person imported without split names still exports as two columns —
-      // the display name is the only thing that survived, so it leads.
-      const first = m.firstName ?? m.name.split(/\s+/).slice(0, -1).join(' ');
-      const last = m.lastName ?? m.name.split(/\s+/).slice(-1).join(' ');
-      lines.push(
-        [
-          first,
-          last,
-          m.role ?? '',
-          m.phone ?? '',
-          m.email ?? '',
-          m.notes ?? '',
-          ...extraKeys.map((k) => m.extraFields[k] ?? ''),
-        ]
-          .map(csvCell)
-          .join(','),
-      );
-    }
-
-    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+    const csv = buildMembersCsv(members);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const link = document.createElement('a');
     link.href = url;
     link.download = 'field-and-arena-member-database.csv';
@@ -156,7 +122,6 @@ export function MemberDatabaseScreen({
         </div>
       </div>
 
-      {/* Only appears once something is checked, matching the legacy add-bar. */}
       {checked.size > 0 && (
         <Card className="mb-4 flex flex-wrap items-center gap-2.5 p-4">
           <b className="text-[13.5px]">{checked.size} selected</b>
@@ -283,22 +248,16 @@ export function MemberDatabaseScreen({
           </p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table className="w-full border-collapse text-[13px]">
+            <Table className="border-collapse text-[13px]">
               <caption className="sr-only">Everyone in your organization&apos;s database</caption>
-              <thead>
-                <tr className="border-b border-[#E9EDEB]">
-                  <th scope="col" className="w-[30px] py-2">
+              <TableHeader className="[&_tr]:border-0">
+                <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+                  <TableHead scope="col" className="h-auto w-[30px] py-2">
                     <input
                       type="checkbox"
                       title="Selects every match, not just the rows shown"
                       checked={filtered.length > 0 && filtered.every((m) => checked.has(m.id))}
                       onChange={(e) => {
-                        // Adds or removes only the current matches, leaving a
-                        // selection made under a different filter alone — the
-                        // legacy toggleAllMembers walks the filtered list and
-                        // adds/deletes each rather than replacing the set. It
-                        // covers every match, not just the capped rows on
-                        // screen, which is what its title promised.
                         setChecked((prev) => {
                           const next = new Set(prev);
                           for (const m of filtered) {
@@ -309,31 +268,31 @@ export function MemberDatabaseScreen({
                         });
                       }}
                     />
-                  </th>
-                  <th scope="col" className="py-2 text-left">
+                  </TableHead>
+                  <TableHead scope="col" className="h-auto py-2 text-left">
                     Name
-                  </th>
+                  </TableHead>
                   {visibleCols.map((col) => (
-                    <th key={col.key} scope="col" className="py-2 text-left">
+                    <TableHead key={col.key} scope="col" className="h-auto py-2 text-left">
                       {col.label}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {shown.map((member) => {
                   const expired = !!member.membershipExpires && member.membershipExpires < today;
 
                   return (
-                    <tr
+                    <TableRow
                       key={member.id}
                       onClick={() => {
                         setEditing(member);
                       }}
                       className="cursor-pointer border-b border-[#F1F4F3] hover:bg-[#F8FAF9]"
                     >
-                      <td
-                        className="py-2"
+                      <TableCell
+                        className="py-2 whitespace-normal"
                         onClick={(e) => {
                           e.stopPropagation();
                         }}
@@ -351,17 +310,17 @@ export function MemberDatabaseScreen({
                             });
                           }}
                         />
-                      </td>
-                      <td className="py-2 font-semibold">{member.name}</td>
+                      </TableCell>
+                      <TableCell className="py-2 font-semibold whitespace-normal">
+                        {member.name}
+                      </TableCell>
 
                       {visibleCols.map((col) => (
-                        <td
+                        <TableCell
                           key={col.key}
                           className={cn(
-                            'py-2',
-                            // Notes and imported columns read as supplementary —
-                            // smaller and muted, so the identifying columns stay
-                            // the ones the eye lands on.
+                            'py-2 whitespace-normal',
+
                             (col.key === 'notes' || col.extra) && 'text-[12px] text-[#7A8781]',
                             col.key === 'membershipExpires' &&
                               expired &&
@@ -384,13 +343,13 @@ export function MemberDatabaseScreen({
                           ) : (
                             (member[col.key as MemberColumnKey] ?? '—')
                           )}
-                        </td>
+                        </TableCell>
                       ))}
-                    </tr>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </Card>

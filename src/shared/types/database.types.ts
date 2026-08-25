@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       add_ons: {
@@ -328,6 +353,7 @@ export type Database = {
           id: string
           movements: Json | null
           name: string
+          sections: Json | null
         }
         Insert: {
           class_id: string
@@ -336,6 +362,7 @@ export type Database = {
           id?: string
           movements?: Json | null
           name: string
+          sections?: Json | null
         }
         Update: {
           class_id?: string
@@ -344,6 +371,7 @@ export type Database = {
           id?: string
           movements?: Json | null
           name?: string
+          sections?: Json | null
         }
         Relationships: [
           {
@@ -381,10 +409,12 @@ export type Database = {
           results_published_at: string | null
           ribbon_colors: Json | null
           ribbon_places: number | null
+          run_order: number | null
           score_format: string | null
           scoring_open: boolean | null
           scoring_pos: number | null
           show_id: string
+          sponsor: string | null
           test_options: Json | null
           time: string | null
           working_in_entry_id: string | null
@@ -414,10 +444,12 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          run_order?: number | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
           show_id: string
+          sponsor?: string | null
           test_options?: Json | null
           time?: string | null
           working_in_entry_id?: string | null
@@ -447,10 +479,12 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          run_order?: number | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
           show_id?: string
+          sponsor?: string | null
           test_options?: Json | null
           time?: string | null
           working_in_entry_id?: string | null
@@ -1447,37 +1481,70 @@ export type Database = {
       }
       test_templates: {
         Row: {
+          arena_size: string | null
           collectives: Json | null
           created_at: string
+          discipline: string | null
+          governing_body: string | null
           id: string
           level: string | null
+          max_points: number | null
           movements: Json | null
           name: string
           org_id: string
+          penalties: Json | null
+          ride_time: string | null
+          scoring_config: Json | null
+          scoring_method: string | null
+          sections: Json | null
+          sheet_type: string | null
           source_label: string | null
           updated_at: string
+          version_year: string | null
         }
         Insert: {
+          arena_size?: string | null
           collectives?: Json | null
           created_at?: string
+          discipline?: string | null
+          governing_body?: string | null
           id?: string
           level?: string | null
+          max_points?: number | null
           movements?: Json | null
           name: string
           org_id: string
+          penalties?: Json | null
+          ride_time?: string | null
+          scoring_config?: Json | null
+          scoring_method?: string | null
+          sections?: Json | null
+          sheet_type?: string | null
           source_label?: string | null
           updated_at?: string
+          version_year?: string | null
         }
         Update: {
+          arena_size?: string | null
           collectives?: Json | null
           created_at?: string
+          discipline?: string | null
+          governing_body?: string | null
           id?: string
           level?: string | null
+          max_points?: number | null
           movements?: Json | null
           name?: string
           org_id?: string
+          penalties?: Json | null
+          ride_time?: string | null
+          scoring_config?: Json | null
+          scoring_method?: string | null
+          sections?: Json | null
+          sheet_type?: string | null
           source_label?: string | null
           updated_at?: string
+          version_year?: string | null
         }
         Relationships: [
           {
@@ -1791,6 +1858,10 @@ export type Database = {
     }
     Functions: {
       abandon_stale_orders: { Args: never; Returns: undefined }
+      booking_is_pending: {
+        Args: { target_booking_id: string }
+        Returns: boolean
+      }
       booking_show_id: { Args: { target_booking_id: string }; Returns: string }
       can_access_org: { Args: { target_org_id: string }; Returns: boolean }
       can_manage_show: { Args: { target_show_id: string }; Returns: boolean }
@@ -1982,6 +2053,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

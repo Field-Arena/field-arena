@@ -2,27 +2,33 @@
 
 import { Fragment, useState } from 'react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { scoreLabel, sheetPct } from '../scoring-engine';
-import { toSheet } from '../utils';
+import { Button } from '@/shared/ui/shadcn/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
+import { scoreLabel, sheetPct } from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
 import {
   useCorrectEntry,
   useDisqualifyRide,
   useReopenScoresheet,
   useScratchRide,
   useSkipRide,
-} from '../hooks/use-scoring-mutations';
-import { ReasonModal } from './reason-modal';
-import type { PanelSeat, RideEntry, ScoreRow, TestDefinition } from '../types';
+} from '@/modules/scoring/hooks/use-scoring-mutations';
+import { ReasonModal } from '@/modules/scoring/ui/reason-modal';
+import type { PanelSeat, RideEntry, ScoreRow, TestDefinition } from '@/modules/scoring/types';
 
-type RowActionTarget = { entryId: string; kind: 'correct' | 'disqualify' | 'reopen'; seatId?: string } | null;
+type RowActionTarget = {
+  entryId: string;
+  kind: 'correct' | 'disqualify' | 'reopen';
+  seatId?: string;
+} | null;
 
-/**
- * Admin's every-ride grid, ported from showrunner-scoring.html's
- * `liveProgressTable()`: one row per entry, one column per panel seat's
- * sheet state, and row actions that vary by whether the ride is already
- * confirmed (Correct/Reopen) or not (Skip/Scratch/Disqualify) — operating
- * on any row, not just the current ride.
- */
 export function LiveProgressPanel({
   classId,
   entries,
@@ -58,23 +64,36 @@ export function LiveProgressPanel({
         scratch/skip/disqualify a rider who hasn&apos;t gone yet.
       </p>
 
-      <table className="w-full min-w-[720px] border-collapse text-[13px]">
-        <thead>
-          <tr className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
-            <th className="p-2">Draw</th>
-            <th className="p-2">Rider</th>
-            <th className="p-2">Horse</th>
+      <Table className="w-full min-w-[720px] border-collapse text-[13px]">
+        <TableHeader className="[&_tr]:border-0">
+          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Draw
+            </TableHead>
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Rider
+            </TableHead>
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Horse
+            </TableHead>
             {panel.map((seat) => (
-              <th key={seat.seatId} className="p-2">
+              <TableHead
+                key={seat.seatId}
+                className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase"
+              >
                 {seat.position ?? seat.seatId}
-              </th>
+              </TableHead>
             ))}
-            <th className="p-2 text-right">Final</th>
-            <th className="p-2">Status</th>
-            <th className="p-2"></th>
-          </tr>
-        </thead>
-        <tbody>
+            <TableHead className="h-auto p-2 text-right text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Final
+            </TableHead>
+            <TableHead className="h-auto p-2 text-left text-[11px] font-normal tracking-[.08em] text-[#7A8781] uppercase">
+              Status
+            </TableHead>
+            <TableHead className="h-auto p-2"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="[&_tr:last-child]:border-t [&_tr:last-child]:border-[#E9EDEB]">
           {entries.map((entry) => {
             const status = entry.advancedPast
               ? 'Confirmed'
@@ -86,122 +105,147 @@ export function LiveProgressPanel({
 
             return (
               <Fragment key={entry.id}>
-              <tr className="border-t border-[#E9EDEB] align-top">
-                <td className="p-2">{entry.draw ?? '—'}</td>
-                <td className="p-2 font-semibold text-ink-deep">{entry.rider ?? '—'}</td>
-                <td className="p-2">{entry.horse ?? '—'}</td>
-                {panel.map((seat) => {
-                  const score = scores.find((s) => s.entryId === entry.id && s.seatId === seat.seatId);
-                  if (!score) {
-                    return (
-                      <td key={seat.seatId} className="p-2 text-[#B4BFB9]">
-                        —
-                      </td>
+                <TableRow className="border-t border-b-0 border-[#E9EDEB] align-top hover:bg-transparent">
+                  <TableCell className="p-2 align-top whitespace-normal">
+                    {entry.draw ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-ink-deep p-2 align-top font-semibold whitespace-normal">
+                    {entry.rider ?? '—'}
+                  </TableCell>
+                  <TableCell className="p-2 align-top whitespace-normal">
+                    {entry.horse ?? '—'}
+                  </TableCell>
+                  {panel.map((seat) => {
+                    const score = scores.find(
+                      (s) => s.entryId === entry.id && s.seatId === seat.seatId,
                     );
-                  }
-                  if (!score.submitted) {
+                    if (!score) {
+                      return (
+                        <TableCell
+                          key={seat.seatId}
+                          className="p-2 align-top whitespace-normal text-[#B4BFB9]"
+                        >
+                          —
+                        </TableCell>
+                      );
+                    }
+                    if (!score.submitted) {
+                      return (
+                        <TableCell
+                          key={seat.seatId}
+                          className="p-2 align-top whitespace-normal text-[#7A8781]"
+                        >
+                          …
+                        </TableCell>
+                      );
+                    }
+                    const pct = test ? sheetPct(toSheet(score), test) : null;
                     return (
-                      <td key={seat.seatId} className="p-2 text-[#7A8781]">
-                        …
-                      </td>
+                      <TableCell key={seat.seatId} className="p-2 align-top whitespace-normal">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-ink-deep font-mono font-semibold">
+                            {pct !== null ? scoreLabel(pct) : '—'}
+                          </span>
+                          {!entry.advancedPast && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => {
+                                setTarget({
+                                  entryId: entry.id,
+                                  kind: 'reopen',
+                                  seatId: seat.seatId,
+                                });
+                              }}
+                              className="hover:text-gold h-auto rounded-none px-0 py-0 text-[11px] font-semibold text-[#5A6B63] underline hover:bg-transparent"
+                            >
+                              Reopen
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                     );
-                  }
-                  const pct = test ? sheetPct(toSheet(score), test) : null;
-                  return (
-                    <td key={seat.seatId} className="p-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-semibold text-ink-deep">
-                          {pct !== null ? scoreLabel(pct) : '—'}
-                        </span>
-                        {!entry.advancedPast && (
-                          <button
-                            type="button"
-                            className="text-[11px] font-semibold text-[#5A6B63] underline hover:text-gold"
-                            onClick={() => {
-                              setTarget({ entryId: entry.id, kind: 'reopen', seatId: seat.seatId });
-                            }}
-                          >
-                            Reopen
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-                <td className="p-2 text-right font-mono font-semibold text-ink-deep">
-                  {entry.finalPct ?? '—'}
-                </td>
-                <td className="p-2">{status}</td>
-                <td className="p-2">
-                  {entry.advancedPast ? (
-                    <GhostButton
-                      type="button"
-                      onClick={() => {
-                        setTarget({ entryId: entry.id, kind: 'correct' });
-                      }}
-                    >
-                      Correct
-                    </GhostButton>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
+                  })}
+                  <TableCell className="text-ink-deep p-2 text-right align-top font-mono font-semibold whitespace-normal">
+                    {entry.finalPct ?? '—'}
+                  </TableCell>
+                  <TableCell className="p-2 align-top whitespace-normal">{status}</TableCell>
+                  <TableCell className="p-2 align-top whitespace-normal">
+                    {entry.advancedPast ? (
                       <GhostButton
                         type="button"
-                        disabled={skip.isPending}
                         onClick={() => {
-                          skip.mutate({ classId, entryId: entry.id });
+                          setTarget({ entryId: entry.id, kind: 'correct' });
                         }}
                       >
-                        Skip
+                        Correct
                       </GhostButton>
-                      <GhostButton
-                        type="button"
-                        disabled={scratch.isPending}
-                        onClick={() => {
-                          if (
-                            !window.confirm(
-                              `Scratch #${entry.num}? They'll stay on the running order, marked as scratched.`
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        <GhostButton
+                          type="button"
+                          disabled={skip.isPending}
+                          onClick={() => {
+                            skip.mutate({ classId, entryId: entry.id });
+                          }}
+                        >
+                          Skip
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          disabled={scratch.isPending}
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                `Scratch #${entry.num}? They'll stay on the running order, marked as scratched.`,
+                              )
                             )
-                          )
-                            return;
-                          scratch.mutate({ classId, entryId: entry.id });
-                        }}
-                      >
-                        Scratch
-                      </GhostButton>
-                      <GhostButton
-                        type="button"
-                        className="border-[#E3B8B8] text-[#B23A3A] hover:border-[#B23A3A]"
-                        onClick={() => {
-                          setTarget({ entryId: entry.id, kind: 'disqualify' });
-                        }}
-                      >
-                        Disqualify
-                      </GhostButton>
-                    </div>
-                  )}
-                </td>
-              </tr>
-              {entry.correction && (
-                <tr className="border-t border-[#E9EDEB]">
-                  <td className="p-2"></td>
-                  <td className="p-2 text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
-                    Corrected · {entry.correction}
-                  </td>
-                </tr>
-              )}
-              {entry.reason && (
-                <tr className="border-t border-[#E9EDEB]">
-                  <td className="p-2"></td>
-                  <td className="p-2 text-[12px] text-[#7A8781]" colSpan={noteColSpan}>
-                    Eliminated · {entry.reason}
-                  </td>
-                </tr>
-              )}
+                              return;
+                            scratch.mutate({ classId, entryId: entry.id });
+                          }}
+                        >
+                          Scratch
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          className="border-[#E3B8B8] text-[#B23A3A] hover:border-[#B23A3A]"
+                          onClick={() => {
+                            setTarget({ entryId: entry.id, kind: 'disqualify' });
+                          }}
+                        >
+                          Disqualify
+                        </GhostButton>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+                {entry.correction && (
+                  <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                    <TableCell className="p-2 whitespace-normal"></TableCell>
+                    <TableCell
+                      className="p-2 text-[12px] whitespace-normal text-[#7A8781]"
+                      colSpan={noteColSpan}
+                    >
+                      Corrected · {entry.correction}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {entry.reason && (
+                  <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                    <TableCell className="p-2 whitespace-normal"></TableCell>
+                    <TableCell
+                      className="p-2 text-[12px] whitespace-normal text-[#7A8781]"
+                      colSpan={noteColSpan}
+                    >
+                      Eliminated · {entry.reason}
+                    </TableCell>
+                  </TableRow>
+                )}
               </Fragment>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       <ReasonModal
         open={target?.kind === 'correct'}
@@ -216,7 +260,11 @@ export function LiveProgressPanel({
           if (!target) return;
           correct.mutate(
             { classId, entryId: target.entryId, note },
-            { onSuccess: () => { setTarget(null); } }
+            {
+              onSuccess: () => {
+                setTarget(null);
+              },
+            },
           );
         }}
       />
@@ -234,7 +282,11 @@ export function LiveProgressPanel({
           if (!target) return;
           disqualify.mutate(
             { classId, entryId: target.entryId, reason },
-            { onSuccess: () => { setTarget(null); } }
+            {
+              onSuccess: () => {
+                setTarget(null);
+              },
+            },
           );
         }}
       />
@@ -252,7 +304,11 @@ export function LiveProgressPanel({
           if (!target?.seatId) return;
           reopen.mutate(
             { classId, entryId: target.entryId, seatId: target.seatId, reason },
-            { onSuccess: () => { setTarget(null); } }
+            {
+              onSuccess: () => {
+                setTarget(null);
+              },
+            },
           );
         }}
       />

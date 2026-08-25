@@ -6,7 +6,6 @@ import { RidersListScreen } from '@/modules/shows/ui/lists/riders-list-screen';
 
 export const metadata: Metadata = { title: 'Riders — Field & Arena' };
 
-/** Everyone registered for the focused show — the Dashboard's "Total riders" card. */
 export default async function RidersPage({
   searchParams,
 }: {

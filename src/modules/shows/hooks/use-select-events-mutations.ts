@@ -11,16 +11,15 @@ import {
   createTocClass,
   removeCatalogGroup,
   updateTicketWindow,
-} from '../data/mutations';
+} from '@/modules/shows/data/mutations';
 import type {
   AddCatalogGroupInput,
   AddCustomClassInput,
   AddQualTypePresetInput,
   CreateTocClassInput,
   UpdateTicketWindowInput,
-} from '../schemas';
+} from '@/modules/shows/schemas';
 
-/** Re-exported so every hook in this module reports the same way. */
 const message = readableError;
 
 export function useUpdateTicketWindow() {
@@ -44,12 +43,10 @@ export function useAddCatalogGroup() {
   return useMutation({
     mutationFn: (input: AddCatalogGroupInput) => addCatalogGroup(input),
     onSuccess: ({ added }, { group }) => {
-      // `added` is the count actually inserted, so re-checking a group the show
-      // already carries says so instead of claiming work that did not happen.
       toast.success(
         added === 0
           ? `${group} was already on this show`
-          : `${group} added — ${String(added)} ${added === 1 ? 'class' : 'classes'}`
+          : `${group} added — ${String(added)} ${added === 1 ? 'class' : 'classes'}`,
       );
       router.refresh();
     },

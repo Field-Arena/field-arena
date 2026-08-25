@@ -9,13 +9,6 @@ import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Rider Entries — Field & Arena' };
 
-/**
- * Show Manager, Rider Entries tab.
- *
- * What a rider can buy alongside an entry — branding, add-ons, vendor spaces
- * and map, qualifications. Not a list of entries, despite the tab's name; see
- * RiderEntriesPanel.
- */
 export default async function RiderEntriesPage({
   params,
 }: {

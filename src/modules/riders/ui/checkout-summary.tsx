@@ -1,24 +1,13 @@
 'use client';
 
-import { calcPlatformFee, calcPlatformFeeFlat8 } from '@/shared/lib/fees';
-import { useEntryCartStore } from '../store';
-import { useCreateCheckoutSession } from '../hooks/use-checkout-mutations';
-import type { AddOnWithRemaining, ClassWithCapacity, QualTypeRow } from '../types';
+import { useEntryCartStore } from '@/modules/riders/store';
+import { useCreateCheckoutSession } from '@/modules/riders/hooks/use-checkout-mutations';
+import { buildCheckoutCartPayload } from '@/modules/riders/utils/build-checkout-cart-payload';
+import { computeCartPreview } from '@/modules/riders/utils/compute-cart-preview';
+import type { AddOnWithRemaining, ClassWithCapacity, QualTypeRow } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 
-/**
- * Client-side preview only — the real, authoritative total is computed
- * server-side by data/checkout.ts's priceCart at "Proceed to payment" time,
- * and Stripe's own hosted Checkout page is what the rider actually confirms
- * against. This mirrors legacy's own accepted approximation (rider.html's
- * feeFor()): the fee model here is always the platform default (no
- * organization's `fee_model` is threaded into this preview), so a GMO-rate
- * show's preview can undercount slightly — corrected the moment the real
- * cart is priced. shared/lib/fees.ts's own header comment is what licenses
- * reusing calcPlatformFee client-side like this at all: "imported by both
- * the Server Action that charges and the form that previews."
- */
 export function CheckoutSummary({
   showId,
   classes,
@@ -30,15 +19,7 @@ export function CheckoutSummary({
   classes: ClassWithCapacity[];
   addOns: AddOnWithRemaining[];
   qualTypes: QualTypeRow[];
-  /**
-   * `true` when the show has no waiver text, or the rider already has a
-   * signature on file — `false` blocks checkout the same way an unassigned
-   * horse does. Without this, "Proceed to payment" stayed clickable for a
-   * rider who never scrolled up to sign, and the only feedback was
-   * priceCart's server-side rejection — whose message Next.js redacts in
-   * production (see readableError's doc comment), so the rider saw a bare
-   * "Could not start checkout" with no indication why.
-   */
+
   waiverSatisfied: boolean;
 }) {
   const selectedClassIds = useEntryCartStore((state) => state.selectedClassIds);
@@ -47,42 +28,15 @@ export function CheckoutSummary({
   const addOnQuantities = useEntryCartStore((state) => state.addOnQuantities);
   const createSession = useCreateCheckoutSession();
 
-  const classById = new Map(classes.map((cls) => [cls.id, cls]));
-  const qualById = new Map(qualTypes.map((qual) => [qual.id, qual]));
-  const addOnById = new Map(addOns.map((addOn) => [addOn.id, addOn]));
-
-  let total = 0;
-  let lineCount = 0;
-  for (const classId of selectedClassIds) {
-    const cls = classById.get(classId);
-    if (!cls) continue;
-    const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string => Boolean(id));
-    const qualTotal = [...(qualSelections[classId] ?? [])].reduce((sum, qualId) => {
-      const qual = qualById.get(qualId);
-      const price = qual?.price ?? 0;
-      return qual ? sum + price + calcPlatformFeeFlat8(price) : sum;
-    }, 0);
-    const classFee = cls.fee ?? 0;
-    total += horseIds.length * (classFee + calcPlatformFee(classFee, null) + qualTotal);
-    lineCount += horseIds.length;
-  }
-  for (const [addOnId, qty] of Object.entries(addOnQuantities)) {
-    if (qty <= 0) continue;
-    const addOn = addOnById.get(addOnId);
-    if (!addOn) continue;
-    const price = addOn.price ?? 0;
-    total += qty * (price + calcPlatformFeeFlat8(price));
-  }
-
-  const hasAddOns = Object.values(addOnQuantities).some((qty) => qty > 0);
-  const canCheckout = lineCount > 0 || hasAddOns;
-  // Every selected class needs at least one horse assigned before this is a
-  // real cart — the narrower version of legacy's realValidateDetails gate,
-  // since rider details and the waiver are already required earlier on this
-  // page rather than at this final step.
-  const everyClassAssigned = [...selectedClassIds].every((classId) =>
-    (classHorseAssignments[classId] ?? []).some(Boolean)
-  );
+  const { total, canCheckout, everyClassAssigned } = computeCartPreview({
+    classes,
+    addOns,
+    qualTypes,
+    selectedClassIds,
+    classHorseAssignments,
+    qualSelections,
+    addOnQuantities,
+  });
 
   return (
     <Card>
@@ -92,35 +46,35 @@ export function CheckoutSummary({
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-fa-muted">Estimated total</span>
-          <span className="text-lg font-semibold text-forest">${total.toFixed(2)}</span>
+          <span className="text-forest text-lg font-semibold">${total.toFixed(2)}</span>
         </div>
         {!canCheckout && (
-          <p className="text-xs text-fa-muted">Choose at least one class or add-on to continue.</p>
+          <p className="text-fa-muted text-xs">Choose at least one class or add-on to continue.</p>
         )}
         {canCheckout && !everyClassAssigned && (
-          <p className="text-xs text-destructive">Assign a horse to every selected class to continue.</p>
+          <p className="text-destructive text-xs">
+            Assign a horse to every selected class to continue.
+          </p>
         )}
         {canCheckout && everyClassAssigned && !waiverSatisfied && (
-          <p className="text-xs text-destructive">
+          <p className="text-destructive text-xs">
             Sign this show&apos;s waiver above to continue.
           </p>
         )}
         <Button
           type="button"
           className="w-full"
-          disabled={!canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending}
+          disabled={
+            !canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending
+          }
           onClick={() => {
-            const cart = [...selectedClassIds].flatMap((classId) => {
-              const horseIds = (classHorseAssignments[classId] ?? []).filter(
-                (id): id is string => Boolean(id)
-              );
-              const qualTypeIds = [...(qualSelections[classId] ?? [])];
-              return horseIds.map((horseId) => ({ classId, horseId, qualTypeIds }));
+            const payload = buildCheckoutCartPayload({
+              selectedClassIds,
+              classHorseAssignments,
+              qualSelections,
+              addOnQuantities,
             });
-            const addOnLines = Object.entries(addOnQuantities)
-              .filter(([, qty]) => qty > 0)
-              .map(([addOnId, qty]) => ({ addOnId, qty }));
-            createSession.mutate({ showId, cart, addOns: addOnLines });
+            createSession.mutate({ showId, cart: payload.cart, addOns: payload.addOns });
           }}
         >
           {createSession.isPending ? 'Redirecting to checkout…' : 'Proceed to payment'}

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
-/** Ported from the Admin Console design export's DataTable.tsx. */
 export function TableShell({
   className,
   minWidth = 720,
@@ -16,7 +15,7 @@ export function TableShell({
       className={cn(
         'overflow-x-auto rounded-[14px] border border-[#EDF0EE] bg-white',
         'shadow-[0_1px_2px_rgba(16,40,32,.04),0_10px_26px_-16px_rgba(16,40,32,.14)]',
-        className
+        className,
       )}
       style={{ ['--table-min' as string]: `${String(minWidth)}px` }}
     >
@@ -43,8 +42,8 @@ export function TableHead({
         <span
           key={c.label}
           className={cn(
-            'text-[9.5px] font-bold uppercase tracking-[.14em] text-[#7A8781]',
-            c.align === 'right' && 'text-right'
+            'text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase',
+            c.align === 'right' && 'text-right',
           )}
         >
           {c.label}
@@ -70,7 +69,7 @@ export function TableRow({
       className={cn(
         'grid items-center gap-3.5 border-b border-[#F1F4F3] px-5 py-3',
         'transition-colors duration-100 hover:bg-[#F8FAF9]',
-        className
+        className,
       )}
       style={{ gridTemplateColumns: template, minWidth }}
     >
