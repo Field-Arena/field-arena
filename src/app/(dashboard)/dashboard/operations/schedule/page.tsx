@@ -5,11 +5,6 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Schedule — Field & Arena' };
 
-/**
- * "Schedule" — ported from showstaff-ops.html's Schedule tab: the full
- * ring-by-ring running order for every day of the show, expandable per
- * class into its placings and full ride order.
- */
 export default async function OperationsSchedulePage({
   searchParams,
 }: {
@@ -45,7 +40,10 @@ export default async function OperationsSchedulePage({
       <div className="dash-head">
         <div>
           <h1>Schedule</h1>
-          <p>Tap any class to see its results. Live classes show live results; upcoming classes show the draw order.</p>
+          <p>
+            Tap any class to see its results. Live classes show live results; upcoming classes show
+            the draw order.
+          </p>
         </div>
       </div>
 

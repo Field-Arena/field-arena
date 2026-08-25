@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
-import {
-  buildDemoAssignments,
-  buildDemoPanelContacts,
-  buildTodaySnapshot,
-} from '@/modules/judging/utils';
+import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
+import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
+import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { PanelContactCard } from '@/modules/judging/ui/panel-contact-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
@@ -13,7 +11,6 @@ import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 
 export const metadata: Metadata = { title: 'Panel & Contacts — Field & Arena' };
 
-/** Who else is seated on a panel with this person, across every class they're on. */
 export default async function JudgingPanelPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realContacts] = await Promise.all([

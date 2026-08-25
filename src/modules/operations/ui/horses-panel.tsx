@@ -1,9 +1,9 @@
 'use client';
 import { useMemo, useState } from 'react';
-import type { HorseDirectoryRow } from '../data/queries';
-import { searchStyle } from './directory-styles';
+import { Input } from '@/shared/ui/shadcn/input';
+import type { HorseDirectoryRow } from '@/modules/operations/data/queries';
+import { searchStyle } from '@/modules/operations/ui/directory-styles';
 
-/** "Horses" — ported from showstaff-ops.html's viewHorses()/horsesRows(). */
 export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {
   const [term, setTerm] = useState('');
 
@@ -11,7 +11,7 @@ export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {
     const q = term.trim().toLowerCase();
     if (!q) return horses;
     return horses.filter(
-      (h) => h.horseName.toLowerCase().includes(q) || h.riderName.toLowerCase().includes(q)
+      (h) => h.horseName.toLowerCase().includes(q) || h.riderName.toLowerCase().includes(q),
     );
   }, [term, horses]);
 
@@ -20,7 +20,8 @@ export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {
       <h2 style={{ fontSize: 17, color: 'var(--hunter-deep)', margin: '0 0 4px' }}>
         Horse directory ({horses.length})
       </h2>
-      <input
+      <Input
+        className="h-auto"
         style={searchStyle}
         placeholder="Search horses or riders…"
         value={term}

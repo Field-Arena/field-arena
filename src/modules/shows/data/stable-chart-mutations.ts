@@ -13,45 +13,39 @@ import {
   toggleStableChartStatusSchema,
   autoAssignStableStallsSchema,
   applySavedLocationStablesSchema,
-} from '../schemas';
-import { resizeStableStalls } from '../utils';
-import { getHorsesPageData } from './horses-queries';
-import { normalizeStableChart, type StableChart, type StableChartStable, type StableChartStall } from './stable-chart-queries';
-
-/**
- * Stable Chart writes — every one of these is a read-modify-write on the
- * show's own `stable_chart` jsonb column, scoped by stable/stall *id*
- * (see schemas.ts's doc comment for why that's an id, not legacy's array
- * index). Ported from showstaff.html's setStableCount/updateStableField/
- * generateStableStalls/renameStall/toggleStallClosed/toggleStableChartStatus/
- * autoAssignStableStalls/applySavedLocationStables (~13846-14147).
- *
- * Each function stays granular (one legacy action = one Server Action) rather
- * than a single "save the whole chart" endpoint the client computes and
- * hands back whole — the business logic (position-preserving resize,
- * stallion-adjacency preference, "which venue am I allowed to copy from")
- * stays authoritative here, the same reason every other mutation in this
- * codebase validates a narrow input shape instead of trusting a client-built
- * document.
- */
-
-const HORSES_PATH = '/dashboard/horses';
-const STABLE_CHART_PATH = '/dashboard/horses/stable-chart';
+} from '@/modules/shows/schemas';
+import { resizeStableStalls } from '@/modules/shows/utils/resize-stable-stalls';
+import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
+import {
+  normalizeStableChart,
+  type StableChart,
+  type StableChartStable,
+  type StableChartStall,
+} from '@/modules/shows/data/stable-chart-queries';
+import { HORSES_PATH, STABLE_CHART_PATH } from '@/modules/shows/constants';
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
 
 function revalidateStableChart() {
   revalidatePath(STABLE_CHART_PATH);
-  revalidatePath(HORSES_PATH); // the Horses screen's own stalls-occupied KPI tile reads the same column
+  revalidatePath(HORSES_PATH);
 }
 
 async function readChart(supabase: SupabaseClient, showId: string): Promise<StableChart> {
-  const { data, error } = await supabase.from('shows').select('stable_chart').eq('id', showId).single();
+  const { data, error } = await supabase
+    .from('shows')
+    .select('stable_chart')
+    .eq('id', showId)
+    .single();
   if (error) throw new Error(error.message);
   return normalizeStableChart(data.stable_chart);
 }
 
-async function writeChart(supabase: SupabaseClient, showId: string, chart: StableChart): Promise<void> {
+async function writeChart(
+  supabase: SupabaseClient,
+  showId: string,
+  chart: StableChart,
+): Promise<void> {
   const { error } = await supabase
     .from('shows')
     .update({ stable_chart: chart as unknown as Json })
@@ -60,7 +54,6 @@ async function writeChart(supabase: SupabaseClient, showId: string, chart: Stabl
   revalidateStableChart();
 }
 
-/** "Number of stables" — mirrors setStableCount (~13850): grows by appending fresh empty stables, shrinks by dropping the trailing ones. Existing stables (and their generated stalls) are untouched by position. */
 export async function setStableCount(input: unknown): Promise<void> {
   const parsed = setStableCountSchema.parse(input);
   const supabase = await createServerClient();
@@ -80,7 +73,6 @@ export async function setStableCount(input: unknown): Promise<void> {
   await writeChart(supabase, parsed.showId, { ...chart, stables });
 }
 
-/** Stable name / stall count / row count fields — mirrors updateStableField (~13859). Stall count here is staged only; "Generate stalls" is the separate action that actually resizes the stall array. */
 export async function updateStableField(input: unknown): Promise<void> {
   const parsed = updateStableFieldSchema.parse(input);
   const supabase = await createServerClient();
@@ -94,13 +86,12 @@ export async function updateStableField(input: unknown): Promise<void> {
           ...(parsed.stallCount !== undefined ? { stallCount: parsed.stallCount } : {}),
           ...(parsed.rowCount !== undefined ? { rowCount: parsed.rowCount } : {}),
         }
-      : s
+      : s,
   );
 
   await writeChart(supabase, parsed.showId, { ...chart, stables });
 }
 
-/** "Generate stalls" / "Update stalls" — mirrors generateStableStalls (~13870): resizes to the stable's current stallCount, preserving existing stalls by position. */
 export async function generateStableStalls(input: unknown): Promise<void> {
   const parsed = generateStableStallsSchema.parse(input);
   const supabase = await createServerClient();
@@ -115,7 +106,6 @@ export async function generateStableStalls(input: unknown): Promise<void> {
   await writeChart(supabase, parsed.showId, { ...chart, stables });
 }
 
-/** Click-a-stall-to-rename — mirrors renameStall (~13885). */
 export async function renameStall(input: unknown): Promise<void> {
   const parsed = renameStallSchema.parse(input);
   const supabase = await createServerClient();
@@ -124,19 +114,17 @@ export async function renameStall(input: unknown): Promise<void> {
   const stables = chart.stables.map((s): StableChartStable =>
     s.id !== parsed.stableId
       ? s
-      : { ...s, stalls: s.stalls.map((st) => (st.id === parsed.stallId ? { ...st, label: parsed.label } : st)) }
+      : {
+          ...s,
+          stalls: s.stalls.map((st) =>
+            st.id === parsed.stallId ? { ...st, label: parsed.label } : st,
+          ),
+        },
   );
 
   await writeChart(supabase, parsed.showId, { ...chart, stables });
 }
 
-/**
- * Open/Closed toggle — mirrors toggleStallClosed (~13899). Closing always
- * clears the assignment (a stall out of service can't also have a horse in
- * it); the occupied-stall confirmation itself is a client-side decision (the
- * client already has the stall's occupancy in hand) — this action just does
- * the toggle once the caller has decided to proceed.
- */
 export async function toggleStallClosed(input: unknown): Promise<void> {
   const parsed = toggleStallClosedSchema.parse(input);
   const supabase = await createServerClient();
@@ -151,16 +139,23 @@ export async function toggleStallClosed(input: unknown): Promise<void> {
             if (st.id !== parsed.stallId) return st;
             const closing = !st.closed;
             return closing
-              ? { ...st, closed: true, horseId: null, horseName: null, riderName: null, shavings: 0, isStallion: false }
+              ? {
+                  ...st,
+                  closed: true,
+                  horseId: null,
+                  horseName: null,
+                  riderName: null,
+                  shavings: 0,
+                  isStallion: false,
+                }
               : { ...st, closed: false };
           }),
-        }
+        },
   );
 
   await writeChart(supabase, parsed.showId, { ...chart, stables });
 }
 
-/** "✓ Approve & Publish" / "Unpublish" — mirrors toggleStableChartStatus (~13910). */
 export async function toggleStableChartStatus(input: unknown): Promise<void> {
   const parsed = toggleStableChartStatusSchema.parse(input);
   const supabase = await createServerClient();
@@ -172,16 +167,6 @@ export async function toggleStableChartStatus(input: unknown): Promise<void> {
   });
 }
 
-/**
- * "Auto-assign horses to empty stalls" — mirrors autoAssignStableStalls
- * (~13966). Fills empty, open stalls in stable/stall order with every horse
- * not already placed anywhere on the chart (tracked by the same identity key
- * every stall's horseId already carries — see StableChartStall's doc
- * comment), preferring not to seat a stallion directly next to a
- * non-stallion or vice versa, but placing the horse anyway rather than
- * leaving a paying rider's horse unstalled when every remaining candidate
- * would conflict with a filled neighbor.
- */
 export async function autoAssignStableStalls(input: unknown): Promise<void> {
   const parsed = autoAssignStableStallsSchema.parse(input);
   const supabase = await createServerClient();
@@ -208,7 +193,10 @@ export async function autoAssignStableStalls(input: unknown): Promise<void> {
   }
   const unassigned = horseRows.filter((h) => !assignedKeys.has(h.key));
 
-  const nextStables = chart.stables.map((s) => ({ ...s, stalls: s.stalls.map((st) => ({ ...st })) }));
+  const nextStables = chart.stables.map((s) => ({
+    ...s,
+    stalls: s.stalls.map((st) => ({ ...st })),
+  }));
 
   outer: for (const stable of nextStables) {
     const stalls = stable.stalls;
@@ -255,14 +243,6 @@ interface SavedVenueStable {
   stalls?: SavedVenueStall[];
 }
 
-/**
- * "Add stables from a saved location" — mirrors applySavedLocationStables
- * (~14124). Appends the venue's stables (a show can combine more than one
- * saved location, or add its own on top). Carries over the venue's own stall
- * labels/closed state as-is where it has real stalls built; only falls back
- * to fresh 1..N-numbered stalls for an older saved venue that only ever had
- * a stallCount, never a real stall array.
- */
 export async function applySavedLocationStables(input: unknown): Promise<void> {
   const parsed = applySavedLocationStablesSchema.parse(input);
 

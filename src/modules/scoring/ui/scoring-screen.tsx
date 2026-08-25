@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
+import { Button } from '@/shared/ui/shadcn/button';
 import type { PermissionKey } from '@/shared/constants/permissions';
-import { AUTO_ADVANCE_GRACE_MS, UNDO_WINDOW_MS } from '../constants';
-import { isSheetComplete } from '../scoring-engine';
-import { toSheet } from '../utils';
-import { useScoringState } from '../hooks/use-scoring-state';
+import { AUTO_ADVANCE_GRACE_MS, UNDO_WINDOW_MS } from '@/modules/scoring/constants';
+import { isSheetComplete } from '@/modules/scoring/scoring-engine';
+import { toSheet } from '@/modules/scoring/utils/to-sheet';
+import { useScoringState } from '@/modules/scoring/hooks/use-scoring-state';
 import {
   useAdvanceRide,
   useDisqualifyRide,
@@ -26,24 +27,24 @@ import {
   useUnskipRide,
   usePublishResults,
   useUnpublishResults,
-} from '../hooks/use-scoring-mutations';
-import { TestSheet, type TestSheetHandle } from './test-sheet';
-import { ScoreTally } from './score-tally';
-import { ErrorOfCoursePanel } from './error-of-course-panel';
-import { PanelStatusStrip } from './panel-status-strip';
-import { SignatureModal } from './signature-modal';
-import { ReasonModal } from './reason-modal';
-import { RideActionsBar } from './ride-actions-bar';
-import { HoldingQueuePanel } from './holding-queue-panel';
-import { LiveProgressPanel } from './live-progress-panel';
-import { PanelAssignmentCard } from './panel-assignment-card';
-import type { PanelCandidate } from '../data/queries';
-import { StandingsPanel } from './standings-panel';
-import { ScoringToolbar } from './scoring-toolbar';
-import { NotARealTestBanner } from './not-a-real-test-banner';
-import { LiveClockStrip } from './live-clock-strip';
-import { PrintScoresheet } from './print-scoresheet';
-import type { ClassScoringState, MySeat, ScoreRow } from '../types';
+} from '@/modules/scoring/hooks/use-scoring-mutations';
+import { TestSheet, type TestSheetHandle } from '@/modules/scoring/ui/test-sheet';
+import { ScoreTally } from '@/modules/scoring/ui/score-tally';
+import { ErrorOfCoursePanel } from '@/modules/scoring/ui/error-of-course-panel';
+import { PanelStatusStrip } from '@/modules/scoring/ui/panel-status-strip';
+import { SignatureModal } from '@/modules/scoring/ui/signature-modal';
+import { ReasonModal } from '@/modules/scoring/ui/reason-modal';
+import { RideActionsBar } from '@/modules/scoring/ui/ride-actions-bar';
+import { HoldingQueuePanel } from '@/modules/scoring/ui/holding-queue-panel';
+import { LiveProgressPanel } from '@/modules/scoring/ui/live-progress-panel';
+import { PanelAssignmentCard } from '@/modules/scoring/ui/panel-assignment-card';
+import type { PanelCandidate } from '@/modules/scoring/data/queries';
+import { StandingsPanel } from '@/modules/scoring/ui/standings-panel';
+import { ScoringToolbar } from '@/modules/scoring/ui/scoring-toolbar';
+import { NotARealTestBanner } from '@/modules/scoring/ui/not-a-real-test-banner';
+import { LiveClockStrip } from '@/modules/scoring/ui/live-clock-strip';
+import { PrintScoresheet } from '@/modules/scoring/ui/print-scoresheet';
+import type { ClassScoringState, MySeat, ScoreRow } from '@/modules/scoring/types';
 
 export function ScoringScreen({
   classId,
@@ -80,12 +81,10 @@ export function ScoringScreen({
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [reasonModal, setReasonModal] = useState<'disqualify' | null>(null);
   const [lastUndo, setLastUndo] = useState<{ entryId: string; kind: 'skip' | 'terminal' } | null>(
-    null
+    null,
   );
   const [autoAdvanceCancelled, setAutoAdvanceCancelled] = useState(false);
 
-  // Reset the auto-advance cancel flag whenever the current ride changes —
-  // adjusting state from a prop-derived value during render, not an effect.
   const [lastEntryId, setLastEntryId] = useState(currentEntry?.id);
   if (currentEntry?.id !== lastEntryId) {
     setLastEntryId(currentEntry?.id);
@@ -108,7 +107,6 @@ export function ScoringScreen({
   const publish = usePublishResults();
   const unpublish = useUnpublishResults();
 
-  // The undo window — 20s after a scratch/disqualify/skip, then it's gone.
   useEffect(() => {
     if (!lastUndo) return;
     const id = setTimeout(() => {
@@ -120,10 +118,14 @@ export function ScoringScreen({
   }, [lastUndo]);
 
   const allSeatsReady = Boolean(
-    currentEntry && state.panel.every((seat) => state.scores.find((s) => s.entryId === currentEntry.id && s.seatId === seat.seatId)?.submitted)
+    currentEntry &&
+    state.panel.every(
+      (seat) =>
+        state.scores.find((s) => s.entryId === currentEntry.id && s.seatId === seat.seatId)
+          ?.submitted,
+    ),
   );
 
-  // Auto-advance: once every seat has submitted, wait 5s (cancellable) then advance.
   useEffect(() => {
     if (!allSeatsReady || autoAdvanceCancelled || !currentEntry) return;
     const id = setTimeout(() => {
@@ -136,7 +138,7 @@ export function ScoringScreen({
           onError: (error) => {
             toast.error(error instanceof Error ? error.message : 'Could not advance');
           },
-        }
+        },
       );
     }, AUTO_ADVANCE_GRACE_MS);
     return () => {
@@ -161,7 +163,11 @@ export function ScoringScreen({
               test={state.test}
               currentEntryId={null}
             />
-            <PanelAssignmentCard classId={classId} panel={state.panel} candidates={panelCandidates} />
+            <PanelAssignmentCard
+              classId={classId}
+              panel={state.panel}
+              candidates={panelCandidates}
+            />
           </div>
         )}
         <div className="mt-6">
@@ -177,25 +183,31 @@ export function ScoringScreen({
   const complete = test ? isSheetComplete(toSheet(myScore ?? blankScore()), test) : false;
   const canSubmit = seatRole === 'judge' && complete && !myScore?.submitted;
 
-  function blankScore(): Omit<ScoreRow, 'id' | 'entryId' | 'seatId' | 'signedBy' | 'signedAt' | 'updatedAt'> {
-    return { movements: {}, collectives: {}, errors: 0, errorAt: {}, remarks: {}, finalRemarks: '', submitted: false };
+  function blankScore(): Omit<
+    ScoreRow,
+    'id' | 'entryId' | 'seatId' | 'signedBy' | 'signedAt' | 'updatedAt'
+  > {
+    return {
+      movements: {},
+      collectives: {},
+      errors: 0,
+      errorAt: {},
+      remarks: {},
+      finalRemarks: '',
+      submitted: false,
+    };
   }
 
   function afterAction() {
     void refetch();
   }
 
-  /**
-   * Echoes a mark/collective/error/remark write into local state immediately
-   * — the poll (`refetch`) reconciles within 4s regardless, but a judge
-   * shouldn't wait that long to see their own just-entered mark. Legacy's
-   * own screen updated its in-memory model the same way, ahead of the
-   * server round trip.
-   */
   function updateMyScore(updater: (score: ScoreRow) => ScoreRow) {
     if (!mySeat || !currentEntry) return;
     applyOptimistic((prev) => {
-      const existing = prev.scores.find((s) => s.entryId === currentEntry.id && s.seatId === mySeat.seatId);
+      const existing = prev.scores.find(
+        (s) => s.entryId === currentEntry.id && s.seatId === mySeat.seatId,
+      );
       const idx = existing ? prev.scores.indexOf(existing) : -1;
       const base: ScoreRow = existing ?? {
         id: `optimistic-${currentEntry.id}-${mySeat.seatId}`,
@@ -208,9 +220,7 @@ export function ScoringScreen({
       };
       const updated = updater(base);
       const scores =
-        idx >= 0
-          ? prev.scores.map((s, i) => (i === idx ? updated : s))
-          : [...prev.scores, updated];
+        idx >= 0 ? prev.scores.map((s, i) => (i === idx ? updated : s)) : [...prev.scores, updated];
       return { ...prev, scores };
     });
   }
@@ -225,7 +235,10 @@ export function ScoringScreen({
           isTogglingOpen={toggleOpen.isPending}
           isPublishing={publish.isPending || unpublish.isPending}
           onToggleOpen={() => {
-            toggleOpen.mutate({ classId, open: !state.classState.open }, { onSuccess: afterAction });
+            toggleOpen.mutate(
+              { classId, open: !state.classState.open },
+              { onSuccess: afterAction },
+            );
           }}
           onPublish={() => {
             publish.mutate({ classId }, { onSuccess: afterAction });
@@ -252,11 +265,16 @@ export function ScoringScreen({
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-[Newsreader,serif] text-xl font-semibold text-ink-deep">
+              <h2 className="text-ink-deep font-[Newsreader,serif] text-xl font-semibold">
                 #{currentEntry.num} {currentEntry.rider ?? '—'}
                 {currentEntry.horse ? ` · ${currentEntry.horse}` : ''}
               </h2>
               <p className="text-[13px] text-[#7A8781]">{test.name}</p>
+              {state.sponsor && (
+                <p className="text-forest text-[12px] font-semibold">
+                  Presented by {state.sponsor}
+                </p>
+              )}
             </div>
             <PanelStatusStrip panel={state.panel} scores={state.scores} entryId={currentEntry.id} />
           </div>
@@ -284,7 +302,14 @@ export function ScoringScreen({
                 movements: { ...s.movements, [key]: { value, enteredBy: seatRole } },
                 submitted: false,
               }));
-              setMark.mutate({ classId, entryId: currentEntry.id, seatId, seatRole, movementNum, value });
+              setMark.mutate({
+                classId,
+                entryId: currentEntry.id,
+                seatId,
+                seatRole,
+                movementNum,
+                value,
+              });
             }}
             onSetCollective={(key, value) => {
               if (!mySeat) return;
@@ -293,7 +318,14 @@ export function ScoringScreen({
                 collectives: { ...s.collectives, [key]: { value, enteredBy: seatRole } },
                 submitted: false,
               }));
-              setCollective.mutate({ classId, entryId: currentEntry.id, seatId, seatRole, key, value });
+              setCollective.mutate({
+                classId,
+                entryId: currentEntry.id,
+                seatId,
+                seatRole,
+                key,
+                value,
+              });
             }}
             onToggleError={(movementNum) => {
               if (!mySeat) return;
@@ -326,7 +358,9 @@ export function ScoringScreen({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <RideActionsBar
               permissions={permissions}
-              disabled={skip.isPending || unskip.isPending || scratch.isPending || disqualify.isPending}
+              disabled={
+                skip.isPending || unskip.isPending || scratch.isPending || disqualify.isPending
+              }
               canUndo={lastUndo !== null}
               onSkip={() => {
                 skip.mutate(
@@ -336,11 +370,16 @@ export function ScoringScreen({
                       setLastUndo({ entryId: currentEntry.id, kind: 'skip' });
                       afterAction();
                     },
-                  }
+                  },
                 );
               }}
               onScratch={() => {
-                if (!window.confirm(`Scratch #${currentEntry.num}? They'll stay on the running order, marked as scratched.`)) return;
+                if (
+                  !window.confirm(
+                    `Scratch #${currentEntry.num}? They'll stay on the running order, marked as scratched.`,
+                  )
+                )
+                  return;
                 scratch.mutate(
                   { classId, entryId: currentEntry.id },
                   {
@@ -348,7 +387,7 @@ export function ScoringScreen({
                       setLastUndo({ entryId: currentEntry.id, kind: 'terminal' });
                       afterAction();
                     },
-                  }
+                  },
                 );
               }}
               onDisqualify={() => {
@@ -359,7 +398,10 @@ export function ScoringScreen({
                 if (lastUndo.kind === 'skip') {
                   unskip.mutate({ classId, entryId: lastUndo.entryId }, { onSuccess: afterAction });
                 } else {
-                  unfinish.mutate({ classId, entryId: lastUndo.entryId }, { onSuccess: afterAction });
+                  unfinish.mutate(
+                    { classId, entryId: lastUndo.entryId },
+                    { onSuccess: afterAction },
+                  );
                 }
                 setLastUndo(null);
               }}
@@ -370,32 +412,34 @@ export function ScoringScreen({
                 Waiting for judge&apos;s signature
               </span>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 disabled={!canSubmit}
                 onClick={() => {
                   sheetHandleRef.current?.flushPendingWrites();
                   setSignatureOpen(true);
                 }}
-                className="rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold text-[#F5F7F6] transition-colors hover:bg-gold hover:text-[#0D2C23] disabled:cursor-not-allowed disabled:bg-[#F1F4F3] disabled:text-[#B4BFB9]"
+                className="hover:bg-gold h-auto rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold text-[#F5F7F6] transition-colors hover:text-[#0D2C23] disabled:cursor-not-allowed disabled:bg-[#F1F4F3] disabled:text-[#B4BFB9] disabled:opacity-100"
               >
                 Sign &amp; Submit
-              </button>
+              </Button>
             )}
           </div>
 
           {allSeatsReady && !autoAdvanceCancelled && (
             <div className="flex items-center gap-3 rounded-xl border border-[#BFE0CB] bg-[#DCEFE1] p-[12px_16px] text-[13px] text-[#2E7D46]">
               Every seat has submitted — moving to the next rider shortly.
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setAutoAdvanceCancelled(true);
                 }}
-                className="font-semibold underline"
+                className="h-auto rounded-none px-0 py-0 text-[13px] font-semibold underline hover:bg-transparent"
               >
                 Cancel auto-advance
-              </button>
+              </Button>
             </div>
           )}
 
@@ -448,7 +492,7 @@ export function ScoringScreen({
                 setSignatureOpen(false);
                 afterAction();
               },
-            }
+            },
           );
         }}
       />
@@ -471,7 +515,7 @@ export function ScoringScreen({
                 setLastUndo({ entryId: currentEntry.id, kind: 'terminal' });
                 afterAction();
               },
-            }
+            },
           );
         }}
       />
@@ -493,7 +537,7 @@ function ScreenShell({ state, children }: { state: ClassScoringState; children: 
           </StatusPill>
           <Link
             href="/dashboard/judging"
-            className="text-[13px] font-semibold text-[#5A6B63] hover:text-gold"
+            className="hover:text-gold text-[13px] font-semibold text-[#5A6B63]"
           >
             ← Back to assignments
           </Link>
