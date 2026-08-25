@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import type { UpdateSchedulePrefsInput } from '@/modules/shows/schemas';
 import type { SchedulePrefs } from '@/modules/shows/data/setup-queries';
-import { useUpdateSchedulePrefs } from '@/modules/shows/hooks/use-show-mutations';
-import { showDayDates } from '@/modules/shows/utils/show-day-dates';
+import { useSchedulePreferencesForm } from '@/modules/shows/hooks/use-schedule-preferences-form';
 import { dayLabel } from '@/modules/shows/utils/day-label';
 import { Card } from '@/shared/ui/organizer/card';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -32,88 +30,27 @@ export function SchedulePreferencesCard({
   dayStartTimes: string[];
   dayEndTimes: string[];
 }) {
-  const days = showDayDates(startDate ?? '', endDate ?? '');
-  const effDays = days.length ? days : ['__day1__'];
-
-  const [perMin, setPerMin] = useState(prefs.perMin);
-  const [buffer, setBuffer] = useState(prefs.buffer);
-  const [upper, setUpper] = useState(prefs.upper);
-  const [end, setEnd] = useState(prefs.end);
-  const [order, setOrder] = useState(prefs.order);
-  const [warmup, setWarmup] = useState(prefs.warmup);
-  const [lunch, setLunch] = useState(prefs.lunch);
-  const [extraBreaks, setExtraBreaks] = useState(prefs.extraBreaks);
-  const [extraBreakMin, setExtraBreakMin] = useState(prefs.extraBreakMin);
-  const [dayStarts, setDayStarts] = useState<string[]>(
-    effDays.map((_, i) => dayStartTimes[i] ?? '08:00'),
-  );
-  const [dayEnds, setDayEnds] = useState<string[]>(effDays.map((_, i) => dayEndTimes[i] ?? ''));
-
-  const { mutate } = useUpdateSchedulePrefs();
-
-  const rateFields: {
-    id: string;
-    label: string;
-    min: number;
-    max: number;
-    value: number;
-    onChange: (v: number) => void;
-  }[] = [
-    {
-      id: 'sm-permin',
-      label: 'Time per ride (min)',
-      min: 3,
-      max: 30,
-      value: perMin,
-      onChange: setPerMin,
-    },
-    {
-      id: 'sm-buffer',
-      label: 'Change-over buffer (min)',
-      min: 0,
-      max: 15,
-      value: buffer,
-      onChange: setBuffer,
-    },
-    {
-      id: 'sm-upper',
-      label: 'Upper-level allowance (min)',
-      min: 0,
-      max: 15,
-      value: upper,
-      onChange: setUpper,
-    },
-  ];
-
-  function save(overrides: Partial<UpdateSchedulePrefsInput> = {}) {
-    mutate({
-      showId,
-      perMin,
-      buffer,
-      upper,
-      end,
-      order,
-      warmup,
-      lunch,
-      extraBreaks,
-      extraBreakMin,
-      dayStartTimes: dayStarts,
-      dayEndTimes: dayEnds,
-      ...overrides,
-    });
-  }
-
-  function setDayStart(index: number, value: string) {
-    const next = dayStarts.map((v, i) => (i === index ? value : v));
-    setDayStarts(next);
-    save({ dayStartTimes: next });
-  }
-
-  function setDayEnd(index: number, value: string) {
-    const next = dayEnds.map((v, i) => (i === index ? value : v));
-    setDayEnds(next);
-    save({ dayEndTimes: next });
-  }
+  const {
+    effDays,
+    rateFields,
+    end,
+    setEnd,
+    order,
+    changeOrder,
+    warmup,
+    changeWarmup,
+    lunch,
+    changeLunch,
+    extraBreaks,
+    setExtraBreaks,
+    extraBreakMin,
+    setExtraBreakMin,
+    dayStarts,
+    dayEnds,
+    setDayStart,
+    setDayEnd,
+    save,
+  } = useSchedulePreferencesForm({ showId, startDate, endDate, prefs, dayStartTimes, dayEndTimes });
 
   return (
     <Card className={SM_CARD_PAD}>
@@ -126,9 +63,9 @@ export function SchedulePreferencesCard({
       <div className="grid grid-cols-1 gap-x-[26px] gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
         {rateFields.map((f) => (
           <div key={f.id}>
-            <label htmlFor={f.id} className={SM_LABEL}>
+            <Label htmlFor={f.id} className={SM_LABEL}>
               {f.label}
-            </label>
+            </Label>
             <Input
               id={f.id}
               type="number"
@@ -146,9 +83,9 @@ export function SchedulePreferencesCard({
           </div>
         ))}
         <div>
-          <label htmlFor="sm-latest-finish" className={SM_LABEL}>
+          <Label htmlFor="sm-latest-finish" className={SM_LABEL}>
             Latest finish
-          </label>
+          </Label>
           <Input
             id="sm-latest-finish"
             type="time"
@@ -204,17 +141,15 @@ export function SchedulePreferencesCard({
 
       <div className="mt-6 grid grid-cols-1 gap-x-[26px] gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label htmlFor="sm-order" className={SM_LABEL}>
+          <Label htmlFor="sm-order" className={SM_LABEL}>
             Class order
-          </label>
+          </Label>
           <select
             id="sm-order"
             value={order}
             className={SM_SELECT}
             onChange={(e) => {
-              const next = e.target.value as 'low' | 'high';
-              setOrder(next);
-              save({ order: next });
+              changeOrder(e.target.value as 'low' | 'high');
             }}
           >
             <option value="low">Lowest level first</option>
@@ -222,17 +157,15 @@ export function SchedulePreferencesCard({
           </select>
         </div>
         <div>
-          <label htmlFor="sm-warmup" className={SM_LABEL}>
+          <Label htmlFor="sm-warmup" className={SM_LABEL}>
             Warm-up ring
-          </label>
+          </Label>
           <select
             id="sm-warmup"
             value={warmup}
             className={SM_SELECT}
             onChange={(e) => {
-              const next = e.target.value as 'yes' | 'no';
-              setWarmup(next);
-              save({ warmup: next });
+              changeWarmup(e.target.value as 'yes' | 'no');
             }}
           >
             <option value="no">Not reserved</option>
@@ -240,17 +173,15 @@ export function SchedulePreferencesCard({
           </select>
         </div>
         <div>
-          <label htmlFor="sm-lunch" className={SM_LABEL}>
+          <Label htmlFor="sm-lunch" className={SM_LABEL}>
             Lunch break
-          </label>
+          </Label>
           <select
             id="sm-lunch"
             value={lunch ? 'yes' : 'no'}
             className={SM_SELECT}
             onChange={(e) => {
-              const next = e.target.value === 'yes';
-              setLunch(next);
-              save({ lunch: next });
+              changeLunch(e.target.value === 'yes');
             }}
           >
             <option value="yes">Include lunch (12:00 PM, 1 hour)</option>
