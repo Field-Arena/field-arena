@@ -1,3 +1,4 @@
+import { Button } from '@/shared/ui/shadcn/button';
 import type { AnnouncerShow } from '@/modules/announcements/data/queries';
 
 export function ShowSwitcher({
@@ -25,9 +26,9 @@ export function ShowSwitcher({
               </option>
             ))}
           </select>
-          <button type="submit" className="dash-btn dash-btn-outline">
+          <Button type="submit" variant="outline" className="dash-btn dash-btn-outline h-auto">
             Switch
-          </button>
+          </Button>
         </form>
       )}
     </div>

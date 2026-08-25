@@ -46,9 +46,7 @@ export interface RingRow {
   scoringOpen: boolean;
   position: number;
   entryCount: number;
-
   current: RingEntrySummary | null;
-
   upNext: RingEntrySummary[];
 }
 
@@ -135,8 +133,6 @@ export async function getLiveResults(showId: string): Promise<ResultRow[]> {
   for (const cls of classes) {
     const scored = entries
       .filter((e) => e.class_id === cls.id && e.status === 'scored' && e.final_pct)
-      // final_pct is mixed-type text — a number, or 'SCR'/'ELIM'. Only numeric
-      // values rank, so anything unparseable sorts to the bottom.
       .sort((a, b) => (Number(b.final_pct) || 0) - (Number(a.final_pct) || 0));
 
     scored.forEach((entry, index) => {
@@ -179,7 +175,6 @@ export async function listShowContacts(showId: string): Promise<ShowContact[]> {
 export interface ShowDocument {
   id: string;
   name: string;
-
   url: string | null;
 }
 
