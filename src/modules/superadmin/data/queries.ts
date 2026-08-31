@@ -66,21 +66,16 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
     .order('name');
   if (error) throw error;
 
-  const [organizerAccounts, authList] = await Promise.all([
-    supabase
-      .from('users')
-      .select('id, org_id')
-      .eq('platform_role', 'Organizer')
-      .not('org_id', 'is', null),
-    createAdminClient().auth.admin.listUsers({ page: 1, perPage: 200 }),
-  ]);
+  const organizerAccounts = await supabase
+    .from('users')
+    .select('id, org_id, onboarded_at')
+    .eq('platform_role', 'Organizer')
+    .not('org_id', 'is', null);
   if (organizerAccounts.error) throw organizerAccounts.error;
-  if (authList.error) throw authList.error;
 
-  const signedInById = new Map(authList.data.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]));
   const accountOrgs = new Set(organizerAccounts.data.map((row) => row.org_id));
   const signedInOrgs = new Set(
-    organizerAccounts.data.filter((row) => signedInById.get(row.id)).map((row) => row.org_id),
+    organizerAccounts.data.filter((row) => row.onboarded_at).map((row) => row.org_id),
   );
 
   const { data: shows, error: showsError } = await supabase.from('shows').select('id, org_id');
@@ -241,19 +236,10 @@ export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
   const supabase = await createServerClient();
   const { data: rows, error } = await supabase
     .from('users')
-    .select('id, name, email, platform_role, created_at')
+    .select('id, name, email, platform_role, created_at, onboarded_at')
     .order('platform_role')
     .order('name');
   if (error) throw error;
-
-  const admin = createAdminClient();
-  const { data: authList, error: authError } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 200,
-  });
-  if (authError) throw authError;
-
-  const signedInById = new Map(authList.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]));
 
   return rows.map((row) => ({
     id: row.id,
@@ -261,7 +247,7 @@ export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
     email: row.email,
     role: row.platform_role,
     createdAt: row.created_at,
-    status: signedInById.get(row.id) ? 'active' : 'pending',
+    status: row.onboarded_at ? 'active' : 'pending',
   }));
 }
 

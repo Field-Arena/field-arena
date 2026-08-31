@@ -147,7 +147,7 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
 
   const { data: owner, error: ownerError } = await admin
     .from('users')
-    .select('id, name, email')
+    .select('id, name, email, onboarded_at')
     .eq('org_id', orgId)
     .eq('platform_role', 'Organizer')
     .maybeSingle();
@@ -159,12 +159,8 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
   }
   const name = owner?.name ?? org.name;
 
-  if (owner) {
-    const { data: authUser, error: authError } = await admin.auth.admin.getUserById(owner.id);
-    if (authError) throw new Error(authError.message);
-    if (authUser.user.last_sign_in_at) {
-      throw new Error('This organization’s owner has already signed in.');
-    }
+  if (owner?.onboarded_at) {
+    throw new Error('This organization’s owner has already finished setting up their account.');
   }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {

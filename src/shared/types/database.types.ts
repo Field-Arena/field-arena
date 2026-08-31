@@ -1563,6 +1563,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          onboarded_at: string | null
           org_id: string | null
           platform_role: string | null
         }
@@ -1572,6 +1573,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          onboarded_at?: string | null
           org_id?: string | null
           platform_role?: string | null
         }
@@ -1581,6 +1583,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          onboarded_at?: string | null
           org_id?: string | null
           platform_role?: string | null
         }

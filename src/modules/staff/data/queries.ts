@@ -133,19 +133,16 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
   let statusByEmail = new Map<string, UserDirectoryStatus>();
   if (staffEmails.length > 0) {
     const admin = createAdminClient();
-    const [usersResult, authList] = await Promise.all([
-      admin.from('users').select('id, email').in('email', staffEmails),
-      admin.auth.admin.listUsers({ page: 1, perPage: 200 }),
-    ]);
+    const usersResult = await admin
+      .from('users')
+      .select('id, email, onboarded_at')
+      .in('email', staffEmails);
     if (usersResult.error) throw usersResult.error;
 
-    const signedInById = new Map(
-      authList.data.users.map((u) => [u.id, Boolean(u.last_sign_in_at)]),
-    );
     statusByEmail = new Map(
       usersResult.data.map((u) => [
         u.email.toLowerCase(),
-        signedInById.get(u.id) ? 'onboard' : 'pending',
+        u.onboarded_at ? 'onboard' : 'pending',
       ]),
     );
   }
