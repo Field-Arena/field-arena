@@ -32,7 +32,7 @@ export function MissingSectionsDialog({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[78] grid place-items-center bg-[rgba(9,26,21,.42)] p-8"
+      className="fixed inset-0 z-[78] grid cursor-pointer place-items-center bg-[rgba(9,26,21,.42)] p-8"
     >
       <div
         onClick={(e) => {
