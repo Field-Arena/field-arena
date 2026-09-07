@@ -35,7 +35,7 @@ export default async function RunShowPage({ params }: { params: Promise<{ showId
       stage={data.stage}
       canViewMoney={context.canViewMoney}
     >
-      <RunShowCard data={data} canViewMoney={context.canViewMoney} />
+      <RunShowCard data={data} />
     </ShowManagerShell>
   );
 }

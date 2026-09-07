@@ -73,35 +73,47 @@ export function ShowStatsRow({
       : []),
   ];
 
+  const cardMinWidth = 150;
+  const gap = 12;
+
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">
-      {statCards.map((card, i) => {
-        const tint = STAT_TINTS[i % STAT_TINTS.length] ?? STAT_TINTS[0];
-        const href = links[card.label];
-        const value = 'money' in card && card.money ? formatMoney(card.value) : String(card.value);
+    <div className="overflow-x-auto">
+      <div
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: `repeat(${String(statCards.length)}, minmax(${String(cardMinWidth)}px, 1fr))`,
+          minWidth: `${String(statCards.length * cardMinWidth + (statCards.length - 1) * gap)}px`,
+        }}
+      >
+        {statCards.map((card, i) => {
+          const tint = STAT_TINTS[i % STAT_TINTS.length] ?? STAT_TINTS[0];
+          const href = links[card.label];
+          const value =
+            'money' in card && card.money ? formatMoney(card.value) : String(card.value);
 
-        const stat = (
-          <StatCard
-            icon={card.icon}
-            value={value}
-            label={card.label}
+          const stat = (
+            <StatCard
+              icon={card.icon}
+              value={value}
+              label={card.label}
+              note={href ? `${card.note} · view list →` : card.note}
+              tintBg={tint.bg}
+              tintFg={tint.fg}
+              clickable={Boolean(href)}
+            />
+          );
 
-            note={href ? `${card.note} · view list →` : card.note}
-            tintBg={tint.bg}
-            tintFg={tint.fg}
-          />
-        );
-
-        return href ? (
-          <Link key={card.label} href={href} className="contents">
-            {stat}
-          </Link>
-        ) : (
-          <div key={card.label} className="contents">
-            {stat}
-          </div>
-        );
-      })}
+          return href ? (
+            <Link key={card.label} href={href} className="contents">
+              {stat}
+            </Link>
+          ) : (
+            <div key={card.label} className="contents">
+              {stat}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

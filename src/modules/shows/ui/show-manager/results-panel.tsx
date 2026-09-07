@@ -24,13 +24,14 @@ export function ResultsPanel({ showName, rows }: { showName: string; rows: ShowR
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <p className="text-[13.5px] text-[#5A6B63]">
           Every class&apos;s riders and scores, ranked per test for Test of Choice classes.
           Unscored riders are included so this doubles as a full roster.
         </p>
         <PrimaryButton
           type="button"
+          className="flex-none whitespace-nowrap"
           onClick={() => {
             const csv = buildResultsCsv(rows);
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

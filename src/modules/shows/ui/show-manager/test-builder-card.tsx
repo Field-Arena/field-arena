@@ -13,8 +13,11 @@ import {
 } from '@/modules/shows/hooks/use-test-builder-mutations';
 import { saveTestTemplateSchema } from '@/modules/shows/schemas';
 import type { SaveTestTemplateInput } from '@/modules/shows/schemas';
-import { TB_STARTER_TESTS } from '@/modules/shows/constants';
-import type { TestTemplateRow, TestBuilderClassOption } from '@/modules/shows/data/setup-queries';
+import type {
+  TestTemplateRow,
+  TestCatalogEntry,
+  TestBuilderClassOption,
+} from '@/modules/shows/data/setup-queries';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -301,15 +304,18 @@ function buildPayload(orgId: string, d: Draft): SaveTestTemplateInput {
 export function TestBuilderCard({
   orgId,
   templates,
+  catalog,
   classes,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
+  catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openInstr, setOpenInstr] = useState<Record<string, boolean>>({});
   const [pickedClass, setPickedClass] = useState<Record<string, string>>({});
+  const [catalogQuery, setCatalogQuery] = useState('');
   const save = useSaveTestTemplate({
     onSuccess: () => {
       setDraft(null);
@@ -317,6 +323,15 @@ export function TestBuilderCard({
   });
   const del = useDeleteTestTemplate();
   const assignToClass = useAssignTestToClass();
+
+  const trimmedCatalogQuery = catalogQuery.trim().toLowerCase();
+  const filteredCatalog = trimmedCatalogQuery
+    ? catalog.filter(
+        (c) =>
+          c.title.toLowerCase().includes(trimmedCatalogQuery) ||
+          (c.level ?? '').toLowerCase().includes(trimmedCatalogQuery),
+      )
+    : [];
 
   function openNew() {
     setDraft({
@@ -336,9 +351,9 @@ export function TestBuilderCard({
     });
   }
 
-  function openStarter(key: string) {
-    const starter = TB_STARTER_TESTS.find((t) => t.key === key);
-    if (!starter) return;
+  function openCatalog(catalogId: string) {
+    const entry = catalog.find((c) => c.id === catalogId);
+    if (!entry) return;
 
     const sections: DraftSection[] = [
       {
@@ -346,7 +361,7 @@ export function TestBuilderCard({
         name: 'Movements',
         type: 'scored',
         subtotal: true,
-        items: starter.movements.map((m) => ({
+        items: entry.movements.map((m) => ({
           id: crypto.randomUUID(),
           label: m.text,
           directive: '',
@@ -361,7 +376,7 @@ export function TestBuilderCard({
         name: 'Collective marks',
         type: 'collective',
         subtotal: true,
-        items: starter.collectives.map((c) => ({
+        items: entry.collectives.map((c) => ({
           id: crypto.randomUUID(),
           label: c.label,
           directive: '',
@@ -374,12 +389,12 @@ export function TestBuilderCard({
     ];
 
     setDraft({
-      name: starter.name,
-      level: starter.level,
-      sourceLabel: `Cloned from ${starter.name}`,
+      name: entry.title,
+      level: entry.level ?? '',
+      sourceLabel: `Cloned from official catalog: ${entry.title}`,
       discipline: 'Dressage',
       sheetType: '',
-      governingBody: '',
+      governingBody: entry.governingBody ?? '',
       versionYear: '',
       arenaSize: '',
       rideTime: '',
@@ -389,6 +404,7 @@ export function TestBuilderCard({
       penalties: [],
       scoringConfig: { ...DEFAULT_SCORING },
     });
+    setCatalogQuery('');
   }
 
   function openEdit(t: TestTemplateRow) {
@@ -978,23 +994,43 @@ export function TestBuilderCard({
           rules you author once and reuse across shows.
         </p>
 
-        <div className="mb-4 flex flex-wrap gap-2.5">
+        <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
           <PrimaryButton onClick={openNew}>+ New Test</PrimaryButton>
-          {TB_STARTER_TESTS.map((t) => (
-            <GhostButton
-              key={t.key}
-              onClick={() => {
-                openStarter(t.key);
-              }}
-            >
-              Clone &ldquo;{t.name}&rdquo;
-            </GhostButton>
-          ))}
+          <Input
+            value={catalogQuery}
+            placeholder={`Search ${String(catalog.length)} official tests to clone…`}
+            className={`h-auto w-64 ${SM_INPUT}`}
+            onChange={(e) => {
+              setCatalogQuery(e.target.value);
+            }}
+          />
         </div>
+
+        {trimmedCatalogQuery && (
+          <div className="mb-4 flex flex-wrap gap-2.5">
+            {filteredCatalog.length === 0 ? (
+              <p className="text-[13px] text-[#98A29D] italic">
+                No official test matches &ldquo;{catalogQuery}&rdquo;.
+              </p>
+            ) : (
+              filteredCatalog.slice(0, 20).map((c) => (
+                <GhostButton
+                  key={c.id}
+                  onClick={() => {
+                    openCatalog(c.id);
+                  }}
+                >
+                  Clone &ldquo;{c.title}
+                  {c.level ? ` — ${c.level}` : ''}&rdquo;
+                </GhostButton>
+              ))
+            )}
+          </div>
+        )}
 
         {templates.length === 0 ? (
           <p className="text-[13px] text-[#98A29D] italic">
-            No tests in your library yet — start from a blank test or clone one of the starters
+            No tests in your library yet — start from a blank test or search the official catalog
             above.
           </p>
         ) : (
