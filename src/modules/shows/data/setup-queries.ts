@@ -1581,6 +1581,13 @@ export async function getShowAwards(
   };
 }
 
+export interface RiderDocumentInfo {
+  horseName: string;
+  label: string;
+  verified: boolean;
+  expirationDate: string | null;
+}
+
 export interface RiderListRow {
   num: string;
   name: string;
@@ -1589,6 +1596,15 @@ export interface RiderListRow {
   classes: string[];
 
   total: number;
+
+  /* Cross-show tracking: this rider's uploaded horse documents (Coggins,
+   * vaccination records, etc.) regardless of which show they were uploaded
+   * for — documents belong to the horse, not the show — plus the names of
+   * other shows with this same organization this rider has entered before.
+   * Both are absent (empty array) rather than missing when there's nothing
+   * to show, so the UI never has to special-case undefined. */
+  documents: RiderDocumentInfo[];
+  pastShows: string[];
 }
 
 export interface ShowRiders {
@@ -1601,12 +1617,116 @@ export interface ShowRiders {
   totalDays: number;
 }
 
+interface HorseDocumentUpload {
+  label?: string;
+  verified?: boolean;
+  expirationDate?: string;
+}
+
+/* Documents live on the horse (horses.document_uploads), not the show, so
+ * they're already cross-show data — what's missing is an organizer-facing
+ * view that surfaces that history instead of only what was uploaded for the
+ * show currently being looked at. This fetches, for every rider on this
+ * show's roster: every document on every horse they've ever entered (any
+ * show), and the names of the organization's other shows they've competed
+ * in before, then attaches both to the matching row in `byNum` in place. */
+async function attachRiderDocumentHistory({
+  byNum,
+  riderIdsByNum,
+  horseIdsByNum,
+  orgId,
+  currentShowId,
+}: {
+  byNum: Map<string, RiderListRow>;
+  riderIdsByNum: Map<string, Set<string>>;
+  horseIdsByNum: Map<string, Set<string>>;
+  orgId: string | null;
+  currentShowId: string;
+}): Promise<void> {
+  const allHorseIds = [...new Set([...horseIdsByNum.values()].flatMap((set) => [...set]))];
+  const allRiderIds = [...new Set([...riderIdsByNum.values()].flatMap((set) => [...set]))];
+  if (allHorseIds.length === 0 && allRiderIds.length === 0) return;
+
+  const supabase = await createServerClient();
+
+  const horsesById = new Map<string, { name: string; document_uploads: unknown }>();
+  if (allHorseIds.length > 0) {
+    const { data, error } = await supabase
+      .from('horses')
+      .select('id, name, document_uploads')
+      .in('id', allHorseIds);
+    if (error) throw error;
+    for (const h of data) horsesById.set(h.id, h);
+  }
+
+  const pastShowNamesByRider = new Map<string, Set<string>>();
+  if (allRiderIds.length > 0 && orgId) {
+    const { data: pastEntries, error: entriesError } = await supabase
+      .from('class_entries')
+      .select('rider_id, class_id')
+      .in('rider_id', allRiderIds);
+    if (entriesError) throw entriesError;
+
+    const pastClassIds = [...new Set(pastEntries.map((e) => e.class_id))];
+    const { data: pastClasses, error: classesError } =
+      pastClassIds.length > 0
+        ? await supabase.from('classes').select('id, show_id').in('id', pastClassIds)
+        : { data: [], error: null };
+    if (classesError) throw classesError;
+    const showIdByClassId = new Map(pastClasses.map((c) => [c.id, c.show_id]));
+
+    const pastShowIds = [...new Set(pastClasses.map((c) => c.show_id))].filter(
+      (id) => id !== currentShowId,
+    );
+    const { data: pastShows, error: showsError } =
+      pastShowIds.length > 0
+        ? await supabase.from('shows').select('id, name').eq('org_id', orgId).in('id', pastShowIds)
+        : { data: [], error: null };
+    if (showsError) throw showsError;
+    const showById = new Map(pastShows.map((s) => [s.id, s.name]));
+
+    for (const entry of pastEntries) {
+      if (!entry.rider_id) continue;
+      const showId = showIdByClassId.get(entry.class_id);
+      const showName = showId ? showById.get(showId) : undefined;
+      if (!showName) continue;
+      const set = pastShowNamesByRider.get(entry.rider_id) ?? new Set<string>();
+      set.add(showName);
+      pastShowNamesByRider.set(entry.rider_id, set);
+    }
+  }
+
+  for (const [num, row] of byNum) {
+    const documents: RiderDocumentInfo[] = [];
+    for (const horseId of horseIdsByNum.get(num) ?? []) {
+      const horse = horsesById.get(horseId);
+      if (!horse) continue;
+      const uploads = (horse.document_uploads ?? []) as HorseDocumentUpload[];
+      for (const upload of uploads) {
+        documents.push({
+          horseName: horse.name,
+          label: upload.label ?? 'Document',
+          verified: upload.verified ?? false,
+          expirationDate: upload.expirationDate ?? null,
+        });
+      }
+    }
+    row.documents = documents;
+
+    const pastShows = new Set<string>();
+    for (const riderId of riderIdsByNum.get(num) ?? []) {
+      for (const name of pastShowNamesByRider.get(riderId) ?? []) pastShows.add(name);
+    }
+    row.pastShows = [...pastShows].sort((a, b) => a.localeCompare(b));
+  }
+}
+
 export async function getShowRiders(showId: string): Promise<ShowRiders | null> {
   const supabase = await createServerClient();
 
   const { data: show, error: showError } = await supabase
     .from('shows')
-    .select('id, name, start_date')
+    .select('id, name, start_date, org_id')
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
@@ -1621,16 +1741,25 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
   const classById = new Map(classes.map((c) => [c.id, c]));
   const classIds = classes.map((c) => c.id);
 
-  let entries: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
+  let entries: {
+    class_id: string;
+    num: string;
+    rider: string | null;
+    horse: string | null;
+    rider_id: string | null;
+    horse_id: string | null;
+  }[] = [];
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
-      .select('class_id, num, rider, horse')
+      .select('class_id, num, rider, horse, rider_id, horse_id')
       .in('class_id', classIds);
     if (error) throw error;
     entries = data;
   }
 
+  const riderIdsByNum = new Map<string, Set<string>>();
+  const horseIdsByNum = new Map<string, Set<string>>();
   const byNum = new Map<string, RiderListRow>();
   for (const entry of entries) {
     const cls = classById.get(entry.class_id);
@@ -1640,13 +1769,33 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
       horse: entry.horse ?? '',
       classes: [],
       total: 0,
+      documents: [],
+      pastShows: [],
     };
     if (cls) {
       row.classes.push(cls.display_name ?? cls.label);
       row.total += cls.fee ?? 0;
     }
     byNum.set(entry.num, row);
+    if (entry.rider_id) {
+      const set = riderIdsByNum.get(entry.num) ?? new Set<string>();
+      set.add(entry.rider_id);
+      riderIdsByNum.set(entry.num, set);
+    }
+    if (entry.horse_id) {
+      const set = horseIdsByNum.get(entry.num) ?? new Set<string>();
+      set.add(entry.horse_id);
+      horseIdsByNum.set(entry.num, set);
+    }
   }
+
+  await attachRiderDocumentHistory({
+    byNum,
+    riderIdsByNum,
+    horseIdsByNum,
+    orgId: show.org_id,
+    currentShowId: showId,
+  });
 
   const schedule = await getMasterSchedule(showId);
   const onSiteByDay: Record<number, string[]> = {};
