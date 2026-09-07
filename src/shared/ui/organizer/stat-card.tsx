@@ -12,6 +12,9 @@ export interface StatCardProps {
   tintFg: string;
   valueClassName?: string;
   onClick?: () => void;
+  /** Set when the card is wrapped in a Link (or otherwise clickable) by the
+   *  caller without an onClick handler — still shows the pointer cursor. */
+  clickable?: boolean;
 }
 
 export function StatCard({
@@ -24,13 +27,15 @@ export function StatCard({
   tintFg,
   valueClassName,
   onClick,
+  clickable,
 }: StatCardProps) {
-  const interactive = typeof onClick === 'function';
-  const Comp = interactive ? 'button' : 'div';
+  const hasOnClick = typeof onClick === 'function';
+  const interactive = hasOnClick || Boolean(clickable);
+  const Comp = hasOnClick ? 'button' : 'div';
 
   return (
     <Comp
-      {...(interactive ? { type: 'button' as const, onClick } : {})}
+      {...(hasOnClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
         'flex flex-col items-start gap-3 px-[18px] pt-[17px] pb-[18px] text-left',
         'rounded-[14px] border border-[#EDF0EE] bg-white',

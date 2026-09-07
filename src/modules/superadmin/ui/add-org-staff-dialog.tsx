@@ -37,6 +37,8 @@ export function AddOrgStaffDialog({
     resolver: zodResolver(addOrgStaffSchema),
     defaultValues: {
       showId: shows[0]?.id ?? '',
+      firstName: '',
+      lastName: '',
       name: '',
       email: '',
       role: 'Show Admin',
@@ -78,7 +80,11 @@ export function AddOrgStaffDialog({
         <form
           onSubmit={(event) => {
             void form.handleSubmit((values) => {
-              mutate(values);
+              const name = [values.firstName, values.lastName]
+                .map((part) => part?.trim() ?? '')
+                .filter(Boolean)
+                .join(' ');
+              mutate({ ...values, name });
             })(event);
           }}
           className="space-y-4"
@@ -95,13 +101,22 @@ export function AddOrgStaffDialog({
             </select>
           </div>
 
-          <FormField
-            id="aos-name"
-            label="Name (optional)"
-            placeholder="Jane Smith"
-            error={errors.name}
-            registration={form.register('name')}
-          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField
+              id="aos-first"
+              label="First name"
+              placeholder="Jane"
+              error={errors.firstName}
+              registration={form.register('firstName')}
+            />
+            <FormField
+              id="aos-last"
+              label="Last name"
+              placeholder="Whitfield"
+              error={errors.lastName}
+              registration={form.register('lastName')}
+            />
+          </div>
 
           <FormField
             id="aos-email"

@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import {
   useUpdateStableField,
@@ -19,7 +20,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
   return (
     <div className="flex flex-wrap items-end gap-2.5 border-t border-[#EDF0EE] py-2.5 first:border-t-0">
       <div className="min-w-[140px] flex-1">
-        <label className={SM_LABEL}>Stable name</label>
+        <Label className={SM_LABEL}>Stable name</Label>
         <Input
           key={`${stable.id}-name`}
           defaultValue={stable.name}
@@ -34,7 +35,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
       </div>
 
       <div className="w-[120px]">
-        <label className={SM_LABEL}>Stalls in this stable</label>
+        <Label className={SM_LABEL}>Stalls in this stable</Label>
         <Input
           key={`${stable.id}-count`}
           ref={stallCountRef}
@@ -52,7 +53,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
       </div>
 
       <div className="w-[120px]">
-        <label className={SM_LABEL}>Rows in this stable</label>
+        <Label className={SM_LABEL}>Rows in this stable</Label>
         <Input
           key={`${stable.id}-rows`}
           type="number"

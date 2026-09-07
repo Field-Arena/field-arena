@@ -1,4 +1,7 @@
 import 'server-only';
+import type { ScheduleClass, ScheduleEntry, PastShowResult } from '@/modules/operations/types';
+
+export type { ScheduleClass, ScheduleEntry };
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
@@ -359,32 +362,6 @@ export async function listShowDocuments(showId: string): Promise<ShowDocumentRow
   );
 }
 
-export interface ScheduleEntry {
-  num: string;
-  rider: string;
-  horse: string;
-  draw: number;
-
-  finalPctRaw: string | null;
-
-  finalPctNum: number | null;
-}
-
-export interface ScheduleClass {
-  id: string;
-  label: string;
-  ring: string | null;
-  date: string | null;
-  time: string | null;
-  status: 'upcoming' | 'running' | 'done';
-  entryCount: number;
-  scoredCount: number;
-
-  entries: ScheduleEntry[];
-
-  placings: (ScheduleEntry & { place: number })[];
-}
-
 export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
   const supabase = await createServerClient();
 
@@ -456,4 +433,96 @@ export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
       placings,
     };
   });
+}
+
+/* Shows this staff member worked that have already finished, with their final
+ * placings — legacy's results archive (showstaff-ops.html:394 loadRealPastShows,
+ * selectable from the Results tab's show picker at :1149).
+ *
+ * Scoped to their OWN assignments, exactly as legacy was: this is "shows I
+ * worked", not "every past show on the platform". A show only appears once it
+ * has at least one scored ride, matching legacy's
+ * `.filter(function(ev){ return ev.entries.length; })` — an unscored past show
+ * has nothing to archive. */
+export async function listPastShowResults(): Promise<PastShowResult[]> {
+  const profile = await getStaffProfile();
+  if (!profile) return [];
+
+  const supabase = await createServerClient();
+
+  const { data: staffRows, error } = await supabase
+    .from('staff_assignments')
+    .select('show_id')
+    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+  if (error) throw error;
+  if (staffRows.length === 0) return [];
+
+  const showIds = [...new Set(staffRows.map((s) => s.show_id))];
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: shows, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, date_label, end_date, start_date')
+    .in('id', showIds)
+    .lt('end_date', today)
+    .order('end_date', { ascending: false });
+  if (showError) throw showError;
+  if (shows.length === 0) return [];
+
+  const results = await Promise.all(
+    shows.map(async (show) => {
+      const classes = await listSchedule(show.id);
+      const scored = classes.filter((c) => c.placings.length > 0);
+      if (scored.length === 0) return null;
+      return {
+        showId: show.id,
+        showName: show.name,
+        date: show.date_label ?? show.end_date,
+        classes: scored,
+      } satisfies PastShowResult;
+    }),
+  );
+
+  return results.filter((r): r is PastShowResult => r !== null);
+}
+
+/* Horses on the grounds TODAY vs entered overall — legacy's Horses KPI showed
+ * both as "today / total" (showstaff-ops.html:1189, horsesTodayCount /
+ * horsesTotalCount). On a multi-day show the total says how many horses the
+ * show has; only the today figure tells the gate how many to expect this
+ * morning, which is the number that matters operationally.
+ *
+ * Counts distinct horse names, as legacy did (`new Set(r.horse)`) — entries
+ * carry plain horse text, and one horse ridden in four classes is one horse. */
+export async function getHorseCounts(showId: string): Promise<{ today: number; total: number }> {
+  const supabase = await createServerClient();
+
+  const { data: classes, error } = await supabase
+    .from('classes')
+    .select('id, date')
+    .eq('show_id', showId);
+  if (error) throw error;
+  if (classes.length === 0) return { today: 0, total: 0 };
+
+  const { data: entries, error: entryError } = await supabase
+    .from('class_entries')
+    .select('class_id, horse, status')
+    .in(
+      'class_id',
+      classes.map((c) => c.id),
+    );
+  if (entryError) throw entryError;
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayClassIds = new Set(classes.filter((c) => c.date === todayIso).map((c) => c.id));
+
+  const total = new Set<string>();
+  const today = new Set<string>();
+  for (const entry of entries) {
+    if (entry.status === 'scratched' || !entry.horse) continue;
+    total.add(entry.horse);
+    if (todayClassIds.has(entry.class_id)) today.add(entry.horse);
+  }
+
+  return { today: today.size, total: total.size };
 }

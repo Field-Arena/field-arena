@@ -5,6 +5,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateMerchandise } from '@/modules/shows/hooks/use-show-mutations';
 import type { MerchItem } from '@/modules/shows/data/setup-queries';
@@ -54,9 +55,9 @@ export function MerchandiseCard({
       <p className={SM_NOTE}>Will you have merchandise sales at this show?</p>
 
       <div className="mb-4 max-w-[200px]">
-        <label htmlFor="sm-merch" className={SM_LABEL}>
+        <Label htmlFor="sm-merch" className={SM_LABEL}>
           Merchandise sales
-        </label>
+        </Label>
         <select
           id="sm-merch"
           value={enabled ? 'yes' : 'no'}

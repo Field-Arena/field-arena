@@ -25,8 +25,14 @@ export function useAddOrgStaff(options?: { onSuccess?: () => void }) {
 
   return useMutation({
     mutationFn: (input: AddOrgStaffInput) => addOrgStaff(input),
-    onSuccess: ({ email }) => {
-      toast.success(`${email} added to the show's staff.`);
+    onSuccess: ({ email, emailSent }) => {
+      // The staff row is real either way, but "added" without "invited" is a
+      // person who will never receive the link — say which happened.
+      if (emailSent) toast.success(`Invite sent to ${email}.`);
+      else
+        toast.warning(`${email} was added to the show's staff, but the invite email failed`, {
+          description: 'Their record is saved — send them the login link another way, or retry.',
+        });
       router.refresh();
       options?.onSuccess?.();
     },

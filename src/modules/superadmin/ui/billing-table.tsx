@@ -3,6 +3,7 @@ import { ArrowRightIcon } from 'lucide-react';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
 import type { OrganizationBilling } from '@/modules/superadmin/types';
+import { StripeStatusPill } from '@/modules/superadmin/ui/stripe-status-pill';
 
 const COLUMNS = 'grid-cols-[minmax(200px,1fr)_150px_110px_120px_110px_140px]';
 const NR = 'font-[family-name:var(--font-nr)]';
@@ -71,17 +72,7 @@ export function BillingTable({ rows }: { rows: OrganizationBilling[] }) {
                 </div>
 
                 <div role="cell">
-                  <span
-                    className={cn(
-                      'inline-flex h-[22px] flex-none items-center gap-[6px] rounded-full px-2.5 text-[10.5px] font-bold',
-                      row.stripeConnected
-                        ? 'bg-[#E4F1E8] text-[#2E7048] [--dot:#3E8E5A]'
-                        : 'bg-[#F6EAC8] text-[#8A6D14] [--dot:#C9A227]',
-                    )}
-                  >
-                    <span aria-hidden className="size-[5px] rounded-full bg-[var(--dot)]" />
-                    {row.stripeConnected ? 'Connected' : 'Not connected'}
-                  </span>
+                  <StripeStatusPill status={row.stripeStatus} />
                 </div>
 
                 <span role="cell" className={cn('text-sm', tone(row.gross))}>
@@ -91,8 +82,8 @@ export function BillingTable({ rows }: { rows: OrganizationBilling[] }) {
                   {money(row.platformFee)}
                 </span>
 
-                <span role="cell" className="text-sm text-[#C4CDC8]">
-                  {money(0)}
+                <span role="cell" className={cn('text-sm', tone(row.pendingPayout))}>
+                  {money(row.pendingPayout)}
                 </span>
 
                 <div role="cell">
@@ -115,7 +106,8 @@ export function BillingTable({ rows }: { rows: OrganizationBilling[] }) {
           {rows.length} {rows.length === 1 ? 'organizer' : 'organizers'}
         </span>
         <span className="text-[12.5px] text-[#9AA6A0]">
-          Volume and fees come from paid orders. Payouts need Stripe Connect.
+          Volume and fees come from paid orders; Stripe status and pending payouts are read live
+          from each Connect account.
         </span>
       </div>
     </div>

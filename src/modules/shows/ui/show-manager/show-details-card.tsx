@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import type { UpdateShowDetailsInput } from '@/modules/shows/schemas';
 import type { ShowSetupDetail } from '@/modules/shows/data/setup-queries';
-import { useUpdateShowDetails } from '@/modules/shows/hooks/use-show-mutations';
+import { useShowDetailsForm } from '@/modules/shows/hooks/use-show-details-form';
 import { SHOW_DETAILS_BODIES } from '@/modules/shows/constants';
 import { Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -17,55 +16,33 @@ import {
 } from '@/modules/shows/ui/show-manager/tokens';
 
 export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
-  const [name, setName] = useState(show.name);
-  const [org, setOrg] = useState(show.org ?? '');
-  const [orgEditing, setOrgEditing] = useState(false);
-  const [showType, setShowType] = useState(show.showType);
-  const [startDate, setStartDate] = useState(show.startDate ?? '');
-  const [endDate, setEndDate] = useState(show.endDate ?? '');
-  const [timezone, setTimezone] = useState(show.timezone ?? '');
-  const [startingRiderNumber, setStartingRiderNumber] = useState(show.startingRiderNumber);
-  const [governingBodies, setGoverningBodies] = useState<string[]>(show.governingBodies);
-
-  const { mutate } = useUpdateShowDetails();
-
-  const dateFields: { id: string; label: string; value: string; onChange: (v: string) => void }[] =
-    [
-      { id: 'sm-start', label: 'Start date', value: startDate, onChange: setStartDate },
-      { id: 'sm-end-date', label: 'End date', value: endDate, onChange: setEndDate },
-    ];
-
-  function save(overrides: Partial<UpdateShowDetailsInput> = {}) {
-    mutate({
-      showId: show.id,
-      name,
-      org,
-      showType,
-      startDate,
-      endDate,
-      timezone,
-      startingRiderNumber,
-      governingBodies: governingBodies as UpdateShowDetailsInput['governingBodies'],
-      ...overrides,
-    });
-  }
-
-  function toggleBody(body: (typeof SHOW_DETAILS_BODIES)[number]) {
-    const next = governingBodies.includes(body)
-      ? governingBodies.filter((b) => b !== body)
-      : [...governingBodies, body];
-    setGoverningBodies(next);
-    save({ governingBodies: next as UpdateShowDetailsInput['governingBodies'] });
-  }
+  const {
+    name,
+    setName,
+    org,
+    setOrg,
+    orgEditing,
+    toggleOrgEditing,
+    showType,
+    setShowType,
+    timezone,
+    setTimezone,
+    startingRiderNumber,
+    setStartingRiderNumber,
+    governingBodies,
+    toggleBody,
+    dateFields,
+    save,
+  } = useShowDetailsForm(show);
 
   return (
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Show Details</h2>
 
       <div className="mb-[22px]">
-        <label htmlFor="sm-name" className={SM_LABEL}>
+        <Label htmlFor="sm-name" className={SM_LABEL}>
           Show name <span className="text-status-danger">*</span>
-        </label>
+        </Label>
         <Input
           id="sm-name"
           value={name}
@@ -84,13 +61,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
         <div>
           <div className="mb-2 flex items-center gap-3">
             <span className={`${SM_LABEL} mb-0 flex-1`}>Organization / club name</span>
-            <GhostButton
-              className="px-3.5 py-2.5 text-[12.5px]"
-              onClick={() => {
-                if (orgEditing) save();
-                setOrgEditing((v) => !v);
-              }}
-            >
+            <GhostButton className="px-3.5 py-2.5 text-[12.5px]" onClick={toggleOrgEditing}>
               {orgEditing ? 'Done' : 'Edit'}
             </GhostButton>
           </div>
@@ -114,9 +85,9 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
         </div>
 
         <div>
-          <label htmlFor="sm-showtype" className={SM_LABEL}>
+          <Label htmlFor="sm-showtype" className={SM_LABEL}>
             Show type
-          </label>
+          </Label>
           <select
             id="sm-showtype"
             value={showType}
@@ -134,9 +105,9 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
 
         {dateFields.map((f) => (
           <div key={f.id}>
-            <label htmlFor={f.id} className={SM_LABEL}>
+            <Label htmlFor={f.id} className={SM_LABEL}>
               {f.label}
-            </label>
+            </Label>
             <Input
               id={f.id}
               type="date"
@@ -153,9 +124,9 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
         ))}
 
         <div>
-          <label htmlFor="sm-tz" className={SM_LABEL}>
+          <Label htmlFor="sm-tz" className={SM_LABEL}>
             Time zone
-          </label>
+          </Label>
           <select
             id="sm-tz"
             value={timezone}
@@ -185,9 +156,9 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
         </div>
 
         <div>
-          <label htmlFor="sm-rider-no" className={SM_LABEL}>
+          <Label htmlFor="sm-rider-no" className={SM_LABEL}>
             Starting rider number
-          </label>
+          </Label>
           <Input
             id="sm-rider-no"
             type="number"
@@ -220,7 +191,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
           </p>
           <div className="flex flex-wrap items-center gap-[22px]">
             {SHOW_DETAILS_BODIES.map((body) => (
-              <label
+              <Label
                 key={body}
                 className="text-ink-deep inline-flex items-center gap-2 text-[13.5px]"
               >
@@ -233,7 +204,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
                   }}
                 />
                 {body}
-              </label>
+              </Label>
             ))}
           </div>
         </div>

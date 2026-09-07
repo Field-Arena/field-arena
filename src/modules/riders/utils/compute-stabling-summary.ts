@@ -1,7 +1,7 @@
 import { paidLineItems } from '@/modules/riders/utils/paid-line-items';
-import type { AddOnRow, OrderRow, StablingSummary } from '@/modules/riders/types';
+import type { AddOnRow, RiderVisibleOrderRow, StablingSummary } from '@/modules/riders/types';
 
-export function computeStablingSummary(orders: OrderRow[], addOns: AddOnRow[]): StablingSummary {
+export function computeStablingSummary(orders: RiderVisibleOrderRow[], addOns: AddOnRow[]): StablingSummary {
   const addOnById = new Map(addOns.map((addOn) => [addOn.id, addOn]));
   const summary: StablingSummary = { stalls: 0, tack: 0, shavings: 0, nights: 0 };
 

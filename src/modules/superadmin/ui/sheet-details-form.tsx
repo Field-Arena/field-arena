@@ -10,6 +10,20 @@ import { INPUT, LABEL, SECTION, H2 } from '@/modules/superadmin/ui/sheet-detail-
 import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
 
 type SheetFamily = (typeof SHEET_FAMILIES)[number];
+type SheetSource = 'manual' | 'parsed' | 'typical' | null;
+
+/* The curation state of this sheet's criteria — is it still an unverified
+ * auto-classified stub, was it transcribed by hand from the official document,
+ * or is it a typical default standing in until someone does? Legacy tracked
+ * this as scoringCatalog.source and surfaced it as the catalog's Provenance
+ * column; without it there is no way to tell a finished sheet from a
+ * placeholder that happens to have a PDF attached. */
+const SOURCE_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Stub — not yet verified' },
+  { value: 'manual', label: 'Verified from official sheet (manual)' },
+  { value: 'parsed', label: 'Auto-extracted — checks pass' },
+  { value: 'typical', label: 'Typical default' },
+];
 
 export function SheetDetailsForm({
   title,
@@ -22,6 +36,9 @@ export function SheetDetailsForm({
   onScoreTypeChange,
   family,
   onFamilyChange,
+  source,
+  onSourceChange,
+  sourceFile,
 }: {
   title: string;
   onTitleChange: (value: string) => void;
@@ -33,6 +50,9 @@ export function SheetDetailsForm({
   onScoreTypeChange: (value: string) => void;
   family: SheetFamily;
   onFamilyChange: (value: SheetFamily) => void;
+  source: SheetSource;
+  onSourceChange: (value: SheetSource) => void;
+  sourceFile: string | null;
 }) {
   const textFields: {
     key: string;
@@ -100,6 +120,31 @@ export function SheetDetailsForm({
             placeholder={f.placeholder}
           />
         ))}
+        <div>
+          <label htmlFor="sd-source" className={LABEL}>
+            Provenance
+          </label>
+          <select
+            id="sd-source"
+            value={source ?? ''}
+            onChange={(e) => {
+              onSourceChange(e.target.value === '' ? null : (e.target.value as SheetSource));
+            }}
+            className={INPUT}
+          >
+            {SOURCE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          {sourceFile && (
+            <p className="mt-1.5 text-[12px] text-[#8A8275]">
+              Source doc: <code className="text-[#16261F]">{sourceFile}</code>
+            </p>
+          )}
+        </div>
+
         {selectFields.map((s) => (
           <div key={s.key}>
             <label htmlFor={s.id} className={LABEL}>

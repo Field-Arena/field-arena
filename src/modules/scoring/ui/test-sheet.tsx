@@ -142,10 +142,16 @@ export function TestSheet({
           }}
         />
 
+        {/* The error flag follows the movement it sits on: legacy hid this
+            control entirely on a judge-owned mark (showrunner-scoring.html:1273,
+            `lockedForScribe ? '' : errToggle`). Errors subtract from the score
+            and eliminate at three, so a scribe toggling one on a judge's
+            movement changes the judge's result without touching a mark.
+            Gating on `locked` alone missed that. */}
         <Button
           type="button"
           variant="ghost"
-          disabled={locked}
+          disabled={isLockedFor(mark?.enteredBy ?? null)}
           onClick={() => {
             onToggleError(m.num);
           }}

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getPreviewShowId } from '@/shared/lib/preview-show';
 
 export interface AssignmentRow {
   classId: string;
@@ -27,20 +28,49 @@ export interface AssignmentRow {
   advancedCount: number;
 }
 
+/* Which staff_assignments rows this screen speaks for.
+ *
+ * Normally that is the caller's own — a judge sees their own panel seats. A
+ * SuperAdmin holds no staff rows at all, so when they have picked a show to
+ * preview, this stands in the shoes of everyone staffed on THAT show: the
+ * result is that show's real panel, classes and entries, which is what legacy
+ * loaded when you chose "Judge · <show>" from its Viewing-as menu. */
+async function assignmentScopeStaffIds(profile: {
+  id: string;
+  email: string;
+  platform_role: string | null;
+}): Promise<string[]> {
+  const supabase = await createServerClient();
+
+  if (profile.platform_role === 'SuperAdmin') {
+    const previewShowId = await getPreviewShowId();
+    if (!previewShowId) return [];
+
+    const { data, error } = await supabase
+      .from('staff_assignments')
+      .select('id')
+      .eq('show_id', previewShowId)
+      .in('role', ['Judge', 'Scribe']);
+    if (error) throw error;
+    return data.map((s) => s.id);
+  }
+
+  const { data, error } = await supabase
+    .from('staff_assignments')
+    .select('id')
+    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+  if (error) throw error;
+  return data.map((s) => s.id);
+}
+
 export async function listMyAssignments(): Promise<AssignmentRow[]> {
   const profile = await getStaffProfile();
   if (!profile) return [];
 
   const supabase = await createServerClient();
 
-  const { data: staffRows, error: staffError } = await supabase
-    .from('staff_assignments')
-    .select('id, show_id')
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
-  if (staffError) throw staffError;
-  if (staffRows.length === 0) return [];
-
-  const staffIds = staffRows.map((s) => s.id);
+  const staffIds = await assignmentScopeStaffIds(profile);
+  if (staffIds.length === 0) return [];
 
   const { data: seats, error: seatError } = await supabase
     .from('class_panel')
@@ -157,14 +187,13 @@ export async function listPanelContacts(): Promise<PanelContact[]> {
 
   const supabase = await createServerClient();
 
-  const { data: staffRows, error: staffError } = await supabase
-    .from('staff_assignments')
-    .select('id')
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
-  if (staffError) throw staffError;
-  if (staffRows.length === 0) return [];
+  // Same scope as listMyAssignments: a judge's own seats, or — when a
+  // SuperAdmin is previewing a show — the seats of that show's panel. Without
+  // this the preview showed real assignments beside an empty panel.
+  const staffIds = await assignmentScopeStaffIds(profile);
+  if (staffIds.length === 0) return [];
 
-  const myStaffIds = new Set(staffRows.map((s) => s.id));
+  const myStaffIds = new Set(staffIds);
   const myStaffIdList = [...myStaffIds];
 
   const { data: mySeats, error: mySeatError } = await supabase
@@ -274,12 +303,24 @@ export interface ClassPlacingEntry {
   horse: string;
   finalPct: number | null;
   ctot: number | null;
+  testName: string | null;
 }
 
 function parseFinalPctNumber(raw: string | null): number | null {
   if (raw === null || raw === 'SCR' || raw === 'ELIM') return null;
   const n = Number(raw);
   return Number.isNaN(n) ? null : n;
+}
+
+/* A Test of Choice class stores each rider's chosen test as a full
+ * definition snapshot in test_override (see checkout.ts) — only the name
+ * is needed here to group placings per test. An ordinary class has no
+ * override on any entry, so every row's testName is null and ranking
+ * behaves exactly as it always did (one pool, one set of ribbons). */
+function extractTestName(override: unknown): string | null {
+  if (!override || typeof override !== 'object') return null;
+  const name = (override as Record<string, unknown>).name;
+  return typeof name === 'string' && name.trim() ? name : null;
 }
 
 export async function getClassPlacings(
@@ -291,7 +332,7 @@ export async function getClassPlacings(
     supabase.from('classes').select('label').eq('id', classId).single(),
     supabase
       .from('class_entries')
-      .select('id, num, rider, horse, final_pct, collective_total')
+      .select('id, num, rider, horse, final_pct, collective_total, test_override')
       .eq('class_id', classId)
       .order('ride_order'),
   ]);
@@ -307,6 +348,7 @@ export async function getClassPlacings(
       horse: e.horse ?? '—',
       finalPct: parseFinalPctNumber(e.final_pct),
       ctot: e.collective_total,
+      testName: extractTestName(e.test_override),
     })),
   };
 }
@@ -490,4 +532,14 @@ export async function getRideOrder(classId: string): Promise<RideOrderEntry[]> {
     finalPct: e.final_pct,
     holding: e.holding ?? false,
   }));
+}
+
+/** Name of the show a SuperAdmin is previewing, or null when none is picked. */
+export async function getPreviewShowName(): Promise<string | null> {
+  const showId = await getPreviewShowId();
+  if (!showId) return null;
+
+  const supabase = await createServerClient();
+  const { data } = await supabase.from('shows').select('name').eq('id', showId).maybeSingle();
+  return data?.name ?? null;
 }

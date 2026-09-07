@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/shared/ui/organizer/card';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import {
   Table,
   TableHeader,
@@ -202,9 +203,9 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
             </Table>
 
             <div className="bg-cream mt-[18px] flex items-center gap-2.5 rounded-[8px] px-4 py-3">
-              <label htmlFor="entries-per-class" className="m-0 text-[13px]">
+              <Label htmlFor="entries-per-class" className="m-0 text-[13px]">
                 Estimated entries per class
-              </label>
+              </Label>
               <Input
                 id="entries-per-class"
                 type="number"

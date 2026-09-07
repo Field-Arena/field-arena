@@ -9,12 +9,19 @@ interface EntryCartState {
 
   addOnQuantities: Record<string, number>;
 
+  /* Test of Choice classes list several possible tests (classes.test_options);
+   * the rider must pick exactly one before checkout. Empty/absent means either
+   * "not a Test of Choice class" or "not chosen yet" — the picker UI is what
+   * tells those apart, since it only renders when test_options is non-empty. */
+  testChoices: Record<string, string>;
+
   toggleClass: (classId: string) => void;
   toggleQualification: (classId: string, qualTypeId: string) => void;
   setAddOnQuantity: (addOnId: string, qty: number) => void;
   setClassHorse: (classId: string, slotIndex: number, horseId: string | null) => void;
   addClassHorseSlot: (classId: string) => void;
   removeClassHorseSlot: (classId: string, slotIndex: number) => void;
+  setTestChoice: (classId: string, testTitle: string) => void;
   reset: () => void;
 }
 
@@ -23,6 +30,7 @@ const INITIAL_STATE = {
   qualSelections: {} as Record<string, Set<string>>,
   classHorseAssignments: {} as Record<string, (string | null)[]>,
   addOnQuantities: {} as Record<string, number>,
+  testChoices: {} as Record<string, string>,
 };
 
 export const useEntryCartStore = create<EntryCartState>((set) => ({
@@ -33,15 +41,17 @@ export const useEntryCartStore = create<EntryCartState>((set) => ({
       const selectedClassIds = new Set(state.selectedClassIds);
       const classHorseAssignments = { ...state.classHorseAssignments };
       const qualSelections = { ...state.qualSelections };
+      const testChoices = { ...state.testChoices };
       if (selectedClassIds.has(classId)) {
         selectedClassIds.delete(classId);
         Reflect.deleteProperty(classHorseAssignments, classId);
         Reflect.deleteProperty(qualSelections, classId);
+        Reflect.deleteProperty(testChoices, classId);
       } else {
         selectedClassIds.add(classId);
         classHorseAssignments[classId] = [null];
       }
-      return { selectedClassIds, classHorseAssignments, qualSelections };
+      return { selectedClassIds, classHorseAssignments, qualSelections, testChoices };
     });
   },
 
@@ -87,6 +97,10 @@ export const useEntryCartStore = create<EntryCartState>((set) => ({
         },
       };
     });
+  },
+
+  setTestChoice: (classId, testTitle) => {
+    set((state) => ({ testChoices: { ...state.testChoices, [classId]: testTitle } }));
   },
 
   reset: () => {

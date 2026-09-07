@@ -8,8 +8,12 @@ import {
   listMyShows,
   listStabling,
   listVendors,
+  getHorseCounts,
 } from '@/modules/operations/data/queries';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { OpsAutoRefresh } from '@/modules/operations/ui/ops-auto-refresh';
+import { OpsClock } from '@/modules/operations/ui/ops-clock';
+import { groupRingsForBoard } from '@/modules/operations/utils/group-rings';
 import { StatusBadge } from '@/shared/ui/status-badge';
 
 export const metadata: Metadata = { title: 'Show Operations — Field & Arena' };
@@ -48,25 +52,31 @@ export default async function OperationsPage({
     );
   }
 
-  const [rings, staff, stats, stabling, permissions] = await Promise.all([
+  const [rings, staff, stats, stabling, permissions, horses] = await Promise.all([
     getRingStatus(currentShow.id),
     listStaff(currentShow.id),
     getShowStats(currentShow.id),
     listStabling(currentShow.id),
     getMyPermissions(currentShow.id),
+    getHorseCounts(currentShow.id),
   ]);
   const vendorCount = permissions.canViewMoney ? (await listVendors(currentShow.id)).length : null;
 
-  const live = rings.filter((r) => r.scoringOpen).length;
+  // One card per ring, not per class — see groupRingsForBoard.
+  const ringCards = groupRingsForBoard(rings);
+  const live = ringCards.filter((r) => r.current?.scoringOpen).length;
   const navHref = (path: string) => `/dashboard/operations/${path}?show=${currentShow.id}`;
 
   return (
     <>
+      <OpsAutoRefresh />
+
       <div className="dash-head">
         <div>
           <h1>Show Operations</h1>
           <p>Live board and on-the-ground operations.</p>
         </div>
+        <OpsClock className="dash-clock" />
       </div>
 
       <div className="dash-card">
@@ -101,7 +111,10 @@ export default async function OperationsPage({
           </Link>
           <Link href={navHref('horses')} className="stat" style={statLinkStyle}>
             <div className="stat-label">Horses</div>
-            <div className="stat-value">{stats.horses}</div>
+            <div className="stat-value">
+              {horses.today} / {horses.total}
+            </div>
+            <div className="stat-sub">today / entered</div>
           </Link>
           <Link href={navHref('stabling')} className="stat" style={statLinkStyle}>
             <div className="stat-label">Stalled</div>
@@ -119,51 +132,56 @@ export default async function OperationsPage({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <h2 className="show-detail-title">Ring status</h2>
           <span className="stat-sub">
-            {live} of {rings.length} live
+            {live} of {ringCards.length} live
           </span>
         </div>
-        {rings.length === 0 ? (
+        {ringCards.length === 0 ? (
           <EmptyPanel title="No classes" note="This show has no classes configured yet." />
         ) : (
           <div className="cards" style={{ marginTop: 10 }}>
-            {rings.map((ring) => (
-              <Link
-                key={ring.classId}
-                href={`/dashboard/operations/schedule?show=${currentShow.id}`}
-                className={`card-row ${ring.scoringOpen ? 'today' : ''}`}
-                style={{ color: 'inherit', textDecoration: 'none' }}
-              >
-                <div className="card-main">
-                  <div className="card-title">{ring.className}</div>
-                  <div className="card-meta">
-                    {ring.ring ?? 'Ring not set'} · {ring.position} of {ring.entryCount} ridden
-                  </div>
-                </div>
-                {ring.scoringOpen ? (
-                  <>
-                    <StatusBadge tone="warn">Live</StatusBadge>
-                    <div style={{ textAlign: 'right', minWidth: 160 }}>
-                      {ring.current && (
-                        <>
-                          <div className="now-eyebrow">Now in ring</div>
-                          <div style={{ fontWeight: 700 }}>
-                            #{ring.current.num} {ring.current.rider ?? '—'}
-                          </div>
-                        </>
-                      )}
-                      {ring.upNext[0] && (
-                        <div style={{ marginTop: ring.current ? 4 : 0 }}>
-                          <span className="now-eyebrow">Next up</span> #{ring.upNext[0].num}{' '}
-                          {ring.upNext[0].rider ?? '—'}
-                        </div>
-                      )}
+            {ringCards.map((card) => {
+              const cls = card.current;
+              return (
+                <Link
+                  key={card.ring}
+                  href={`/dashboard/operations/schedule?show=${currentShow.id}`}
+                  className={`card-row ${cls?.scoringOpen ? 'today' : ''}`}
+                  style={{ color: 'inherit', textDecoration: 'none' }}
+                >
+                  <div className="card-main">
+                    <div className="card-title">{card.ring}</div>
+                    <div className="card-meta">
+                      {cls ? cls.className : 'Nothing scheduled'}
+                      {cls ? ` · ${String(cls.position)} of ${String(cls.entryCount)} ridden` : ''}
+                      {card.classCount > 1 ? ` · ${String(card.classCount)} classes today` : ''}
                     </div>
-                  </>
-                ) : (
-                  <StatusBadge tone="neutral">Not started</StatusBadge>
-                )}
-              </Link>
-            ))}
+                  </div>
+                  {cls?.scoringOpen ? (
+                    <>
+                      <StatusBadge tone="warn">Live</StatusBadge>
+                      <div style={{ textAlign: 'right', minWidth: 160 }}>
+                        {cls.current && (
+                          <>
+                            <div className="now-eyebrow">Now in ring</div>
+                            <div style={{ fontWeight: 700 }}>
+                              #{cls.current.num} {cls.current.rider ?? '—'}
+                            </div>
+                          </>
+                        )}
+                        {cls.upNext[0] && (
+                          <div style={{ marginTop: cls.current ? 4 : 0 }}>
+                            <span className="now-eyebrow">Next up</span> #{cls.upNext[0].num}{' '}
+                            {cls.upNext[0].rider ?? '—'}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <StatusBadge tone="neutral">Not started</StatusBadge>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
         <p className="doc-note" style={{ marginTop: 10 }}>

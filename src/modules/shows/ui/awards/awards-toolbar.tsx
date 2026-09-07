@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PrinterIcon } from 'lucide-react';
 import { Eyebrow } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
+import { Label } from '@/shared/ui/shadcn/label';
 import type { ShowAwards } from '@/modules/shows/data/setup-queries';
 import { GroupingToggle } from '@/modules/shows/ui/awards/grouping-toggle';
 
@@ -33,7 +34,7 @@ export function AwardsToolbar({
   return (
     <>
       {shows.length > 1 && (
-        <label className="flex min-w-[200px] flex-col gap-2">
+        <Label className="flex min-w-[200px] flex-col gap-2">
           <Eyebrow>Show</Eyebrow>
           <select
             value={awards.showId}
@@ -48,10 +49,10 @@ export function AwardsToolbar({
               </option>
             ))}
           </select>
-        </label>
+        </Label>
       )}
 
-      <label className="flex min-w-[170px] flex-col gap-2">
+      <Label className="flex min-w-[170px] flex-col gap-2">
         <Eyebrow>Discipline</Eyebrow>
         <select
           value={discipline}
@@ -67,7 +68,7 @@ export function AwardsToolbar({
             </option>
           ))}
         </select>
-      </label>
+      </Label>
 
       <div className="flex flex-col gap-2">
         <Eyebrow>Awards grouping</Eyebrow>

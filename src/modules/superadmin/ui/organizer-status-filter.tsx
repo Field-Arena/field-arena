@@ -5,14 +5,18 @@ export interface OrganizerStatusCounts {
   all: number;
   onboard: number;
   pending: number;
+  deleted: number;
+  demo: number;
 }
+
+export type OrganizerStatusKey = 'all' | 'onboard' | 'pending' | 'deleted' | 'demo';
 
 export function OrganizerStatusFilter({
   active,
   counts,
   q,
 }: {
-  active: 'all' | 'onboard' | 'pending';
+  active: OrganizerStatusKey;
   counts: OrganizerStatusCounts;
   q?: string;
 }) {
@@ -20,6 +24,8 @@ export function OrganizerStatusFilter({
     { key: 'all', label: 'All', count: counts.all },
     { key: 'onboard', label: 'Onboard', count: counts.onboard },
     { key: 'pending', label: 'Pending', count: counts.pending },
+    { key: 'deleted', label: 'Deleted', count: counts.deleted },
+    { key: 'demo', label: 'Demo', count: counts.demo },
   ] as const;
 
   return (

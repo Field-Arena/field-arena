@@ -12,6 +12,7 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE, FM_SETS } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
@@ -58,9 +59,9 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="toc-name" className={SM_LABEL}>
+            <Label htmlFor="toc-name" className={SM_LABEL}>
               Name
-            </label>
+            </Label>
             <Input
               id="toc-name"
               className={cn('h-auto', SM_INPUT)}
@@ -74,9 +75,9 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="toc-division" className={SM_LABEL}>
+              <Label htmlFor="toc-division" className={SM_LABEL}>
                 Division
-              </label>
+              </Label>
               <select
                 id="toc-division"
                 className={SM_SELECT}
@@ -94,9 +95,9 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
               </select>
             </div>
             <div>
-              <label htmlFor="toc-fee" className={SM_LABEL}>
+              <Label htmlFor="toc-fee" className={SM_LABEL}>
                 Entry fee
-              </label>
+              </Label>
               <Input
                 id="toc-fee"
                 type="number"
@@ -111,9 +112,9 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
           </div>
 
           <div>
-            <label htmlFor="toc-search" className={SM_LABEL}>
+            <Label htmlFor="toc-search" className={SM_LABEL}>
               Catalog — {picked.size} selected
-            </label>
+            </Label>
             <Input
               id="toc-search"
               className={cn('h-auto', SM_INPUT, 'mb-2')}
@@ -129,7 +130,7 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
             ) : (
               <div className="max-h-[220px] overflow-y-auto rounded-[10px] border border-[#EDF0EE]">
                 {filtered.map((option) => (
-                  <label
+                  <Label
                     key={option}
                     className="flex cursor-pointer items-center gap-2.5 border-b border-[#F1F4F3] px-3 py-2 last:border-b-0"
                   >
@@ -147,7 +148,7 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
                       }}
                     />
                     <span className="text-ink-deep text-[12.5px]">{option}</span>
-                  </label>
+                  </Label>
                 ))}
               </div>
             )}

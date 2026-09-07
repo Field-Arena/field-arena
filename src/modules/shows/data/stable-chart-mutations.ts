@@ -182,7 +182,7 @@ export async function autoAssignStableStalls(input: unknown): Promise<void> {
     horseName: r.horseName,
     riderName: r.riderLabel === '—' ? null : r.riderLabel,
     isStallion: r.isStallion,
-    shavings: 0, // see stable-chart-queries.ts's doc comment
+    shavings: 0,
   }));
 
   const assignedKeys = new Set<string>();

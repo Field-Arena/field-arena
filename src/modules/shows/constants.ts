@@ -188,120 +188,6 @@ export const VENDOR_SPACE_TEMPLATE = [
   { name: 'Electricity Required (50 amp)', price: 50 },
 ] as const;
 
-export const TB_STARTER_TESTS = [
-  {
-    key: 'tl1',
-    name: 'Training Level Test 1',
-    level: 'Training Level',
-    movements: [
-      { num: 1, text: 'A — Enter working trot, track left at C', coef: 1 },
-      { num: 2, text: 'HXF — Change rein, working trot', coef: 1 },
-      { num: 3, text: 'A — Down centerline, halt, salute, proceed working trot', coef: 2 },
-      { num: 4, text: 'C — Track right, working trot', coef: 1 },
-      { num: 5, text: 'HXF — Change rein, working trot', coef: 1 },
-      { num: 6, text: 'A — Circle right 20m, working trot', coef: 1 },
-      { num: 7, text: 'Working canter right lead, circle right 20m', coef: 1 },
-      { num: 8, text: 'A — Down centerline, halt, salute', coef: 2 },
-    ],
-    collectives: [
-      { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      {
-        key: 'impulsion',
-        label: 'Impulsion (desire to move forward, elasticity of steps)',
-        coef: 1,
-      },
-      { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
-      { key: 'rider', label: "Rider's position and seat", coef: 1 },
-      { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
-    ],
-  },
-  {
-    key: 'tl2',
-    name: 'Training Level Test 2',
-    level: 'Training Level',
-    movements: [
-      { num: 1, text: 'A — Enter working trot, track right at C', coef: 1 },
-      { num: 2, text: 'MXK — Change rein, working trot', coef: 1 },
-      { num: 3, text: 'A — Down centerline, halt, salute, proceed working trot', coef: 2 },
-      { num: 4, text: 'C — Track left, working trot', coef: 1 },
-      { num: 5, text: 'HXF — Change rein, rising trot', coef: 1 },
-      { num: 6, text: 'E — Circle left 20m, working trot', coef: 1 },
-      { num: 7, text: 'Working canter left lead, circle left 20m', coef: 1 },
-      { num: 8, text: 'Working canter right lead, circle right 20m', coef: 1 },
-      { num: 9, text: 'A — Down centerline, halt, salute', coef: 2 },
-    ],
-    collectives: [
-      { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      {
-        key: 'impulsion',
-        label: 'Impulsion (desire to move forward, elasticity of steps)',
-        coef: 1,
-      },
-      { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
-      { key: 'rider', label: "Rider's position and seat", coef: 1 },
-      { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
-    ],
-  },
-  {
-    key: 'tl3',
-    name: 'Training Level Test 3',
-    level: 'Training Level',
-    movements: [
-      { num: 1, text: 'A — Enter working trot, track left at C', coef: 1 },
-      { num: 2, text: 'KXM — Change rein, working trot', coef: 1 },
-      { num: 3, text: 'A — Down centerline, halt, salute, proceed working trot', coef: 2 },
-      { num: 4, text: 'C — Track right, working trot', coef: 1 },
-      { num: 5, text: 'Working canter right lead, circle right 20m', coef: 1 },
-      { num: 6, text: 'HXF — Change rein, working canter to trot', coef: 1 },
-      { num: 7, text: 'Working canter left lead, circle left 20m', coef: 1 },
-      { num: 8, text: 'Stretch circle 20m, working trot rising', coef: 1 },
-      { num: 9, text: 'Free walk across the diagonal', coef: 2 },
-      { num: 10, text: 'A — Down centerline, halt, salute', coef: 2 },
-    ],
-    collectives: [
-      { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      {
-        key: 'impulsion',
-        label: 'Impulsion (desire to move forward, elasticity of steps)',
-        coef: 1,
-      },
-      { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
-      { key: 'rider', label: "Rider's position and seat", coef: 1 },
-      { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
-    ],
-  },
-  {
-    key: 'tl4',
-    name: 'Training Level Test 4',
-    level: 'Training Level',
-    movements: [
-      { num: 1, text: 'A — Enter working trot, track right at C', coef: 1 },
-      { num: 2, text: 'FXH — Change rein, working trot', coef: 1 },
-      { num: 3, text: 'A — Down centerline, halt, salute, proceed working trot', coef: 2 },
-      { num: 4, text: 'C — Track left, working trot', coef: 1 },
-      { num: 5, text: 'Working canter left lead, circle left 20m', coef: 1 },
-      { num: 6, text: 'KXM — Change rein, working canter to trot', coef: 1 },
-      { num: 7, text: 'Working canter right lead, circle right 20m', coef: 1 },
-      { num: 8, text: 'Stretch circle 20m, working trot rising', coef: 1 },
-      { num: 9, text: 'Free walk across the diagonal', coef: 2 },
-      { num: 10, text: 'Medium walk, track left', coef: 1 },
-      { num: 11, text: 'Working trot, down centerline from C', coef: 1 },
-      { num: 12, text: 'A — Down centerline, halt, salute', coef: 2 },
-    ],
-    collectives: [
-      { key: 'gaits', label: 'Gaits (freedom and regularity)', coef: 1 },
-      {
-        key: 'impulsion',
-        label: 'Impulsion (desire to move forward, elasticity of steps)',
-        coef: 1,
-      },
-      { key: 'submission', label: 'Submission (attention, confidence, harmony)', coef: 1 },
-      { key: 'rider', label: "Rider's position and seat", coef: 1 },
-      { key: 'aids', label: "Rider's correct and effective use of aids", coef: 1 },
-    ],
-  },
-] as const;
-
 export const COGGINS_LABEL = 'Coggins';
 
 export const HORSE_STAT_TINTS = {
@@ -309,6 +195,7 @@ export const HORSE_STAT_TINTS = {
   incomplete: { bg: '#F7E1E1', fg: '#B23A3A' },
   needsVerification: { bg: '#FCEBD2', fg: '#9A6A12' },
   cogginsExpired: { bg: '#F7E1E1', fg: '#B23A3A' },
+  multiEntry: { bg: '#E3EDFB', fg: '#2E5FA8' },
 
   stallsOccupied: { bg: '#E4F0E8', fg: '#1A5B3C' },
 } as const;
@@ -455,6 +342,12 @@ export const SHOW_MANAGER_SECTIONS = [
   {
     label: 'Test Builder',
     path: '/test-builder',
+    nextLabel: 'Results',
+    nextNote: 'Next: once scoring is confirmed, export final placings and scores.',
+  },
+  {
+    label: 'Results',
+    path: '/results',
     nextLabel: null,
     nextNote: null,
   },

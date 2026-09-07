@@ -13,6 +13,7 @@ export function CheckoutSummary({
   classes,
   addOns,
   qualTypes,
+  feeModel,
   waiverSatisfied,
 }: {
   showId: string;
@@ -20,13 +21,24 @@ export function CheckoutSummary({
   addOns: AddOnWithRemaining[];
   qualTypes: QualTypeRow[];
 
+  feeModel: string | null;
+
   waiverSatisfied: boolean;
 }) {
   const selectedClassIds = useEntryCartStore((state) => state.selectedClassIds);
   const classHorseAssignments = useEntryCartStore((state) => state.classHorseAssignments);
   const qualSelections = useEntryCartStore((state) => state.qualSelections);
   const addOnQuantities = useEntryCartStore((state) => state.addOnQuantities);
+  const testChoices = useEntryCartStore((state) => state.testChoices);
   const createSession = useCreateCheckoutSession();
+
+  const classById = new Map(classes.map((cls) => [cls.id, cls]));
+  const everyTestChosen = [...selectedClassIds].every((classId) => {
+    const cls = classById.get(classId);
+    const hasTestOptions = Array.isArray(cls?.test_options) && cls.test_options.length > 0;
+    if (!hasTestOptions) return true;
+    return Boolean(testChoices[classId]);
+  });
 
   const { total, canCheckout, everyClassAssigned } = computeCartPreview({
     classes,
@@ -36,6 +48,7 @@ export function CheckoutSummary({
     classHorseAssignments,
     qualSelections,
     addOnQuantities,
+    feeModel,
   });
 
   return (
@@ -56,7 +69,12 @@ export function CheckoutSummary({
             Assign a horse to every selected class to continue.
           </p>
         )}
-        {canCheckout && everyClassAssigned && !waiverSatisfied && (
+        {canCheckout && everyClassAssigned && !everyTestChosen && (
+          <p className="text-destructive text-xs">
+            Choose a test for every Test of Choice class to continue.
+          </p>
+        )}
+        {canCheckout && everyClassAssigned && everyTestChosen && !waiverSatisfied && (
           <p className="text-destructive text-xs">
             Sign this show&apos;s waiver above to continue.
           </p>
@@ -65,7 +83,11 @@ export function CheckoutSummary({
           type="button"
           className="w-full"
           disabled={
-            !canCheckout || !everyClassAssigned || !waiverSatisfied || createSession.isPending
+            !canCheckout ||
+            !everyClassAssigned ||
+            !everyTestChosen ||
+            !waiverSatisfied ||
+            createSession.isPending
           }
           onClick={() => {
             const payload = buildCheckoutCartPayload({
@@ -73,6 +95,7 @@ export function CheckoutSummary({
               classHorseAssignments,
               qualSelections,
               addOnQuantities,
+              testChoices,
             });
             createSession.mutate({ showId, cart: payload.cart, addOns: payload.addOns });
           }}

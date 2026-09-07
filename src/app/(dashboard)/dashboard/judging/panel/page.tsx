@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
-import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
+import {
+  listMyAssignments,
+  listPanelContacts,
+  getPreviewShowName,
+} from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
 import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
@@ -19,8 +23,12 @@ export default async function JudgingPanelPage() {
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
-  const assignments = isSuperAdminPreview ? buildDemoAssignments(todayIso) : realAssignments;
-  const contacts = isSuperAdminPreview ? buildDemoPanelContacts() : realContacts;
+  // Real rows come back whenever a show is being previewed; the demo builders
+  // are the fallback for a SuperAdmin who hasn't picked one.
+  const previewShowName = isSuperAdminPreview ? await getPreviewShowName() : null;
+  const useDemoData = isSuperAdminPreview && previewShowName === null;
+  const assignments = useDemoData ? buildDemoAssignments(todayIso) : realAssignments;
+  const contacts = useDemoData ? buildDemoPanelContacts() : realContacts;
   const snapshot = buildTodaySnapshot(assignments, contacts, todayIso);
 
   return (
@@ -30,7 +38,7 @@ export default async function JudgingPanelPage() {
         <ScreenLede className="mb-0">Who else is on the panel with you.</ScreenLede>
       </div>
 
-      {isSuperAdminPreview && <SuperAdminPreviewNotice />}
+      {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
       <JudgingStatusCard
         rings={snapshot.rings}

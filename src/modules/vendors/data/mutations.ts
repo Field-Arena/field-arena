@@ -10,6 +10,7 @@ import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { clientIp, rateLimit } from '@/shared/lib/rate-limit';
 import type { Json } from '@/shared/types/database.types';
 import {
   vendorSignUpSchema,
@@ -297,8 +298,30 @@ export async function applyToVendorShow(input: unknown): Promise<{ bookingId: st
   return result;
 }
 
+/* The one write on the platform an anonymous caller can reach, so it is capped
+ * per IP+show the way legacy capped it ([resource].js:117). Five a minute is far
+ * above any real applicant's pace — one submission per show — and well below
+ * what it takes to flood an organizer's review queue. Each booking also holds
+ * inventory the moment it lands (see the qty cap in insertPendingVendorBooking),
+ * so an unthrottled script could reserve out a show's booths without paying a
+ * cent. */
+const PUBLIC_APPLY_LIMIT = 5;
+const PUBLIC_APPLY_WINDOW_MS = 60_000;
+
 export async function applyToShowPublic(input: unknown): Promise<{ bookingId: string }> {
   const parsed = applyToShowPublicSchema.parse(input);
+
+  const ip = await clientIp();
+  const { limited, retryAfterMs } = rateLimit(`vendor-apply:${ip}:${parsed.showId}`, {
+    limit: PUBLIC_APPLY_LIMIT,
+    windowMs: PUBLIC_APPLY_WINDOW_MS,
+  });
+  if (limited) {
+    throw new Error(
+      `Too many applications from this connection. Try again in ${String(Math.ceil(retryAfterMs / 1000))}s.`,
+    );
+  }
+
   const supabase = await createServerClient();
   const admin = createAdminClient();
 
@@ -464,9 +487,15 @@ export async function createVendorCheckoutSession(
   const admin = createAdminClient();
 
   const booking = await loadOwnBookingForCheckout(admin, parsed.bookingId, vendor.email);
+  /* Legacy gated payment on one thing only: not already paid
+   * (vendor-checkout-quote, `if (booking.status === 'confirmed') -> 409`). A
+   * `pending` booking could be paid the moment it was submitted. Requiring
+   * `approved` first meant a vendor who applied could not pay until an
+   * organizer acted, which is not how the legacy flow worked — and the booking
+   * already holds its inventory from the moment it is submitted either way. */
   if (booking.status === 'paid') throw new Error('This booking is already paid.');
-  if (booking.status !== 'approved') {
-    throw new Error('This booking needs organizer approval before it can be paid.');
+  if (booking.status === 'rejected') {
+    throw new Error('This application was declined, so it cannot be paid.');
   }
   if (!booking.agreement_signed_at) {
     throw new Error('Sign the booth agreement before paying.');

@@ -159,6 +159,11 @@ export async function setPassword(input: unknown): Promise<VerifyOutcome> {
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { status: 'error', message: readableAuthError(error.message) };
 
+  // Marks the account as actually onboarded — distinct from auth.users.last_sign_in_at,
+  // which GoTrue sets the moment the invite link is clicked (verifyOtp), before this
+  // screen has even rendered. Onboard-status screens read this column, not that one.
+  await supabase.from('users').update({ onboarded_at: new Date().toISOString() }).eq('id', user.id);
+
   const metaNext: unknown = user.user_metadata.next;
   const next = typeof metaNext === 'string' ? metaNext : ROUTES.dashboard;
 

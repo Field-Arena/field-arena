@@ -7,6 +7,7 @@ import { StatCard } from '@/shared/ui/organizer/stat-card';
 import { TableShell } from '@/shared/ui/organizer/data-table';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Users2Icon } from 'lucide-react';
 import {
   IconCheckCircle,
   IconXCircle,
@@ -40,6 +41,7 @@ const HORSE_STAT_CARDS: {
   { key: 'incomplete', icon: <IconXCircle size={18} />, label: 'Incomplete' },
   { key: 'needsVerification', icon: <IconShieldAlert size={18} />, label: 'Needs verification' },
   { key: 'cogginsExpired', icon: <IconCalendarX size={18} />, label: 'Coggins expired' },
+  { key: 'multiEntry', icon: <Users2Icon size={18} />, label: 'Multi-entry horse' },
 ];
 
 interface HorseCounts {
@@ -47,6 +49,7 @@ interface HorseCounts {
   incomplete: number;
   needsVerification: number;
   cogginsExpired: number;
+  multiEntry: number;
 }
 
 export function HorsesScreen({
@@ -59,6 +62,7 @@ export function HorsesScreen({
 }) {
   const { showId, showName, requirements, rows } = data;
   const [sort, setSort] = useState<{ col: SortCol | null; dir: 1 | -1 }>({ col: null, dir: 1 });
+  const [multiEntryOnly, setMultiEntryOnly] = useState(false);
 
   function toggleSort(col: SortCol) {
     setSort((prev) =>
@@ -72,17 +76,18 @@ export function HorsesScreen({
   }
 
   const sortedRows = useMemo(() => {
-    if (!sort.col) return rows;
+    const base = multiEntryOnly ? rows.filter((r) => r.isMultiEntry) : rows;
+    if (!sort.col) return base;
     const col = sort.col;
     const getter =
       col === 'horse' ? (r: HorseRow) => r.horseName : (r: HorseRow) => (r.isStallion ? 1 : 0);
-    return [...rows].sort((a, b) => {
+    return [...base].sort((a, b) => {
       const av = getter(a);
       const bv = getter(b);
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sort.dir;
       return String(av).localeCompare(String(bv)) * sort.dir;
     });
-  }, [rows, sort]);
+  }, [rows, sort, multiEntryOnly]);
 
   const counts = useMemo(
     () => ({
@@ -90,6 +95,7 @@ export function HorsesScreen({
       incomplete: rows.filter((r) => !r.complete).length,
       needsVerification: rows.filter((r) => r.needsVerification).length,
       cogginsExpired: rows.filter((r) => r.cogginsExpired).length,
+      multiEntry: rows.filter((r) => r.isMultiEntry).length,
     }),
     [rows],
   );
@@ -118,9 +124,16 @@ export function HorsesScreen({
             key={key}
             icon={icon}
             value={String(counts[key])}
-            label={label}
+            label={key === 'multiEntry' && multiEntryOnly ? `${label} (showing)` : label}
             tintBg={HORSE_STAT_TINTS[key].bg}
             tintFg={HORSE_STAT_TINTS[key].fg}
+            {...(key === 'multiEntry'
+              ? {
+                  onClick: () => {
+                    setMultiEntryOnly((v) => !v);
+                  },
+                }
+              : {})}
           />
         ))}
         {stableChartSummary && (
@@ -135,11 +148,33 @@ export function HorsesScreen({
         )}
       </div>
 
+      {multiEntryOnly && (
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] text-[#5A6B63]">
+          Showing only multi-entry horses (ridden by more than one rider).
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-auto px-1.5 py-0.5 text-[12.5px] font-semibold text-[#2E5FA8] hover:bg-transparent"
+            onClick={() => {
+              setMultiEntryOnly(false);
+            }}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <Card className="p-[18px_20px_20px]">
           <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
             No horses entered yet — horses appear here as riders enter, when a roster is imported,
             or when you add one by hand.
+          </p>
+        </Card>
+      ) : sortedRows.length === 0 ? (
+        <Card className="p-[18px_20px_20px]">
+          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+            No horse at this show is ridden by more than one rider.
           </p>
         </Card>
       ) : (

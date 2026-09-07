@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRightIcon, BarChart3Icon, DownloadIcon, SearchIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
+import { cn } from '@/shared/lib/utils';
 import { Input } from '@/shared/ui/shadcn/input';
 import { AddTargetDialog } from '@/modules/superadmin/ui/add-target-dialog';
 import { LeadStatusPill } from '@/modules/superadmin/ui/lead-status-pill';
@@ -31,6 +32,9 @@ const BREAKDOWN_STAGES: { key: string; label: string; lost?: boolean }[] = [
   { key: 'lost', label: 'Lost', lost: true },
 ];
 
+/** Lost is an outcome, not a stage — it is separated from the funnel above it. */
+const LOST_KEY = 'lost';
+
 export function FunnelBoard({
   leads,
   counts,
@@ -54,7 +58,12 @@ export function FunnelBoard({
     );
   }, [leads, search]);
 
-  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+  /* Percentages are relative to demos SCHEDULED, not to every lead — that is
+   * what makes these bars read as a drop-off funnel (scheduled → completed →
+   * onboarding → customer). Against the total-lead count they answer a
+   * different question and understate every stage. */
+  const funnelBase = counts.demo_scheduled ?? 0;
+  const pct = (n: number) => (funnelBase ? Math.round((n / funnelBase) * 100) : 0);
 
   return (
     <div className="space-y-5">
@@ -118,16 +127,26 @@ export function FunnelBoard({
 
       {breakdownOpen && (
         <div className="[animation:fa-in_.16s_ease-out_both] rounded-[14px] border border-[#E7E0D0] bg-[#F6F3EC] px-[26px] py-6">
-          <h3 className={`${NR} text-hunter-deep mb-4 text-[21px] font-medium tracking-[-.012em]`}>
+          <h3
+            className={`${NR} text-hunter-deep mb-1.5 text-[21px] font-medium tracking-[-.012em]`}
+          >
             Closing rate breakdown
           </h3>
+          <p className="text-fa-muted-2 mb-4 text-[13px] leading-[1.55]">
+            {funnelBase === 0
+              ? 'No demos have been scheduled yet, so there is no funnel to break down.'
+              : 'Percentages are relative to demos scheduled — this shows where targets actually drop off, not just the single closing-rate number.'}
+          </p>
           <div className="flex flex-col gap-3">
             {BREAKDOWN_STAGES.map((stage) => {
               const count = counts[stage.key] ?? 0;
               return (
                 <div
                   key={stage.key}
-                  className="grid items-center gap-[18px]"
+                  className={cn(
+                    'grid items-center gap-[18px]',
+                    stage.key === LOST_KEY && 'mt-1 border-t border-[#DDE4DF] pt-4',
+                  )}
                   style={{ gridTemplateColumns: 'minmax(120px,170px) minmax(0,1fr) 78px' }}
                 >
                   <span

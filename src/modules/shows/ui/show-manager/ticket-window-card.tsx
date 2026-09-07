@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { useUpdateTicketWindow } from '@/modules/shows/hooks/use-select-events-mutations';
 import {
   SM_CARD_PAD,
@@ -63,9 +64,9 @@ export function TicketWindowCard({ data }: { data: SelectEventsData }) {
       <div className="grid gap-4 sm:grid-cols-2">
         {windowDateFields.map((f) => (
           <div key={f.id}>
-            <label htmlFor={f.id} className={SM_LABEL}>
+            <Label htmlFor={f.id} className={SM_LABEL}>
               {f.label}
-            </label>
+            </Label>
             <Input
               id={f.id}
               type="date"
@@ -81,9 +82,9 @@ export function TicketWindowCard({ data }: { data: SelectEventsData }) {
       </div>
 
       <div className="mt-4 sm:max-w-[calc(50%-8px)]">
-        <label htmlFor="ticket-close-time" className={SM_LABEL}>
+        <Label htmlFor="ticket-close-time" className={SM_LABEL}>
           Ticket sales close (time)
-        </label>
+        </Label>
         <Input
           id="ticket-close-time"
           type="time"

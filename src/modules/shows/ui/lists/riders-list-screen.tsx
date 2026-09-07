@@ -132,6 +132,9 @@ export function RidersListScreen({
                 <TableHead scope="col" className="h-auto px-4 py-2.5 text-left">
                   Classes
                 </TableHead>
+                <TableHead scope="col" className="h-auto px-4 py-2.5 text-left print:hidden">
+                  Documents
+                </TableHead>
                 {canViewMoney && (
                   <TableHead scope="col" className="h-auto px-4 py-2.5 text-right">
                     Total paid
@@ -152,6 +155,36 @@ export function RidersListScreen({
                   <TableCell className="px-4 py-2.5 whitespace-normal">{rider.horse}</TableCell>
                   <TableCell className="px-4 py-2.5 text-[12px] whitespace-normal text-[#7A8781]">
                     {rider.classes.join(', ')}
+                  </TableCell>
+                  <TableCell className="px-4 py-2.5 text-[12px] whitespace-normal text-[#7A8781] print:hidden">
+                    {rider.documents.length === 0 ? (
+                      <span>—</span>
+                    ) : (
+                      <span
+                        title={rider.documents
+                          .map(
+                            (d) =>
+                              `${d.horseName} — ${d.label}${d.verified ? ' (verified)' : ' (not verified)'}${d.expirationDate ? `, expires ${d.expirationDate}` : ''}`,
+                          )
+                          .join('\n')}
+                      >
+                        {rider.documents.length} doc{rider.documents.length === 1 ? '' : 's'}
+                        {rider.documents.some((d) => !d.verified) && (
+                          <span className="text-destructive ml-1">
+                            · {rider.documents.filter((d) => !d.verified).length} unverified
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {rider.pastShows.length > 0 && (
+                      <div
+                        className="mt-0.5 text-[11px] text-[#98A29D]"
+                        title={rider.pastShows.join(', ')}
+                      >
+                        Entered {rider.pastShows.length} past show
+                        {rider.pastShows.length === 1 ? '' : 's'}
+                      </div>
+                    )}
                   </TableCell>
                   {canViewMoney && (
                     <TableCell className="px-4 py-2.5 text-right whitespace-normal">

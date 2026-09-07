@@ -16,7 +16,10 @@ export default async function BillingPage() {
     listOrganizationBilling(),
   ]);
 
-  const needingAttention = organizations.filter((org) => !org.stripeConnected).length;
+  // Anything that isn't a live, chargeable account needs attention — not just
+  // the ones with no account at all (legacy counted status !== 'active').
+  const needingAttention = organizations.filter((org) => org.stripeStatus !== 'active').length;
+  const pendingPayouts = organizations.reduce((sum, org) => sum + org.pendingPayout, 0);
 
   return (
     <div className="space-y-7">
@@ -41,7 +44,7 @@ export default async function BillingPage() {
           { label: 'Platform volume', value: formatMoneyExact(summary.grossPaid) },
           { label: 'Platform fees earned', value: formatMoneyExact(summary.platformFees) },
 
-          { label: 'Pending payouts', value: formatMoneyExact(0) },
+          { label: 'Pending payouts', value: formatMoneyExact(pendingPayouts) },
           { label: 'Accounts needing attention', value: needingAttention },
         ]}
       />

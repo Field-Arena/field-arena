@@ -6,12 +6,16 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
 import { ROUTES } from '@/shared/constants/routes';
+import { ROLE_PERMISSION_DEFAULTS, PERMISSION_KEYS } from '@/shared/constants/permissions';
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
   organizationFlagSchema,
   resendOrganizerInviteSchema,
+  addOrganizationOwnerSchema,
+  removeOrganizationOwnerSchema,
   addSuperAdminSchema,
   superAdminIdSchema,
   addOrgStaffSchema,
@@ -22,12 +26,16 @@ import {
   updateSettlementSchema,
   updateLeadSchema,
   leadIdSchema,
+  toggleChecklistItemSchema,
   createSheetSchema,
   updateSheetSchema,
   sheetIdSchema,
   uploadDocumentSchema,
   documentIdSchema,
   moveDocumentSchema,
+  moveDocumentsSchema,
+  renameDocumentSchema,
+  rematchDocumentsSchema,
 } from '@/modules/superadmin/schemas';
 import {
   ONBOARDING_CHECKLIST_TEMPLATE,
@@ -44,10 +52,25 @@ import {
   type AddSuperAdminResult,
 } from '@/modules/superadmin/data/action-result';
 
+/* Every mutation in this module is SuperAdmin-only, exactly as the legacy
+ * console's routes were (requireSuperAdmin in api/_lib/auth.js guarded all of
+ * api/organizations.js, api/leads.js and the catalog/doc resources). RLS alone
+ * is NOT enough here: organizations_update_own also grants an Organizer full
+ * update rights on their own org row, so an unguarded Server Action would let
+ * an Organizer un-suspend or un-delete themselves and rewrite their own
+ * fee_model / holdback_percent. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 async function requireSuperAdmin() {
   const profile = await getStaffProfile();
   if (profile?.platform_role !== 'SuperAdmin') {
-    throw new Error('Only a Super Admin can manage Super Admins.');
+    throw new Error('Only a Super Admin can perform this action.');
   }
   return profile;
 }
@@ -147,7 +170,7 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
 
   const { data: owner, error: ownerError } = await admin
     .from('users')
-    .select('id, name, email')
+    .select('id, name, email, onboarded_at')
     .eq('org_id', orgId)
     .eq('platform_role', 'Organizer')
     .maybeSingle();
@@ -159,12 +182,8 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
   }
   const name = owner?.name ?? org.name;
 
-  if (owner) {
-    const { data: authUser, error: authError } = await admin.auth.admin.getUserById(owner.id);
-    if (authError) throw new Error(authError.message);
-    if (authUser.user.last_sign_in_at) {
-      throw new Error('This organization’s owner has already signed in.');
-    }
+  if (owner?.onboarded_at) {
+    throw new Error('This organization’s owner has already finished setting up their account.');
   }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
@@ -192,7 +211,116 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
   return { email };
 }
 
+/* Client feedback: an Organizer's home org is a single FK, so someone
+ * running two separate show-organizing businesses needed two logins. This
+ * grants a SECOND (or further) organization to an existing Organizer
+ * account without touching their primary org_id — see
+ * 20260907170000_organization_owners.sql for how RLS honours the grant.
+ * SuperAdmin-only, deliberately: letting an Organizer grant this to
+ * themselves would let anyone claim any organization's data. */
+export async function addOrganizationOwner(
+  input: unknown,
+): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+  await requireSuperAdmin();
+  const parsed = addOrganizationOwnerSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
+  }
+  const { orgId, email } = parsed.data;
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const admin = createAdminClient();
+  const { data: user, error: userError } = await admin
+    .from('users')
+    .select('id, name, platform_role, org_id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+  if (userError) return { ok: false, error: userError.message };
+  if (!user) {
+    return {
+      ok: false,
+      error: 'No Organizer account exists with that email yet — add them as an organizer first.',
+    };
+  }
+  if (user.platform_role !== 'Organizer') {
+    return { ok: false, error: `${user.name} is not an Organizer account.` };
+  }
+  if (user.org_id === orgId) {
+    return { ok: false, error: `${user.name} already owns this organization.` };
+  }
+
+  const { error: insertError } = await admin
+    .from('organization_owners')
+    .insert({ org_id: orgId, user_id: user.id });
+  if (insertError) {
+    if (insertError.code === '23505') {
+      return { ok: false, error: `${user.name} already has access to this organization.` };
+    }
+    return { ok: false, error: insertError.message };
+  }
+
+  revalidatePath(CONSOLE_PATH);
+  return { ok: true, email: normalizedEmail };
+}
+
+export async function removeOrganizationOwner(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
+  const { orgId, userId } = removeOrganizationOwnerSchema.parse(input);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('organization_owners')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('user_id', userId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(CONSOLE_PATH);
+  return { ok: true };
+}
+
+/* Bulk "Resend Invite (All Pending)" -- legacy resendAllPendingInvites().
+ * Deliberately sequential rather than Promise.all: a slow or failing provider
+ * shouldn't be stampeded, and a partial failure has to stay attributable to a
+ * named org. Returns the same shape legacy summarised in its alert(). */
+export async function resendAllPendingOrganizerInvites(): Promise<{
+  sent: number;
+  total: number;
+  failed: string[];
+}> {
+  await requireSuperAdmin();
+  const admin = createAdminClient();
+
+  const [{ data: orgs, error: orgsError }, { data: owners, error: ownersError }] =
+    await Promise.all([
+      admin.from('organizations').select('id, name, email').is('deleted_at', null),
+      admin.from('users').select('org_id, onboarded_at').eq('platform_role', 'Organizer'),
+    ]);
+  if (orgsError) throw new Error(orgsError.message);
+  if (ownersError) throw new Error(ownersError.message);
+
+  const onboardedOrgIds = new Set(
+    owners.filter((o) => o.onboarded_at && o.org_id).map((o) => o.org_id),
+  );
+  const pending = orgs.filter((o) => !onboardedOrgIds.has(o.id));
+
+  const failed: string[] = [];
+  let sent = 0;
+  for (const org of pending) {
+    try {
+      await resendOrganizerInvite({ orgId: org.id });
+      sent += 1;
+    } catch {
+      failed.push(org.name);
+    }
+  }
+
+  revalidatePath(CONSOLE_PATH);
+  return { sent, total: pending.length, failed };
+}
+
 export async function updateOrganization(input: unknown) {
+  await requireSuperAdmin();
   const parsed = updateOrganizationSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -216,6 +344,7 @@ export async function updateOrganization(input: unknown) {
 }
 
 export async function setOrganizationSuspended(input: unknown) {
+  await requireSuperAdmin();
   const { id, value } = organizationFlagSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -226,6 +355,7 @@ export async function setOrganizationSuspended(input: unknown) {
 }
 
 export async function setOrganizationDeleted(input: unknown) {
+  await requireSuperAdmin();
   const { id, value } = organizationFlagSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -332,35 +462,39 @@ async function sendStaffInviteNotification(params: {
   name: string;
   role: string;
   showName: string;
-}): Promise<void> {
+}): Promise<boolean> {
   const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
   const link = `${env.siteUrl}${ROUTES.login}`;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Field & Arena <notifications@field-arena.com>',
-      to: params.to,
-      subject: `You've been added as ${params.role} for ${params.showName}`,
-      html:
-        `<p>Hi ${firstName},</p>` +
-        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>. ` +
-        `Click below to log in and get set up:</p>` +
-        `<p><a href="${link}">${link}</a></p>`,
-    }),
+  return sendEmail({
+    to: params.to,
+    subject: `You've been added as ${params.role} for ${params.showName}`,
+    html:
+      `<p>Hi ${escapeHtml(firstName)},</p>` +
+      `<p>You've been added as <b>${escapeHtml(params.role)}</b> for ` +
+      `<b>${escapeHtml(params.showName)}</b>. Click below to log in and get set up:</p>` +
+      `<p><a href="${link}">${link}</a></p>`,
   });
-  if (!res.ok) return;
 }
 
-export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
+/* Role defaults are written onto the row at creation time rather than left
+ * empty and resolved on read -- same reason legacy's POST /api/shows/:id/staff
+ * stores defaultsForRole(role): the permissions popup then has real,
+ * self-contained values to show and edit from the moment the person is added,
+ * and a later role change can't silently re-derive someone's access. */
+function defaultPermissionsForRole(role: string): Record<string, boolean> {
+  const defaults = ROLE_PERMISSION_DEFAULTS[role] ?? {};
+  return Object.fromEntries(PERMISSION_KEYS.map((k) => [k, defaults[k] === true]));
+}
+
+export async function addOrgStaff(input: unknown): Promise<{ email: string; emailSent: boolean }> {
   await requireSuperAdmin();
   const parsed = addOrgStaffSchema.parse(input);
   const email = parsed.email.trim().toLowerCase();
-  const name = parsed.name ?? email;
+  const name = parsed.name.trim();
+  const nameParts = name.split(/\s+/);
+  const firstName = parsed.firstName.trim() || (nameParts[0] ?? name);
+  const lastName = parsed.lastName.trim() || nameParts.slice(1).join(' ') || null;
 
   const supabase = await createServerClient();
   const { data: show, error: showError } = await supabase
@@ -374,7 +508,10 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
     show_id: parsed.showId,
     email,
     name,
+    first_name: firstName,
+    last_name: lastName,
     role: parsed.role,
+    permissions: defaultPermissionsForRole(parsed.role),
     status: 'pending',
   });
   if (assignError) throw new Error(assignError.message);
@@ -385,18 +522,35 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
 
+  // The staff row is real either way -- a failed send is surfaced, never
+  // rolled back (same stance as legacy's POST /api/shows/:id/staff, which
+  // returns { ...row, emailSent }). Silently swallowing this was how a failed
+  // invite became indistinguishable from a delivered one.
+  let emailSent = false;
   if (existingStaffUser || existingRider) {
-    await sendStaffInviteNotification({
+    // Link the assignment to the real account. getUserWorkspaceRoles() matches
+    // staff_assignments on user_id, so without this the multi-role workspace
+    // switcher never offers this person the role they were just given — they
+    // hold it, but the rail can't see it. Mirrors provisionIfNewAccount() on
+    // the organizer's own add-staff path.
+    if (existingStaffUser) {
+      await admin
+        .from('staff_assignments')
+        .update({ user_id: existingStaffUser.id })
+        .eq('email', email)
+        .is('user_id', null);
+    }
+    emailSent = await sendStaffInviteNotification({
       to: email,
       name,
       role: parsed.role,
       showName: show.name,
-    }).catch(() => undefined);
+    });
   } else {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {
         name,
-        firstName: name.trim().split(/\s+/)[0] ?? name,
+        firstName,
         role: parsed.role,
         showName: show.name,
       },
@@ -405,20 +559,27 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string }> {
     });
 
     if (!inviteError) {
+      emailSent = true;
       await admin.from('users').insert({
         id: invited.user.id,
         name,
         email,
         platform_role: platformRoleForStaff(parsed.role),
       });
+      await admin
+        .from('staff_assignments')
+        .update({ user_id: invited.user.id })
+        .eq('email', email)
+        .is('user_id', null);
     }
   }
 
   revalidatePath(USERS_PATH);
-  return { email };
+  return { email, emailSent };
 }
 
 export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const { staffId, role } = changeStaffRoleSchema.parse(input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
@@ -429,6 +590,7 @@ export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
 }
 
 export async function updateStaffPermissions(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const { staffId, permissions } = updateStaffPermissionsSchema.parse(input);
   const supabase = await createServerClient();
   const { error } = await supabase
@@ -442,6 +604,7 @@ export async function updateStaffPermissions(input: unknown): Promise<{ ok: true
 }
 
 export async function removeStaffAssignment(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const { staffId } = staffIdSchema.parse(input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('staff_assignments').delete().eq('id', staffId);
@@ -457,6 +620,7 @@ function emptyToNull(value: string | null | undefined): string | null {
 }
 
 export async function createLead(input: unknown): Promise<{ id: string }> {
+  await requireSuperAdmin();
   const parsed = createLeadSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -486,6 +650,7 @@ export async function createLead(input: unknown): Promise<{ id: string }> {
 }
 
 export async function updateLead(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const parsed = updateLeadSchema.parse(input);
   const { id } = parsed;
 
@@ -521,13 +686,46 @@ export async function updateLead(input: unknown): Promise<{ ok: true }> {
   return { ok: true };
 }
 
+/* Toggling one checklist item re-reads the stored list, flips that one entry,
+ * and writes the whole array back — legacy toggleLeadChecklistItem did the
+ * same re-fetch for the same reason: sending a client-held copy overwrites any
+ * edit made elsewhere since the page rendered. */
+export async function toggleLeadChecklistItem(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
+  const { id, itemId, done } = toggleChecklistItemSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { data: lead, error: readError } = await supabase
+    .from('leads')
+    .select('onboarding_checklist')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (!lead) throw new Error('Lead not found.');
+
+  const existing = Array.isArray(lead.onboarding_checklist) ? lead.onboarding_checklist : [];
+  const next = existing.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+    return item.id === itemId ? { ...item, done } : item;
+  });
+
+  const { error } = await supabase
+    .from('leads')
+    .update({ onboarding_checklist: next, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`${SALES_PATH}/${id}`);
+  return { ok: true };
+}
+
 export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: boolean }> {
   const { id } = leadIdSchema.parse(input);
   const supabase = await createServerClient();
 
   const { data: lead, error: readError } = await supabase
     .from('leads')
-    .select('onboarding_checklist')
+    .select('onboarding_checklist, email, contact_name, onboarding_at')
     .eq('id', id)
     .maybeSingle();
   if (readError) throw new Error(readError.message);
@@ -543,21 +741,55 @@ export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: b
           done: false,
         }));
 
-  const { error } = await supabase
-    .from('leads')
-    .update({
-      onboarding_checklist: checklist,
-      onboarding_email_sent_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+  // Legacy sendOnboardingEmail (api/leads.js): the checklist is rendered into
+  // the body as a <ul> and the onboarding slot is spelled out in full. The
+  // send happens BEFORE onboarding_email_sent_at is stamped -- stamping a
+  // "we emailed them" timestamp for an email that never went out is worse
+  // than not stamping at all.
+  const rows = checklist
+    .map((c) => {
+      const label = (c as { label?: unknown }).label;
+      return `<li>${escapeHtml(typeof label === 'string' ? label : '')}</li>`;
     })
-    .eq('id', id);
+    .join('');
+  const whenText = lead.onboarding_at
+    ? new Date(lead.onboarding_at).toLocaleString('en-US', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+      })
+    : 'your scheduled onboarding session';
+
+  let emailSent = false;
+  if (lead.email) {
+    emailSent = await sendEmail({
+      to: lead.email,
+      subject: 'Getting ready for your Field & Arena onboarding',
+      html:
+        `<p>Hi ${escapeHtml(lead.contact_name ?? 'there')},</p>` +
+        `<p>We're looking forward to your onboarding on <b>${escapeHtml(whenText)}</b>. ` +
+        `To make the most of that time, please have the following ready beforehand:</p>` +
+        `<ul>${rows}</ul>` +
+        `<p>If anything on this list isn't ready yet, no problem — just bring what you have ` +
+        `and we'll sort out the rest together.</p>` +
+        `<p>See you soon!</p>`,
+    });
+  }
+
+  const updates: Database['public']['Tables']['leads']['Update'] = {
+    onboarding_checklist: checklist,
+    updated_at: new Date().toISOString(),
+  };
+  if (emailSent) updates.onboarding_email_sent_at = new Date().toISOString();
+
+  const { error } = await supabase.from('leads').update(updates).eq('id', id);
   if (error) throw new Error(error.message);
 
   revalidatePath(`${SALES_PATH}/${id}`);
-  return { emailSent: false };
+  return { emailSent };
 }
 
 export async function createScoringSheet(input: unknown): Promise<{ id: string }> {
+  await requireSuperAdmin();
   const parsed = createSheetSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -583,6 +815,7 @@ export async function createScoringSheet(input: unknown): Promise<{ id: string }
 }
 
 export async function updateScoringSheet(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const parsed = updateSheetSchema.parse(input);
   const { id } = parsed;
 
@@ -610,6 +843,7 @@ export async function updateScoringSheet(input: unknown): Promise<{ ok: true }> 
 }
 
 export async function deleteScoringSheet(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const { id } = sheetIdSchema.parse(input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('scoring_catalog').delete().eq('id', id);
@@ -620,6 +854,7 @@ export async function deleteScoringSheet(input: unknown): Promise<{ ok: true }> 
 }
 
 export async function uploadCatalogDocument(input: unknown): Promise<{ id: string }> {
+  await requireSuperAdmin();
   const parsed = uploadDocumentSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -648,6 +883,7 @@ export async function uploadCatalogDocument(input: unknown): Promise<{ id: strin
 }
 
 export async function deleteCatalogDocument(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const { id } = documentIdSchema.parse(input);
   const supabase = await createServerClient();
 
@@ -669,6 +905,7 @@ export async function deleteCatalogDocument(input: unknown): Promise<{ ok: true 
 }
 
 export async function moveCatalogDocument(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
   const { id, folder } = moveDocumentSchema.parse(input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('catalog_documents').update({ folder }).eq('id', id);
@@ -678,7 +915,63 @@ export async function moveCatalogDocument(input: unknown): Promise<{ ok: true }>
   return { ok: true };
 }
 
+/* "Try to match again" -- once the catalog or the matcher improves, an
+ * already-uploaded file can be pointed at its catalog entry by renaming the
+ * row to that entry's source_file. Same row, same stored object, no re-upload
+ * (legacy rematchUnmatchedUploads). */
+export async function renameCatalogDocument(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
+  const { id, name } = renameDocumentSchema.parse(input);
+  const supabase = await createServerClient();
+  const { error } = await supabase.from('catalog_documents').update({ name }).eq('id', id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(DOCUMENTS_PATH);
+  revalidatePath(CATALOG_PATH);
+  return { ok: true };
+}
+
+/* Bulk counterpart of the two single-row actions above, so a pile of unmatched
+ * uploads can be resolved in one pass instead of one click each. Best-effort
+ * per row -- the caller re-reads and shows whatever actually landed. */
+export async function rematchCatalogDocuments(input: unknown): Promise<{
+  fixed: number;
+  failed: number;
+}> {
+  await requireSuperAdmin();
+  const { renames } = rematchDocumentsSchema.parse(input);
+  const supabase = await createServerClient();
+
+  let fixed = 0;
+  let failed = 0;
+  for (const item of renames) {
+    const { error } = await supabase
+      .from('catalog_documents')
+      .update({ name: item.name })
+      .eq('id', item.id);
+    if (error) failed += 1;
+    else fixed += 1;
+  }
+
+  revalidatePath(DOCUMENTS_PATH);
+  revalidatePath(CATALOG_PATH);
+  return { fixed, failed };
+}
+
+export async function moveCatalogDocuments(input: unknown): Promise<{ moved: number }> {
+  await requireSuperAdmin();
+  const { ids, folder } = moveDocumentsSchema.parse(input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.from('catalog_documents').update({ folder }).in('id', ids);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(DOCUMENTS_PATH);
+  return { moved: ids.length };
+}
+
 export async function updateSettlement(input: unknown): Promise<void> {
+  await requireSuperAdmin();
   const data = updateSettlementSchema.parse(input);
 
   const supabase = await createServerClient();

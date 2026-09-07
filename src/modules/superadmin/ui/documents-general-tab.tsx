@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/shared/ui/shadcn/button';
 import {
   Table,
   TableBody,
@@ -17,6 +16,7 @@ import {
   useUploadDocument,
   useDeleteDocument,
 } from '@/modules/superadmin/hooks/use-document-mutations';
+import { ConfirmDeleteDocument } from '@/modules/superadmin/ui/confirm-delete-document';
 import { DocumentsUpload } from '@/modules/superadmin/ui/documents-upload';
 
 const HEAD =
@@ -82,16 +82,14 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
                           View / Download
                         </a>
                       )}
-                      <Button
-                        type="button"
-                        variant="ghost"
+                      <ConfirmDeleteDocument
+                        fileName={d.name}
+                        pending={remove.isPending}
                         className={`h-auto px-0 py-0 hover:bg-transparent ${DEL}`}
-                        onClick={() => {
+                        onConfirm={() => {
                           remove.mutate(d.id);
                         }}
-                      >
-                        Delete
-                      </Button>
+                      />
                     </div>
                   </TableCell>
                 </TableRow>

@@ -5,6 +5,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import {
   useUploadShowDocument,
@@ -132,7 +133,7 @@ export function DocumentsCard({
                       ) : (
                         <div className="flex flex-wrap gap-x-5 gap-y-2">
                           {classes.map((c) => (
-                            <label
+                            <Label
                               key={c.id}
                               className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]"
                             >
@@ -145,7 +146,7 @@ export function DocumentsCard({
                                 }}
                               />
                               {c.label}
-                            </label>
+                            </Label>
                           ))}
                         </div>
                       )}

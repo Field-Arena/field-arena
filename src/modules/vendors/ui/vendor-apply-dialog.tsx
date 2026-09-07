@@ -63,6 +63,21 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
           </DialogDescription>
         </DialogHeader>
 
+        {/* A signed-in vendor is redirected away from the public apply page, so
+          * without this the booth map would still reach nobody who can act on it. */}
+        {show.vendorMapUrl && (
+          <p className="text-[13.5px]">
+            <a
+              href={show.vendorMapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline underline-offset-2"
+            >
+              View the vendor space map ↗
+            </a>
+          </p>
+        )}
+
         <form
           onSubmit={(event) => {
             event.preventDefault();

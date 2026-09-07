@@ -3,7 +3,12 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { createLead, updateLead, sendLeadOnboarding } from '@/modules/superadmin/data/mutations';
+import {
+  createLead,
+  updateLead,
+  sendLeadOnboarding,
+  toggleLeadChecklistItem,
+} from '@/modules/superadmin/data/mutations';
 import type { CreateLeadInput, UpdateLeadInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
@@ -58,6 +63,23 @@ export function useSendLeadOnboarding() {
     },
     onError: (error) => {
       toast.error(errorMessage(error, 'Could not send onboarding'));
+    },
+  });
+}
+
+/* One item at a time, server-side read-modify-write — so ticking a box can't
+ * silently revert a change someone else made to the same checklist. */
+export function useToggleChecklistItem() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: { id: string; itemId: string; done: boolean }) =>
+      toggleLeadChecklistItem(input),
+    onSuccess: () => {
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not update the checklist'));
     },
   });
 }

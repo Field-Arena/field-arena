@@ -144,7 +144,6 @@ export const updateShowDetailsSchema = z
     startingRiderNumber: z.coerce.number().int().min(1).max(99999),
     governingBodies: z.array(z.enum(GOVERNING_BODIES)),
   })
-  // Only once both are set — half-dated is a normal state mid-setup.
   .refine((d) => !d.startDate || !d.endDate || d.endDate >= d.startDate, {
     message: 'End date cannot be before the start date',
     path: ['endDate'],
@@ -548,7 +547,11 @@ export const verifyHorseDocumentSchema = z.object({
   showId: z.uuid(),
   horseId: z.uuid(),
   requirementId: z.string().trim().min(1),
-  verified: z.boolean(),
+  /* Both optional so each field is only touched when actually sent — legacy's
+   * PATCH behaved the same way, so a verified-only call (the checkbox) never
+   * clobbers a stored expiry, and a date correction never flips verification. */
+  verified: z.boolean().optional(),
+  expirationDate: z.string().trim().nullable().optional(),
 });
 
 export type VerifyHorseDocumentInput = z.input<typeof verifyHorseDocumentSchema>;

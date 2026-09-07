@@ -35,11 +35,6 @@ export async function addManualHorse(input: unknown): Promise<{ id: string }> {
 
   const { error } = await supabase
     .from('shows')
-    // Named-interface arrays don't structurally satisfy Json's index
-    // signature the way an inline object literal type does (the same reason
-    // every other jsonb write in this module's sibling mutations.ts builds
-    // its update payload as an object literal rather than a typed variable) —
-    // asserted through unknown rather than reshaping ManualHorseEntry.
     .update({ manual_horses: [...current, entry] as unknown as Json })
     .eq('id', parsed.showId);
   if (error) throw new Error(error.message);
@@ -62,9 +57,23 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
   const uploads = (horse.document_uploads ?? []) as {
     requirementId?: string;
     verified?: boolean;
+    expirationDate?: string | null;
   }[];
+  /* Legacy allowed an organizer to correct a rider-entered expiry typo through
+   * this same route, patching only the fields present in the body
+   * (verify-horse-document, api/rider/[resource].js). Spreading the parsed
+   * fields conditionally keeps that: a verified-only call leaves the stored
+   * date alone, and a date-only correction leaves verification alone. */
   const next = uploads.map((u) =>
-    u.requirementId === parsed.requirementId ? { ...u, verified: parsed.verified } : u,
+    u.requirementId === parsed.requirementId
+      ? {
+          ...u,
+          ...(parsed.verified !== undefined ? { verified: parsed.verified } : {}),
+          ...(parsed.expirationDate !== undefined
+            ? { expirationDate: parsed.expirationDate }
+            : {}),
+        }
+      : u,
   );
 
   const { error } = await supabase
