@@ -99,6 +99,23 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
     .select('id, class_id, rider');
   if (entriesError) throw entriesError;
 
+  const { data: additionalOwnerRows, error: ownersError } = await supabase
+    .from('organization_owners')
+    .select('org_id, users(id, name, email)');
+  if (ownersError) throw ownersError;
+
+  const additionalOwnersByOrg = new Map<
+    string,
+    { userId: string; name: string; email: string }[]
+  >();
+  for (const row of additionalOwnerRows) {
+    const user = row.users as { id: string; name: string; email: string } | null;
+    if (!user) continue;
+    const list = additionalOwnersByOrg.get(row.org_id) ?? [];
+    list.push({ userId: user.id, name: user.name, email: user.email });
+    additionalOwnersByOrg.set(row.org_id, list);
+  }
+
   const showsByOrg = new Map<string, string[]>();
   for (const show of shows) {
     const list = showsByOrg.get(show.org_id) ?? [];
@@ -160,6 +177,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
         : accountOrgs.has(org.id)
           ? false
           : orgShows.length > 0,
+      additionalOwners: additionalOwnersByOrg.get(org.id) ?? [],
     };
   });
 }

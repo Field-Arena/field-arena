@@ -14,6 +14,8 @@ import {
   updateOrganizationSchema,
   organizationFlagSchema,
   resendOrganizerInviteSchema,
+  addOrganizationOwnerSchema,
+  removeOrganizationOwnerSchema,
   addSuperAdminSchema,
   superAdminIdSchema,
   addOrgStaffSchema,
@@ -207,6 +209,74 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
 
   revalidatePath(CONSOLE_PATH);
   return { email };
+}
+
+/* Client feedback: an Organizer's home org is a single FK, so someone
+ * running two separate show-organizing businesses needed two logins. This
+ * grants a SECOND (or further) organization to an existing Organizer
+ * account without touching their primary org_id — see
+ * 20260907170000_organization_owners.sql for how RLS honours the grant.
+ * SuperAdmin-only, deliberately: letting an Organizer grant this to
+ * themselves would let anyone claim any organization's data. */
+export async function addOrganizationOwner(
+  input: unknown,
+): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+  await requireSuperAdmin();
+  const parsed = addOrganizationOwnerSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
+  }
+  const { orgId, email } = parsed.data;
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const admin = createAdminClient();
+  const { data: user, error: userError } = await admin
+    .from('users')
+    .select('id, name, platform_role, org_id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+  if (userError) return { ok: false, error: userError.message };
+  if (!user) {
+    return {
+      ok: false,
+      error: 'No Organizer account exists with that email yet — add them as an organizer first.',
+    };
+  }
+  if (user.platform_role !== 'Organizer') {
+    return { ok: false, error: `${user.name} is not an Organizer account.` };
+  }
+  if (user.org_id === orgId) {
+    return { ok: false, error: `${user.name} already owns this organization.` };
+  }
+
+  const { error: insertError } = await admin
+    .from('organization_owners')
+    .insert({ org_id: orgId, user_id: user.id });
+  if (insertError) {
+    if (insertError.code === '23505') {
+      return { ok: false, error: `${user.name} already has access to this organization.` };
+    }
+    return { ok: false, error: insertError.message };
+  }
+
+  revalidatePath(CONSOLE_PATH);
+  return { ok: true, email: normalizedEmail };
+}
+
+export async function removeOrganizationOwner(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
+  const { orgId, userId } = removeOrganizationOwnerSchema.parse(input);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('organization_owners')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('user_id', userId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(CONSOLE_PATH);
+  return { ok: true };
 }
 
 /* Bulk "Resend Invite (All Pending)" -- legacy resendAllPendingInvites().

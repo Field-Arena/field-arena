@@ -32,6 +32,10 @@ export interface OrganizationSummary {
   revenueEstimate: number;
 
   onboarded: boolean;
+
+  /* Organizers granted access to this org in addition to its primary owner —
+   * see organization_owners / addOrganizationOwner. */
+  additionalOwners: { userId: string; name: string; email: string }[];
 }
 
 export type LeadRow = Database['public']['Tables']['leads']['Row'];

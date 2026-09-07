@@ -33,6 +33,20 @@ export const resendOrganizerInviteSchema = z.object({
 
 export type ResendOrganizerInviteInput = z.input<typeof resendOrganizerInviteSchema>;
 
+export const addOrganizationOwnerSchema = z.object({
+  orgId: z.uuid(),
+  email: z.email('Enter a valid email address'),
+});
+
+export type AddOrganizationOwnerInput = z.input<typeof addOrganizationOwnerSchema>;
+
+export const removeOrganizationOwnerSchema = z.object({
+  orgId: z.uuid(),
+  userId: z.uuid(),
+});
+
+export type RemoveOrganizationOwnerInput = z.input<typeof removeOrganizationOwnerSchema>;
+
 export const updateOrganizationSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(2, 'Organization name is required').max(160),

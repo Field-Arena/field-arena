@@ -10,10 +10,13 @@ import {
   setOrganizationDeleted,
   resendOrganizerInvite,
   resendAllPendingOrganizerInvites,
+  addOrganizationOwner,
+  removeOrganizationOwner,
 } from '@/modules/superadmin/data/mutations';
 import type {
   CreateOrganizationInput,
   UpdateOrganizationInput,
+  AddOrganizationOwnerInput,
 } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
@@ -82,6 +85,41 @@ export function useSetOrganizationDeleted() {
     },
     onError: (error) => {
       toast.error(errorMessage(error, 'Could not delete this organizer'));
+    },
+  });
+}
+
+export function useAddOrganizationOwner(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (input: AddOrganizationOwnerInput) => {
+      const result = await addOrganizationOwner(input);
+      if (!result.ok) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: ({ email }) => {
+      toast.success(`${email} can now switch into this organization`);
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not grant access'));
+    },
+  });
+}
+
+export function useRemoveOrganizationOwner() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: { orgId: string; userId: string }) => removeOrganizationOwner(input),
+    onSuccess: () => {
+      toast.success('Access removed');
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not remove access'));
     },
   });
 }

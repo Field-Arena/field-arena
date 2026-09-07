@@ -946,6 +946,39 @@ export type Database = {
           },
         ]
       }
+      organization_owners: {
+        Row: {
+          created_at: string
+          org_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          org_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          org_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_owners_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_owners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           avg_entry_value: number | null
