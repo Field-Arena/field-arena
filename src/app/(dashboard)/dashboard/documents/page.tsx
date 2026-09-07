@@ -4,6 +4,15 @@ import { getDocumentRequirements, listShowDocuments } from '@/modules/shows/data
 import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatTimestamp } from '@/shared/lib/format/date';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
@@ -50,30 +59,30 @@ export default async function DocumentsPage({
           note="Riders can enter without uploading anything for this show."
         />
       ) : (
-        <div style={{ overflowX: 'auto', marginTop: 10 }}>
-          <table>
-            <caption className="sr-only">Documents riders must upload</caption>
-            <thead>
-              <tr>
-                <th scope="col">Document</th>
-                <th scope="col">Expiry tracked</th>
-                <th scope="col">Staff approval</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div style={{ marginTop: 10 }}>
+          <Table>
+            <TableCaption className="sr-only">Documents riders must upload</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Document</TableHead>
+                <TableHead scope="col">Expiry tracked</TableHead>
+                <TableHead scope="col">Staff approval</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {requirements.map((req) => (
-                <tr key={req.id}>
-                  <td>
+                <TableRow key={req.id}>
+                  <TableCell>
                     <strong>{req.label}</strong>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     {req.requiresExpiration ? (
                       <StatusBadge tone="info">Expiry required</StatusBadge>
                     ) : (
                       <span style={{ color: 'var(--fa-muted)', fontSize: 12.5 }}>Not tracked</span>
                     )}
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     {req.requiresApproval ? (
                       <StatusBadge tone="warn">Must be reviewed</StatusBadge>
                     ) : (
@@ -81,11 +90,11 @@ export default async function DocumentsPage({
                         On file is enough
                       </span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
       <p className="doc-note">

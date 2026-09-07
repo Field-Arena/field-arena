@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { IconCheck } from '@/shared/ui/organizer/icons';
+import { Textarea } from '@/shared/ui/shadcn/textarea';
 import { useSaveWaiverText, useApproveWaiver } from '@/modules/shows/hooks/use-show-mutations';
 import { WAIVER_TEXT_DEFAULT } from '@/modules/shows/schemas';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
@@ -45,7 +46,7 @@ export function WaiverCard({
         {approved ? 'Approved' : 'Not yet approved — required before Go Live'}
       </div>
 
-      <textarea
+      <Textarea
         value={text}
         rows={8}
         spellCheck={false}

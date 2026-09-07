@@ -12,6 +12,7 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
@@ -58,9 +59,9 @@ export function CustomClassDialog({
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="cc-name" className={SM_LABEL}>
+            <Label htmlFor="cc-name" className={SM_LABEL}>
               Class name
-            </label>
+            </Label>
             <Input
               id="cc-name"
               className={cn('h-auto', SM_INPUT)}
@@ -73,9 +74,9 @@ export function CustomClassDialog({
           </div>
 
           <div>
-            <label htmlFor="cc-division" className={SM_LABEL}>
+            <Label htmlFor="cc-division" className={SM_LABEL}>
               Division (optional)
-            </label>
+            </Label>
             <select
               id="cc-division"
               className={SM_SELECT}
@@ -94,9 +95,9 @@ export function CustomClassDialog({
           </div>
 
           <div>
-            <label htmlFor="cc-fee" className={SM_LABEL}>
+            <Label htmlFor="cc-fee" className={SM_LABEL}>
               Entry fee
-            </label>
+            </Label>
             <Input
               id="cc-fee"
               type="number"
@@ -110,9 +111,9 @@ export function CustomClassDialog({
           </div>
 
           <div>
-            <label htmlFor="cc-sponsor" className={SM_LABEL}>
+            <Label htmlFor="cc-sponsor" className={SM_LABEL}>
               Sponsor (optional)
-            </label>
+            </Label>
             <Input
               id="cc-sponsor"
               className={cn('h-auto', SM_INPUT)}

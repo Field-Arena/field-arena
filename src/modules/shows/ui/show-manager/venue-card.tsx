@@ -14,6 +14,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { IconBarn } from '@/shared/ui/organizer/icons';
 import {
   SM_CARD_PAD,
@@ -101,9 +102,9 @@ export function VenueCard({
 
         {venues.length > 0 ? (
           <div className="mb-5 max-w-[360px]">
-            <label htmlFor="sm-venue" className={SM_LABEL}>
+            <Label htmlFor="sm-venue" className={SM_LABEL}>
               Venue
-            </label>
+            </Label>
             <select
               id="sm-venue"
               value={selectedVenue}
@@ -136,9 +137,9 @@ export function VenueCard({
         )}
 
         <div className="mb-[18px] max-w-[160px]">
-          <label htmlFor="sm-ring-count" className={SM_LABEL}>
+          <Label htmlFor="sm-ring-count" className={SM_LABEL}>
             Number of rings/arenas
-          </label>
+          </Label>
           <Input
             id="sm-ring-count"
             type="number"

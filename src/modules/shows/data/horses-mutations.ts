@@ -35,11 +35,6 @@ export async function addManualHorse(input: unknown): Promise<{ id: string }> {
 
   const { error } = await supabase
     .from('shows')
-    // Named-interface arrays don't structurally satisfy Json's index
-    // signature the way an inline object literal type does (the same reason
-    // every other jsonb write in this module's sibling mutations.ts builds
-    // its update payload as an object literal rather than a typed variable) —
-    // asserted through unknown rather than reshaping ManualHorseEntry.
     .update({ manual_horses: [...current, entry] as unknown as Json })
     .eq('id', parsed.showId);
   if (error) throw new Error(error.message);

@@ -7,6 +7,7 @@ import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { IconPrinter } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { cn } from '@/shared/lib/utils';
@@ -126,9 +127,9 @@ export function StableChartScreen({ data }: { data: StableChartPageData }) {
 
         {savedLocations.length > 0 && (
           <div className="mb-2.5 max-w-[340px]">
-            <label htmlFor="sc-saved-location" className={SM_LABEL}>
+            <Label htmlFor="sc-saved-location" className={SM_LABEL}>
               Add stables from a saved location
-            </label>
+            </Label>
             <select
               id="sc-saved-location"
               ref={savedLocationSelectRef}
@@ -152,9 +153,9 @@ export function StableChartScreen({ data }: { data: StableChartPageData }) {
         )}
 
         <div className="mb-3.5 w-[160px]">
-          <label htmlFor="sc-stable-count" className={SM_LABEL}>
+          <Label htmlFor="sc-stable-count" className={SM_LABEL}>
             Number of stables
-          </label>
+          </Label>
           <Input
             id="sc-stable-count"
             ref={stableCountRef}

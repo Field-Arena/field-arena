@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { Table, TableBody, TableCell, TableRow } from '@/shared/ui/shadcn/table';
 import { fmtTime } from '@/modules/shows/schedule-engine';
 import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
@@ -52,7 +53,7 @@ export function ClassBlock({
         </span>
 
         <span className="flex flex-wrap items-center gap-2 print:hidden">
-          <label className="flex items-center gap-1 text-[11.5px] text-[#7A8781]">
+          <Label className="flex items-center gap-1 text-[11.5px] text-[#7A8781]">
             Ride time
             <Input
               type="number"
@@ -67,7 +68,7 @@ export function ClassBlock({
               }}
             />
             min
-          </label>
+          </Label>
 
           {(data.rings.length > 1 || totalDays > 1) && (
             <select

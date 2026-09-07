@@ -6,6 +6,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import {
   useSaveTestTemplate,
   useDeleteTestTemplate,
@@ -506,7 +507,7 @@ export function TestBuilderCard({
 
     const metaText = (key: MetaKey, label: string, placeholder: string) => (
       <div key={key}>
-        <label className={SM_LABEL}>{label}</label>
+        <Label className={SM_LABEL}>{label}</Label>
         <Input
           value={d[key]}
           placeholder={placeholder}
@@ -525,7 +526,7 @@ export function TestBuilderCard({
         {/* Test metadata */}
         <div className="mb-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className={SM_LABEL}>Test name</label>
+            <Label className={SM_LABEL}>Test name</Label>
             <Input
               value={d.name}
               placeholder="e.g. Training Level Test 1"
@@ -536,7 +537,7 @@ export function TestBuilderCard({
             />
           </div>
           <div>
-            <label className={SM_LABEL}>Level</label>
+            <Label className={SM_LABEL}>Level</Label>
             <Input
               value={d.level}
               placeholder="e.g. Training Level"
@@ -547,7 +548,7 @@ export function TestBuilderCard({
             />
           </div>
           <div>
-            <label className={SM_LABEL}>Discipline</label>
+            <Label className={SM_LABEL}>Discipline</Label>
             <select
               value={d.discipline}
               className={SM_SELECT}
@@ -565,7 +566,7 @@ export function TestBuilderCard({
           </div>
           {TEXT_META.map((f) => metaText(f.key, f.label, f.placeholder))}
           <div>
-            <label className={SM_LABEL}>Max points</label>
+            <Label className={SM_LABEL}>Max points</Label>
             <Input
               type="number"
               min={0}
@@ -580,7 +581,7 @@ export function TestBuilderCard({
         </div>
 
         {/* Sections */}
-        <label className={SM_LABEL}>Sections</label>
+        <Label className={SM_LABEL}>Sections</Label>
         <div className="mb-3 flex flex-col gap-4">
           {d.sections.map((s) => (
             <div key={s.id} className="rounded-[12px] border border-[#E9EDEB] bg-[#FBFCFB] p-4">
@@ -607,7 +608,7 @@ export function TestBuilderCard({
                   ))}
                 </select>
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
+                  <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                     <input
                       type="checkbox"
                       checked={s.subtotal}
@@ -617,7 +618,7 @@ export function TestBuilderCard({
                       }}
                     />
                     Subtotal
-                  </label>
+                  </Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -676,7 +677,7 @@ export function TestBuilderCard({
                         }}
                       />
                       <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
+                        <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                           <input
                             type="checkbox"
                             checked={it.required}
@@ -686,7 +687,7 @@ export function TestBuilderCard({
                             }}
                           />
                           Req.
-                        </label>
+                        </Label>
                         <Button
                           type="button"
                           variant="ghost"
@@ -817,7 +818,7 @@ export function TestBuilderCard({
         </GhostButton>
 
         {/* Penalties */}
-        <label className={SM_LABEL}>Penalties</label>
+        <Label className={SM_LABEL}>Penalties</Label>
         <div className="mb-3 flex flex-col gap-2.5">
           {d.penalties.map((p) => (
             <div
@@ -854,7 +855,7 @@ export function TestBuilderCard({
                 }}
               />
               <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
+                <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                   <input
                     type="checkbox"
                     checked={p.repeat}
@@ -864,8 +865,8 @@ export function TestBuilderCard({
                     }}
                   />
                   Repeat
-                </label>
-                <label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
+                </Label>
+                <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                   <input
                     type="checkbox"
                     checked={p.elimination}
@@ -875,7 +876,7 @@ export function TestBuilderCard({
                     }}
                   />
                   Elim.
-                </label>
+                </Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -906,10 +907,10 @@ export function TestBuilderCard({
         </GhostButton>
 
         {/* Scoring config */}
-        <label className={SM_LABEL}>Scoring</label>
+        <Label className={SM_LABEL}>Scoring</Label>
         <div className="mb-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className={SM_LABEL}>Score type</label>
+            <Label className={SM_LABEL}>Score type</Label>
             <select
               value={d.scoringConfig.scoreType}
               className={SM_SELECT}
@@ -925,7 +926,7 @@ export function TestBuilderCard({
             </select>
           </div>
           <div>
-            <label className={SM_LABEL}>Final display</label>
+            <Label className={SM_LABEL}>Final display</Label>
             <select
               value={d.scoringConfig.finalDisplay}
               className={SM_SELECT}
@@ -941,7 +942,7 @@ export function TestBuilderCard({
             </select>
           </div>
           <div>
-            <label className={SM_LABEL}>Formula</label>
+            <Label className={SM_LABEL}>Formula</Label>
             <select
               value={d.scoringConfig.formula}
               className={SM_SELECT}
@@ -956,7 +957,7 @@ export function TestBuilderCard({
               ))}
             </select>
           </div>
-          <label className="mt-6 flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
+          <Label className="mt-6 flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
             <input
               type="checkbox"
               checked={d.scoringConfig.applyCoefficients}
@@ -966,7 +967,7 @@ export function TestBuilderCard({
               }}
             />
             Apply coefficients
-          </label>
+          </Label>
         </div>
 
         <div className="flex flex-wrap gap-2.5">

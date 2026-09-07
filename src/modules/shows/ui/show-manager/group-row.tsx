@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronRightIcon, Loader2Icon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { defaultArenaFor, type CatalogCategory } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
@@ -69,7 +70,7 @@ export function GroupRow({
           />
         </Button>
 
-        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+        <Label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
             checked={selected}
@@ -79,7 +80,7 @@ export function GroupRow({
           />
           <span className="text-ink-deep truncate text-[13.5px] font-semibold">{group}</span>
           {pending && <Loader2Icon className="size-3.5 flex-none animate-spin" aria-hidden />}
-        </label>
+        </Label>
 
         <select
           value={location}

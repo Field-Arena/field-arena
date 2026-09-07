@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
 import { useUpdateScheduleRules } from '@/modules/shows/hooks/use-schedule-mutations';
@@ -54,7 +55,7 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
         <p className="mt-1.5 text-[12.5px] text-[#7A8781]">Double-booking rule: {summary}</p>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
-          <label className="flex flex-wrap items-center gap-2 text-[13px] font-semibold">
+          <Label className="flex flex-wrap items-center gap-2 text-[13px] font-semibold">
             Double-booking rule
             <select
               className={cn(SM_ROW_INPUT, 'w-auto')}
@@ -66,12 +67,12 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
               <option value="yes">On — never double-book a rider</option>
               <option value="no">Off — not enforced</option>
             </select>
-          </label>
+          </Label>
 
           {rules.hardRuleEnabled && (
             <div className="flex flex-wrap items-center gap-4">
               {durationFields.map((f) => (
-                <label key={f.key} className="flex items-center gap-2 text-[12.5px] text-[#6E7C76]">
+                <Label key={f.key} className="flex items-center gap-2 text-[12.5px] text-[#6E7C76]">
                   {f.label}
                   <Input
                     type="number"
@@ -87,7 +88,7 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
                     }}
                   />
                   min
-                </label>
+                </Label>
               ))}
             </div>
           )}
