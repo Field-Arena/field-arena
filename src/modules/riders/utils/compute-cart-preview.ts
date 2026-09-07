@@ -18,6 +18,7 @@ export function computeCartPreview({
   classHorseAssignments,
   qualSelections,
   addOnQuantities,
+  feeModel = null,
   countUnassignedClassAsOneLine = false,
 }: {
   classes: ClassWithCapacity[];
@@ -27,6 +28,12 @@ export function computeCartPreview({
   classHorseAssignments: Record<string, (string | null)[]>;
   qualSelections: Record<string, Set<string>>;
   addOnQuantities: Record<string, number>;
+
+  /* Must be the organizing org's real fee model. Passing null here quotes
+   * every rider the default rule, which silently understates the total for a
+   * GMO org (18% on class entries) — they would be charged more at checkout
+   * than the summary showed them. */
+  feeModel?: string | null;
 
   countUnassignedClassAsOneLine?: boolean;
 }): CartPreview {
@@ -49,7 +56,7 @@ export function computeCartPreview({
     }, 0);
     const classFee = cls.fee ?? 0;
     const lines = countUnassignedClassAsOneLine ? horseIds.length || 1 : horseIds.length;
-    total += lines * (classFee + calcPlatformFee(classFee, null) + qualTotal);
+    total += lines * (classFee + calcPlatformFee(classFee, feeModel) + qualTotal);
     lineCount += horseIds.length;
   }
   for (const [addOnId, qty] of Object.entries(addOnQuantities)) {

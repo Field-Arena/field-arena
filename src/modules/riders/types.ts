@@ -9,6 +9,20 @@ import type {
 export type RiderRow = Database['public']['Tables']['riders']['Row'];
 export type HorseRow = Database['public']['Tables']['horses']['Row'];
 export type OrderRow = Database['public']['Tables']['orders']['Row'];
+
+/* What a rider's OWN session is allowed to read back from `orders`.
+ *
+ * 20260907120000_fix_money_column_privileges revoked table-level SELECT and
+ * re-granted column by column, deliberately holding back the two saved-card
+ * columns. A rider-session `select('*')` therefore fails outright with 42501,
+ * so rider-side reads must name their columns — and the row they get back
+ * genuinely does not carry these two fields. Typing that honestly keeps the
+ * grant and the type in step: adding a column here that the migration does not
+ * grant will fail at the database, not silently return null. */
+export type RiderVisibleOrderRow = Omit<
+  OrderRow,
+  'stripe_customer_id' | 'stripe_payment_method_id'
+>;
 export type ClassEntryRow = Database['public']['Tables']['class_entries']['Row'];
 export type WaiverSignatureRow = Database['public']['Tables']['waiver_signatures']['Row'];
 export type ShowRow = Database['public']['Tables']['shows']['Row'];
@@ -49,6 +63,14 @@ export interface PublicShowDetail {
   qualTypes: QualTypeRow[];
 
   venueAddress: string | null;
+
+  /* The organizing org's platform-fee model. Needed so the cart total a rider
+   * is shown is computed with the same rule the server will charge them under
+   * — a GMO org bills 18% on class entries, and quoting the default 8%/$7.99
+   * rule understates the real price. Riders cannot read `organizations` under
+   * RLS, so this is resolved server-side. */
+  feeModel: string | null;
+  orgName: string | null;
 }
 
 export type RiderSignUpOutcome =

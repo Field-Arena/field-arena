@@ -14,7 +14,7 @@ import type {
   HorseDocumentUploadWithUrl,
   HorseWithDocumentUrls,
   OrderLineItem,
-  OrderRow,
+  RiderVisibleOrderRow,
   PublicShowDetail,
   RiderEntryDetail,
   RiderRow,
@@ -122,9 +122,10 @@ export async function getPublicShowForRider(showId: string): Promise<PublicShowD
     remaining: a.qty != null ? Math.max(0, a.qty - (soldByAddOn[a.id] ?? 0)) : null,
   }));
 
+  const admin = createAdminClient();
+
   let venueAddress: string | null = null;
   if (show.venue_id) {
-    const admin = createAdminClient();
     const { data: venue, error: venueError } = await admin
       .from('venues')
       .select('address')
@@ -134,12 +135,23 @@ export async function getPublicShowForRider(showId: string): Promise<PublicShowD
     venueAddress = venue?.address ?? null;
   }
 
+  // Read through the admin client for the same reason venueAddress is: a rider
+  // has no RLS grant on `organizations`. Only the fee model is taken.
+  const { data: org, error: orgError } = await admin
+    .from('organizations')
+    .select('fee_model, name')
+    .eq('id', show.org_id)
+    .maybeSingle();
+  if (orgError) throw orgError;
+
   return {
     show,
     classes: classesWithCapacity,
     addOns: addOnsWithRemaining,
     qualTypes,
     venueAddress,
+    feeModel: org?.fee_model ?? null,
+    orgName: org?.name ?? null,
   };
 }
 
@@ -268,7 +280,7 @@ export async function listRiderEntriesForShow(showId: string): Promise<RiderEntr
   });
 }
 
-export async function listRiderOrdersForShow(showId: string): Promise<OrderRow[]> {
+export async function listRiderOrdersForShow(showId: string): Promise<RiderVisibleOrderRow[]> {
   const supabase = await createServerClient();
 
   const {
@@ -278,7 +290,16 @@ export async function listRiderOrdersForShow(showId: string): Promise<OrderRow[]
 
   const { data, error } = await supabase
     .from('orders')
-    .select('*')
+    /* Explicit column list, not `*`. This runs under the RIDER's own session,
+     * and since 20260907120000 revoked table-level SELECT on `orders`, a `*`
+     * expands to columns `authenticated` was deliberately not granted and the
+     * whole query fails with 42501 — which threw out of here and took the
+     * rider's show dashboard down with it. These are exactly the granted
+     * columns; the two saved-card Stripe columns stay unreadable here by
+     * design, and staff-side reads that need them go through the admin client. */
+    .select(
+      'id, rider_id, show_id, stripe_payment_intent_id, amount_total, status, items, fee_total, refunded_amount, created_at, paid_at, arrival_date, departure_date, additional_charges_total, additional_charges',
+    )
     .eq('rider_id', user.id)
     .eq('show_id', showId)
     .order('created_at', { ascending: true });

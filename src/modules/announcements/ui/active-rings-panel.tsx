@@ -42,14 +42,26 @@ export function ActiveRingsPanel({ liveRings }: { liveRings: RingRow[] }) {
               </div>
               {ring.upNext.length > 0 && (
                 <div style={{ borderTop: '1px solid #E9EDEB', paddingTop: 8 }}>
-                  <div className="now-eyebrow">Up next</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 18px', marginTop: 4 }}>
-                    {ring.upNext.map((entry) => (
-                      <span key={entry.num} className="card-meta">
-                        #{entry.num} {entry.rider ?? '—'}
-                      </span>
+                  <div className="now-eyebrow">Up next — rest of the running order</div>
+                  {/* Legacy listed every remaining rider as its own queue row
+                    * (announcer.html:478), not a truncated strip of chips. An
+                    * announcer reads ahead to prep names, sponsors and horse
+                    * details, so the whole order has to be visible. */}
+                  <ol className="cards" style={{ marginTop: 6, paddingLeft: 0, listStyle: 'none' }}>
+                    {ring.upNext.map((entry, i) => (
+                      <li key={entry.num} className="queue-row">
+                        <span className="q-num" aria-hidden="true">
+                          {ring.position + 2 + i}
+                        </span>
+                        <div className="q-main">
+                          <div className="q-name">
+                            #{entry.num} · {entry.rider ?? '—'}
+                          </div>
+                          <div className="q-meta">{entry.horse ?? '—'}</div>
+                        </div>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
                 </div>
               )}
             </div>

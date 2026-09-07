@@ -13,7 +13,12 @@ export const metadata: Metadata = {
   title: 'Users — SuperAdmin Console',
 };
 
-export default async function PlatformUsersPage() {
+export default async function PlatformUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ org?: string; tab?: string }>;
+}) {
+  const { org, tab } = await searchParams;
   const [accounts, organizers, profile] = await Promise.all([
     listPlatformAccounts(),
     listOrganizerStaffDirectory(),
@@ -38,8 +43,11 @@ export default async function PlatformUsersPage() {
       </div>
 
       <UsersTabs
+        // Arriving from an organizer's own page opens straight onto their team,
+        // already expanded — legacy's "View X's staff →" shortcut.
+        initialTab={org || tab === 'directory' ? 'directory' : undefined}
         superAdmins={<SuperAdminsPanel accounts={superAdmins} currentUserId={profile?.id ?? ''} />}
-        directory={<DirectoryPanel organizers={organizers} />}
+        directory={<DirectoryPanel organizers={organizers} expandedOrgId={org ?? null} />}
       />
     </div>
   );

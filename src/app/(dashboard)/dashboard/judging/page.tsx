@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listMyAssignments, listPanelContacts } from '@/modules/judging/data/queries';
+import {
+  listMyAssignments,
+  listPanelContacts,
+  getPreviewShowName,
+} from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
 import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
@@ -22,8 +26,12 @@ export default async function JudgingPage() {
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
-  const assignments = isSuperAdminPreview ? buildDemoAssignments(todayIso) : realAssignments;
-  const panelContacts = isSuperAdminPreview ? buildDemoPanelContacts() : realPanelContacts;
+  // Real rows come back whenever a show is being previewed; the demo builders
+  // are the fallback for a SuperAdmin who hasn't picked one.
+  const previewShowName = isSuperAdminPreview ? await getPreviewShowName() : null;
+  const useDemoData = isSuperAdminPreview && previewShowName === null;
+  const assignments = useDemoData ? buildDemoAssignments(todayIso) : realAssignments;
+  const panelContacts = useDemoData ? buildDemoPanelContacts() : realPanelContacts;
   const roleLabel = profile?.platform_role === 'Scribe' ? 'Scribe' : 'Judge';
   const { rings, contacts, assignmentsToday } = buildTodaySnapshot(
     assignments,
@@ -49,7 +57,7 @@ export default async function JudgingPage() {
         </StatusPill>
       </div>
 
-      {isSuperAdminPreview && <SuperAdminPreviewNotice />}
+      {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
       <JudgingStatusCard rings={rings} contacts={contacts} assignmentsToday={assignmentsToday} />
 

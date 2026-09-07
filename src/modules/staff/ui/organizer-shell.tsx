@@ -30,6 +30,7 @@ export function OrganizerShell({
   profile,
   workspace,
   impersonating = false,
+  impersonatedOrgName = null,
   previewingAsShowAdmin = false,
   railRoleCookie = null,
   selectedOrgId = null,
@@ -40,6 +41,8 @@ export function OrganizerShell({
   profile: StaffProfile;
   workspace: RoleWorkspace;
   impersonating?: boolean;
+
+  impersonatedOrgName?: string | null;
 
   previewingAsShowAdmin?: boolean;
 
@@ -301,7 +304,7 @@ export function OrganizerShell({
       </aside>
 
       <div className="dash-main">
-        {impersonating && <ImpersonationBanner />}
+        {impersonating && <ImpersonationBanner orgName={impersonatedOrgName} />}
 
         <header className="dash-topbar">
           <span className="dash-topbar-title">{activeWorkspace.title}</span>

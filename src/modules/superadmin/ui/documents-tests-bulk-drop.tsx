@@ -33,7 +33,7 @@ export function BulkDrop({ onFiles }: { onFiles: (files: FileList) => void }) {
       <Input
         ref={ref}
         type="file"
-        accept="application/pdf"
+        accept="application/pdf,image/*"
         multiple
         className="hidden"
         onChange={(e) => {

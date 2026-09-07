@@ -97,6 +97,9 @@ export interface TestSheetItem {
   title: string;
   level: string | null;
   sourceFile: string;
+
+  /** False when the name above was derived from the title, not stored on the sheet. */
+  hasDeclaredSourceFile: boolean;
 }
 
 export interface BillingSummary {
@@ -126,6 +129,8 @@ export interface OrganizationBilling {
   net: number;
 
   stripeConnected: boolean;
+  stripeStatus: StripeConnectStatus;
+  pendingPayout: number;
 }
 
 export interface ShowBilling {
@@ -150,8 +155,84 @@ export interface OrganizationBillingDetail {
   holdbackPercent: number | null;
 
   stripeConnected: boolean;
+  stripeStatus: StripeConnectStatus;
+  stripeAccountId: string | null;
+  payoutsEnabled: boolean;
+  payouts: StripePayout[];
+  stripeError: string | null;
   volume: number;
   platformFee: number;
   net: number;
   shows: ShowBilling[];
+}
+
+/* The five states legacy's stripeStatusPill() distinguished. Collapsing these
+ * to a boolean hides exactly the accounts that need chasing: `restricted` and
+ * `onboarding` both have an account id on file but cannot take money. */
+export type StripeConnectStatus =
+  'not_connected' | 'onboarding' | 'restricted' | 'active' | 'error';
+
+export interface StripePayout {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  arrivalDate: number | null;
+}
+
+export interface StripeAccountStatus {
+  accountId: string | null;
+  status: StripeConnectStatus;
+  payoutsEnabled: boolean;
+  payouts: StripePayout[];
+  error?: string;
+}
+
+export type ShowStage = 'setup' | 'on-sale' | 'live';
+
+export interface OrganizationShow {
+  id: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  stage: ShowStage;
+  published: boolean;
+  entryCount: number;
+}
+
+export interface OrganizationShowsDetail {
+  id: string;
+  name: string;
+  city: string | null;
+  region: string | null;
+  currency: string | null;
+  locale: string | null;
+  onboarded: boolean;
+  shows: OrganizationShow[];
+}
+
+export interface ShowRosterEntry {
+  className: string;
+  division: string;
+  fee: number;
+  percent: number | null;
+}
+
+export interface ShowRosterRider {
+  key: string;
+  num: string;
+  name: string;
+  horse: string;
+  entries: ShowRosterEntry[];
+  feeTotal: number;
+}
+
+export interface IndependentTestTemplate {
+  id: string;
+  name: string;
+  level: string | null;
+  sourceLabel: string | null;
+  orgId: string;
+  orgName: string;
+  createdAt: string;
 }

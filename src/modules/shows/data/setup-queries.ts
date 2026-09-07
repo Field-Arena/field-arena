@@ -20,6 +20,11 @@ import {
   type AwardsReport,
 } from '@/modules/shows/awards-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
+import {
+  netCollected,
+  SETTLED_ORDER_STATUS,
+  SETTLED_BOOKING_STATUS,
+} from '@/shared/lib/sales-math';
 
 export interface ClassRow {
   id: string;
@@ -560,14 +565,18 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   const supabase = await createServerClient();
 
   const [orders, show, merch, vendors, classes] = await Promise.all([
-    supabase.from('orders').select('amount_total').eq('show_id', showId).eq('status', 'paid'),
+    supabase
+      .from('orders')
+      .select('amount_total, additional_charges_total, refunded_amount')
+      .eq('show_id', showId)
+      .eq('status', SETTLED_ORDER_STATUS),
     supabase.from('shows').select('expenses').eq('id', showId).single(),
     supabase.from('merch_sales').select('total').eq('show_id', showId),
     supabase
       .from('vendor_bookings')
-      .select('amount_total')
+      .select('amount_total, additional_charges_total, refunded_amount')
       .eq('show_id', showId)
-      .eq('status', 'paid'),
+      .eq('status', SETTLED_BOOKING_STATUS),
     supabase.from('classes').select('id, fee').eq('show_id', showId),
   ]);
 
@@ -594,10 +603,28 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   const expenses = (show.data.expenses ?? []) as { id: string; label: string; amount: number }[];
 
   return {
-    settledRevenue: orders.data.reduce((sum, o) => sum + o.amount_total, 0),
+    settledRevenue: orders.data.reduce(
+      (sum, o) =>
+        sum +
+        netCollected({
+          amountTotal: o.amount_total,
+          additionalChargesTotal: o.additional_charges_total,
+          refundedAmount: o.refunded_amount,
+        }),
+      0,
+    ),
     paidOrders: orders.data.length,
     entryValue,
-    vendorRevenue: vendors.data.reduce((sum, v) => sum + (v.amount_total ?? 0), 0),
+    vendorRevenue: vendors.data.reduce(
+      (sum, v) =>
+        sum +
+        netCollected({
+          amountTotal: v.amount_total,
+          additionalChargesTotal: v.additional_charges_total,
+          refundedAmount: v.refunded_amount,
+        }),
+      0,
+    ),
     merchRevenue: merch.data.reduce((sum, m) => sum + m.total, 0),
     expenses,
     expenseTotal: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
@@ -1062,12 +1089,17 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
       supabase.from('classes').select('id, label, division, event, fee').eq('show_id', showId),
 
       supabase.from('classes').select('id').eq('show_id', showId),
-      supabase.from('orders').select('id, status, items, amount_total').eq('show_id', showId),
+      supabase
+        .from('orders')
+        .select('id, status, items, amount_total, additional_charges_total, refunded_amount')
+        .eq('show_id', showId),
       supabase.from('add_ons').select('id, name').eq('show_id', showId),
       supabase.from('vendor_items').select('id, name, price').eq('show_id', showId),
       supabase
         .from('vendor_bookings')
-        .select('id, status, paid_at, amount_total, vendor_booking_items(vendor_item_id, qty)')
+        .select(
+          'id, status, paid_at, amount_total, additional_charges_total, refunded_amount, vendor_booking_items(vendor_item_id, qty)',
+        )
         .eq('show_id', showId),
       supabase.from('merch_sales').select('items, total').eq('show_id', showId),
     ]);
@@ -1145,7 +1177,7 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
 
   const vendorQty = new Map<string, number>();
   for (const booking of bookings.data) {
-    if (booking.status !== 'confirmed' || !booking.paid_at) continue;
+    if (booking.status !== SETTLED_BOOKING_STATUS || !booking.paid_at) continue;
     for (const item of booking.vendor_booking_items) {
       vendorQty.set(
         item.vendor_item_id,
@@ -1204,10 +1236,32 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
 
   const breakdownTotal = ordered.reduce((sum, c) => sum + c.subtotal, 0);
 
+  // Revenue is what was collected and kept — refunds netted out, additional
+  // charges added in. Reading the raw `status` column alone counted refunded
+  // money as revenue, because a refund never changes that column.
   const revenueTotal =
-    orders.data.reduce((sum, o) => (o.status === 'paid' ? sum + o.amount_total : sum), 0) +
+    orders.data.reduce(
+      (sum, o) =>
+        o.status === SETTLED_ORDER_STATUS
+          ? sum +
+            netCollected({
+              amountTotal: o.amount_total,
+              additionalChargesTotal: o.additional_charges_total,
+              refundedAmount: o.refunded_amount,
+            })
+          : sum,
+      0,
+    ) +
     bookings.data.reduce(
-      (sum, b) => (b.status === 'confirmed' && b.paid_at ? sum + (b.amount_total ?? 0) : sum),
+      (sum, b) =>
+        b.status === SETTLED_BOOKING_STATUS && b.paid_at
+          ? sum +
+            netCollected({
+              amountTotal: b.amount_total,
+              additionalChargesTotal: b.additional_charges_total,
+              refundedAmount: b.refunded_amount,
+            })
+          : sum,
       0,
     ) +
     merchSales.data.reduce((sum, m) => sum + m.total, 0);

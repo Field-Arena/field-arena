@@ -106,3 +106,14 @@ function safeReturnTo(value: string | undefined): string {
   if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard';
   return value;
 }
+
+/** Display name for one organization — used by the impersonation banner. */
+export async function getOrganizationName(orgId: string): Promise<string | null> {
+  const supabase = await createServerClient();
+  const { data } = await supabase
+    .from('organizations')
+    .select('name')
+    .eq('id', orgId)
+    .maybeSingle();
+  return data?.name ?? null;
+}

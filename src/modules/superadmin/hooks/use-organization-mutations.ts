@@ -9,6 +9,7 @@ import {
   setOrganizationSuspended,
   setOrganizationDeleted,
   resendOrganizerInvite,
+  resendAllPendingOrganizerInvites,
 } from '@/modules/superadmin/data/mutations';
 import type {
   CreateOrganizationInput,
@@ -93,6 +94,32 @@ export function useResendOrganizerInvite() {
     },
     onError: (error) => {
       toast.error(errorMessage(error, 'Could not resend the invite'));
+    },
+  });
+}
+
+/* Bulk resend reports per-org outcomes rather than a single ok/failed, because
+ * a partial send is the normal case — legacy summarised exactly this way
+ * ("N of M sent", plus the names that failed). */
+export function useResendAllPendingInvites(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: () => resendAllPendingOrganizerInvites(),
+    onSuccess: ({ sent, total, failed }) => {
+      const plural = total === 1 ? '' : 's';
+      if (failed.length > 0) {
+        toast.warning(`${String(sent)} of ${String(total)} invite${plural} sent`, {
+          description: `Failed: ${failed.join(', ')}`,
+        });
+      } else {
+        toast.success(`${String(sent)} of ${String(total)} invite${plural} sent`);
+      }
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not resend the pending invites'));
     },
   });
 }

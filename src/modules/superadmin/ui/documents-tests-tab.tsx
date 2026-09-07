@@ -14,13 +14,16 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import type { CatalogDocument, TestSheetItem } from '@/modules/superadmin/types';
-import { normalizeFilename } from '@/modules/superadmin/utils/normalize-filename';
+import { findCatalogMatch } from '@/modules/superadmin/utils/find-catalog-match';
 import { readFileAsBase64 } from '@/modules/superadmin/utils/read-file-as-base64';
 import {
   useUploadDocument,
   useDeleteDocument,
   useMoveDocument,
+  useMoveDocuments,
+  useRematchDocuments,
 } from '@/modules/superadmin/hooks/use-document-mutations';
+import { ConfirmDeleteDocument } from '@/modules/superadmin/ui/confirm-delete-document';
 import { StatusPill } from '@/modules/superadmin/ui/documents-tests-status-pill';
 import { RowUpload } from '@/modules/superadmin/ui/documents-tests-row-upload';
 import { BulkDrop } from '@/modules/superadmin/ui/documents-tests-bulk-drop';
@@ -39,16 +42,27 @@ export function DocumentsTestsTab({
   docs: CatalogDocument[];
 }) {
   const [onlyMissing, setOnlyMissing] = useState(false);
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null);
 
   const upload = useUploadDocument();
   const remove = useDeleteDocument();
   const move = useMoveDocument();
+  const moveMany = useMoveDocuments();
+  const rematch = useRematchDocuments();
 
   const testDocs = docs.filter((d) => d.folder === 'Tests');
   const docByName = new Map(testDocs.map((d) => [d.name, d] as const));
   const matchedNames = new Set(testSheets.map((s) => s.sourceFile));
   const unmatched = testDocs.filter((d) => !matchedNames.has(d.name));
   const uploadedCount = testSheets.filter((s) => docByName.has(s.sourceFile)).length;
+
+  // An unmatched upload can become matchable after the fact — the catalog
+  // gains the sheet, or the matcher improves. Those are fixable in place by
+  // renaming the row; the rest genuinely aren't tests and belong in Documents.
+  const rematchable = unmatched
+    .map((d) => ({ doc: d, hit: findCatalogMatch(d.name, testSheets) }))
+    .filter((row): row is { doc: CatalogDocument; hit: TestSheetItem } => row.hit !== null);
+  const trulyUnmatched = unmatched.filter((d) => findCatalogMatch(d.name, testSheets) === null);
 
   const rows = onlyMissing ? testSheets.filter((s) => !docByName.has(s.sourceFile)) : testSheets;
 
@@ -58,12 +72,24 @@ export function DocumentsTestsTab({
   }
 
   async function bulkTests(files: FileList) {
-    for (const file of Array.from(files)) {
-      const hit = testSheets.find(
-        (s) => normalizeFilename(s.sourceFile) === normalizeFilename(file.name),
-      );
+    const list = Array.from(files);
+    let matched = 0;
+    let unmatchedCount = 0;
+
+    for (const file of list) {
+      // Title, then source file, then a substring fallback — a real downloaded
+      // PDF rarely carries the catalog's own stub filename.
+      const hit = findCatalogMatch(file.name, testSheets);
       await uploadFile('Tests', hit ? hit.sourceFile : file.name, file);
+      if (hit) matched += 1;
+      else unmatchedCount += 1;
     }
+
+    // Legacy summarised the whole batch in one line — with dozens of files a
+    // per-file toast says nothing about what actually landed.
+    setBulkSummary(
+      `${String(matched)} matched to a test, ${String(unmatchedCount)} uploaded unmatched.`,
+    );
   }
 
   return (
@@ -96,9 +122,15 @@ export function DocumentsTestsTab({
 
       <BulkDrop
         onFiles={(files) => {
+          setBulkSummary(null);
           void bulkTests(files);
         }}
       />
+      {bulkSummary && (
+        <p className="text-fa-muted text-[13px]" role="status">
+          {bulkSummary}
+        </p>
+      )}
 
       <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
         <Table className="min-w-[900px] border-collapse">
@@ -131,6 +163,12 @@ export function DocumentsTestsTab({
                   >
                     <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#16261F]">
                       {sheet.title}
+                      {!sheet.hasDeclaredSourceFile && (
+                        <span className="text-fa-muted-2 mt-0.5 block text-[11.5px]">
+                          No source filename set — an upload here is stored as{' '}
+                          <code>{sheet.sourceFile}</code>
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
                       {sheet.level ?? '—'}
@@ -154,16 +192,14 @@ export function DocumentsTestsTab({
                                 View / Download
                               </a>
                             )}
-                            <Button
-                              type="button"
-                              variant="ghost"
+                            <ConfirmDeleteDocument
+                              fileName={doc.name}
+                              pending={remove.isPending}
                               className={`h-auto px-0 py-0 hover:bg-transparent ${DEL}`}
-                              onClick={() => {
+                              onConfirm={() => {
                                 remove.mutate(doc.id);
                               }}
-                            >
-                              Delete
-                            </Button>
+                            />
                           </>
                         ) : (
                           <RowUpload
@@ -189,8 +225,50 @@ export function DocumentsTestsTab({
           </h2>
           <p className="max-w-[900px] text-[13.5px] leading-[1.6] text-[#5A6B63]">
             These uploaded fine, but their filename didn&apos;t match any test in the Scoring
-            Catalog. If one genuinely isn&apos;t a test, move it to the Documents folder.
+            Catalog, so they won&apos;t show a file against one there. If a file genuinely
+            isn&apos;t a test — a waiver, glossary, agreement — move it to the Documents folder
+            instead.
+            {rematchable.length > 0 &&
+              ' Some now match a real test since the catalog or matcher was updated — fix them in place below, no re-upload needed.'}
           </p>
+
+          <div className="flex flex-wrap gap-2.5">
+            {rematchable.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={rematch.isPending}
+                onClick={() => {
+                  rematch.mutate(
+                    rematchable.map(({ doc, hit }) => ({ id: doc.id, name: hit.sourceFile })),
+                  );
+                }}
+                className="text-hunter-deep hover:border-gold h-auto rounded-lg border border-[#C4D3CB] bg-white px-3.5 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+              >
+                {rematch.isPending
+                  ? 'Matching…'
+                  : `Try to match again (${String(rematchable.length)})`}
+              </Button>
+            )}
+            {trulyUnmatched.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={moveMany.isPending}
+                onClick={() => {
+                  moveMany.mutate({
+                    ids: trulyUnmatched.map((d) => d.id),
+                    folder: 'Documents',
+                  });
+                }}
+                className="text-hunter-deep hover:border-gold h-auto rounded-lg border border-[#C4D3CB] bg-white px-3.5 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+              >
+                {moveMany.isPending
+                  ? 'Moving…'
+                  : `Move all ${String(trulyUnmatched.length)} non-matching to Documents`}
+              </Button>
+            )}
+          </div>
           <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
             <Table className="min-w-[720px] border-collapse">
               <TableHeader className="[&_tr]:border-0">
@@ -213,6 +291,15 @@ export function DocumentsTestsTab({
                   >
                     <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#16261F]">
                       {d.name}
+                      {(() => {
+                        const hit = findCatalogMatch(d.name, testSheets);
+                        if (!hit) return null;
+                        return (
+                          <span className="ml-2 inline-flex h-[19px] items-center rounded-full bg-[#E6F1EA] px-2 text-[10.5px] font-bold text-[#2E7048]">
+                            Now matches {hit.title}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
                       {formatTimestamp(d.createdAt)}
@@ -234,16 +321,14 @@ export function DocumentsTestsTab({
                         >
                           Move to Documents
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
+                        <ConfirmDeleteDocument
+                          fileName={d.name}
+                          pending={remove.isPending}
                           className={`h-auto px-0 py-0 hover:bg-transparent ${DEL}`}
-                          onClick={() => {
+                          onConfirm={() => {
                             remove.mutate(d.id);
                           }}
-                        >
-                          Delete
-                        </Button>
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

@@ -15,6 +15,12 @@ const optionalText = (max: number) =>
     .transform((value) => (value === '' ? undefined : value));
 
 export const completeOrgProfileSchema = z.object({
+  /* Only a SuperAdmin may pass this: it targets an organization other than
+   * the caller's own, which is how the console fills in a pending organizer's
+   * profile on their behalf (legacy's onboarding preview loaded the real page
+   * against a real org id for exactly this). Omitted, the caller's own org is
+   * used and nothing changes for a real organizer completing their own setup. */
+  orgId: z.uuid().optional(),
   name: z.string().trim().min(2, 'Organization name is required').max(160),
   email: z.email('Enter a valid email address'),
   website: optionalText(200),

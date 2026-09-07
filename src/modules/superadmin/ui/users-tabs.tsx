@@ -9,11 +9,13 @@ type TabKey = 'superadmins' | 'directory';
 export function UsersTabs({
   superAdmins,
   directory,
+  initialTab,
 }: {
   superAdmins: ReactNode;
   directory: ReactNode;
+  initialTab?: TabKey;
 }) {
-  const [tab, setTab] = useState<TabKey>('superadmins');
+  const [tab, setTab] = useState<TabKey>(initialTab ?? 'superadmins');
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'superadmins', label: 'Super Admins' },

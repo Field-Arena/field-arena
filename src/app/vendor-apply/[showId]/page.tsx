@@ -54,7 +54,24 @@ export default async function VendorPublicApplyPage({
             </Link>
           </div>
         ) : (
-          <VendorApplyEntryForm show={show} />
+          <>
+            {/* Legacy's apply page linked the booth map right above the cart
+              * (vendor-apply.html:107-110) — you pick a space knowing where it
+              * sits, not from a name alone. */}
+            {show.vendorMapUrl && (
+              <p className="mb-3 text-[13.5px]">
+                <a
+                  href={show.vendorMapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-forest hover:text-gold font-semibold underline underline-offset-2"
+                >
+                  View the vendor space map ↗
+                </a>
+              </p>
+            )}
+            <VendorApplyEntryForm show={show} />
+          </>
         )}
       </div>
     </div>

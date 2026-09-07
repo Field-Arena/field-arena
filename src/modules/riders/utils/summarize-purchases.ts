@@ -1,5 +1,5 @@
 import { paidLineItems } from '@/modules/riders/utils/paid-line-items';
-import type { OrderRow } from '@/modules/riders/types';
+import type { RiderVisibleOrderRow } from '@/modules/riders/types';
 
 export interface PurchaseAddOnLine {
   label: string;
@@ -14,7 +14,7 @@ export interface PurchasesSummary {
   totalPaid: number;
 }
 
-export function summarizePurchases(orders: OrderRow[]): PurchasesSummary {
+export function summarizePurchases(orders: RiderVisibleOrderRow[]): PurchasesSummary {
   const items = paidLineItems(orders);
 
   const classItems = items.filter((i) => i.kind === 'class_entry' || i.kind === 'qualification');

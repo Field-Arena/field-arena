@@ -15,7 +15,7 @@ import type {
   ClassWithCapacity,
   DocumentRequirement,
   HorseWithDocumentUrls,
-  OrderRow,
+  RiderVisibleOrderRow,
   RiderEntryDetail,
   RiderRow,
   ShowRow,
@@ -55,7 +55,7 @@ export function RiderShowDashboard({
   classes: ClassWithCapacity[];
   addOns: AddOnWithRemaining[];
   entries: RiderEntryDetail[];
-  orders: OrderRow[];
+  orders: RiderVisibleOrderRow[];
   horses: HorseWithDocumentUrls[];
   documentRequirements: DocumentRequirement[];
 }) {

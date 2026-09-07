@@ -56,12 +56,12 @@ reach. All nine are routed here.
 |---|---|---|---|
 | SuperAdmin | `superadmin.html` | 3,176 | **partial** |
 | Organizer | `showstaff.html` | 14,629 | **pending** |
-| ShowAdmin | `showstaff.html` (money hidden) | shared | **pending** |
-| ShowStaff | `showstaff-ops.html` | 1,207 | **pending** |
-| Judge | `judge-scribe.html` | 767 | **pending** |
-| Scribe | `judge-scribe.html` (scoped) | shared | **pending** |
-| Announcer | `announcer.html` | 656 | **pending** |
-| Vendor | `vendor.html` | 775 | **pending** |
+| ShowAdmin | `showstaff.html` (money hidden) | shared | **done** |
+| ShowStaff | `showstaff-ops.html` | 1,207 | **done** |
+| Judge | `judge-scribe.html` | 767 | **done** |
+| Scribe | `judge-scribe.html` (scoped) | shared | **done** |
+| Announcer | `announcer.html` | 656 | **done** |
+| Vendor | `vendor.html` | 775 | **done** |
 | Rider | `rider.html` | 2,893 | **pending** |
 | Volunteer | — | — | **dropped** — in the legacy README and ARCHITECTURE role lists but in no API code, schema constraint or view. Never implemented |
 

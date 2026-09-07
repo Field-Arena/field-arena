@@ -1,6 +1,8 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
+import { findCatalogMatch } from '@/modules/superadmin/utils/find-catalog-match';
 import { resolveStaffPermissions } from '@/modules/superadmin/utils/resolve-staff-permissions';
 import { countEnabledPermissions } from '@/modules/superadmin/utils/count-enabled-permissions';
 import type {
@@ -17,6 +19,12 @@ import type {
   OrganizationBilling,
   ShowBilling,
   OrganizationBillingDetail,
+  StripeAccountStatus,
+  StripePayout,
+  OrganizationShow,
+  OrganizationShowsDetail,
+  ShowRosterRider,
+  IndependentTestTemplate,
 } from '@/modules/superadmin/types';
 
 export async function getPlatformStats(): Promise<PlatformStats> {
@@ -140,6 +148,10 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       deletedAt: org.deleted_at,
       feeModel: org.fee_model,
       showCount: orgShows.length,
+      // Legacy's "Riders" column was the sum of each show's entry count, and
+      // its revenue estimate multiplied that same number by avgEntryValue.
+      // Keep both derived from `entryCount` so the column and the money next
+      // to it agree; distinct people are carried separately as riderCount.
       entryCount,
       riderCount: ridersByOrg.get(org.id)?.size ?? 0,
       revenueEstimate: entryCount * (org.avg_entry_value ?? 0),
@@ -150,6 +162,31 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
           : orgShows.length > 0,
     };
   });
+}
+
+/* Just enough to populate the console's organizer switcher: id, name and
+ * location. Deliberately NOT listOrganizations() — that walks every show,
+ * class and entry to build the overview table's counts, which is far too much
+ * work to repeat on every dashboard render, and it drags in columns the
+ * switcher has no use for. Keeping this narrow also means a switcher query can
+ * never take the whole dashboard shell down with it. */
+export async function listOrganizerOptions(): Promise<
+  { id: string; name: string; location: string }[]
+> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id, name, city, region')
+    .is('deleted_at', null)
+    .eq('is_demo', false)
+    .order('name');
+  if (error) throw error;
+
+  return data.map((org) => ({
+    id: org.id,
+    name: org.name,
+    location: [org.city, org.region].filter(Boolean).join(', '),
+  }));
 }
 
 const LEAD_COLUMNS =
@@ -340,6 +377,64 @@ export async function getBillingSummary(): Promise<BillingSummary> {
   };
 }
 
+/* Live Stripe Connect status for one connected account — the same call the
+ * legacy GET /api/organizations/:id/stripe-status made. The five states are
+ * load-bearing: an account that submitted details but can't yet charge is
+ * `restricted` and needs chasing, which is invisible if you only ask "is there
+ * an account id on file". Never throws: an unreachable Stripe degrades to
+ * `error`, it does not take the billing page down. */
+export async function getStripeAccountStatus(
+  accountId: string | null,
+): Promise<StripeAccountStatus> {
+  if (!accountId)
+    return { accountId: null, status: 'not_connected', payoutsEnabled: false, payouts: [] };
+  if (!isStripeConfigured()) {
+    return {
+      accountId,
+      status: 'error',
+      payoutsEnabled: false,
+      payouts: [],
+      error: 'Stripe is not configured.',
+    };
+  }
+
+  try {
+    const stripe = getStripeClient();
+    const [account, payoutList] = await Promise.all([
+      stripe.accounts.retrieve(accountId),
+      stripe.payouts.list({ limit: 5 }, { stripeAccount: accountId }),
+    ]);
+
+    let status: StripeAccountStatus['status'] = 'onboarding';
+    if (account.charges_enabled && account.payouts_enabled) status = 'active';
+    else if (account.details_submitted) status = 'restricted';
+
+    const payouts: StripePayout[] = payoutList.data.map((p) => ({
+      id: p.id,
+      amount: p.amount / 100,
+      currency: p.currency,
+      status: p.status,
+      arrivalDate: p.arrival_date ? p.arrival_date * 1000 : null,
+    }));
+
+    return { accountId, status, payoutsEnabled: account.payouts_enabled, payouts };
+  } catch (error) {
+    return {
+      accountId,
+      status: 'error',
+      payoutsEnabled: false,
+      payouts: [],
+      error: error instanceof Error ? error.message : 'Could not reach Stripe.',
+    };
+  }
+}
+
+/** The next payout still in flight, if any — legacy's "Pending payout" column. */
+export function nextPendingPayout(status: StripeAccountStatus): number {
+  const next = status.payouts.find((p) => p.status === 'pending' || p.status === 'in_transit');
+  return next?.amount ?? 0;
+}
+
 export async function listOrganizationBilling(): Promise<OrganizationBilling[]> {
   const supabase = await createServerClient();
 
@@ -362,8 +457,17 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
   if (orders.error) throw orders.error;
   if (connect.error) throw connect.error;
 
-  const connected = new Set(
-    connect.data.filter((row) => row.stripe_connect_account_id).map((row) => row.id),
+  const accountByOrg = new Map(connect.data.map((row) => [row.id, row.stripe_connect_account_id]));
+
+  // One live Stripe round-trip per connected account, in parallel. Orgs with
+  // no account short-circuit inside getStripeAccountStatus without a call.
+  const statuses = new Map<string, StripeAccountStatus>(
+    await Promise.all(
+      orgs.data.map(
+        async (org) =>
+          [org.id, await getStripeAccountStatus(accountByOrg.get(org.id) ?? null)] as const,
+      ),
+    ),
   );
 
   const byOrg = new Map<string, { count: number; gross: number; fee: number; refunded: number }>();
@@ -380,6 +484,12 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
 
   return orgs.data.map((org) => {
     const totals = byOrg.get(org.id) ?? { count: 0, gross: 0, fee: 0, refunded: 0 };
+    const stripe = statuses.get(org.id) ?? {
+      accountId: null,
+      status: 'not_connected' as const,
+      payoutsEnabled: false,
+      payouts: [],
+    };
     return {
       id: org.id,
       name: org.name,
@@ -393,7 +503,9 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
       platformFee: totals.fee,
       refunded: totals.refunded,
       net: totals.gross - totals.fee - totals.refunded,
-      stripeConnected: connected.has(org.id),
+      stripeConnected: stripe.status === 'active',
+      stripeStatus: stripe.status,
+      pendingPayout: nextPendingPayout(stripe),
     };
   });
 }
@@ -405,7 +517,12 @@ export async function getOrganizationBillingDetail(
   const admin = createAdminClient();
 
   const [org, shows, connect] = await Promise.all([
-    supabase
+    // Settlement terms (payout_cadence / holdback_percent) are read through the
+    // admin client alongside stripe_connect_account_id below, for the same
+    // reason: they are platform-to-organizer terms, not data any ordinary
+    // authenticated session should be able to select. The route is already
+    // SuperAdmin-only, so this narrows the DB grant without narrowing access.
+    admin
       .from('organizations')
       .select(
         'id, name, city, region, currency, locale, fee_model, payout_cadence, holdback_percent',
@@ -446,6 +563,8 @@ export async function getOrganizationBillingDetail(
     byShow.set(order.show_id, bucket);
   }
 
+  const stripe = await getStripeAccountStatus(connect.data?.stripe_connect_account_id ?? null);
+
   const showRows: ShowBilling[] = shows.data.map((show) => {
     const totals = byShow.get(show.id) ?? { volume: 0, fee: 0, refunded: 0 };
     return {
@@ -470,10 +589,224 @@ export async function getOrganizationBillingDetail(
 
     payoutCadence: org.data.payout_cadence ?? 'weekly',
     holdbackPercent: org.data.holdback_percent,
-    stripeConnected: Boolean(connect.data?.stripe_connect_account_id),
+    stripeConnected: stripe.status === 'active',
+    stripeStatus: stripe.status,
+    stripeAccountId: stripe.accountId,
+    payoutsEnabled: stripe.payoutsEnabled,
+    payouts: stripe.payouts,
+    stripeError: stripe.error ?? null,
     volume: showRows.reduce((sum, row) => sum + row.volume, 0),
     platformFee: showRows.reduce((sum, row) => sum + row.platformFee, 0),
     net: showRows.reduce((sum, row) => sum + row.net, 0),
     shows: showRows,
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * One organizer's shows, browsable from the console without dropping
+ * into their workspace (legacy viewOrgShows / orgShowsHtml). The stage
+ * pill mirrors the same setup/on-sale/live split the organizer sees.
+ * ------------------------------------------------------------------ */
+export async function getOrganizationShows(orgId: string): Promise<OrganizationShowsDetail | null> {
+  const supabase = await createServerClient();
+
+  const [orgRes, showsRes, ownerRes] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('id, name, city, region, currency, locale')
+      .eq('id', orgId)
+      .maybeSingle(),
+    supabase
+      .from('shows')
+      .select('id, name, start_date, end_date, published, runner_state')
+      .eq('org_id', orgId)
+      .order('start_date', { ascending: false }),
+    supabase
+      .from('users')
+      .select('onboarded_at')
+      .eq('org_id', orgId)
+      .eq('platform_role', 'Organizer')
+      .maybeSingle(),
+  ]);
+  if (orgRes.error) throw orgRes.error;
+  if (showsRes.error) throw showsRes.error;
+  if (ownerRes.error) throw ownerRes.error;
+  if (!orgRes.data) return null;
+
+  const showIds = showsRes.data.map((s) => s.id);
+
+  const classRes = showIds.length
+    ? await supabase.from('classes').select('id, show_id').in('show_id', showIds)
+    : { data: [] as { id: string; show_id: string }[], error: null };
+  if (classRes.error) throw classRes.error;
+
+  const classIds = classRes.data.map((c) => c.id);
+  const entryRes = classIds.length
+    ? await supabase.from('class_entries').select('id, class_id, status').in('class_id', classIds)
+    : { data: [] as { id: string; class_id: string; status: string | null }[], error: null };
+  if (entryRes.error) throw entryRes.error;
+
+  const showByClass = new Map(classRes.data.map((c) => [c.id, c.show_id]));
+  const entriesByShow = new Map<string, number>();
+  for (const entry of entryRes.data) {
+    if (entry.status === 'scratched') continue;
+    const showId = showByClass.get(entry.class_id);
+    if (!showId) continue;
+    entriesByShow.set(showId, (entriesByShow.get(showId) ?? 0) + 1);
+  }
+
+  const shows: OrganizationShow[] = showsRes.data.map((show) => {
+    const runner = (show.runner_state ?? {}) as { approved?: boolean; ticketClosed?: boolean };
+    const stage = runner.approved ? 'live' : show.published ? 'on-sale' : 'setup';
+    return {
+      id: show.id,
+      name: show.name,
+      startDate: show.start_date,
+      endDate: show.end_date,
+      stage,
+      published: Boolean(show.published),
+      entryCount: entriesByShow.get(show.id) ?? 0,
+    };
+  });
+
+  return {
+    id: orgRes.data.id,
+    name: orgRes.data.name,
+    city: orgRes.data.city,
+    region: orgRes.data.region,
+    currency: orgRes.data.currency,
+    locale: orgRes.data.locale,
+    // Same three-tier rule the list uses: a signed-in owner, else an account
+    // that exists but hasn't accepted, else "has shows" for legacy orgs.
+    onboarded: ownerRes.data?.onboarded_at != null || shows.length > 0,
+    shows,
+  };
+}
+
+/* Everyone entered in one show, grouped by rider + horse — legacy's Riders
+ * node (loadRealRidersRoster). Scratched entries are excluded, exactly as
+ * legacy did, so the roster reflects who is actually riding. class_entries
+ * already carries plain rider/horse text, so there is no rider/horse join. */
+export async function getShowRoster(showId: string): Promise<{
+  showName: string;
+  orgId: string;
+  orgName: string;
+  currency: string | null;
+  locale: string | null;
+  riders: ShowRosterRider[];
+} | null> {
+  const supabase = await createServerClient();
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, org_id, organizations(name, currency, locale)')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) return null;
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, display_name, division, fee')
+    .eq('show_id', showId);
+  if (classError) throw classError;
+
+  const classIds = classes.map((c) => c.id);
+  const entriesRes = classIds.length
+    ? await supabase
+        .from('class_entries')
+        .select('id, class_id, num, rider, horse, status, final_pct')
+        .in('class_id', classIds)
+    : { data: [], error: null };
+  if (entriesRes.error) throw entriesRes.error;
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const byRider = new Map<string, ShowRosterRider>();
+
+  for (const entry of entriesRes.data) {
+    if (entry.status === 'scratched') continue;
+    const riderName = entry.rider ?? 'Unnamed rider';
+    const horse = entry.horse ?? '—';
+    const key = `${riderName}||${horse}`;
+    const cls = classById.get(entry.class_id);
+
+    const rawPct = entry.final_pct;
+    const pct =
+      rawPct != null && rawPct !== 'SCR' && rawPct !== 'ELIM' && !Number.isNaN(Number(rawPct))
+        ? Number(rawPct)
+        : null;
+
+    const current = byRider.get(key) ?? {
+      key,
+      num: entry.num,
+      name: riderName,
+      horse,
+      entries: [],
+      feeTotal: 0,
+    };
+    const fee = cls?.fee ?? 0;
+    current.entries.push({
+      className: cls?.display_name ?? cls?.label ?? entry.class_id,
+      division: cls?.division ?? '',
+      fee,
+      percent: pct,
+    });
+    current.feeTotal += fee;
+    byRider.set(key, current);
+  }
+
+  const org = show.organizations as unknown as {
+    name: string;
+    currency: string | null;
+    locale: string | null;
+  } | null;
+
+  return {
+    showName: show.name,
+    orgId: show.org_id,
+    orgName: org?.name ?? '',
+    currency: org?.currency ?? null,
+    locale: org?.locale ?? null,
+    riders: [...byRider.values()].sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+/* Read-only, cross-org listing of every real Test Builder template, for the
+ * catalog's Independent tab. SuperAdmin can only SEE these — editing stays in
+ * each org's own Test Builder; this is visibility into what is already live
+ * across the platform (legacy ?resource=all-test-templates). */
+export async function listIndependentTestTemplates(): Promise<IndependentTestTemplate[]> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('test_templates')
+    .select('id, name, level, source_label, org_id, created_at, organizations(name)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  return data.map((row) => {
+    const org = row.organizations as unknown as { name: string } | null;
+    return {
+      id: row.id,
+      name: row.name,
+      level: row.level,
+      sourceLabel: row.source_label,
+      orgId: row.org_id,
+      orgName: org?.name ?? 'Unknown organizer',
+      createdAt: row.created_at,
+    };
+  });
+}
+
+/* Which unmatched uploads would now match a catalog sheet if renamed — powers
+ * the "Try to match again" action (legacy rematchUnmatchedUploads). */
+export function planCatalogRematch(
+  unmatched: { id: string; name: string }[],
+  sheets: { id: string; title: string; sourceFile: string }[],
+): { id: string; name: string; matchedTitle: string }[] {
+  const plan: { id: string; name: string; matchedTitle: string }[] = [];
+  for (const doc of unmatched) {
+    const hit = findCatalogMatch(doc.name, sheets);
+    if (hit?.sourceFile) plan.push({ id: doc.id, name: hit.sourceFile, matchedTitle: hit.title });
+  }
+  return plan;
 }

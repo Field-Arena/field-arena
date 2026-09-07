@@ -4,4 +4,6 @@ export const VENDOR_DOCUMENTS_PATH = '/dashboard/vendor/documents';
 
 export const VENDOR_DOCS_BUCKET = 'vendor-docs';
 
+export const VENDOR_MAPS_BUCKET = 'vendor-maps';
+
 export const VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS = 3600;

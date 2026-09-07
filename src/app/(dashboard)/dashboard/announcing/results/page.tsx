@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { getLiveResults, listMyShows } from '@/modules/announcements/data/queries';
+import { getLiveResults, listMyShows, pickCurrentShow } from '@/modules/announcements/data/queries';
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { LiveResultsTable } from '@/modules/announcements/ui/live-results-table';
+import { AnnouncerAutoRefresh } from '@/modules/announcements/ui/announcer-auto-refresh';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Results — Live — Field & Arena' };
@@ -13,7 +14,7 @@ export default async function AnnouncingResultsPage({
 }) {
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
-  const currentShow = shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  const currentShow = pickCurrentShow(shows, requestedShowId);
 
   if (!currentShow) {
     return (
@@ -27,7 +28,7 @@ export default async function AnnouncingResultsPage({
         <div className="dash-card">
           <EmptyPanel
             title="No shows assigned"
-            note="You are not staffed on any show yet. An organizer adds an announcer from ShowManager."
+            note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
           />
         </div>
       </>
@@ -46,6 +47,7 @@ export default async function AnnouncingResultsPage({
       </div>
 
       <div className="dash-card">
+        <AnnouncerAutoRefresh />
         <ShowSwitcher currentShow={currentShow} shows={shows} />
         <LiveResultsTable results={results} />
       </div>

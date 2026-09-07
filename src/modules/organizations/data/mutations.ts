@@ -36,7 +36,15 @@ export async function completeOrganizationProfile(input: unknown): Promise<void>
 
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');
-  if (!profile.org_id) {
+
+  // Targeting another organization is a SuperAdmin-only capability — an
+  // Organizer may only ever complete their own profile.
+  if (parsed.orgId && profile.platform_role !== 'SuperAdmin') {
+    throw new Error('Only a Super Admin can complete another organization’s profile.');
+  }
+
+  const orgId = parsed.orgId ?? profile.org_id;
+  if (!orgId) {
     throw new Error('Your account is not the owner of an organization.');
   }
 
@@ -52,11 +60,12 @@ export async function completeOrganizationProfile(input: unknown): Promise<void>
       region: parsed.region ?? null,
       country: parsed.country ?? null,
     })
-    .eq('id', profile.org_id);
+    .eq('id', orgId);
 
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard');
+  revalidatePath('/dashboard/superadmin');
 }
 
 export async function addOrgMember(input: unknown): Promise<{ added: boolean }> {

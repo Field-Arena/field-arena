@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { listMyShows, listShowDocuments } from '@/modules/announcements/data/queries';
+import { listMyShows, listShowDocuments, pickCurrentShow } from '@/modules/announcements/data/queries';
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { ShowDocumentsTable } from '@/modules/announcements/ui/show-documents-table';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
@@ -13,7 +13,7 @@ export default async function AnnouncingDocumentsPage({
 }) {
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
-  const currentShow = shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  const currentShow = pickCurrentShow(shows, requestedShowId);
 
   if (!currentShow) {
     return (
@@ -27,7 +27,7 @@ export default async function AnnouncingDocumentsPage({
         <div className="dash-card">
           <EmptyPanel
             title="No shows assigned"
-            note="You are not staffed on any show yet. An organizer adds an announcer from ShowManager."
+            note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
           />
         </div>
       </>

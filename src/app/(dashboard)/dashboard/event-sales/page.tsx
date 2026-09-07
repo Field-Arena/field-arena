@@ -51,6 +51,7 @@ export default async function EventSalesPage({
         showName={context.currentShow.name}
         isLive={isStripeLive()}
         canRefund={canRefund}
+        canViewMoney={context.canViewMoney}
         rows={rows}
         stats={stats}
       />

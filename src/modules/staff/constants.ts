@@ -144,6 +144,13 @@ export const ROLE_NAV: Record<
       tip: "Every rider's score as it's confirmed, class by class",
     },
     {
+      key: 'schedule',
+      label: 'Schedule',
+      icon: 'calendar',
+      href: '/dashboard/announcing/schedule',
+      tip: "Today's ring times",
+    },
+    {
       key: 'contacts',
       label: 'Contacts',
       icon: 'members',
@@ -156,6 +163,13 @@ export const ROLE_NAV: Record<
       icon: 'documents',
       href: '/dashboard/announcing/documents',
       tip: 'Rider pronunciation guides, sponsor copy, and rule references',
+    },
+    {
+      key: 'history',
+      label: 'History',
+      icon: 'history',
+      href: '/dashboard/announcing/history',
+      tip: "Shows you've announced",
     },
   ],
 
@@ -180,6 +194,16 @@ export const ROLE_NAV: Record<
       icon: 'schedule',
       href: '/dashboard/operations/schedule',
       tip: 'The full ring-by-ring running order',
+    },
+    {
+      key: 'results',
+      label: 'Results',
+      // No dedicated 'results' glyph in the icon set; NavIcon silently falls
+      // back to 'dashboard' for unknown names, which would duplicate the board
+      // icon. 'history' is the closest real match for a results archive.
+      icon: 'history',
+      href: '/dashboard/operations/results',
+      tip: 'Best scores by discipline, and past show results',
     },
     {
       key: 'riders',

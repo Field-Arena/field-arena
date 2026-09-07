@@ -13,12 +13,15 @@ export function CheckoutSummary({
   classes,
   addOns,
   qualTypes,
+  feeModel,
   waiverSatisfied,
 }: {
   showId: string;
   classes: ClassWithCapacity[];
   addOns: AddOnWithRemaining[];
   qualTypes: QualTypeRow[];
+
+  feeModel: string | null;
 
   waiverSatisfied: boolean;
 }) {
@@ -36,6 +39,7 @@ export function CheckoutSummary({
     classHorseAssignments,
     qualSelections,
     addOnQuantities,
+    feeModel,
   });
 
   return (

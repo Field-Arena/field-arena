@@ -12,3 +12,7 @@ export const RIBBONS: { bg: string; fg: string; name: string }[] = [
   { bg: '#6B4E9E', fg: '#ffffff', name: 'Purple' },
   { bg: '#7A5230', fg: '#ffffff', name: 'Brown' },
 ];
+
+/* Show-day board poll interval. Matches legacy's
+ * `setInterval(loadRealOps, 10000)` (showstaff-ops.html:378). */
+export const OPS_REFRESH_MS = 10_000;

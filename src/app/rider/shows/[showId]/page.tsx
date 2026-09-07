@@ -15,6 +15,8 @@ import { confirmCheckoutSession } from '@/modules/riders/data/mutations';
 import { parseDocumentRequirements } from '@/modules/riders/utils/parse-document-requirements';
 import { ShowTicketDetail } from '@/modules/riders/ui/show-ticket-detail';
 import { WaiverForm } from '@/modules/riders/ui/waiver-form';
+import { fillWaiverPlaceholders } from '@/modules/riders/utils/fill-waiver-placeholders';
+import { WAIVER_TEXT_DEFAULT } from '@/modules/shows/schemas';
 import { RiderDetailsForm } from '@/modules/riders/ui/rider-details-form';
 import { HorseManager } from '@/modules/riders/ui/horse-manager';
 import { ClassPicker } from '@/modules/riders/ui/class-picker';
@@ -94,7 +96,26 @@ export default async function RiderShowPage({
     getWaiverSignature(showId),
   ]);
 
-  const waiverText = detail.show.waiver_text?.trim() ?? null;
+  /* Legacy always put a waiver in front of the rider, falling back to the
+   * default template when the organizer had written nothing of their own
+   * (rider.html:1942 `(s.waiverText && s.waiverText.trim()) || WAIVER_TEXT_TEMPLATE`).
+   * Showing nothing at all left a rider entering with no release presented.
+   * The server-side gate still keys off the organizer's own configured text,
+   * exactly as legacy's priceCart did — so this restores the presentation
+   * without inventing an enforcement legacy never had. */
+  const organizerWaiverText = detail.show.waiver_text?.trim() ?? '';
+  const rawWaiverText =
+    organizerWaiverText.length > 0 ? organizerWaiverText : WAIVER_TEXT_DEFAULT;
+  /* Filled in before the rider ever sees it — the template's {{SHOW_NAME}} /
+   * {{SHOW_DATES}} / {{ORGANIZER_NAME}} tokens were previously rendered
+   * literally into the paragraph a rider signs their legal name under. */
+  const waiverText = fillWaiverPlaceholders(rawWaiverText, {
+    showName: detail.show.name,
+    dateLabel: detail.show.date_label,
+    startDate: detail.show.start_date,
+    endDate: detail.show.end_date,
+    orgName: detail.orgName,
+  });
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-6 py-12">
@@ -111,9 +132,7 @@ export default async function RiderShowPage({
         </div>
       )}
 
-      {waiverText && (
-        <WaiverForm showId={showId} waiverText={waiverText} existingSignature={waiverSignature} />
-      )}
+      <WaiverForm showId={showId} waiverText={waiverText} existingSignature={waiverSignature} />
 
       <RiderDetailsForm rider={rider} />
 
@@ -130,7 +149,8 @@ export default async function RiderShowPage({
         classes={detail.classes}
         addOns={detail.addOns}
         qualTypes={detail.qualTypes}
-        waiverSatisfied={!waiverText || !!waiverSignature}
+        feeModel={detail.feeModel}
+        waiverSatisfied={organizerWaiverText.length === 0 || !!waiverSignature}
       />
     </main>
   );
