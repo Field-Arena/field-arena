@@ -455,6 +455,12 @@ export const SHOW_MANAGER_SECTIONS = [
   {
     label: 'Test Builder',
     path: '/test-builder',
+    nextLabel: 'Results',
+    nextNote: 'Next: once scoring is confirmed, export final placings and scores.',
+  },
+  {
+    label: 'Results',
+    path: '/results',
     nextLabel: null,
     nextNote: null,
   },

@@ -483,6 +483,132 @@ function ticketCloseAt(value: string | null): number | null {
   return Number.isNaN(time) ? null : time;
 }
 
+export interface ShowResultRow {
+  classId: string;
+  className: string;
+  division: string | null;
+  entryId: string;
+  num: string;
+  rider: string;
+  horse: string;
+  testName: string | null;
+  pct: number | null;
+  rank: number | null;
+}
+
+function extractResultTestName(override: unknown): string | null {
+  if (!override || typeof override !== 'object') return null;
+  const name = (override as Record<string, unknown>).name;
+  return typeof name === 'string' && name.trim() ? name : null;
+}
+
+function parseResultPct(raw: string | null): number | null {
+  if (raw === null || raw === 'SCR' || raw === 'ELIM') return null;
+  const n = Number(raw);
+  return Number.isNaN(n) ? null : n;
+}
+
+/* Same "rank within test, not within the whole class" rule as
+ * judging/utils/rank-placings.ts — a Test of Choice class puts riders on
+ * different tests, so a percentage only means something compared against
+ * others on the same test. Duplicated in miniature here rather than
+ * importing across modules, since data/ in one module must not depend on
+ * another module's internals. */
+function rankByTest(
+  rows: { entryId: string; testName: string | null; pct: number | null; ctot: number | null }[],
+): Map<string, number> {
+  const groups = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (row.pct === null) continue;
+    const key = row.testName ?? '';
+    const group = groups.get(key) ?? [];
+    group.push(row);
+    groups.set(key, group);
+  }
+  const ranks = new Map<string, number>();
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => {
+      if ((b.pct ?? 0) !== (a.pct ?? 0)) return (b.pct ?? 0) - (a.pct ?? 0);
+      if (a.ctot != null && b.ctot != null && a.ctot !== b.ctot) return b.ctot - a.ctot;
+      return 0;
+    });
+    let rank = 1;
+    sorted.forEach((row, i) => {
+      if (i > 0) {
+        const prev = sorted[i - 1];
+        const stillTied =
+          row.pct === prev?.pct && (row.ctot == null || prev?.ctot == null || row.ctot === prev.ctot);
+        if (!stillTied) rank = i + 1;
+      }
+      ranks.set(row.entryId, rank);
+    });
+  }
+  return ranks;
+}
+
+/* Every class's confirmed scores for the whole show, ranked per test within
+ * each class — this is the source for the organizer-facing CSV export
+ * (Show Manager → Results). Unscored entries (no final_pct yet) are still
+ * listed with pct/rank null, so the export doubles as a full-roster sheet,
+ * not just a winners list. */
+export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
+  const supabase = await createServerClient();
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, label, division')
+    .eq('show_id', showId)
+    .order('label');
+  if (classError) throw classError;
+  if (classes.length === 0) return [];
+
+  const classIds = classes.map((c) => c.id);
+  const { data: entries, error: entryError } = await supabase
+    .from('class_entries')
+    .select('id, class_id, num, rider, horse, final_pct, collective_total, test_override')
+    .in('class_id', classIds)
+    .order('ride_order');
+  if (entryError) throw entryError;
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+  const entriesByClass = new Map<string, typeof entries>();
+  for (const e of entries) {
+    const list = entriesByClass.get(e.class_id) ?? [];
+    list.push(e);
+    entriesByClass.set(e.class_id, list);
+  }
+
+  const rows: ShowResultRow[] = [];
+  for (const cls of classes) {
+    const classEntries = entriesByClass.get(cls.id) ?? [];
+    const parsed = classEntries.map((e) => ({
+      entryId: e.id,
+      num: e.num,
+      rider: e.rider ?? '—',
+      horse: e.horse ?? '—',
+      testName: extractResultTestName(e.test_override),
+      pct: parseResultPct(e.final_pct),
+      ctot: e.collective_total,
+    }));
+    const ranks = rankByTest(parsed);
+    for (const e of parsed) {
+      rows.push({
+        classId: cls.id,
+        className: cls.label,
+        division: cls.division,
+        entryId: e.entryId,
+        num: e.num,
+        rider: e.rider,
+        horse: e.horse,
+        testName: e.testName,
+        pct: e.pct,
+        rank: ranks.get(e.entryId) ?? null,
+      });
+    }
+  }
+  return rows;
+}
+
 export async function getShowAttention(showId: string): Promise<AttentionItem[]> {
   const supabase = await createServerClient();
 

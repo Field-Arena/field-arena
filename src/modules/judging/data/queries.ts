@@ -303,12 +303,24 @@ export interface ClassPlacingEntry {
   horse: string;
   finalPct: number | null;
   ctot: number | null;
+  testName: string | null;
 }
 
 function parseFinalPctNumber(raw: string | null): number | null {
   if (raw === null || raw === 'SCR' || raw === 'ELIM') return null;
   const n = Number(raw);
   return Number.isNaN(n) ? null : n;
+}
+
+/* A Test of Choice class stores each rider's chosen test as a full
+ * definition snapshot in test_override (see checkout.ts) — only the name
+ * is needed here to group placings per test. An ordinary class has no
+ * override on any entry, so every row's testName is null and ranking
+ * behaves exactly as it always did (one pool, one set of ribbons). */
+function extractTestName(override: unknown): string | null {
+  if (!override || typeof override !== 'object') return null;
+  const name = (override as Record<string, unknown>).name;
+  return typeof name === 'string' && name.trim() ? name : null;
 }
 
 export async function getClassPlacings(
@@ -320,7 +332,7 @@ export async function getClassPlacings(
     supabase.from('classes').select('label').eq('id', classId).single(),
     supabase
       .from('class_entries')
-      .select('id, num, rider, horse, final_pct, collective_total')
+      .select('id, num, rider, horse, final_pct, collective_total, test_override')
       .eq('class_id', classId)
       .order('ride_order'),
   ]);
@@ -336,6 +348,7 @@ export async function getClassPlacings(
       horse: e.horse ?? '—',
       finalPct: parseFinalPctNumber(e.final_pct),
       ctot: e.collective_total,
+      testName: extractTestName(e.test_override),
     })),
   };
 }

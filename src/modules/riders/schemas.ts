@@ -119,6 +119,11 @@ export const checkoutCartLineSchema = z.object({
   classId: z.uuid(),
   horseId: z.uuid(),
   qualTypeIds: z.array(z.uuid()).optional(),
+  // The scoring_catalog title of the test this rider chose, for a Test of
+  // Choice class (classes.test_options non-empty). Absent for an ordinary
+  // class — priceCart/finalizeOrder only look for this when the class it
+  // belongs to actually has test_options set.
+  testChoice: z.string().trim().min(1).optional(),
 });
 
 export type CheckoutCartLine = z.infer<typeof checkoutCartLineSchema>;

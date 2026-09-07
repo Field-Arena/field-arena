@@ -166,6 +166,7 @@ export async function priceCart(
       qty: 1,
       unitPrice: amount,
       amount,
+      ...(line.testChoice ? { testChoice: line.testChoice } : {}),
     });
     for (const qualTypeId of line.qualTypeIds ?? []) {
       const qual = qualById.get(qualTypeId);
@@ -338,6 +339,56 @@ async function nextRiderNumberForShow(
   return String(base + distinctRiderCount).padStart(RIDER_NUMBER_PAD_WIDTH, '0');
 }
 
+/* Test of Choice: `item.testChoice` carries whatever string the rider picked
+ * from the class's `test_options` (e.g. "Training — Training Level Test 1
+ * (2023)", the FM_SETS/toc-dialog format). scoring_catalog titles are plain
+ * ("Training Level Test 1") — strip the level prefix and the trailing year
+ * before matching so both naming conventions resolve to the same row.
+ * A choice with no catalog match still gets a { name } override so ribbons
+ * still group correctly by test even without the full movements/collectives
+ * snapshot — degrading gracefully beats blocking checkout on a data gap. */
+function normalizeTestChoice(raw: string): string {
+  return raw
+    .replace(/^[^—-]+[—-]\s*/, '')
+    .replace(/\s*\(\d{4}\)\s*$/, '')
+    .trim()
+    .toLowerCase();
+}
+
+async function buildTestOverrideLookup(
+  admin: AdminClient,
+  items: OrderLineItem[],
+): Promise<Map<string, Json>> {
+  const choices = [
+    ...new Set(
+      items
+        .filter((item) => item.kind === 'class_entry' && item.testChoice)
+        .map((item) => item.testChoice as string),
+    ),
+  ];
+  const lookup = new Map<string, Json>();
+  if (choices.length === 0) return lookup;
+
+  const { data: catalog, error } = await admin
+    .from('scoring_catalog')
+    .select('title, def')
+    .eq('family', 'movement');
+  if (error) throw error;
+
+  const byNormalizedTitle = new Map(catalog.map((row) => [row.title.toLowerCase(), row]));
+
+  for (const choice of choices) {
+    const match = byNormalizedTitle.get(normalizeTestChoice(choice));
+    const def = match?.def as { movements?: unknown; collectives?: unknown } | null;
+    lookup.set(choice, {
+      name: match?.title ?? choice,
+      movements: (def?.movements ?? []) as Json,
+      collectives: (def?.collectives ?? []) as Json,
+    });
+  }
+  return lookup;
+}
+
 async function finalizeClaimedOrder(
   admin: AdminClient,
   order: OrderRow,
@@ -373,6 +424,8 @@ async function finalizeClaimedOrder(
   const nextOrderByClass = new Map<string, number>();
   const activeCountByClass = new Map<string, number>();
   const created: ClassEntryRow[] = [];
+
+  const testOverrideByChoice = await buildTestOverrideLookup(admin, items);
 
   for (const item of items) {
     if (item.kind !== 'class_entry' || !item.classId) continue;
@@ -410,6 +463,9 @@ async function finalizeClaimedOrder(
         division: divisionCode,
         correction: overCap
           ? "Created over this class's rider cap — two checkouts likely raced for the last slot. Needs organizer review."
+          : null,
+        test_override: item.testChoice
+          ? (testOverrideByChoice.get(item.testChoice) ?? { name: item.testChoice })
           : null,
       })
       .select()

@@ -44,6 +44,9 @@ export interface OrderLineItem {
   classId?: string;
   horseId?: string;
   refId?: string;
+  // Test of Choice: the scoring_catalog title this rider picked for this
+  // class entry. Only ever set on a `class_entry` item.
+  testChoice?: string;
 }
 
 export interface ClassWithCapacity extends ClassRow {
