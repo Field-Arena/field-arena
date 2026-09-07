@@ -35,7 +35,17 @@ export function HorseTableRow({
       style={{ gridTemplateColumns: HORSES_TABLE_TEMPLATE, minWidth: HORSES_TABLE_MIN_WIDTH }}
     >
       <div className="min-w-0">
-        <div className="truncate text-[11.5px] text-[#7A8781] italic">{row.riderLabel}</div>
+        <div
+          className="flex items-center gap-1.5 truncate text-[11.5px] text-[#7A8781] italic"
+          title={row.isMultiEntry ? row.riders.join(', ') : undefined}
+        >
+          {row.riderLabel}
+          {row.isMultiEntry && (
+            <span className="inline-flex flex-none items-center rounded-full bg-[#E3EDFB] px-1.5 py-[1px] text-[10px] font-bold text-[#2E5FA8] not-italic">
+              Multi-entry
+            </span>
+          )}
+        </div>
         <div className="text-hunter-deep truncate text-[15px] font-extrabold" title={row.horseName}>
           🐴 {truncateHorseName(row.horseName)}
         </div>

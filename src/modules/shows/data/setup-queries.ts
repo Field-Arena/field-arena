@@ -1481,6 +1481,15 @@ export interface ShowAwards {
   awardsByDivision: boolean;
 
   ribbonTotal: number;
+
+  /* "How many of each test do we need to print" — every entry needs its own
+   * scoresheet before it's ridden, unlike ribbons which only count entries
+   * that end up placed. Keyed by resolved test name: a Test of Choice
+   * entry's own test_override, or the class's single assigned test
+   * (class_tests.name) for every other class. */
+  testTally: Record<string, number>;
+
+  testTotal: number;
 }
 
 export async function getShowAwards(
@@ -1518,16 +1527,40 @@ export async function getShowAwards(
     final_pct: string | null;
     collective_total: number | null;
     division: string;
+    test_override: unknown;
   }[] = [];
 
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
-      .select('class_id, num, rider, horse, final_pct, collective_total, division')
+      .select('class_id, num, rider, horse, final_pct, collective_total, division, test_override')
       .in('class_id', classIds);
     if (error) throw error;
     entries = data;
   }
+
+  const classTestNameById = new Map<string, string>();
+  if (classIds.length > 0) {
+    const { data: classTests, error: classTestsError } = await supabase
+      .from('class_tests')
+      .select('class_id, name')
+      .in('class_id', classIds);
+    if (classTestsError) throw classTestsError;
+    for (const row of classTests) classTestNameById.set(row.class_id, row.name);
+  }
+
+  const testTally: Record<string, number> = {};
+  for (const entry of entries) {
+    const override =
+      entry.test_override && typeof entry.test_override === 'object'
+        ? (entry.test_override as Record<string, unknown>)
+        : null;
+    const overrideName = typeof override?.name === 'string' ? override.name : null;
+    const testName =
+      overrideName || classTestNameById.get(entry.class_id) || 'No test assigned';
+    testTally[testName] = (testTally[testName] ?? 0) + 1;
+  }
+  const testTotal = Object.values(testTally).reduce((sum, n) => sum + n, 0);
 
   const byClass = new Map<string, AwardEntry[]>();
   for (const entry of entries) {
@@ -1578,6 +1611,8 @@ export async function getShowAwards(
     awardsByDivision: prefs.awardsByDivision,
     ribbonTotal: totalOf(report),
     printRibbonTotal: printReport === report ? totalOf(report) : totalOf(printReport),
+    testTally,
+    testTotal,
   };
 }
 

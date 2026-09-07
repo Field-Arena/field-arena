@@ -309,6 +309,7 @@ export const HORSE_STAT_TINTS = {
   incomplete: { bg: '#F7E1E1', fg: '#B23A3A' },
   needsVerification: { bg: '#FCEBD2', fg: '#9A6A12' },
   cogginsExpired: { bg: '#F7E1E1', fg: '#B23A3A' },
+  multiEntry: { bg: '#E3EDFB', fg: '#2E5FA8' },
 
   stallsOccupied: { bg: '#E4F0E8', fg: '#1A5B3C' },
 } as const;
