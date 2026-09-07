@@ -1,4 +1,8 @@
-export const INVITE_TTL_DAYS = 14;
+/* Supabase Auth's invite links expire after 7 days by default, which is also
+ * what the legacy invites table used (INVITE_TTL_MS in api/_lib/invites.js).
+ * This constant is display copy only — it enforces nothing, so it must track
+ * the provider setting rather than lead it. */
+export const INVITE_TTL_DAYS = 7;
 
 export const SUPERADMIN_NAV = [
   {

@@ -139,7 +139,10 @@ export default async function VendorPage({
                     </div>
                   )}
 
-                  {booking.status === 'approved' && (
+                  {/* Legacy offered "Pay now" on any unpaid booking, not only
+                    * an approved one (vendor.html:242) — a vendor could pay the
+                    * moment they applied. */}
+                  {booking.status !== 'paid' && booking.status !== 'rejected' && (
                     <div style={{ marginTop: 8 }}>
                       {booking.agreementSignedAt ? (
                         <VendorPayButton

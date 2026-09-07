@@ -43,6 +43,22 @@ async function listMemberOrgs(profile: {
     }
   }
 
+  // A second (or third...) organization this same person owns outright —
+  // SuperAdmin-granted, see addOrganizationOwner in superadmin/data/mutations.ts.
+  // Distinct from the staff_assignments source above: that's "invited to help
+  // on one show," this is "owns the whole organization," same as their
+  // primary org_id.
+  const { data: owned, error: ownedError } = await supabase
+    .from('organization_owners')
+    .select('organizations(id, name)')
+    .eq('user_id', profile.id);
+  if (ownedError) throw ownedError;
+
+  for (const row of owned) {
+    const org = row.organizations as { id: string; name: string } | null;
+    if (org && !byId.has(org.id)) byId.set(org.id, org.name);
+  }
+
   return [...byId.entries()]
     .map(([orgId, orgName]) => ({ orgId, orgName }))
     .sort((a, b) => a.orgName.localeCompare(b.orgName));
@@ -105,4 +121,15 @@ function safeReturnTo(value: string | undefined): string {
   if (!value) return '/dashboard';
   if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard';
   return value;
+}
+
+/** Display name for one organization — used by the impersonation banner. */
+export async function getOrganizationName(orgId: string): Promise<string | null> {
+  const supabase = await createServerClient();
+  const { data } = await supabase
+    .from('organizations')
+    .select('name')
+    .eq('id', orgId)
+    .maybeSingle();
+  return data?.name ?? null;
 }

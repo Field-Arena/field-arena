@@ -19,7 +19,7 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import type {
   AddOnWithRemaining,
-  OrderRow,
+  RiderVisibleOrderRow,
   RiderEntryDetail,
   RiderRow,
   ShowRow,
@@ -49,7 +49,7 @@ export function PurchasesTab({
   show: ShowRow;
   rider: RiderRow;
   entries: RiderEntryDetail[];
-  orders: OrderRow[];
+  orders: RiderVisibleOrderRow[];
   addOns: AddOnWithRemaining[];
 }) {
   const [showReceipt, setShowReceipt] = useState(false);
@@ -224,7 +224,7 @@ function Receipt({
   show: ShowRow;
   rider: RiderRow;
   summary: ReturnType<typeof summarizePurchases>;
-  order: OrderRow | null;
+  order: RiderVisibleOrderRow | null;
   entriesCount: number;
 }) {
   return (
@@ -314,7 +314,7 @@ function StablingForm({
   order,
   stabling,
 }: {
-  order: OrderRow | null;
+  order: RiderVisibleOrderRow | null;
   stabling: { stalls: number; tack: number; shavings: number; nights: number };
 }) {
   const [arrivalDate, setArrivalDate] = useState(order?.arrival_date ?? '');

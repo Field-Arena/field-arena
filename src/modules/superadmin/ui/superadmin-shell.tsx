@@ -14,7 +14,7 @@ import { cn } from '@/shared/lib/utils';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 import { ROLE_NAV } from '@/modules/staff/constants';
 import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '@/modules/superadmin/constants';
-import { OrganizerSearch } from '@/modules/superadmin/ui/organizer-search';
+import { OrganizerSearch, type OrganizerOption } from '@/modules/superadmin/ui/organizer-search';
 import { AddOrganizerDialog } from '@/modules/superadmin/ui/add-organizer-dialog';
 import { ConsoleIcon } from '@/modules/superadmin/ui/console-icon';
 
@@ -24,15 +24,17 @@ export function SuperAdminShell({
   children,
   profile,
   activeRailRole,
+  organizers,
 }: {
   children: ReactNode;
   profile: StaffProfile;
 
   activeRailRole: string;
+
+  organizers: OrganizerOption[];
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
-  const isOrganizerList = pathname === '/dashboard/superadmin';
 
   const isConsoleRoute =
     pathname === '/dashboard/superadmin' || pathname.startsWith('/dashboard/superadmin/');
@@ -236,7 +238,7 @@ export function SuperAdminShell({
 
       <main id="top" className="flex min-w-0 flex-col">
         <header className="border-line bg-paper sticky top-0 z-40 flex min-h-[66px] flex-wrap items-center gap-x-3.5 gap-y-2.5 border-b px-5 py-3 lg:px-8">
-          {isOrganizerList && <OrganizerSearch />}
+          {isConsoleRoute && <OrganizerSearch organizers={organizers} />}
 
           <div className="ml-auto flex flex-none items-center gap-2.5">
             <AddOrganizerDialog />

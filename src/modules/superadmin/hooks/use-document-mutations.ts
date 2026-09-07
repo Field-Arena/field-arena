@@ -7,6 +7,8 @@ import {
   uploadCatalogDocument,
   deleteCatalogDocument,
   moveCatalogDocument,
+  moveCatalogDocuments,
+  rematchCatalogDocuments,
 } from '@/modules/superadmin/data/mutations';
 import type { UploadDocumentInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
@@ -58,6 +60,42 @@ export function useMoveDocument() {
     },
     onError: (error) => {
       toast.error(errorMessage(error, 'Could not move the file'));
+    },
+  });
+}
+
+/* Bulk "Move all non-matching to Documents" — refiles every upload that isn't
+ * a test sheet in one pass instead of one click each. */
+export function useMoveDocuments() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: { ids: string[]; folder: string }) => moveCatalogDocuments(input),
+    onSuccess: ({ moved }) => {
+      toast.success(`${String(moved)} file${moved === 1 ? '' : 's'} moved to Documents`);
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not move those files'));
+    },
+  });
+}
+
+/* "Try to match again" — renames already-uploaded rows onto the catalog sheet
+ * they now match, with no re-upload. */
+export function useRematchDocuments() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (renames: { id: string; name: string }[]) => rematchCatalogDocuments({ renames }),
+    onSuccess: ({ fixed, failed }) => {
+      const base = `${String(fixed)} file${fixed === 1 ? '' : 's'} matched and fixed`;
+      if (failed > 0) toast.warning(`${base}. ${String(failed)} failed.`);
+      else toast.success(base);
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not re-match those files'));
     },
   });
 }

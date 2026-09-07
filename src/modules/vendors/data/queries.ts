@@ -1,12 +1,41 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
+import {
+  VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS,
+  VENDOR_MAPS_BUCKET,
+} from '@/modules/vendors/constants';
 import type {
   BookableShow,
   PublicVendorApplyShow,
   VendorDocumentRequirement,
   VendorDocumentUpload,
 } from '@/modules/vendors/types';
+
+/* Legacy served the booth map as a PUBLIC blob (uploadPublicBlob →
+ * 'show-images/<showId>/vendormap') and linked it straight off the apply page,
+ * so anyone holding the link could open it forever. FA keeps vendor maps in a
+ * private bucket whose read policy is `authenticated` + can_view_show — which
+ * no vendor satisfies, so the file the organizer uploads was reaching nobody.
+ *
+ * Signed here with the admin client, and only for a show that has already
+ * passed the public-apply gate (published, org not suspended, not demo). A
+ * one-hour signed URL is strictly narrower than legacy's permanent public one
+ * while restoring the thing a vendor actually needs: seeing where the booths
+ * are before choosing one. */
+async function resolveVendorMapUrl(
+  vendorMapPath: string | null,
+  vendorMapUrl: string | null,
+): Promise<string | null> {
+  if (vendorMapPath) {
+    const { data } = await createAdminClient()
+      .storage.from(VENDOR_MAPS_BUCKET)
+      .createSignedUrl(vendorMapPath, VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS);
+    return data?.signedUrl ?? null;
+  }
+  return vendorMapUrl;
+}
 
 export interface VendorBookingRow {
   id: string;
@@ -33,14 +62,28 @@ export async function listMyBookings(): Promise<VendorBookingRow[]> {
 
   const supabase = await createServerClient();
 
-  const { data: bookings, error } = await supabase
+  /* Ownership is the contact email and nothing else. Matching on `name` too
+   * treated the booking's BUSINESS name as an identity — a different person
+   * trading under the same business name would have matched. RLS
+   * (vendor_bookings_select_own) always blocked the read, so nothing ever
+   * leaked, but the clause was also a real availability bug: `.or()` takes a
+   * PostgREST filter string, so a profile name containing a comma or a
+   * parenthesis was parsed as extra conditions and errored the whole
+   * dashboard.
+   *
+   * Filtered in TS rather than as a query filter so it matches RLS's
+   * `lower(contact) = lower(jwt email)` exactly — a `.eq` would be
+   * case-sensitive and could return fewer rows than the policy permits. */
+  const { data: allBookings, error } = await supabase
     .from('vendor_bookings')
     .select(
       'id, show_id, status, amount_total, paid_at, agreement_signed_at, agreement_signed_text, document_uploads, contact, name',
     )
-    .or(`contact.eq.${profile.email},name.eq.${profile.name}`)
     .order('created_at', { ascending: false });
   if (error) throw error;
+
+  const vendorEmail = profile.email.toLowerCase();
+  const bookings = allBookings.filter((b) => (b.contact ?? '').toLowerCase() === vendorEmail);
   if (bookings.length === 0) return [];
 
   const showIds = [...new Set(bookings.map((b) => b.show_id))];
@@ -124,7 +167,7 @@ export async function listBookableShows(): Promise<BookableShow[]> {
   const [shows, booked] = await Promise.all([
     supabase
       .from('shows')
-      .select('id, name, date_label, start_date, org_id')
+      .select('id, name, date_label, start_date, org_id, vendor_map_path, vendor_map_url')
       .in('id', showIds)
       .eq('published', true),
     supabase
@@ -160,12 +203,14 @@ export async function listBookableShows(): Promise<BookableShow[]> {
     );
   }
 
-  return visibleShows
-    .map((show) => ({
+  return (
+    await Promise.all(
+      visibleShows.map(async (show) => ({
       showId: show.id,
       showName: show.name,
       showDate: show.date_label,
       orgName: orgById.get(show.org_id)?.name ?? 'Unknown organizer',
+      vendorMapUrl: await resolveVendorMapUrl(show.vendor_map_path, show.vendor_map_url),
       items: items
         .filter((i) => i.show_id === show.id)
         .map((i) => ({
@@ -176,7 +221,9 @@ export async function listBookableShows(): Promise<BookableShow[]> {
           remaining: i.qty === null ? null : Math.max(0, i.qty - (bookedByItem.get(i.id) ?? 0)),
         }))
         .filter((i) => i.remaining === null || i.remaining > 0),
-    }))
+      })),
+    )
+  )
     .filter((show) => show.items.length > 0)
     .sort((a, b) => a.showName.localeCompare(b.showName));
 }
@@ -188,7 +235,7 @@ export async function getPublicVendorApplyShow(
 
   const { data: show, error: showError } = await supabase
     .from('shows')
-    .select('id, name, date_label, org_id')
+    .select('id, name, date_label, org_id, vendor_map_path, vendor_map_url')
     .eq('id', showId)
     .eq('published', true)
     .maybeSingle();
@@ -233,6 +280,7 @@ export async function getPublicVendorApplyShow(
     showName: show.name,
     showDate: show.date_label,
     orgName: org.name,
+    vendorMapUrl: await resolveVendorMapUrl(show.vendor_map_path, show.vendor_map_url),
     items: items
       .map((i) => ({
         id: i.id,

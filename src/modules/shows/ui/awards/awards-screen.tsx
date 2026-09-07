@@ -59,6 +59,8 @@ export function AwardsScreen({
             report={report}
             ribbonTotal={awards.ribbonTotal}
             groupedByLabel={groupedByLabel}
+            testTally={awards.testTally}
+            testTotal={awards.testTotal}
           />
 
           <div data-print-report className="hidden print:block">
@@ -78,6 +80,8 @@ export function AwardsScreen({
               report={awards.printReport}
               ribbonTotal={awards.printRibbonTotal}
               groupedByLabel={groupedByLabel}
+              testTally={awards.testTally}
+              testTotal={awards.testTotal}
             />
           </div>
         </>

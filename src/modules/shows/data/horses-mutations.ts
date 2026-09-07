@@ -62,9 +62,23 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
   const uploads = (horse.document_uploads ?? []) as {
     requirementId?: string;
     verified?: boolean;
+    expirationDate?: string | null;
   }[];
+  /* Legacy allowed an organizer to correct a rider-entered expiry typo through
+   * this same route, patching only the fields present in the body
+   * (verify-horse-document, api/rider/[resource].js). Spreading the parsed
+   * fields conditionally keeps that: a verified-only call leaves the stored
+   * date alone, and a date-only correction leaves verification alone. */
   const next = uploads.map((u) =>
-    u.requirementId === parsed.requirementId ? { ...u, verified: parsed.verified } : u,
+    u.requirementId === parsed.requirementId
+      ? {
+          ...u,
+          ...(parsed.verified !== undefined ? { verified: parsed.verified } : {}),
+          ...(parsed.expirationDate !== undefined
+            ? { expirationDate: parsed.expirationDate }
+            : {}),
+        }
+      : u,
   );
 
   const { error } = await supabase

@@ -427,21 +427,41 @@ export async function updateSchedulePrefs(input: unknown): Promise<void> {
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
 
+/* Deleting a show is split by role, which is the rule the legacy handler
+ * documented but could not implement (api/shows/[id].js: "§3d.1 asks for a
+ * real permission split here ... that can't be built honestly yet" — there was
+ * only ever one real login, so its SuperAdmin check made the organizer branch
+ * unreachable). Real per-org accounts exist now, so the split is real:
+ *
+ *   Organizer / ShowAdmin — only while the show is still in setup and has no
+ *     orders on it. Once tickets or entries exist, that money and those
+ *     records are not theirs to erase.
+ *   SuperAdmin — always, at any stage. This is the platform's escalation path:
+ *     the error an organizer sees below tells them to ask for exactly this.
+ *
+ * Either way the delete cascades to the show's divisions, classes, staff,
+ * vendors and documents; nothing is soft-deleted.
+ */
 export async function deleteShow(showId: string): Promise<void> {
   const supabase = await createServerClient();
 
-  const stage = await getShowStage(showId);
-  if (stage !== 'setup') {
-    throw new Error('This show has already opened for entries and can no longer be deleted here.');
-  }
+  const profile = await getStaffProfile();
+  const isSuperAdmin = profile?.platform_role === 'SuperAdmin';
 
-  const { count: orderCount, error: orderError } = await supabase
-    .from('orders')
-    .select('id', { count: 'exact', head: true })
-    .eq('show_id', showId);
-  if (orderError) throw new Error(orderError.message);
-  if ((orderCount ?? 0) > 0) {
-    throw new Error('This show has orders on it and can no longer be deleted.');
+  if (!isSuperAdmin) {
+    const stage = await getShowStage(showId);
+    if (stage !== 'setup') {
+      throw new Error('This show has already opened for entries — ask a Super Admin to delete it.');
+    }
+
+    const { count: orderCount, error: orderError } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('show_id', showId);
+    if (orderError) throw new Error(orderError.message);
+    if ((orderCount ?? 0) > 0) {
+      throw new Error('This show has orders on it — ask a Super Admin to delete it.');
+    }
   }
 
   const { error } = await supabase.from('shows').delete().eq('id', showId);
@@ -1050,7 +1070,12 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, '-')
               .replace(/^-+|-+$/g, '') || `mark-${String(c.length + 1)}`;
-          c.push({ key: slug, label: item.label || 'Mark', coef: item.coef, section: section.name });
+          c.push({
+            key: slug,
+            label: item.label || 'Mark',
+            coef: item.coef,
+            section: section.name,
+          });
         } else {
           const instr = item.instructions
             .map((i) => [i.marker, i.instruction].filter(Boolean).join(' — '))

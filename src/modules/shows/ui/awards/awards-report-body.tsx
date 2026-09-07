@@ -1,16 +1,21 @@
 import { Card, Eyebrow } from '@/shared/ui/organizer/card';
 import type { AwardsReport } from '@/modules/shows/awards-engine';
 import { RibbonChips } from '@/modules/shows/ui/awards/ribbon-chips';
+import { TestCountChips } from '@/modules/shows/ui/awards/test-count-chips';
 import { LevelCard } from '@/modules/shows/ui/awards/level-card';
 
 export function AwardsReportBody({
   report,
   ribbonTotal,
   groupedByLabel,
+  testTally,
+  testTotal,
 }: {
   report: AwardsReport;
   ribbonTotal: number;
   groupedByLabel: string;
+  testTally: Record<string, number>;
+  testTotal: number;
 }) {
   return (
     <>
@@ -26,6 +31,18 @@ export function AwardsReportBody({
           </span>
         </div>
         <RibbonChips maxPlaces={report.maxPlaces} tally={report.tally} />
+      </Card>
+
+      <Card className="mb-[22px] grid grid-cols-[auto_minmax(0,1fr)] items-center gap-6 p-[16px_20px_18px] print:break-inside-avoid">
+        <div className="flex flex-col gap-[5px] border-r border-[#EEF2F0] pr-6">
+          <Eyebrow>Tests to print</Eyebrow>
+          <span className="text-[31px] leading-none font-bold tracking-[-.028em] text-[#16261F]">
+            {testTotal}
+          </span>
+
+          <span className="text-[12px] text-[#98A29D]">one scoresheet per entry, by test</span>
+        </div>
+        <TestCountChips tally={testTally} />
       </Card>
 
       {report.levels.length === 0 ? (

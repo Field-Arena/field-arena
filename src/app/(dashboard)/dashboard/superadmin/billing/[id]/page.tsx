@@ -6,6 +6,8 @@ import { getOrganizationBillingDetail } from '@/modules/superadmin/data/queries'
 import { MoneyStatCards } from '@/modules/superadmin/ui/money-stat-cards';
 import { SettlementSettings } from '@/modules/superadmin/ui/settlement-settings';
 import { ShowBillingTable } from '@/modules/superadmin/ui/show-billing-table';
+import { StripeStatusPill, STATUS_GUIDANCE } from '@/modules/superadmin/ui/stripe-status-pill';
+import { formatTimestamp } from '@/shared/lib/format/date';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
 
@@ -61,45 +63,39 @@ export default async function OrganizationBillingPage({
         </h2>
 
         <dl className="border-line-mint grid grid-cols-2 gap-6 border-b pb-5 sm:grid-cols-4">
+          <div>
+            <dt className="text-fa-muted-2 mb-1.5 text-[10px] font-bold tracking-[.16em] uppercase">
+              Status
+            </dt>
+            <dd>
+              <StripeStatusPill status={org.stripeStatus} />
+            </dd>
+          </div>
           {[
-            {
-              label: 'Status',
-              value: org.stripeConnected ? 'Connected' : 'Not connected',
-              dot: org.stripeConnected ? '#3E8E5A' : '#C9A227',
-              tone: org.stripeConnected ? 'text-[#2E7048]' : 'text-[#8A6D14]',
-            },
-            { label: 'Account ID', value: org.stripeConnected ? 'On file' : '—' },
-            { label: 'Payouts', value: org.stripeConnected ? 'Active' : 'Paused' },
+            { label: 'Account ID', value: org.stripeAccountId ?? '—' },
+            { label: 'Payouts', value: org.payoutsEnabled ? 'Enabled' : 'Paused' },
             { label: 'Charge type', value: 'Separate charges & transfers' },
           ].map((field) => (
             <div key={field.label}>
               <dt className="text-fa-muted-2 mb-1.5 text-[10px] font-bold tracking-[.16em] uppercase">
                 {field.label}
               </dt>
-              <dd
-                className={cn(
-                  'flex items-center gap-2 text-[14px] font-bold',
-                  field.tone ?? 'text-hunter-deep',
-                )}
-              >
-                {field.dot && (
-                  <span
-                    aria-hidden
-                    className="size-[6px] flex-none rounded-full"
-                    style={{ background: field.dot }}
-                  />
-                )}
-                {field.value}
-              </dd>
+              <dd className="text-hunter-deep truncate text-[14px] font-bold">{field.value}</dd>
             </div>
           ))}
         </dl>
 
-        <p className="mt-5 text-[13.5px] leading-[1.6] text-[#8A6D14]">
-          {org.stripeConnected
-            ? 'Account status, payout schedule and settlement history are read live from Stripe each time this page loads.'
-            : "No Stripe Connect account linked yet — this organizer can't receive payouts until one is connected."}
-        </p>
+        {org.stripeStatus === 'active' ? (
+          <p className="text-fa-muted mt-5 text-[13.5px] leading-[1.6]">
+            Account status, payout schedule and settlement history are read live from Stripe each
+            time this page loads.
+          </p>
+        ) : (
+          <p className="mt-5 text-[13.5px] leading-[1.6] text-[#8A6D14]">
+            {STATUS_GUIDANCE[org.stripeStatus]}
+            {org.stripeError ? ` (${org.stripeError})` : ''}
+          </p>
+        )}
       </section>
 
       <SettlementSettings
@@ -123,13 +119,54 @@ export default async function OrganizationBillingPage({
 
       <section aria-label="Payout history" className="space-y-3">
         <h2 className={`${NR} text-hunter-deep text-[22px] font-medium`}>Payout History</h2>
-        <div className="border-line rounded-[14px] border border-dashed bg-white px-5 py-12 text-center">
-          <p className="text-fa-muted m-0 text-[13.5px] leading-[1.6]">
-            Payouts are Stripe&rsquo;s record, not ours, so there is nothing to list until a Connect
-            account is linked and the Stripe keys are set. Caching them here would create a second,
-            stale copy of something Stripe already answers authoritatively.
-          </p>
-        </div>
+        {org.payouts.length === 0 ? (
+          <div className="border-line rounded-[14px] border border-dashed bg-white px-5 py-12 text-center">
+            <p className="text-fa-muted m-0 text-[13.5px] leading-[1.6]">
+              {org.stripeStatus === 'not_connected'
+                ? 'No Connect account is linked yet, so Stripe has no payouts to report.'
+                : 'Stripe has no payouts on this account yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="border-line overflow-hidden rounded-[14px] border bg-white">
+            <table className="w-full min-w-[520px] text-[13.5px]">
+              <thead>
+                <tr className="text-fa-muted-2 bg-[#F6F3EC] text-[10px] tracking-[.14em] uppercase">
+                  <th className="px-5 py-[11px] text-left font-bold">Payout</th>
+                  <th className="px-4 py-[11px] text-right font-bold">Amount</th>
+                  <th className="px-5 py-[11px] text-left font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {org.payouts.map((payout) => {
+                  const paid = payout.status === 'paid';
+                  return (
+                    <tr key={payout.id} className="border-t border-[#EEF2EF]">
+                      <td className="text-hunter-deep px-5 py-3">
+                        {payout.arrivalDate
+                          ? formatTimestamp(new Date(payout.arrivalDate).toISOString())
+                          : payout.id}
+                      </td>
+                      <td className="text-hunter-deep px-4 py-3 text-right font-bold">
+                        {money(payout.amount)}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={cn(
+                            'inline-flex h-[22px] items-center gap-[6px] rounded-full px-2.5 text-[10.5px] font-bold',
+                            paid ? 'bg-[#E4F1E8] text-[#2E7048]' : 'bg-[#F6EAC8] text-[#8A6D14]',
+                          )}
+                        >
+                          {paid ? 'Paid' : payout.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );

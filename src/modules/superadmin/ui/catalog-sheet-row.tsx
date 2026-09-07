@@ -8,6 +8,29 @@ import type {
 import { CatalogFileCell } from '@/modules/superadmin/ui/catalog-file-cell';
 
 const COLS = 'minmax(280px,1fr) 150px 160px 130px 110px 92px';
+/* Legacy srcPill() — the four curation states, distinct from whether a PDF is
+ * attached (that is the File column, right next to it). */
+interface ProvenancePill {
+  label: string;
+  bg: string;
+  fg: string;
+  bd: string;
+}
+
+const STUB_PILL: ProvenancePill = {
+  label: 'Stub',
+  bg: '#F1F3F2',
+  fg: '#7A8781',
+  bd: '#E2E8E4',
+};
+
+const SOURCE_PILL: Record<string, ProvenancePill> = {
+  stub: STUB_PILL,
+  manual: { label: 'Verified · manual', bg: '#E6F1EA', fg: '#2E7048', bd: '#D3E6DA' },
+  parsed: { label: 'Auto-extracted', bg: '#E8EFF6', fg: '#2F5A87', bd: '#D3E1EE' },
+  typical: { label: 'Typical default', bg: '#F9F0D8', fg: '#8A6D14', bd: '#EBDCAF' },
+};
+
 const FAM_FALLBACK = {
   label: 'Unassigned',
   blurb: 'Scoring family not yet confirmed',
@@ -26,7 +49,7 @@ export function CatalogSheetRow({
   index: number;
 }) {
   const fam = CATALOG_FAMILY_META[sheet.family ?? 'unassigned'] ?? FAM_FALLBACK;
-  const official = Boolean(sheet.source_file);
+  const provenance = SOURCE_PILL[sheet.source ?? 'stub'] ?? STUB_PILL;
 
   return (
     <div
@@ -51,8 +74,11 @@ export function CatalogSheetRow({
       >
         {fam.label}
       </span>
-      <span className="inline-flex h-6 w-fit items-center rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold whitespace-nowrap text-[#7A6A3C]">
-        {official ? 'Official' : 'Stub'}
+      <span
+        className="inline-flex h-6 w-fit items-center rounded-md border px-2.5 text-[11.5px] font-semibold whitespace-nowrap"
+        style={{ background: provenance.bg, borderColor: provenance.bd, color: provenance.fg }}
+      >
+        {provenance.label}
       </span>
       <CatalogFileCell doc={doc} sourceFile={sheet.source_file} />
       <div className="flex justify-end">

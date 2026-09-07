@@ -20,6 +20,11 @@ import {
   type AwardsReport,
 } from '@/modules/shows/awards-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
+import {
+  netCollected,
+  SETTLED_ORDER_STATUS,
+  SETTLED_BOOKING_STATUS,
+} from '@/shared/lib/sales-math';
 
 export interface ClassRow {
   id: string;
@@ -560,14 +565,18 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   const supabase = await createServerClient();
 
   const [orders, show, merch, vendors, classes] = await Promise.all([
-    supabase.from('orders').select('amount_total').eq('show_id', showId).eq('status', 'paid'),
+    supabase
+      .from('orders')
+      .select('amount_total, additional_charges_total, refunded_amount')
+      .eq('show_id', showId)
+      .eq('status', SETTLED_ORDER_STATUS),
     supabase.from('shows').select('expenses').eq('id', showId).single(),
     supabase.from('merch_sales').select('total').eq('show_id', showId),
     supabase
       .from('vendor_bookings')
-      .select('amount_total')
+      .select('amount_total, additional_charges_total, refunded_amount')
       .eq('show_id', showId)
-      .eq('status', 'paid'),
+      .eq('status', SETTLED_BOOKING_STATUS),
     supabase.from('classes').select('id, fee').eq('show_id', showId),
   ]);
 
@@ -594,10 +603,28 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   const expenses = (show.data.expenses ?? []) as { id: string; label: string; amount: number }[];
 
   return {
-    settledRevenue: orders.data.reduce((sum, o) => sum + o.amount_total, 0),
+    settledRevenue: orders.data.reduce(
+      (sum, o) =>
+        sum +
+        netCollected({
+          amountTotal: o.amount_total,
+          additionalChargesTotal: o.additional_charges_total,
+          refundedAmount: o.refunded_amount,
+        }),
+      0,
+    ),
     paidOrders: orders.data.length,
     entryValue,
-    vendorRevenue: vendors.data.reduce((sum, v) => sum + (v.amount_total ?? 0), 0),
+    vendorRevenue: vendors.data.reduce(
+      (sum, v) =>
+        sum +
+        netCollected({
+          amountTotal: v.amount_total,
+          additionalChargesTotal: v.additional_charges_total,
+          refundedAmount: v.refunded_amount,
+        }),
+      0,
+    ),
     merchRevenue: merch.data.reduce((sum, m) => sum + m.total, 0),
     expenses,
     expenseTotal: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
@@ -1062,12 +1089,17 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
       supabase.from('classes').select('id, label, division, event, fee').eq('show_id', showId),
 
       supabase.from('classes').select('id').eq('show_id', showId),
-      supabase.from('orders').select('id, status, items, amount_total').eq('show_id', showId),
+      supabase
+        .from('orders')
+        .select('id, status, items, amount_total, additional_charges_total, refunded_amount')
+        .eq('show_id', showId),
       supabase.from('add_ons').select('id, name').eq('show_id', showId),
       supabase.from('vendor_items').select('id, name, price').eq('show_id', showId),
       supabase
         .from('vendor_bookings')
-        .select('id, status, paid_at, amount_total, vendor_booking_items(vendor_item_id, qty)')
+        .select(
+          'id, status, paid_at, amount_total, additional_charges_total, refunded_amount, vendor_booking_items(vendor_item_id, qty)',
+        )
         .eq('show_id', showId),
       supabase.from('merch_sales').select('items, total').eq('show_id', showId),
     ]);
@@ -1145,7 +1177,7 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
 
   const vendorQty = new Map<string, number>();
   for (const booking of bookings.data) {
-    if (booking.status !== 'confirmed' || !booking.paid_at) continue;
+    if (booking.status !== SETTLED_BOOKING_STATUS || !booking.paid_at) continue;
     for (const item of booking.vendor_booking_items) {
       vendorQty.set(
         item.vendor_item_id,
@@ -1204,10 +1236,32 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
 
   const breakdownTotal = ordered.reduce((sum, c) => sum + c.subtotal, 0);
 
+  // Revenue is what was collected and kept — refunds netted out, additional
+  // charges added in. Reading the raw `status` column alone counted refunded
+  // money as revenue, because a refund never changes that column.
   const revenueTotal =
-    orders.data.reduce((sum, o) => (o.status === 'paid' ? sum + o.amount_total : sum), 0) +
+    orders.data.reduce(
+      (sum, o) =>
+        o.status === SETTLED_ORDER_STATUS
+          ? sum +
+            netCollected({
+              amountTotal: o.amount_total,
+              additionalChargesTotal: o.additional_charges_total,
+              refundedAmount: o.refunded_amount,
+            })
+          : sum,
+      0,
+    ) +
     bookings.data.reduce(
-      (sum, b) => (b.status === 'confirmed' && b.paid_at ? sum + (b.amount_total ?? 0) : sum),
+      (sum, b) =>
+        b.status === SETTLED_BOOKING_STATUS && b.paid_at
+          ? sum +
+            netCollected({
+              amountTotal: b.amount_total,
+              additionalChargesTotal: b.additional_charges_total,
+              refundedAmount: b.refunded_amount,
+            })
+          : sum,
       0,
     ) +
     merchSales.data.reduce((sum, m) => sum + m.total, 0);
@@ -1427,6 +1481,15 @@ export interface ShowAwards {
   awardsByDivision: boolean;
 
   ribbonTotal: number;
+
+  /* "How many of each test do we need to print" — every entry needs its own
+   * scoresheet before it's ridden, unlike ribbons which only count entries
+   * that end up placed. Keyed by resolved test name: a Test of Choice
+   * entry's own test_override, or the class's single assigned test
+   * (class_tests.name) for every other class. */
+  testTally: Record<string, number>;
+
+  testTotal: number;
 }
 
 export async function getShowAwards(
@@ -1464,16 +1527,40 @@ export async function getShowAwards(
     final_pct: string | null;
     collective_total: number | null;
     division: string;
+    test_override: unknown;
   }[] = [];
 
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
-      .select('class_id, num, rider, horse, final_pct, collective_total, division')
+      .select('class_id, num, rider, horse, final_pct, collective_total, division, test_override')
       .in('class_id', classIds);
     if (error) throw error;
     entries = data;
   }
+
+  const classTestNameById = new Map<string, string>();
+  if (classIds.length > 0) {
+    const { data: classTests, error: classTestsError } = await supabase
+      .from('class_tests')
+      .select('class_id, name')
+      .in('class_id', classIds);
+    if (classTestsError) throw classTestsError;
+    for (const row of classTests) classTestNameById.set(row.class_id, row.name);
+  }
+
+  const testTally: Record<string, number> = {};
+  for (const entry of entries) {
+    const override =
+      entry.test_override && typeof entry.test_override === 'object'
+        ? (entry.test_override as Record<string, unknown>)
+        : null;
+    const overrideName = typeof override?.name === 'string' ? override.name : null;
+    const testName =
+      overrideName || classTestNameById.get(entry.class_id) || 'No test assigned';
+    testTally[testName] = (testTally[testName] ?? 0) + 1;
+  }
+  const testTotal = Object.values(testTally).reduce((sum, n) => sum + n, 0);
 
   const byClass = new Map<string, AwardEntry[]>();
   for (const entry of entries) {
@@ -1524,7 +1611,16 @@ export async function getShowAwards(
     awardsByDivision: prefs.awardsByDivision,
     ribbonTotal: totalOf(report),
     printRibbonTotal: printReport === report ? totalOf(report) : totalOf(printReport),
+    testTally,
+    testTotal,
   };
+}
+
+export interface RiderDocumentInfo {
+  horseName: string;
+  label: string;
+  verified: boolean;
+  expirationDate: string | null;
 }
 
 export interface RiderListRow {
@@ -1535,6 +1631,15 @@ export interface RiderListRow {
   classes: string[];
 
   total: number;
+
+  /* Cross-show tracking: this rider's uploaded horse documents (Coggins,
+   * vaccination records, etc.) regardless of which show they were uploaded
+   * for — documents belong to the horse, not the show — plus the names of
+   * other shows with this same organization this rider has entered before.
+   * Both are absent (empty array) rather than missing when there's nothing
+   * to show, so the UI never has to special-case undefined. */
+  documents: RiderDocumentInfo[];
+  pastShows: string[];
 }
 
 export interface ShowRiders {
@@ -1547,12 +1652,116 @@ export interface ShowRiders {
   totalDays: number;
 }
 
+interface HorseDocumentUpload {
+  label?: string;
+  verified?: boolean;
+  expirationDate?: string;
+}
+
+/* Documents live on the horse (horses.document_uploads), not the show, so
+ * they're already cross-show data — what's missing is an organizer-facing
+ * view that surfaces that history instead of only what was uploaded for the
+ * show currently being looked at. This fetches, for every rider on this
+ * show's roster: every document on every horse they've ever entered (any
+ * show), and the names of the organization's other shows they've competed
+ * in before, then attaches both to the matching row in `byNum` in place. */
+async function attachRiderDocumentHistory({
+  byNum,
+  riderIdsByNum,
+  horseIdsByNum,
+  orgId,
+  currentShowId,
+}: {
+  byNum: Map<string, RiderListRow>;
+  riderIdsByNum: Map<string, Set<string>>;
+  horseIdsByNum: Map<string, Set<string>>;
+  orgId: string | null;
+  currentShowId: string;
+}): Promise<void> {
+  const allHorseIds = [...new Set([...horseIdsByNum.values()].flatMap((set) => [...set]))];
+  const allRiderIds = [...new Set([...riderIdsByNum.values()].flatMap((set) => [...set]))];
+  if (allHorseIds.length === 0 && allRiderIds.length === 0) return;
+
+  const supabase = await createServerClient();
+
+  const horsesById = new Map<string, { name: string; document_uploads: unknown }>();
+  if (allHorseIds.length > 0) {
+    const { data, error } = await supabase
+      .from('horses')
+      .select('id, name, document_uploads')
+      .in('id', allHorseIds);
+    if (error) throw error;
+    for (const h of data) horsesById.set(h.id, h);
+  }
+
+  const pastShowNamesByRider = new Map<string, Set<string>>();
+  if (allRiderIds.length > 0 && orgId) {
+    const { data: pastEntries, error: entriesError } = await supabase
+      .from('class_entries')
+      .select('rider_id, class_id')
+      .in('rider_id', allRiderIds);
+    if (entriesError) throw entriesError;
+
+    const pastClassIds = [...new Set(pastEntries.map((e) => e.class_id))];
+    const { data: pastClasses, error: classesError } =
+      pastClassIds.length > 0
+        ? await supabase.from('classes').select('id, show_id').in('id', pastClassIds)
+        : { data: [], error: null };
+    if (classesError) throw classesError;
+    const showIdByClassId = new Map(pastClasses.map((c) => [c.id, c.show_id]));
+
+    const pastShowIds = [...new Set(pastClasses.map((c) => c.show_id))].filter(
+      (id) => id !== currentShowId,
+    );
+    const { data: pastShows, error: showsError } =
+      pastShowIds.length > 0
+        ? await supabase.from('shows').select('id, name').eq('org_id', orgId).in('id', pastShowIds)
+        : { data: [], error: null };
+    if (showsError) throw showsError;
+    const showById = new Map(pastShows.map((s) => [s.id, s.name]));
+
+    for (const entry of pastEntries) {
+      if (!entry.rider_id) continue;
+      const showId = showIdByClassId.get(entry.class_id);
+      const showName = showId ? showById.get(showId) : undefined;
+      if (!showName) continue;
+      const set = pastShowNamesByRider.get(entry.rider_id) ?? new Set<string>();
+      set.add(showName);
+      pastShowNamesByRider.set(entry.rider_id, set);
+    }
+  }
+
+  for (const [num, row] of byNum) {
+    const documents: RiderDocumentInfo[] = [];
+    for (const horseId of horseIdsByNum.get(num) ?? []) {
+      const horse = horsesById.get(horseId);
+      if (!horse) continue;
+      const uploads = (horse.document_uploads ?? []) as HorseDocumentUpload[];
+      for (const upload of uploads) {
+        documents.push({
+          horseName: horse.name,
+          label: upload.label ?? 'Document',
+          verified: upload.verified ?? false,
+          expirationDate: upload.expirationDate ?? null,
+        });
+      }
+    }
+    row.documents = documents;
+
+    const pastShows = new Set<string>();
+    for (const riderId of riderIdsByNum.get(num) ?? []) {
+      for (const name of pastShowNamesByRider.get(riderId) ?? []) pastShows.add(name);
+    }
+    row.pastShows = [...pastShows].sort((a, b) => a.localeCompare(b));
+  }
+}
+
 export async function getShowRiders(showId: string): Promise<ShowRiders | null> {
   const supabase = await createServerClient();
 
   const { data: show, error: showError } = await supabase
     .from('shows')
-    .select('id, name, start_date')
+    .select('id, name, start_date, org_id')
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
@@ -1567,16 +1776,25 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
   const classById = new Map(classes.map((c) => [c.id, c]));
   const classIds = classes.map((c) => c.id);
 
-  let entries: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
+  let entries: {
+    class_id: string;
+    num: string;
+    rider: string | null;
+    horse: string | null;
+    rider_id: string | null;
+    horse_id: string | null;
+  }[] = [];
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
-      .select('class_id, num, rider, horse')
+      .select('class_id, num, rider, horse, rider_id, horse_id')
       .in('class_id', classIds);
     if (error) throw error;
     entries = data;
   }
 
+  const riderIdsByNum = new Map<string, Set<string>>();
+  const horseIdsByNum = new Map<string, Set<string>>();
   const byNum = new Map<string, RiderListRow>();
   for (const entry of entries) {
     const cls = classById.get(entry.class_id);
@@ -1586,13 +1804,33 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
       horse: entry.horse ?? '',
       classes: [],
       total: 0,
+      documents: [],
+      pastShows: [],
     };
     if (cls) {
       row.classes.push(cls.display_name ?? cls.label);
       row.total += cls.fee ?? 0;
     }
     byNum.set(entry.num, row);
+    if (entry.rider_id) {
+      const set = riderIdsByNum.get(entry.num) ?? new Set<string>();
+      set.add(entry.rider_id);
+      riderIdsByNum.set(entry.num, set);
+    }
+    if (entry.horse_id) {
+      const set = horseIdsByNum.get(entry.num) ?? new Set<string>();
+      set.add(entry.horse_id);
+      horseIdsByNum.set(entry.num, set);
+    }
   }
+
+  await attachRiderDocumentHistory({
+    byNum,
+    riderIdsByNum,
+    horseIdsByNum,
+    orgId: show.org_id,
+    currentShowId: showId,
+  });
 
   const schedule = await getMasterSchedule(showId);
   const onSiteByDay: Record<number, string[]> = {};

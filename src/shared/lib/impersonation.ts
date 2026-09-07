@@ -32,12 +32,18 @@ export async function enterAsOrganizer(orgId: string): Promise<void> {
   const supabase = await createServerClient();
   const { data: org, error } = await supabase
     .from('organizations')
-    .select('id')
+    .select('id, deleted_at')
     .eq('id', orgId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
   if (!org) throw new Error('That organization no longer exists.');
+  // A deleted organizer's staff can't log in and riders can't buy into their
+  // shows — entering their workspace would be acting as an account the rest of
+  // the platform already treats as gone. Restore it first.
+  if (org.deleted_at) {
+    throw new Error('That organization is deleted — restore it before entering its workspace.');
+  }
 
   const store = await cookies();
   store.set(IMPERSONATION_COOKIE, org.id, {

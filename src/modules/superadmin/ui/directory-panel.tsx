@@ -2,7 +2,13 @@ import { cn } from '@/shared/lib/utils';
 import type { DirectoryOrganizer } from '@/modules/superadmin/types';
 import { DirectoryOrg, ORG_COLS } from '@/modules/superadmin/ui/directory-org';
 
-export function DirectoryPanel({ organizers }: { organizers: DirectoryOrganizer[] }) {
+export function DirectoryPanel({
+  organizers,
+  expandedOrgId = null,
+}: {
+  organizers: DirectoryOrganizer[];
+  expandedOrgId?: string | null;
+}) {
   if (organizers.length === 0) {
     return (
       <p className="text-fa-muted-2 rounded-[14px] border border-dashed border-[#E2E8E4] bg-white px-5 py-8 text-center text-sm">
@@ -32,7 +38,7 @@ export function DirectoryPanel({ organizers }: { organizers: DirectoryOrganizer[
         </div>
 
         {organizers.map((org) => (
-          <DirectoryOrg key={org.id} org={org} />
+          <DirectoryOrg key={org.id} org={org} defaultExpanded={org.id === expandedOrgId} />
         ))}
       </div>
 

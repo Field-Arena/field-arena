@@ -34,6 +34,9 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
   const form = useForm<CompleteOrgProfileInput>({
     resolver: zodResolver(completeOrgProfileSchema),
     defaultValues: {
+      // Present only when a SuperAdmin is completing this profile on a pending
+      // organizer's behalf; a real organizer's own form leaves it undefined.
+      orgId: defaults.orgId,
       name: defaults.name ?? '',
       email: defaults.email ?? '',
       website: defaults.website ?? '',

@@ -1,5 +1,6 @@
 import type { ScheduleClass } from '@/modules/operations/data/queries';
 import { RibbonSwatch } from '@/modules/operations/ui/ribbon-swatch';
+import { ScoreCell } from '@/modules/operations/ui/score-cell';
 import { RideOrderTable } from '@/modules/operations/ui/ride-order-table';
 
 export function ClassResultsBlock({ cls }: { cls: ScheduleClass }) {
@@ -46,7 +47,13 @@ export function ClassResultsBlock({ cls }: { cls: ScheduleClass }) {
                   </td>
                   <td>{p.horse}</td>
                   <td className="r">
-                    <span className="pct">{p.finalPctRaw}</span>
+                    <ScoreCell
+                      value={p.finalPctRaw}
+                      num={p.num}
+                      rider={p.rider}
+                      horse={p.horse}
+                      className={cls.label}
+                    />
                   </td>
                 </tr>
               ))}
@@ -65,7 +72,7 @@ export function ClassResultsBlock({ cls }: { cls: ScheduleClass }) {
       >
         Scores in order of ride
       </h3>
-      <RideOrderTable entries={cls.entries} />
+      <RideOrderTable entries={cls.entries} className={cls.label} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { toChecklist } from '@/modules/superadmin/utils/to-checklist';
 import {
   useUpdateLead,
   useSendLeadOnboarding,
+  useToggleChecklistItem,
 } from '@/modules/superadmin/hooks/use-lead-mutations';
 import { SECTION, H2, LABEL, INPUT, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
 
@@ -19,7 +20,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
     toChecklist(lead.onboarding_checklist),
   );
   const schedule = useUpdateLead({ successMessage: 'Onboarding scheduled' });
-  const saveChecklist = useUpdateLead({ successMessage: 'Checklist updated' });
+  const toggleItem = useToggleChecklistItem();
   const send = useSendLeadOnboarding();
 
   const done = checklist.filter((c) => c.done).length;
@@ -75,10 +76,13 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               key={item.id}
               type="button"
               variant="ghost"
+              disabled={toggleItem.isPending}
               onClick={() => {
-                setChecklist((prev) =>
-                  prev.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)),
-                );
+                const done = !item.done;
+                setChecklist((prev) => prev.map((c) => (c.id === item.id ? { ...c, done } : c)));
+                // Persisted one item at a time, server-side: the stored list is
+                // re-read before the flip, so this can't clobber a concurrent edit.
+                toggleItem.mutate({ id: lead.id, itemId: item.id, done });
               }}
               className="flex h-auto w-full items-start justify-start gap-3 border-b border-[#EEF2EF] px-[18px] py-3.5 text-left last:border-b-0 hover:bg-[#FAFCFB]"
             >
@@ -116,19 +120,8 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               </span>
             </Button>
           ))}
-          <div className="px-[18px] py-3">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={saveChecklist.isPending}
-              className="text-hunter-deep hover:text-gold h-auto px-0 py-0 text-[12.5px] font-bold underline underline-offset-2 hover:bg-transparent disabled:opacity-60"
-              onClick={() => {
-                saveChecklist.mutate({ id: lead.id, onboardingChecklist: checklist });
-              }}
-            >
-              {saveChecklist.isPending ? 'Saving…' : 'Save checklist'}
-            </Button>
-          </div>
+          {/* No "Save checklist" button: each tick persists on its own, the way
+              legacy did. A separate save invited losing ticks by navigating away. */}
         </div>
       )}
 

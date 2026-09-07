@@ -82,7 +82,7 @@ export const ROLE_WORKSPACES: Record<string, RoleWorkspace> = {
   Announcer: {
     key: 'announcer',
     title: 'Announcer Dashboard',
-    hint: 'Running order, rider details, live results, and a mark-as-announced checklist',
+    hint: 'Ring status, the full running order, live results, and show contacts',
     href: '/dashboard/announcing',
     status: 'migrated',
     legacyView: 'views/announcer.html',

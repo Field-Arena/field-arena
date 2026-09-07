@@ -1,8 +1,8 @@
 import { paidLineItems } from '@/modules/riders/utils/paid-line-items';
-import type { OrderRow } from '@/modules/riders/types';
+import type { RiderVisibleOrderRow } from '@/modules/riders/types';
 
 export function feeForEntry(
-  orders: OrderRow[],
+  orders: RiderVisibleOrderRow[],
   classId: string,
   horseId: string | null,
 ): number | null {

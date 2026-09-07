@@ -24,6 +24,17 @@ import { RefundDialog } from '@/modules/sales/ui/refund-dialog';
 import { ChargeMoreDialog } from '@/modules/sales/ui/charge-more-dialog';
 import { EventSalesViewTabs } from '@/modules/sales/ui/event-sales-view-tabs';
 
+/* Legacy moneyCell(amount, isPaid): when money is hidden it did NOT drop the
+ * column — it swapped the amount for a Paid/Unpaid pill, so a Show Admin keeps
+ * the operational signal (has this rider settled?) without seeing the figure.
+ * Blanking the column entirely loses information legacy deliberately kept. */
+function PaidPill({ row }: { row: SaleRow }) {
+  const settled = row.status !== 'refunded' && row.amountTotal > 0;
+  return (
+    <StatusBadge tone={settled ? 'success' : 'neutral'}>{settled ? 'Paid' : 'Unpaid'}</StatusBadge>
+  );
+}
+
 const STATUS_TONE: Record<SaleRow['status'], StatusTone> = {
   paid: 'success',
   partial: 'warn',
@@ -53,6 +64,7 @@ export function EventSalesScreen({
   showName,
   isLive,
   canRefund,
+  canViewMoney,
   rows,
   stats,
 }: {
@@ -60,6 +72,10 @@ export function EventSalesScreen({
   showName: string;
   isLive: boolean;
   canRefund: boolean;
+
+  /* Show Admin without money access still gets this screen — legacy showed it
+   * with quantities and payment status, only the dollar figures removed. */
+  canViewMoney: boolean;
   rows: SaleRow[];
   stats: SalesStats;
 }) {
@@ -93,20 +109,25 @@ export function EventSalesScreen({
   const statTiles: { label: string; value: React.ReactNode; sub: React.ReactNode }[] = [
     {
       label: 'Total sales',
-      value: formatMoneyExact(stats.totalSales),
+      value: canViewMoney ? formatMoneyExact(stats.totalSales) : '—',
       sub: (
         <>
           paid, this filter
-          {stats.refundedExcluded > 0 && ` · ${String(stats.refundedExcluded)} refunded, excluded`}
+          {stats.refundedExcluded > 0 &&
+            ` · ${String(stats.refundedExcluded)} with refunds, netted out`}
         </>
       ),
     },
     { label: 'Transactions', value: stats.transactions, sub: 'paid + refunded' },
-    { label: 'Rider entries', value: stats.riderCount, sub: formatMoneyExact(stats.riderTotal) },
+    {
+      label: 'Rider entries',
+      value: stats.riderCount,
+      sub: canViewMoney ? formatMoneyExact(stats.riderTotal) : undefined,
+    },
     {
       label: 'Vendor purchases',
       value: stats.vendorCount,
-      sub: formatMoneyExact(stats.vendorTotal),
+      sub: canViewMoney ? formatMoneyExact(stats.vendorTotal) : undefined,
     },
   ];
 
@@ -169,34 +190,39 @@ export function EventSalesScreen({
       <EventSalesViewTabs />
 
       <div className="mb-3 flex justify-end gap-2.5">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            const csv = buildSalesCsv(
-              filtered.map((r) => ({
-                customer: r.customer,
-                type: r.type,
-                showName: r.showName,
-                date: r.date,
-                amountTotal: r.amountTotal,
-                statusLabel: STATUS_LABEL[r.status],
-              })),
-            );
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = salesCsvFilename(showName);
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-          }}
-          className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
-        >
-          ⬇ Export Contact List
-        </Button>
+        {/* The CSV carries amountTotal, so it follows the same gate as the
+            column — legacy removed its report buttons the same way
+            (showstaff.html:14302). */}
+        {canViewMoney && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              const csv = buildSalesCsv(
+                filtered.map((r) => ({
+                  customer: r.customer,
+                  type: r.type,
+                  showName: r.showName,
+                  date: r.date,
+                  amountTotal: r.amountTotal,
+                  statusLabel: STATUS_LABEL[r.status],
+                })),
+              );
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = salesCsvFilename(showName);
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            }}
+            className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
+          >
+            ⬇ Export Contact List
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"
@@ -259,7 +285,7 @@ export function EventSalesScreen({
                       {row.date ? formatTimestamp(row.date) : '—'}
                     </TableCell>
                     <TableCell className="px-3 py-2.5 text-right">
-                      {formatMoneyExact(row.amountTotal)}
+                      {canViewMoney ? formatMoneyExact(row.amountTotal) : <PaidPill row={row} />}
                     </TableCell>
                     <TableCell className="px-3 py-2.5 whitespace-normal">
                       <StatusBadge tone={STATUS_TONE[row.status]}>

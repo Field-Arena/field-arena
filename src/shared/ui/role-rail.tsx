@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import {
   RIDER_WORKSPACE,
   ROLE_RAIL_ORDER,
@@ -10,6 +10,21 @@ import { RoleIcon } from '@/shared/ui/role-icon';
 import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
 import { setRailRole } from '@/shared/lib/rail-role';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/ui/shadcn/dialog';
+import { Button } from '@/shared/ui/shadcn/button';
+
+/* Roles that carry real write access — live scores, entries, the full org
+ * workspace. Legacy WRITE_ACCESS_ROLES: switching into one of these used to
+ * happen on the same silent click as picking a read-only view like Announcer,
+ * so it now confirms first. Announcer/ShowStaff/Rider stay one click. */
+const WRITE_ACCESS_ROLES = new Set(['Organizer', 'ShowAdmin', 'Judge', 'Scribe']);
 
 export function RoleRail({
   currentRole,
@@ -25,7 +40,14 @@ export function RoleRail({
   const isSuperAdmin = currentRole === 'SuperAdmin';
   const isConsole = variant === 'console';
   const [isPending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState<string | null>(null);
   const highlighted = activeRole ?? currentRole;
+
+  function switchTo(role: string) {
+    startTransition(async () => {
+      await setRailRole(role);
+    });
+  }
 
   const workspaceFor = (role: string) =>
     role === 'Rider' ? RIDER_WORKSPACE : ROLE_WORKSPACES[role];
@@ -95,9 +117,8 @@ export function RoleRail({
               disabled={isPending}
               onClick={() => {
                 if (active) return;
-                startTransition(async () => {
-                  await setRailRole(role);
-                });
+                if (WRITE_ACCESS_ROLES.has(role)) setConfirming(role);
+                else switchTo(role);
               }}
               className={classes}
               aria-label={label}
@@ -108,6 +129,47 @@ export function RoleRail({
           </Tip>
         );
       })}
+
+      <Dialog
+        open={confirming !== null}
+        onOpenChange={(next) => {
+          if (!next) setConfirming(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle className="text-hunter-deep font-serif text-lg">
+              View as {confirming ? (workspaceFor(confirming)?.title ?? confirming) : ''}?
+            </DialogTitle>
+            <DialogDescription className="leading-relaxed">
+              This role can make real changes — scores, entries, or account settings — not just view
+              them. Anything you do is recorded against your own account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setConfirming(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                const next = confirming;
+                setConfirming(null);
+                if (next) switchTo(next);
+              }}
+            >
+              {isPending ? 'Switching…' : 'Continue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

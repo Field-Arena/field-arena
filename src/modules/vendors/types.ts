@@ -46,6 +46,7 @@ export interface PublicVendorApplyShow {
   showName: string;
   showDate: string | null;
   orgName: string;
+  vendorMapUrl: string | null;
   items: {
     id: string;
     name: string;
@@ -84,6 +85,7 @@ export interface BookableShow {
   showName: string;
   showDate: string | null;
   orgName: string;
+  vendorMapUrl: string | null;
   items: {
     id: string;
     name: string;

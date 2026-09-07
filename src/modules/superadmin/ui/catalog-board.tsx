@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { SearchIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -26,9 +26,13 @@ function matchesType(gb: string | null, type: string): boolean {
 export function CatalogBoard({
   sheets,
   docs,
+  independentTemplates,
+  independentTemplateCount,
 }: {
   sheets: CatalogSheetRowData[];
   docs: CatalogDocument[];
+  independentTemplates: ReactNode;
+  independentTemplateCount: number;
 }) {
   const [type, setType] = useState('All');
   const [search, setSearch] = useState('');
@@ -39,9 +43,14 @@ export function CatalogBoard({
     () =>
       ['All', ...CATALOG_SCORE_TYPES].map((t) => ({
         label: t,
-        count: sheets.filter((s) => matchesType(s.governing_body, t)).length,
+        // The Independent tab counts organizer-built Test Builder templates
+        // alongside catalog sheets, as legacy's tab count did — they are the
+        // Independent tests that actually exist on the platform.
+        count:
+          sheets.filter((s) => matchesType(s.governing_body, t)).length +
+          (t === 'Independent' || t === 'All' ? independentTemplateCount : 0),
       })),
-    [sheets],
+    [sheets, independentTemplateCount],
   );
 
   const visible = useMemo(() => {
@@ -149,6 +158,20 @@ export function CatalogBoard({
           {visible.length} of {sheets.length} sheet{sheets.length === 1 ? '' : 's'}
         </div>
       </div>
+
+      {type === 'Independent' && (
+        <>
+          <div className="flex items-start gap-3 rounded-xl border border-[#EBDCAF] bg-[#FCF6E4] px-4 py-3.5">
+            <p className="text-[13.5px] leading-[1.55] text-[#7A5E12]">
+              <strong className="text-[#16261F]">Independent scoring.</strong> For shows not run
+              under a governing body — schooling shows, series, in-house classes, or an
+              organizer&rsquo;s own format. An uploaded sheet behaves like any official test: the
+              same fillable form, live totals, and percentage.
+            </p>
+          </div>
+          {independentTemplates}
+        </>
+      )}
     </div>
   );
 }

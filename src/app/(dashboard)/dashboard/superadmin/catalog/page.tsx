@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import { InfoIcon } from 'lucide-react';
-import { listScoringCatalog, listCatalogDocuments } from '@/modules/superadmin/data/queries';
+import {
+  listScoringCatalog,
+  listCatalogDocuments,
+  listIndependentTestTemplates,
+} from '@/modules/superadmin/data/queries';
 import { CatalogBoard } from '@/modules/superadmin/ui/catalog-board';
+import { IndependentTemplatesPanel } from '@/modules/superadmin/ui/independent-templates-panel';
 import { groupSheetsByFamily } from '@/modules/superadmin/utils/group-sheets-by-family';
 
 export const metadata: Metadata = {
@@ -11,7 +16,11 @@ export const metadata: Metadata = {
 const NR = 'font-[family-name:var(--font-nr)]';
 
 export default async function ScoringCatalogPage() {
-  const [sheets, docs] = await Promise.all([listScoringCatalog(), listCatalogDocuments()]);
+  const [sheets, docs, independentTemplates] = await Promise.all([
+    listScoringCatalog(),
+    listCatalogDocuments(),
+    listIndependentTestTemplates(),
+  ]);
   const testDocs = docs.filter((d) => d.folder === 'Tests');
 
   const { byFamily, stubs } = groupSheetsByFamily(sheets);
@@ -74,7 +83,12 @@ export default async function ScoringCatalogPage() {
         })}
       </div>
 
-      <CatalogBoard sheets={sheets} docs={testDocs} />
+      <CatalogBoard
+        sheets={sheets}
+        docs={testDocs}
+        independentTemplateCount={independentTemplates.length}
+        independentTemplates={<IndependentTemplatesPanel templates={independentTemplates} />}
+      />
     </div>
   );
 }

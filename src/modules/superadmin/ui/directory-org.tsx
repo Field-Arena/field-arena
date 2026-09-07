@@ -26,8 +26,14 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 export const ORG_COLS = 'minmax(240px,1fr) 90px 110px 132px';
 const NR = 'font-[family-name:var(--font-nr)]';
 
-export function DirectoryOrg({ org }: { org: DirectoryOrganizer }) {
-  const [expanded, setExpanded] = useState(false);
+export function DirectoryOrg({
+  org,
+  defaultExpanded = false,
+}: {
+  org: DirectoryOrganizer;
+  defaultExpanded?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('name');
 

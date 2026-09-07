@@ -16,8 +16,10 @@ export function ClassPicker({
 }) {
   const selectedClassIds = useEntryCartStore((state) => state.selectedClassIds);
   const qualSelections = useEntryCartStore((state) => state.qualSelections);
+  const testChoices = useEntryCartStore((state) => state.testChoices);
   const toggleClass = useEntryCartStore((state) => state.toggleClass);
   const toggleQualification = useEntryCartStore((state) => state.toggleQualification);
+  const setTestChoice = useEntryCartStore((state) => state.setTestChoice);
 
   return (
     <Card>
@@ -35,6 +37,9 @@ export function ClassPicker({
             displayName: cls.display_name,
             testOptions: cls.test_options,
           });
+          const testOptions = Array.isArray(cls.test_options)
+            ? cls.test_options.filter((t): t is string => typeof t === 'string')
+            : [];
           return (
             <div key={cls.id} className="border-line rounded-lg border">
               <Button
@@ -64,6 +69,30 @@ export function ClassPicker({
                   </span>
                 </div>
               </Button>
+
+              {isSelected && testOptions.length > 0 && (
+                <div className="border-line border-t px-3 py-2">
+                  <label className="text-forest mb-1 block text-xs font-medium">
+                    Choose your test <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    className="border-line w-full rounded border px-2 py-1.5 text-sm"
+                    value={testChoices[cls.id] ?? ''}
+                    onChange={(e) => {
+                      setTestChoice(cls.id, e.target.value);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select a test…
+                    </option>
+                    {testOptions.map((test) => (
+                      <option key={test} value={test}>
+                        {test}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {isSelected && qualTypes.length > 0 && (
                 <div className="border-line flex flex-wrap gap-x-4 gap-y-1 border-t px-3 py-2">

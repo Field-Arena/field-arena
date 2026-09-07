@@ -53,6 +53,12 @@ export interface HorseRow {
   missingLabels: string[];
   needsVerification: boolean;
   cogginsExpired: boolean;
+
+  /* This same horse appears on class_entries under more than one rider name
+   * — a lease or catch-ride horse, not a data error. riders lists every
+   * distinct name seen so the organizer can see who, not just how many. */
+  isMultiEntry: boolean;
+  riders: string[];
 }
 
 export interface HorsesPageData {
@@ -88,6 +94,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
     riderId: string | null;
     classes: number;
     horseId: string | null;
+    riderNames: Set<string>;
   }
   const byHorse = new Map<string, Group>();
 
@@ -108,6 +115,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         existing.classes += 1;
         existing.horseId ??= entry.horse_id;
         existing.riderId ??= entry.rider_id;
+        if (entry.rider) existing.riderNames.add(entry.rider);
       } else {
         byHorse.set(entry.horse, {
           name: entry.horse,
@@ -115,6 +123,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
           riderId: entry.rider_id,
           classes: 1,
           horseId: entry.horse_id,
+          riderNames: new Set(entry.rider ? [entry.rider] : []),
         });
       }
     }
@@ -216,11 +225,14 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         ? (riderIdByHorseId.get(group.horseId) ?? group.riderId)
         : group.riderId;
 
+      const riders = [...group.riderNames].sort((a, b) => a.localeCompare(b));
+      const isMultiEntry = riders.length > 1;
+
       return {
         key: group.horseId ?? `name:${group.name}`,
         horseId: group.horseId,
         horseName: group.name,
-        riderLabel: group.rider ?? '—',
+        riderLabel: isMultiEntry ? `${String(riders.length)} riders` : (group.rider ?? '—'),
         riderEmail: riderId ? (emailByRiderId.get(riderId) ?? null) : null,
         classesCount: group.classes,
         isStallion: group.horseId ? (stallionByHorseId.get(group.horseId) ?? false) : false,
@@ -229,6 +241,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         missingLabels,
         needsVerification,
         cogginsExpired,
+        isMultiEntry,
+        riders,
       };
     }),
     ...manualHorses.map(async (mh): Promise<HorseRow> => {
@@ -248,6 +262,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         missingLabels,
         needsVerification,
         cogginsExpired,
+        isMultiEntry: false,
+        riders: mh.riderName ? [mh.riderName] : [],
       };
     }),
   ]);
