@@ -38,7 +38,12 @@ export default async function TestBuilderPage({ params }: { params: Promise<{ sh
       stage={vitals.stage}
       canViewMoney={context.canViewMoney}
     >
-      <TestBuilderCard orgId={data.orgId} templates={data.templates} classes={data.classes} />
+      <TestBuilderCard
+        orgId={data.orgId}
+        templates={data.templates}
+        catalog={data.catalog}
+        classes={data.classes}
+      />
     </ShowManagerShell>
   );
 }

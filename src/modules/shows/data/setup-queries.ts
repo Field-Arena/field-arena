@@ -1004,12 +1004,76 @@ export interface TestBuilderClassOption {
   label: string;
 }
 
+/* The official test library (scoring_catalog, family='movement') — USEF/USDF
+ * published tests an organizer can clone into their own editable library.
+ * Distinct from `test_templates` (an org's own custom tests, see above). */
+export interface TestCatalogEntry {
+  id: string;
+  title: string;
+  level: string | null;
+  governingBody: string | null;
+  movements: TestTemplateMovement[];
+  collectives: TestTemplateCollective[];
+}
+
+function parseCatalogDef(def: unknown): {
+  movements: TestTemplateMovement[];
+  collectives: TestTemplateCollective[];
+} {
+  const record = def && typeof def === 'object' ? (def as Record<string, unknown>) : {};
+
+  const rawMovements = Array.isArray(record.movements) ? record.movements : [];
+  const movements = rawMovements
+    .filter((m): m is Record<string, unknown> => !!m && typeof m === 'object')
+    .map((m) => ({
+      num: Number(m.n ?? 0),
+      text: typeof m.text === 'string' ? m.text : '',
+      coef: Number(m.coef ?? 1),
+    }))
+    .filter((m) => m.num > 0);
+
+  const rawCollectives = Array.isArray(record.collectives) ? record.collectives : [];
+  const collectives = rawCollectives
+    .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object')
+    .map((c) => ({
+      key: typeof c.key === 'string' ? c.key : '',
+      label: typeof c.label === 'string' ? c.label : '',
+      coef: Number(c.coef ?? 1),
+    }))
+    .filter((c) => c.key !== '');
+
+  return { movements, collectives };
+}
+
+export async function listTestCatalog(): Promise<TestCatalogEntry[]> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('scoring_catalog')
+    .select('id, title, level, governing_body, def')
+    .eq('family', 'movement')
+    .order('title');
+  if (error) throw error;
+
+  return data.map((row) => {
+    const { movements, collectives } = parseCatalogDef(row.def);
+    return {
+      id: row.id,
+      title: row.title,
+      level: row.level,
+      governingBody: row.governing_body,
+      movements,
+      collectives,
+    };
+  });
+}
+
 export interface TestBuilderPageData {
   showId: string;
   showName: string;
   orgId: string;
   templates: TestTemplateRow[];
-
+  catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
 }
 
@@ -1024,8 +1088,9 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (show.error) throw show.error;
   if (!show.data) return null;
 
-  const [templates, classesRes] = await Promise.all([
+  const [templates, catalog, classesRes] = await Promise.all([
     listTestTemplates(show.data.org_id),
+    listTestCatalog(),
     supabase.from('classes').select('id, label').eq('show_id', showId).order('label'),
   ]);
   if (classesRes.error) throw classesRes.error;
@@ -1035,6 +1100,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     showName: show.data.name,
     orgId: show.data.org_id,
     templates,
+    catalog,
     classes: classesRes.data,
   };
 }
@@ -1557,7 +1623,7 @@ export async function getShowAwards(
         : null;
     const overrideName = typeof override?.name === 'string' ? override.name : null;
     const testName =
-      overrideName || classTestNameById.get(entry.class_id) || 'No test assigned';
+      overrideName ?? classTestNameById.get(entry.class_id) ?? 'No test assigned';
     testTally[testName] = (testTally[testName] ?? 0) + 1;
   }
   const testTotal = Object.values(testTally).reduce((sum, n) => sum + n, 0);
