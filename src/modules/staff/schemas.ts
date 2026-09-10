@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ADD_USER_ROLES } from './constants';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { PERMISSION_KEYS } from '@/shared/constants/permissions';
+import { emailSchema } from '@/shared/schemas/email';
 
 export const addStaffUserSchema = z
   .object({
@@ -10,7 +11,7 @@ export const addStaffUserSchema = z
     firstName: z.string().trim().max(80).optional().default(''),
     lastName: z.string().trim().max(80).optional().default(''),
     businessName: z.string().trim().max(160).optional().default(''),
-    email: z.email('Enter a valid email address'),
+    email: emailSchema(),
     role: z.enum(ADD_USER_ROLES),
     isSteward: z.boolean().optional().default(false),
     canScratchSkipDq: z.boolean().optional().default(false),
@@ -67,7 +68,7 @@ export const updateStaffDetailsSchema = z.object({
   staffId: z.uuid(),
   firstName: z.string().trim().min(1, 'First name is required').max(80),
   lastName: z.string().trim().min(1, 'Last name is required').max(80),
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   phone: z.string().trim().max(40).optional().default(''),
 
   isSteward: z.boolean().optional().default(false),
@@ -79,7 +80,7 @@ const importStaffRowSchema = z.object({
   lastName: z.string().trim().max(80),
   role: z.string().trim().min(1).max(40),
   phone: z.string().trim().max(40).optional().default(''),
-  email: z.email(),
+  email: emailSchema(),
 });
 
 export const importStaffListSchema = z.object({

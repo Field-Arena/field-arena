@@ -1,10 +1,9 @@
 import { z } from 'zod';
 import { RIDER_CATEGORIES } from '@/modules/riders/constants';
+import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
 
 export const riderSignUpSchema = z.object({
-  email: z
-    .email('Enter a valid email address so we can send your code')
-    .min(1, 'Email is required'),
+  email: requiredEmailSchema('Enter a valid email address so we can send your code'),
   password: z
     .string()
     .min(8, 'Passwords need at least 8 characters')
@@ -19,7 +18,7 @@ export const riderSignUpSchema = z.object({
 export type RiderSignUpInput = z.infer<typeof riderSignUpSchema>;
 
 export const riderVerifySchema = z.object({
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   token: z
     .string()
     .trim()
@@ -29,7 +28,7 @@ export const riderVerifySchema = z.object({
 export type RiderVerifyInput = z.infer<typeof riderVerifySchema>;
 
 export const riderResendCodeSchema = z.object({
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
 });
 
 export type RiderResendCodeInput = z.infer<typeof riderResendCodeSchema>;
