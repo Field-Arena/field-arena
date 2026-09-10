@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
 
@@ -318,9 +319,14 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 }
 
 export async function getOrgStripeAccountId(orgId: string): Promise<string | null> {
-  const supabase = await createServerClient();
+  // stripe_connect_account_id is deliberately not SELECT-able by the
+  // `authenticated` role (see 20260907120000_fix_money_column_privileges.sql):
+  // any staff member on a show could otherwise read its organization's Stripe
+  // identifier. Callers here already scope orgId to the current organizer, so
+  // this reads it server-side with the service role.
+  const admin = createAdminClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('organizations')
     .select('stripe_connect_account_id')
     .eq('id', orgId)
@@ -534,10 +540,10 @@ function rankByTest(
     });
     let rank = 1;
     sorted.forEach((row, i) => {
-      if (i > 0) {
-        const prev = sorted[i - 1];
+      const prev = i > 0 ? sorted[i - 1] : null;
+      if (prev) {
         const stillTied =
-          row.pct === prev?.pct && (row.ctot == null || prev?.ctot == null || row.ctot === prev.ctot);
+          row.pct === prev.pct && (row.ctot == null || prev.ctot == null || row.ctot === prev.ctot);
         if (!stillTied) rank = i + 1;
       }
       ranks.set(row.entryId, rank);
@@ -570,7 +576,6 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
     .order('ride_order');
   if (entryError) throw entryError;
 
-  const classById = new Map(classes.map((c) => [c.id, c]));
   const entriesByClass = new Map<string, typeof entries>();
   for (const e of entries) {
     const list = entriesByClass.get(e.class_id) ?? [];

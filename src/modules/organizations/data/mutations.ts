@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
@@ -381,7 +382,10 @@ export async function startStripeConnect(): Promise<{ url: string }> {
   const orgId = await requireOrgId();
   const supabase = await createServerClient();
 
-  const { data: org, error: readError } = await supabase
+  // stripe_connect_account_id is not SELECT-able by `authenticated`
+  // (20260907120000_fix_money_column_privileges.sql). requireOrgId() has already
+  // scoped orgId to the caller's own organization, so read it with the service role.
+  const { data: org, error: readError } = await createAdminClient()
     .from('organizations')
     .select('email, stripe_connect_account_id')
     .eq('id', orgId)
