@@ -56,14 +56,20 @@ export function AssignmentCard({
         )}
         <div className="text-[13.5px] text-[#5A6B63]">
           Test sheet:{' '}
-          <a
-            href={USDF_TEST_SHEETS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink-deep hover:text-gold font-bold underline decoration-[#B4BFB9]"
-          >
-            {assignment.classLabel} ↗
-          </a>
+          {variant === 'history' ? (
+            // The whole history card is wrapped in a <Link>; a nested <a> here
+            // is invalid HTML and causes a hydration mismatch.
+            <span className="text-ink-deep font-bold">{assignment.classLabel}</span>
+          ) : (
+            <a
+              href={USDF_TEST_SHEETS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ink-deep hover:text-gold font-bold underline decoration-[#B4BFB9]"
+            >
+              {assignment.classLabel} ↗
+            </a>
+          )}
         </div>
       </div>
 
