@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { PERMISSION_KEYS } from '@/shared/constants/permissions';
+import { emailSchema } from '@/shared/schemas/email';
 
 const optionalText = (max: number) =>
   z
@@ -16,7 +17,7 @@ export const createOrganizationSchema = z.object({
   contactFirstName: z.string().trim().min(1, 'First name is required').max(80),
   contactLastName: z.string().trim().min(1, 'Last name is required').max(80),
   contactTitle: optionalText(120),
-  contactEmail: z.email('Enter a valid email address'),
+  contactEmail: emailSchema(),
 
   city: optionalText(120),
   region: optionalText(120),
@@ -35,7 +36,7 @@ export type ResendOrganizerInviteInput = z.input<typeof resendOrganizerInviteSch
 
 export const addOrganizationOwnerSchema = z.object({
   orgId: z.uuid(),
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
 });
 
 export type AddOrganizationOwnerInput = z.input<typeof addOrganizationOwnerSchema>;
@@ -70,7 +71,7 @@ export type OrganizationFlagInput = z.infer<typeof organizationFlagSchema>;
 
 export const addSuperAdminSchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(120),
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
 });
 
 export type AddSuperAdminInput = z.infer<typeof addSuperAdminSchema>;
@@ -87,7 +88,7 @@ export const addOrgStaffSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required').max(80),
   lastName: z.string().trim().max(80).optional().default(''),
   name: z.string().trim().min(1, 'A name is required').max(120),
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   role: z.enum(GRANTABLE_ROLES),
 });
 

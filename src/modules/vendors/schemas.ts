@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
 
 export const vendorSignUpSchema = z.object({
   name: z.string().trim().min(1, 'Your name is required').max(200),
-  email: z.email('Enter a valid email address').min(1, 'Email is required'),
+  email: requiredEmailSchema(),
   password: z
     .string()
     .min(8, 'Passwords need at least 8 characters')
@@ -17,7 +18,7 @@ export const vendorSignUpSchema = z.object({
 export type VendorSignUpInput = z.infer<typeof vendorSignUpSchema>;
 
 export const vendorVerifySchema = z.object({
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   token: z
     .string()
     .trim()
@@ -26,7 +27,7 @@ export const vendorVerifySchema = z.object({
 
 export type VendorVerifyInput = z.infer<typeof vendorVerifySchema>;
 
-export const vendorResendCodeSchema = z.object({ email: z.email('Enter a valid email address') });
+export const vendorResendCodeSchema = z.object({ email: emailSchema() });
 
 export type VendorResendCodeInput = z.infer<typeof vendorResendCodeSchema>;
 
@@ -79,7 +80,7 @@ export const applyToShowPublicSchema = z.object({
   showId: z.uuid(),
   businessName: z.string().trim().min(1, 'A business or farm name is required').max(300),
   contactName: z.string().trim().min(1, 'A contact name is required').max(200),
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   phone: z
     .string()
     .trim()

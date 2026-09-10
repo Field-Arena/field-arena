@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
 
 export const loginSchema = z.object({
-  email: z.email('Enter a valid email address').min(1, 'Email is required'),
+  email: requiredEmailSchema(),
 
   password: z.string().min(1, 'Password is required'),
 
@@ -11,13 +12,13 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const requestPasswordResetSchema = z.object({
-  email: z.email('Enter a valid email address').min(1, 'Email is required'),
+  email: requiredEmailSchema(),
 });
 
 export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetSchema>;
 
 export const verifySignInCodeSchema = z.object({
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   token: z
     .string()
     .trim()
@@ -28,9 +29,7 @@ export const verifySignInCodeSchema = z.object({
 export type VerifySignInCodeInput = z.infer<typeof verifySignInCodeSchema>;
 
 export const signUpSchema = z.object({
-  email: z
-    .email('Enter a valid email address so we can send your code')
-    .min(1, 'Email is required'),
+  email: requiredEmailSchema('Enter a valid email address so we can send your code'),
   password: z
     .string()
     .min(8, 'Passwords need at least 8 characters')
@@ -57,7 +56,7 @@ export const setPasswordSchema = z
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
 
 export const verifyEmailSchema = z.object({
-  email: z.email('Enter a valid email address'),
+  email: emailSchema(),
   token: z
     .string()
     .trim()
