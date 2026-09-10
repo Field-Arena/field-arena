@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { SaleStatus, SaleType, SaleRow } from '@/modules/sales/types';
 
 function deriveStatus(amountTotal: number, feeTotal: number, refundedAmount: number): SaleStatus {
@@ -67,16 +68,21 @@ export async function getCanRefund(
 
 export async function listSales(showId: string): Promise<SaleRow[]> {
   const supabase = await createServerClient();
+  // stripe_customer_id / stripe_payment_method_id are not SELECT-able by the
+  // `authenticated` role (20260907120000_fix_money_column_privileges.sql).
+  // The Event Sales screen is reached only through getOrganizerContext, which
+  // has already scoped this show to the caller's organization.
+  const admin = createAdminClient();
 
   const [ordersRes, vendorRes, showRes] = await Promise.all([
-    supabase
+    admin
       .from('orders')
       .select(
         'id, rider_id, amount_total, fee_total, refunded_amount, additional_charges_total, created_at, paid_at, stripe_payment_intent_id, stripe_customer_id, stripe_payment_method_id',
       )
       .eq('show_id', showId)
       .eq('status', 'paid'),
-    supabase
+    admin
       .from('vendor_bookings')
       .select(
         'id, name, amount_total, fee_total, refunded_amount, additional_charges_total, created_at, paid_at, stripe_payment_intent_id, stripe_customer_id, stripe_payment_method_id',
