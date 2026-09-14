@@ -307,11 +307,13 @@ export function TestBuilderCard({
   templates,
   catalog,
   classes,
+  assignedByTemplateName,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
+  assignedByTemplateName: Record<string, string[]>;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openInstr, setOpenInstr] = useState<Record<string, boolean>>({});
@@ -1047,6 +1049,8 @@ export function TestBuilderCard({
                 .filter((part): part is string => Boolean(part))
                 .join(' · ');
 
+              const assignedTo = assignedByTemplateName[t.name] ?? [];
+
               return (
                 <div
                   key={t.id}
@@ -1057,6 +1061,11 @@ export function TestBuilderCard({
                       {t.name}
                     </span>
                     <span className="text-[12px] text-[#98A29D]">{meta}</span>
+                    {assignedTo.length > 0 && (
+                      <span className="text-forest mt-0.5 block text-[12px] font-semibold">
+                        Currently used by: {assignedTo.join(', ')}
+                      </span>
+                    )}
                   </span>
                   <Button
                     type="button"

@@ -1075,6 +1075,11 @@ export interface TestBuilderPageData {
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
+  /** Class labels currently using each template, keyed by template name.
+   * assignTestTemplateToClass copies the template's fields into class_tests
+   * rather than keeping a live foreign key, so name is the only link back —
+   * good enough for this display-only hint (not used to gate anything). */
+  assignedByTemplateName: Record<string, string[]>;
 }
 
 export async function getTestBuilderPageData(showId: string): Promise<TestBuilderPageData | null> {
@@ -1095,6 +1100,20 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   ]);
   if (classesRes.error) throw classesRes.error;
 
+  const classIds = classesRes.data.map((c) => c.id);
+  const classTestsRes = classIds.length
+    ? await supabase.from('class_tests').select('class_id, name').in('class_id', classIds)
+    : { data: [], error: null };
+  if (classTestsRes.error) throw classTestsRes.error;
+
+  const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
+  const assignedByTemplateName: Record<string, string[]> = {};
+  for (const row of classTestsRes.data) {
+    const label = classLabelById.get(row.class_id);
+    if (!label) continue;
+    (assignedByTemplateName[row.name] ??= []).push(label);
+  }
+
   return {
     showId: show.data.id,
     showName: show.data.name,
@@ -1102,6 +1121,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     templates,
     catalog,
     classes: classesRes.data,
+    assignedByTemplateName,
   };
 }
 

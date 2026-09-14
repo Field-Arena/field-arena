@@ -1163,6 +1163,13 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+
+  const { data: cls } = await supabase
+    .from('classes')
+    .select('show_id')
+    .eq('id', parsed.classId)
+    .maybeSingle();
+  if (cls?.show_id) revalidatePath(`/dashboard/shows/${cls.show_id}/test-builder`);
 }
 
 export async function saveShowExpenses(input: unknown): Promise<void> {
