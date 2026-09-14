@@ -148,10 +148,13 @@ export function ScoringScreen({
   }, [allSeatsReady, autoAdvanceCancelled, currentEntry?.id]);
 
   if (!currentEntry) {
+    const hasNoEntries = state.entries.length === 0 && state.holdingEntries.length === 0;
     return (
       <ScreenShell state={state}>
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
-          Every ride in this class has been scored, scratched, or disqualified.
+          {hasNoEntries
+            ? 'No riders are entered in this class yet.'
+            : 'Every ride in this class has been scored, scratched, or disqualified.'}
         </Card>
         {permissions.canEditShow && (
           <div className="mt-6 flex flex-col gap-4">
