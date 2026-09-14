@@ -190,16 +190,22 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
           </label>
           <Input
             id="sm-rider-no"
-            type="number"
-            min={1}
-            value={startingRiderNumber}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={startingRiderNumber === 0 ? '' : String(startingRiderNumber)}
             placeholder="101"
             className={`h-auto ${SM_INPUT}`}
+            onFocus={(e) => {
+              e.target.select();
+            }}
             onChange={(e) => {
-              setStartingRiderNumber(Number(e.target.value));
+              const digits = e.target.value.replace(/\D/g, '');
+              setStartingRiderNumber(digits === '' ? 0 : Number(digits));
             }}
             onBlur={() => {
-              save();
+              if (startingRiderNumber < 1) setStartingRiderNumber(1);
+              save({ startingRiderNumber: startingRiderNumber < 1 ? 1 : startingRiderNumber });
             }}
           />
           <p className="mt-2 text-[12.5px] leading-[1.5] text-pretty text-[#7C8A84]">
