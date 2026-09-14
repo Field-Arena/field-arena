@@ -5,6 +5,12 @@
 .dash {
   --rail: 68px;
   --side: 252px;
+  /* .dash-mobile-toggle floats fixed at top:14px/right:14px over every
+     dashboard page ("Exit mobile preview" is the longest label it ever
+     shows). Anything that can reach the top-right corner — the topbar note,
+     the impersonation banner's exit button — reserves this much space so
+     the floating button never sits on top of live text/controls. */
+  --mobile-toggle-clear: 190px;
   display: grid;
   grid-template-columns: var(--rail) var(--side) 1fr;
   min-height: 100vh;
@@ -205,6 +211,7 @@
   color: var(--fa-muted);
   font-size: 13px;
   max-width: 620px;
+  padding-right: var(--mobile-toggle-clear);
   text-align: right;
 }
 .dash-content {

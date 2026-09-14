@@ -8,7 +8,7 @@ export function ImpersonationBanner({ orgName }: { orgName?: string | null }) {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="bg-gold text-hunter-deep flex flex-wrap items-center gap-3 px-6 py-2">
+    <div className="bg-gold text-hunter-deep flex flex-wrap items-center gap-3 py-2 pr-[var(--mobile-toggle-clear)] pl-6">
       <EyeIcon className="size-4 flex-none" aria-hidden />
       <p className="text-[13px] font-bold">
         {orgName ? `Viewing as: ${orgName}.` : 'Viewing as an organizer.'} Changes you make here
