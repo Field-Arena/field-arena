@@ -345,3 +345,18 @@ export const USER_STATUS_META: Record<
   pending: { label: 'Pending', fg: '#8A6D0B', bg: '#F7EFD3' },
   onboard: { label: 'On board', fg: '#1F3A2E', bg: '#E4EFE6' },
 };
+
+/**
+ * Maps a staff_assignments.role value (as stored on the per-show invite) to
+ * the workspace key it grants — used to scope the multi-role rail switcher
+ * (workspace-roles.ts) and the organization dropdown (org-selection.ts) to
+ * the same per-show identity, instead of mixing every org a person touches
+ * under any role into one list.
+ */
+export const ASSIGNMENT_ROLE_TO_WORKSPACE: Record<string, string> = {
+  'Show Admin': 'ShowAdmin',
+  Judge: 'Judge',
+  Scribe: 'Scribe',
+  Announcer: 'Announcer',
+  ShowStaff: 'ShowStaff',
+};

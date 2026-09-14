@@ -113,6 +113,11 @@ export function OrganizerShell({
 
   const activeWorkspace = workspaceFor(activeRailRole) ?? workspace;
 
+  // Only offer orgs relevant to the workspace actually open — a person
+  // staffed as Judge in one org and Show Admin in another shouldn't see the
+  // Show Admin org while sitting in the Judge workspace (or vice versa).
+  const orgsForActiveRole = memberOrgs.filter((org) => org.roles.includes(activeRailRole));
+
   const baseNavItems = ROLE_NAV[activeRailRole] ?? ORGANIZER_NAV;
 
   const navItems = previewingAsShowAdmin
@@ -225,20 +230,27 @@ export function OrganizerShell({
         </div>
         <div className="dash-side-sub">{activeWorkspace.title.toUpperCase()}</div>
 
-        {memberOrgs.length > 1 && (
+        {orgsForActiveRole.length > 1 && (
           <>
             <div className="dash-side-heading">ORGANIZATION</div>
-            <Tip text="Switch between organizations you have access to" className="block w-full">
+            <Tip
+              text={`Switch between organizations you're a ${activeWorkspace.title.replace(' Workspace', '')} for`}
+              className="block w-full"
+            >
               <select
                 className="dash-select"
-                value={selectedOrgId ?? ''}
+                value={
+                  orgsForActiveRole.some((o) => o.orgId === selectedOrgId)
+                    ? (selectedOrgId ?? '')
+                    : (orgsForActiveRole[0]?.orgId ?? '')
+                }
                 disabled={isOrgPending}
                 onChange={(e) => {
                   setOrg(e.target.value, pathname);
                 }}
                 aria-label="Selected organization"
               >
-                {memberOrgs.map((org) => (
+                {orgsForActiveRole.map((org) => (
                   <option key={org.orgId} value={org.orgId}>
                     {org.orgName}
                   </option>
