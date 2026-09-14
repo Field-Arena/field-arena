@@ -12,13 +12,8 @@ import {
   removePanelSeat,
   reopenScoresheet,
   scratchRide,
-  setCollective,
-  setFinalRemarks,
-  setMark,
-  setRemark,
   skipRide,
   submitScoresheet,
-  toggleErrorAt,
   toggleScoringOpen,
   unfinishRide,
   unpublishResults,
@@ -27,28 +22,34 @@ import {
   workInEntry,
 } from '@/modules/scoring/data/mutations';
 import { enqueueScoringWrite } from '@/modules/scoring/hooks/use-mutation-queue';
-import { MAX_WRITE_RETRIES, WRITE_RETRY_MS } from '@/modules/scoring/constants';
+import { enqueueDurableWrite } from '@/modules/scoring/offline/queue';
+import type { OfflineActionName } from '@/modules/scoring/offline/registry';
 
 function queued<Input, Output>(action: (input: Input) => Promise<Output>) {
   return (input: Input) => enqueueScoringWrite(() => action(input));
 }
 
-function isNetworkFailure(error: unknown): boolean {
-  return error instanceof TypeError && /fetch|network/i.test(error.message);
+// The marks a judge/scribe enters during a ride — these are the ones that
+// must survive a dropped connection, so they go through the durable,
+// IndexedDB-backed queue instead of the plain in-memory one. See
+// docs/offline-mode-plan.md (Phase 3).
+function durableQueued<Output>(action: OfflineActionName) {
+  return (input: unknown) => enqueueDurableWrite<Output>(action, input);
 }
 
 const SYNC_FAILURE_TOAST_ID = 'scoring-sync-failure';
 
 function silentMutationOptions() {
   return {
-    retry: (failureCount: number, error: unknown) =>
-      failureCount < MAX_WRITE_RETRIES && isNetworkFailure(error),
-    retryDelay: WRITE_RETRY_MS,
+    // Retrying belongs to the durable queue now (a few quick tries, then it
+    // waits on the device for the background sync) — react-query shouldn't
+    // also retry on top of that.
+    retry: false,
     onError: () => {
-      toast.error("Not synced — a mark didn't save. Check your connection and try again.", {
-        id: SYNC_FAILURE_TOAST_ID,
-        duration: Infinity,
-      });
+      toast.error(
+        "Offline — this mark is saved on your device and will sync once you're back online.",
+        { id: SYNC_FAILURE_TOAST_ID, duration: Infinity },
+      );
     },
     onSuccess: () => {
       toast.dismiss(SYNC_FAILURE_TOAST_ID);
@@ -65,23 +66,23 @@ function toastedMutationOptions(errorMessage: string) {
 }
 
 export function useSetMark() {
-  return useMutation({ mutationFn: queued(setMark), ...silentMutationOptions() });
+  return useMutation({ mutationFn: durableQueued('setMark'), ...silentMutationOptions() });
 }
 
 export function useSetCollective() {
-  return useMutation({ mutationFn: queued(setCollective), ...silentMutationOptions() });
+  return useMutation({ mutationFn: durableQueued('setCollective'), ...silentMutationOptions() });
 }
 
 export function useSetRemark() {
-  return useMutation({ mutationFn: queued(setRemark), ...silentMutationOptions() });
+  return useMutation({ mutationFn: durableQueued('setRemark'), ...silentMutationOptions() });
 }
 
 export function useSetFinalRemarks() {
-  return useMutation({ mutationFn: queued(setFinalRemarks), ...silentMutationOptions() });
+  return useMutation({ mutationFn: durableQueued('setFinalRemarks'), ...silentMutationOptions() });
 }
 
 export function useToggleErrorAt() {
-  return useMutation({ mutationFn: queued(toggleErrorAt), ...silentMutationOptions() });
+  return useMutation({ mutationFn: durableQueued('toggleErrorAt'), ...silentMutationOptions() });
 }
 
 export function useSubmitScoresheet() {

@@ -11,6 +11,8 @@ import { AUTO_ADVANCE_GRACE_MS, UNDO_WINDOW_MS } from '@/modules/scoring/constan
 import { isSheetComplete } from '@/modules/scoring/scoring-engine';
 import { toSheet } from '@/modules/scoring/utils/to-sheet';
 import { useScoringState } from '@/modules/scoring/hooks/use-scoring-state';
+import { useOfflineSync } from '@/modules/scoring/offline/use-offline-sync';
+import { OfflineStatusBanner } from '@/modules/scoring/ui/offline-status-banner';
 import {
   useAdvanceRide,
   useDisqualifyRide,
@@ -60,6 +62,7 @@ export function ScoringScreen({
   panelCandidates: PanelCandidate[];
 }) {
   const { state, refetch, applyOptimistic } = useScoringState(classId, initialState);
+  const { online, pendingCount } = useOfflineSync(classId);
 
   const currentEntry = useMemo(() => {
     if (state.classState.workingInEntryId) {
@@ -108,6 +111,15 @@ export function ScoringScreen({
   const unpublish = useUnpublishResults();
 
   useEffect(() => {
+    // Lets the scoring screen be reopened from cache if the tab is
+    // reloaded (or the app cold-started) with no signal. Scoped to just
+    // /dashboard/scoring and /dashboard/judging — see public/sw.js.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!lastUndo) return;
     const id = setTimeout(() => {
       setLastUndo(null);
@@ -150,7 +162,7 @@ export function ScoringScreen({
   if (!currentEntry) {
     const hasNoEntries = state.entries.length === 0 && state.holdingEntries.length === 0;
     return (
-      <ScreenShell state={state}>
+      <ScreenShell state={state} online={online} pendingCount={pendingCount}>
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
           {hasNoEntries
             ? 'No riders are entered in this class yet.'
@@ -229,7 +241,7 @@ export function ScoringScreen({
   }
 
   return (
-    <ScreenShell state={state}>
+    <ScreenShell state={state} online={online} pendingCount={pendingCount}>
       <div className="mb-6">
         <ScoringToolbar
           open={state.classState.open}
@@ -526,7 +538,17 @@ export function ScoringScreen({
   );
 }
 
-function ScreenShell({ state, children }: { state: ClassScoringState; children: React.ReactNode }) {
+function ScreenShell({
+  state,
+  online,
+  pendingCount,
+  children,
+}: {
+  state: ClassScoringState;
+  online: boolean;
+  pendingCount: number;
+  children: React.ReactNode;
+}) {
   return (
     <>
       <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
@@ -546,6 +568,7 @@ function ScreenShell({ state, children }: { state: ClassScoringState; children: 
           </Link>
         </div>
       </div>
+      <OfflineStatusBanner online={online} pendingCount={pendingCount} />
       {children}
     </>
   );
