@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
+import { ASSIGNMENT_ROLE_TO_WORKSPACE } from '@/modules/staff/constants';
 
 /**
  * The workspaces a single staff user is actually entitled to — their global
@@ -12,14 +13,6 @@ import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
  * (one person invited as Judge on one show and Announcer on another can reach
  * both workspaces), matching how the legacy app worked.
  */
-
-const ASSIGNMENT_ROLE_TO_WORKSPACE: Record<string, string> = {
-  'Show Admin': 'ShowAdmin',
-  Judge: 'Judge',
-  Scribe: 'Scribe',
-  Announcer: 'Announcer',
-  ShowStaff: 'ShowStaff',
-};
 
 export async function getUserWorkspaceRoles(profile: {
   id: string;
