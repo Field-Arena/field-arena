@@ -19,7 +19,7 @@ import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/a
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 
-export function RiderAuthForm() {
+export function RiderAuthForm({ returnTo }: { returnTo?: string } = {}) {
   const [step, setStep] = useState<RiderSignUpStep>('account');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -34,6 +34,7 @@ export function RiderAuthForm() {
   });
 
   const signUp = useSignUpRider({
+    returnTo,
     onVerifyNeeded: (confirmedEmail) => {
       setFormError(null);
       setAlreadyRegistered(false);
@@ -46,7 +47,7 @@ export function RiderAuthForm() {
       setAlreadyRegistered(true);
     },
   });
-  const verify = useVerifyRiderSignUpCode();
+  const verify = useVerifyRiderSignUpCode(returnTo);
   const resend = useResendRiderSignUpCode();
 
   useEffect(() => {
