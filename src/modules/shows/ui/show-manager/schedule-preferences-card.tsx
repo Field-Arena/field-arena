@@ -197,7 +197,7 @@ export function SchedulePreferencesCard({
               changeLunch(e.target.value === 'yes');
             }}
           >
-            <option value="yes">Include lunch (12:00 PM, 1 hour)</option>
+            <option value="yes">Include lunch (1 hour)</option>
             <option value="no">No lunch</option>
           </select>
         </div>
@@ -205,13 +205,18 @@ export function SchedulePreferencesCard({
           <span className={SM_LABEL}>Additional breaks</span>
           <div className="flex items-center gap-2">
             <Input
-              type="number"
-              min={0}
-              max={6}
-              value={extraBreaks}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={extraBreaks === 0 ? '' : String(extraBreaks)}
+              placeholder="0"
               className="text-ink-deep focus-visible:border-gold h-auto w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm outline-none"
+              onFocus={(e) => {
+                e.target.select();
+              }}
               onChange={(e) => {
-                setExtraBreaks(Number(e.target.value));
+                const digits = e.target.value.replace(/\D/g, '');
+                setExtraBreaks(digits === '' ? 0 : Math.min(6, Number(digits)));
               }}
               onBlur={() => {
                 save();
@@ -219,13 +224,18 @@ export function SchedulePreferencesCard({
             />
             <span className="text-[12.5px] text-[#7C8A84]">per day, at</span>
             <Input
-              type="number"
-              min={0}
-              max={30}
-              value={extraBreakMin}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={extraBreakMin === 0 ? '' : String(extraBreakMin)}
+              placeholder="0"
               className="text-ink-deep focus-visible:border-gold h-auto w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm outline-none"
+              onFocus={(e) => {
+                e.target.select();
+              }}
               onChange={(e) => {
-                setExtraBreakMin(Number(e.target.value));
+                const digits = e.target.value.replace(/\D/g, '');
+                setExtraBreakMin(digits === '' ? 0 : Math.min(30, Number(digits)));
               }}
               onBlur={() => {
                 save();

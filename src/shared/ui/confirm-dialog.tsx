@@ -1,5 +1,6 @@
 'use client';
 
+import { Loader2Icon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -58,10 +59,12 @@ export function ConfirmDialog({
             disabled={pending}
             onClick={onConfirm}
             className={cn(
+              'inline-flex items-center gap-2',
               destructive && 'bg-[#B4432F] text-[#FBF7EE] hover:bg-[#98341F]',
               pending && 'opacity-70',
             )}
           >
+            {pending && <Loader2Icon className="size-[14px] animate-spin" aria-hidden />}
             {confirmLabel}
           </Button>
         </DialogFooter>
