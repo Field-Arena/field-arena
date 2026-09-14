@@ -85,6 +85,18 @@ export function OrganizerShell({
       );
 
   const activeRailRole = (() => {
+    // Scoring is reached from the Judge/Scribe workspace ("Launch Scoring")
+    // but lives at '/dashboard/scoring/[classId]', outside '/dashboard/judging'.
+    // Left to the generic matcher below, it would fall through to Organizer/
+    // ShowAdmin's bare '/dashboard' href — a prefix of every dashboard route —
+    // and silently swap a Judge into the Show Admin shell mid-scoring for
+    // anyone who also holds a Show Admin role elsewhere. Resolve it explicitly.
+    if (pathname.startsWith('/dashboard/scoring/')) {
+      if (railRoleCookie === 'Scribe' && railRoles.includes('Scribe')) return 'Scribe';
+      if (railRoles.includes('Judge')) return 'Judge';
+      if (railRoles.includes('Scribe')) return 'Scribe';
+    }
+
     if (!isSuperAdmin) {
       // Match the MOST specific workspace href. Organizer/ShowAdmin live at
       // '/dashboard', which is a prefix of every '/dashboard/*' route, so a
