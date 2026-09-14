@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { formatDateShort } from '@/shared/lib/format/date';
@@ -15,15 +16,19 @@ const WHEN_META = {
 export function AssignmentCard({
   assignment,
   variant,
+  completed = false,
 }: {
   assignment: AssignmentRow;
   variant: 'today' | 'upcoming' | 'history';
+  /** Every ride already scored/scratched/disqualified, but results aren't
+   * published yet — still "today," but nothing left to launch. */
+  completed?: boolean;
 }) {
   const time = formatClassTime(assignment.classTime);
   const seatLabel = [assignment.ring, assignment.position ? `at ${assignment.position}` : null]
     .filter(Boolean)
     .join(' · ');
-  const when = WHEN_META[variant];
+  const when = completed ? WHEN_META.history : WHEN_META[variant];
 
   const dateLabel =
     formatDateShort(assignment.classDate) ||
@@ -86,9 +91,17 @@ export function AssignmentCard({
         {when.label}
       </StatusPill>
 
-      {variant !== 'history' && (
-        <LaunchScoringButton active={variant === 'today'} classId={assignment.classId} />
-      )}
+      {variant !== 'history' &&
+        (completed ? (
+          <Link
+            href="/dashboard/judging/results"
+            className="hover:bg-gold flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#F5F7F6] transition-colors hover:text-[#0D2C23]"
+          >
+            View results →
+          </Link>
+        ) : (
+          <LaunchScoringButton active={variant === 'today'} classId={assignment.classId} />
+        ))}
     </div>
   );
 }
