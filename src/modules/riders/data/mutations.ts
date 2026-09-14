@@ -81,15 +81,29 @@ async function ensureRiderProfile(
   if (insertError) throw insertError;
 }
 
-export async function signUpRider(input: unknown): Promise<RiderSignUpOutcome> {
+/** A rider who started at a specific show's ticket page (e.g. an organizer's
+ * shared link, or the public directory) and had to sign up/verify first
+ * should land back on that show afterward, not on the generic /rider portal
+ * — otherwise they lose the class selection they were about to make and have
+ * to find their way back manually. Only ever trusts an internal path. */
+function safeRiderReturnTo(value?: string | null): string {
+  if (!value) return ROUTES.rider;
+  if (!value.startsWith('/') || value.startsWith('//')) return ROUTES.rider;
+  return value;
+}
+
+export async function signUpRider(input: unknown, returnTo?: string): Promise<RiderSignUpOutcome> {
   const { email, password } = riderSignUpSchema.parse(input);
+  const target = safeRiderReturnTo(returnTo);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport(() =>
     supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${ROUTES.rider}` },
+      options: {
+        emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(target)}`,
+      },
     }),
   );
   if (!attempt.ok) return { status: 'error', message: attempt.message };
@@ -107,10 +121,13 @@ export async function signUpRider(input: unknown): Promise<RiderSignUpOutcome> {
 
   await ensureRiderProfile(supabase, data.user);
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: ROUTES.rider };
+  return { status: 'done', redirectTo: target };
 }
 
-export async function verifyRiderSignUpCode(input: unknown): Promise<RiderVerifyOutcome> {
+export async function verifyRiderSignUpCode(
+  input: unknown,
+  returnTo?: string,
+): Promise<RiderVerifyOutcome> {
   const { email, token } = riderVerifySchema.parse(input);
 
   const supabase = await createServerClient();
@@ -126,7 +143,7 @@ export async function verifyRiderSignUpCode(input: unknown): Promise<RiderVerify
 
   await ensureRiderProfile(supabase, data.user);
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: ROUTES.rider };
+  return { status: 'done', redirectTo: safeRiderReturnTo(returnTo) };
 }
 
 export async function resendRiderSignUpCode(input: unknown): Promise<RiderResendOutcome> {

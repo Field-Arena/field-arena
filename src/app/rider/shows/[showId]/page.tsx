@@ -44,11 +44,12 @@ export default async function RiderShowPage({
   const rider = await getCurrentRiderProfile();
 
   if (!rider) {
+    const signInHref = `${ROUTES.rider}?next=${encodeURIComponent(`/rider/shows/${showId}`)}`;
     return (
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-12">
         <ShowTicketDetail detail={detail} />
         <div className="border-line bg-mint text-forest rounded-lg border p-4 text-sm">
-          <Link href={ROUTES.rider} className="font-semibold underline underline-offset-2">
+          <Link href={signInHref} className="font-semibold underline underline-offset-2">
             Sign in or create an account
           </Link>{' '}
           to enter classes at this show.
