@@ -23,7 +23,7 @@ export default async function JudgingPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realPanelContacts] = await Promise.all([
     getStaffProfile(),
-    listMyAssignments(),
+    listMyAssignments(todayIso),
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';

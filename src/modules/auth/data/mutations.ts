@@ -8,6 +8,7 @@ import {
   SESSION_PERSISTENCE_OFF,
 } from '@/shared/lib/supabase/session-persistence';
 import { env } from '@/shared/lib/env';
+import { parseInput } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/constants/routes';
 import { MAIL_UNREACHABLE_MESSAGE, NOT_PROVISIONED_MESSAGE } from '@/modules/auth/constants';
 import {
@@ -49,7 +50,7 @@ async function withMailTransport<T>(
 }
 
 export async function signInWithPassword(input: unknown): Promise<LoginOutcome> {
-  const { email, password, remember = true } = loginSchema.parse(input);
+  const { email, password, remember = true } = parseInput(loginSchema, input);
 
   await recordSessionPersistence(remember);
 
@@ -116,7 +117,7 @@ async function landAfterSignup(
 }
 
 export async function signUpWithPassword(input: unknown): Promise<SignUpOutcome> {
-  const { email, password } = signUpSchema.parse(input);
+  const { email, password } = parseInput(signUpSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport('sign-up', () =>
@@ -143,7 +144,7 @@ export async function signUpWithPassword(input: unknown): Promise<SignUpOutcome>
 }
 
 export async function setPassword(input: unknown): Promise<VerifyOutcome> {
-  const { password } = setPasswordSchema.parse(input);
+  const { password } = parseInput(setPasswordSchema, input);
 
   const supabase = await createServerClient();
   const {
@@ -172,7 +173,7 @@ export async function setPassword(input: unknown): Promise<VerifyOutcome> {
 }
 
 export async function verifyEmailCode(input: unknown): Promise<VerifyOutcome> {
-  const { email, token } = verifyEmailSchema.parse(input);
+  const { email, token } = parseInput(verifyEmailSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport('verify-code', () =>
@@ -191,7 +192,7 @@ export async function verifyEmailCode(input: unknown): Promise<VerifyOutcome> {
 }
 
 export async function resendEmailCode(input: unknown): Promise<ResendOutcome> {
-  const { email } = requestPasswordResetSchema.parse(input);
+  const { email } = parseInput(requestPasswordResetSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport('resend-code', () =>
@@ -211,7 +212,7 @@ export async function signOut(): Promise<void> {
 }
 
 export async function requestPasswordReset(input: unknown): Promise<void> {
-  const { email } = requestPasswordResetSchema.parse(input);
+  const { email } = parseInput(requestPasswordResetSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport('password-reset', () =>
@@ -227,7 +228,7 @@ export async function requestPasswordReset(input: unknown): Promise<void> {
 }
 
 export async function sendSignInCode(input: unknown): Promise<SignInCodeOutcome> {
-  const { email } = requestPasswordResetSchema.parse(input);
+  const { email } = parseInput(requestPasswordResetSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport('sign-in-code', () =>
@@ -253,7 +254,7 @@ export async function sendSignInCode(input: unknown): Promise<SignInCodeOutcome>
 }
 
 export async function verifySignInCode(input: unknown): Promise<LoginOutcome> {
-  const { email, token, remember = true } = verifySignInCodeSchema.parse(input);
+  const { email, token, remember = true } = parseInput(verifySignInCodeSchema, input);
 
   await recordSessionPersistence(remember);
 

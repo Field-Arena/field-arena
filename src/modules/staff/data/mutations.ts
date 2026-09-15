@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { run, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
+import { run, parseInput, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/modules/auth/data/queries';
@@ -144,7 +144,7 @@ async function provisionIfNewAccount(
 
 export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
   return run('Could not invite this person', async () => {
-    const parsed = addStaffUserSchema.parse(input);
+    const parsed = parseInput(addStaffUserSchema, input);
     const { orgId, showName } = await requireCanManageStaff(parsed.showId);
 
     const email = parsed.email.trim().toLowerCase();
@@ -224,7 +224,7 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
 
 export async function changeStaffRole(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not change that role', async () => {
-    const { staffId, role } = changeStaffRoleSchema.parse(input);
+    const { staffId, role } = parseInput(changeStaffRoleSchema, input);
     await requireCanManageStaff(await showIdForStaff(staffId));
 
     const supabase = await createServerClient();
@@ -238,7 +238,7 @@ export async function changeStaffRole(input: unknown): Promise<ActionResult<{ ok
 
 export async function reassignStaffShow(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not move this person to that show', async () => {
-    const { staffId, showId } = reassignStaffShowSchema.parse(input);
+    const { staffId, showId } = parseInput(reassignStaffShowSchema, input);
     await requireCanManageStaff(await showIdForStaff(staffId));
     await requireCanManageStaff(showId);
 
@@ -256,7 +256,7 @@ export async function reassignStaffShow(input: unknown): Promise<ActionResult<{ 
 
 export async function updateStaffDetails(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not save these details', async () => {
-    const parsed = updateStaffDetailsSchema.parse(input);
+    const parsed = parseInput(updateStaffDetailsSchema, input);
     await requireCanManageStaff(await showIdForStaff(parsed.staffId));
 
     const firstName = parsed.firstName.trim();
@@ -282,7 +282,7 @@ export async function updateStaffDetails(input: unknown): Promise<ActionResult<{
 
 export async function updateStaffPermissions(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not save those permissions', async () => {
-    const { staffId, permissions } = updateStaffPermissionsSchema.parse(input);
+    const { staffId, permissions } = parseInput(updateStaffPermissionsSchema, input);
     await requireCanManageStaff(await showIdForStaff(staffId));
 
     const supabase = await createServerClient();
@@ -299,7 +299,7 @@ export async function updateStaffPermissions(input: unknown): Promise<ActionResu
 
 export async function removeStaffAssignment(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not remove this person', async () => {
-    const { staffId } = staffIdSchema.parse(input);
+    const { staffId } = parseInput(staffIdSchema, input);
     await requireCanManageStaff(await showIdForStaff(staffId));
 
     const supabase = await createServerClient();
@@ -315,7 +315,7 @@ export async function importStaffList(
   input: unknown,
 ): Promise<ActionResult<{ added: number; skipped: number; failed: number }>> {
   return run('Could not import that staff list', async () => {
-    const { showId, rows } = importStaffListSchema.parse(input);
+    const { showId, rows } = parseInput(importStaffListSchema, input);
     const { showName } = await requireCanManageStaff(showId);
 
     const supabase = await createServerClient();

@@ -21,7 +21,7 @@ export default async function JudgingHistoryPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, assignments, realContacts] = await Promise.all([
     getStaffProfile(),
-    listMyAssignments(),
+    listMyAssignments(todayIso),
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';

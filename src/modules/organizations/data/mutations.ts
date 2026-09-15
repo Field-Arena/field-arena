@@ -8,6 +8,7 @@ import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
 import { env } from '@/shared/lib/env';
+import { parseInput } from '@/shared/lib/action-result';
 import {
   completeOrgProfileSchema,
   addOrgMemberSchema,
@@ -33,7 +34,7 @@ async function requireOrgId(): Promise<string> {
 }
 
 export async function completeOrganizationProfile(input: unknown): Promise<void> {
-  const parsed = completeOrgProfileSchema.parse(input);
+  const parsed = parseInput(completeOrgProfileSchema, input);
 
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');
@@ -70,7 +71,7 @@ export async function completeOrganizationProfile(input: unknown): Promise<void>
 }
 
 export async function addOrgMember(input: unknown): Promise<{ added: boolean }> {
-  const parsed = addOrgMemberSchema.parse(input);
+  const parsed = parseInput(addOrgMemberSchema, input);
   const email = parsed.email.trim().toLowerCase();
 
   const supabase = await createServerClient();
@@ -101,7 +102,7 @@ export async function addOrgMember(input: unknown): Promise<{ added: boolean }> 
 }
 
 export async function createVenue(input: unknown): Promise<{ id: string }> {
-  const parsed = createVenueSchema.parse(input);
+  const parsed = parseInput(createVenueSchema, input);
   const orgId = await requireOrgId();
 
   const supabase = await createServerClient();
@@ -126,7 +127,7 @@ export async function createVenue(input: unknown): Promise<{ id: string }> {
 }
 
 export async function updateVenue(input: unknown): Promise<void> {
-  const parsed = updateVenueSchema.parse(input);
+  const parsed = parseInput(updateVenueSchema, input);
   const orgId = await requireOrgId();
 
   const supabase = await createServerClient();
@@ -149,7 +150,7 @@ export async function updateVenue(input: unknown): Promise<void> {
 }
 
 export async function deleteVenue(input: unknown): Promise<void> {
-  const parsed = deleteVenueSchema.parse(input);
+  const parsed = parseInput(deleteVenueSchema, input);
   const orgId = await requireOrgId();
 
   const supabase = await createServerClient();
@@ -195,7 +196,7 @@ function memberRow(parsed: {
 }
 
 export async function createMember(input: unknown): Promise<{ id: string }> {
-  const parsed = createMemberSchema.parse(input);
+  const parsed = parseInput(createMemberSchema, input);
   const orgId = await requireOrgId();
   const supabase = await createServerClient();
 
@@ -211,7 +212,7 @@ export async function createMember(input: unknown): Promise<{ id: string }> {
 }
 
 export async function updateMember(input: unknown): Promise<void> {
-  const parsed = updateMemberSchema.parse(input);
+  const parsed = parseInput(updateMemberSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -224,7 +225,7 @@ export async function updateMember(input: unknown): Promise<void> {
 }
 
 export async function deleteMember(input: unknown): Promise<void> {
-  const { id } = memberIdSchema.parse(input);
+  const { id } = parseInput(memberIdSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('member_database').delete().eq('id', id);
@@ -234,7 +235,7 @@ export async function deleteMember(input: unknown): Promise<void> {
 }
 
 export async function importMembers(input: unknown): Promise<{ added: number; skipped: number }> {
-  const parsed = importMembersSchema.parse(input);
+  const parsed = parseInput(importMembersSchema, input);
   const orgId = await requireOrgId();
   const supabase = await createServerClient();
 
@@ -274,7 +275,7 @@ export async function importMembers(input: unknown): Promise<{ added: number; sk
 export async function addMembersToShow(
   input: unknown,
 ): Promise<{ added: number; skipped: number; ridersSkipped: number }> {
-  const parsed = addMembersToShowSchema.parse(input);
+  const parsed = parseInput(addMembersToShowSchema, input);
   const supabase = await createServerClient();
 
   const [members, staff, vendors] = await Promise.all([

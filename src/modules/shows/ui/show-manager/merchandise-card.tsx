@@ -19,6 +19,12 @@ import {
   SM_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
 
+const MAX_MERCH_PRICE = 100000;
+
+function clampPrice(value: number): number {
+  return Math.min(Math.max(value, 0), MAX_MERCH_PRICE);
+}
+
 export function MerchandiseCard({
   showId,
   merchandiseEnabled,
@@ -44,7 +50,7 @@ export function MerchandiseCard({
     const name = newName.trim();
     const price = Number(newPrice);
     if (!name || Number.isNaN(price)) return;
-    commit(enabled, [...items, { id: crypto.randomUUID(), name, price }]);
+    commit(enabled, [...items, { id: crypto.randomUUID(), name, price: clampPrice(price) }]);
     setNewName('');
     setNewPrice('');
   }
@@ -91,13 +97,16 @@ export function MerchandiseCard({
               <Input
                 type="number"
                 min={0}
+                max={MAX_MERCH_PRICE}
                 value={item.price}
                 className={cn('h-auto', SM_ROW_INPUT)}
                 onChange={(e) => {
+                  const next = Number(e.target.value);
+                  if (Number.isNaN(next)) return;
                   commit(
                     enabled,
                     items.map((m) =>
-                      m.id === item.id ? { ...m, price: Number(e.target.value) } : m,
+                      m.id === item.id ? { ...m, price: clampPrice(next) } : m,
                     ),
                   );
                 }}
@@ -130,6 +139,7 @@ export function MerchandiseCard({
             <Input
               type="number"
               min={0}
+              max={MAX_MERCH_PRICE}
               value={newPrice}
               placeholder="Price"
               className={cn('h-auto', SM_INPUT)}

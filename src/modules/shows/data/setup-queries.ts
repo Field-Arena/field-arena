@@ -20,6 +20,19 @@ import {
   type AwardsReport,
 } from '@/modules/shows/awards-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
+import { GOVERNING_BODIES } from '@/modules/shows/schemas';
+
+/** Drops any value outside the current governing-body enum before it ever
+ * reaches a form. A stale/legacy value stored on an old show would otherwise
+ * get round-tripped straight back through updateShowDetailsSchema's strict
+ * z.enum() on the very next save of *any* field on that show — including
+ * ones the organizer never touched — and fail with a validation error. */
+function sanitizeGoverningBodies(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string =>
+    (GOVERNING_BODIES as readonly string[]).includes(v as string),
+  );
+}
 import {
   netCollected,
   SETTLED_ORDER_STATUS,
@@ -410,7 +423,7 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
     endDate: data.end_date,
     timezone: data.timezone,
     startingRiderNumber: data.starting_rider_number ?? 101,
-    governingBodies: (data.governing_bodies ?? []) as string[],
+    governingBodies: sanitizeGoverningBodies(data.governing_bodies),
     venueId: data.venue_id,
     venueName: data.venue_name,
     locations: (data.locations ?? []) as unknown as RingRow[],

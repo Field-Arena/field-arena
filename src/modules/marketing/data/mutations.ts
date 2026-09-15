@@ -1,12 +1,13 @@
 'use server';
 
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { parseInput } from '@/shared/lib/action-result';
 import { demoRequestSchema } from '@/modules/marketing/schemas';
 import { DEMO_VOLUME_TO_SHOWS } from '@/modules/marketing/landing-content';
 import { DEMO_REQUEST_ERROR_MESSAGE } from '@/modules/marketing/constants';
 
 export async function requestDemo(input: unknown): Promise<void> {
-  const data = demoRequestSchema.parse(input);
+  const data = parseInput(demoRequestSchema, input);
 
   const notes = [
     `Discipline: ${data.discipline}`,

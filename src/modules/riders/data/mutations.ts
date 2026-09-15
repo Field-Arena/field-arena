@@ -6,7 +6,7 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
-import { run, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
+import { run, parseInput, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import type { Database, Json } from '@/shared/types/database.types';
 import { HORSE_DOCUMENTS_BUCKET } from '@/modules/riders/constants';
 import {
@@ -93,7 +93,7 @@ function safeRiderReturnTo(value?: string | null): string {
 }
 
 export async function signUpRider(input: unknown, returnTo?: string): Promise<RiderSignUpOutcome> {
-  const { email, password } = riderSignUpSchema.parse(input);
+  const { email, password } = parseInput(riderSignUpSchema, input);
   const target = safeRiderReturnTo(returnTo);
 
   const supabase = await createServerClient();
@@ -128,7 +128,7 @@ export async function verifyRiderSignUpCode(
   input: unknown,
   returnTo?: string,
 ): Promise<RiderVerifyOutcome> {
-  const { email, token } = riderVerifySchema.parse(input);
+  const { email, token } = parseInput(riderVerifySchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport(() =>
@@ -147,7 +147,7 @@ export async function verifyRiderSignUpCode(
 }
 
 export async function resendRiderSignUpCode(input: unknown): Promise<RiderResendOutcome> {
-  const { email } = riderResendCodeSchema.parse(input);
+  const { email } = parseInput(riderResendCodeSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport(() => supabase.auth.resend({ type: 'signup', email }));
@@ -190,7 +190,7 @@ async function requireCurrentRiderProfile(supabase: ServerClient): Promise<Rider
 }
 
 export async function updateRiderProfile(input: unknown): Promise<RiderRow> {
-  const parsed = riderProfileUpdateSchema.parse(input);
+  const parsed = parseInput(riderProfileUpdateSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
@@ -222,7 +222,7 @@ export async function updateRiderProfile(input: unknown): Promise<RiderRow> {
 }
 
 export async function createHorse(input: unknown): Promise<HorseRow> {
-  const parsed = horseCreateSchema.parse(input);
+  const parsed = parseInput(horseCreateSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
@@ -238,7 +238,7 @@ export async function createHorse(input: unknown): Promise<HorseRow> {
 }
 
 export async function updateHorse(input: unknown): Promise<HorseRow> {
-  const parsed = horseUpdateSchema.parse(input);
+  const parsed = parseInput(horseUpdateSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
@@ -271,7 +271,7 @@ export async function updateHorse(input: unknown): Promise<HorseRow> {
 }
 
 export async function deleteHorse(input: unknown): Promise<{ ok: true }> {
-  const parsed = horseDeleteSchema.parse(input);
+  const parsed = parseInput(horseDeleteSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
@@ -316,7 +316,7 @@ export async function uploadHorseDocument(formData: FormData): Promise<HorseRow>
   }
 
   const expirationDateRaw = formData.get('expirationDate');
-  const parsed = horseDocumentUploadFieldsSchema.parse({
+  const parsed = parseInput(horseDocumentUploadFieldsSchema, {
     horseId: formData.get('horseId'),
     requirementId: formData.get('requirementId'),
     label: formData.get('label'),
@@ -369,7 +369,7 @@ export async function uploadHorseDocument(formData: FormData): Promise<HorseRow>
 }
 
 export async function deleteHorseDocument(input: unknown): Promise<HorseRow> {
-  const parsed = horseDocumentDeleteSchema.parse(input);
+  const parsed = parseInput(horseDocumentDeleteSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
@@ -403,7 +403,7 @@ export async function deleteHorseDocument(input: unknown): Promise<HorseRow> {
 }
 
 export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
-  const parsed = waiverSignSchema.parse(input);
+  const parsed = parseInput(waiverSignSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
@@ -448,7 +448,7 @@ export async function createCheckoutSession(
   input: unknown,
 ): Promise<ActionResult<CheckoutSessionResult>> {
   return run('Could not start checkout', async () => {
-    const parsed = createCheckoutSessionSchema.parse(input);
+    const parsed = parseInput(createCheckoutSessionSchema, input);
     const supabase = await createServerClient();
     const rider = await requireCurrentRiderProfile(supabase);
 
@@ -516,7 +516,7 @@ export async function createCheckoutSession(
 }
 
 export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOrderResult> {
-  const parsed = confirmCheckoutSessionSchema.parse(input);
+  const parsed = parseInput(confirmCheckoutSessionSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRiderProfile(supabase);
 
@@ -573,7 +573,7 @@ export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOr
 }
 
 export async function saveStablingDates(input: unknown): Promise<OrderRow> {
-  const parsed = stablingSaveSchema.parse(input);
+  const parsed = parseInput(stablingSaveSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 

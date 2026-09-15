@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { env } from '@/shared/lib/env';
+import { parseInput } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
 import {
   addManualHorseSchema,
@@ -14,7 +15,7 @@ import type { ManualHorseEntry } from '@/modules/shows/data/horses-queries';
 import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
 
 export async function addManualHorse(input: unknown): Promise<{ id: string }> {
-  const parsed = addManualHorseSchema.parse(input);
+  const parsed = parseInput(addManualHorseSchema, input);
   const supabase = await createServerClient();
 
   const { data: show, error: readError } = await supabase
@@ -44,7 +45,7 @@ export async function addManualHorse(input: unknown): Promise<{ id: string }> {
 }
 
 export async function verifyHorseDocument(input: unknown): Promise<void> {
-  const parsed = verifyHorseDocumentSchema.parse(input);
+  const parsed = parseInput(verifyHorseDocumentSchema, input);
   const supabase = await createServerClient();
 
   const { data: horse, error: readError } = await supabase
@@ -118,7 +119,7 @@ async function sendReminderEmail(params: {
 }
 
 export async function remindHorseDocuments(input: unknown): Promise<{ ok: true }> {
-  const parsed = remindHorseDocumentsSchema.parse(input);
+  const parsed = parseInput(remindHorseDocumentsSchema, input);
   const supabase = await createServerClient();
 
   const [showResult, horseResult] = await Promise.all([

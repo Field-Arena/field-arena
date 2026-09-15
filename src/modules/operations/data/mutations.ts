@@ -1,11 +1,12 @@
 'use server';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { parseInput } from '@/shared/lib/action-result';
 import { uploadShowDocumentSchema } from '@/modules/operations/schemas';
 import { OPERATIONS_DOCUMENTS_PATH } from '@/modules/operations/constants';
 
 export async function uploadShowDocument(input: unknown): Promise<void> {
-  const parsed = uploadShowDocumentSchema.parse(input);
+  const parsed = parseInput(uploadShowDocumentSchema, input);
   const supabase = await createServerClient();
 
   const bytes = Buffer.from(parsed.dataBase64, 'base64');

@@ -1,3 +1,5 @@
+import { ZodError } from 'zod';
+
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; message: string };
 
 export class UserFacingError extends Error {
@@ -45,6 +47,31 @@ export function describeError(error: unknown, fallback: string): string {
   }
 
   return fallback;
+}
+
+/**
+ * Parses input against a Zod schema and turns any validation failure into a
+ * single, human-readable Error instead of letting the raw ZodError — a JSON
+ * blob listing every failed field — reach the client as an uncaught
+ * exception (the failure mode every 'use server' mutation hits by default
+ * when it calls `schema.parse(input)` directly: Next.js turns that into a
+ * bare 500 with no useful message). Use this at the top of a mutation in
+ * place of `schema.parse(input)`.
+ */
+export function parseInput<T>(schema: { parse: (input: unknown) => T }, input: unknown): T {
+  try {
+    return schema.parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      // UserFacingError, not a plain Error, so this message survives
+      // describeError()/run() too — describeError only ever passes a plain
+      // Error's message through by accident (its fallback branch), so a
+      // mutation wrapped in run() would otherwise show its generic fallback
+      // instead of the actual validation problem.
+      throw new UserFacingError(error.issues[0]?.message ?? "That change isn't valid.");
+    }
+    throw error;
+  }
 }
 
 export async function run<T>(fallback: string, body: () => Promise<T>): Promise<ActionResult<T>> {

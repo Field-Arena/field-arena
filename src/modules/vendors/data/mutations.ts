@@ -11,6 +11,7 @@ import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { clientIp, rateLimit } from '@/shared/lib/rate-limit';
+import { parseInput } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
 import {
   vendorSignUpSchema,
@@ -87,7 +88,7 @@ async function ensureVendorProfile(
 }
 
 export async function signUpVendor(input: unknown): Promise<VendorSignUpOutcome> {
-  const { name, email, password } = vendorSignUpSchema.parse(input);
+  const { name, email, password } = parseInput(vendorSignUpSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport(() =>
@@ -120,7 +121,7 @@ export async function signUpVendor(input: unknown): Promise<VendorSignUpOutcome>
 }
 
 export async function verifyVendorSignUpCode(input: unknown): Promise<VendorVerifyOutcome> {
-  const { email, token } = vendorVerifySchema.parse(input);
+  const { email, token } = parseInput(vendorVerifySchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport(() =>
@@ -144,7 +145,7 @@ export async function verifyVendorSignUpCode(input: unknown): Promise<VendorVeri
 }
 
 export async function resendVendorSignUpCode(input: unknown): Promise<VendorResendOutcome> {
-  const { email } = vendorResendCodeSchema.parse(input);
+  const { email } = parseInput(vendorResendCodeSchema, input);
 
   const supabase = await createServerClient();
   const attempt = await withMailTransport(() => supabase.auth.resend({ type: 'signup', email }));
@@ -276,7 +277,7 @@ async function insertPendingVendorBooking(
 }
 
 export async function applyToVendorShow(input: unknown): Promise<{ bookingId: string }> {
-  const parsed = applyToShowSchema.parse(input);
+  const parsed = parseInput(applyToShowSchema, input);
   const vendor = await requireVendorProfile();
   const supabase = await createServerClient();
   const admin = createAdminClient();
@@ -309,7 +310,7 @@ const PUBLIC_APPLY_LIMIT = 5;
 const PUBLIC_APPLY_WINDOW_MS = 60_000;
 
 export async function applyToShowPublic(input: unknown): Promise<{ bookingId: string }> {
-  const parsed = applyToShowPublicSchema.parse(input);
+  const parsed = parseInput(applyToShowPublicSchema, input);
 
   const ip = await clientIp();
   const { limited, retryAfterMs } = rateLimit(`vendor-apply:${ip}:${parsed.showId}`, {
@@ -339,7 +340,7 @@ export async function applyToShowPublic(input: unknown): Promise<{ bookingId: st
 }
 
 export async function signVendorAgreement(input: unknown): Promise<void> {
-  const parsed = signVendorAgreementSchema.parse(input);
+  const parsed = parseInput(signVendorAgreementSchema, input);
   const vendor = await requireVendorProfile();
   const supabase = await createServerClient();
 
@@ -392,7 +393,7 @@ async function loadOwnBooking(
 export async function createVendorDocumentUploadUrl(
   input: unknown,
 ): Promise<{ path: string; token: string }> {
-  const parsed = createVendorDocumentUploadUrlSchema.parse(input);
+  const parsed = parseInput(createVendorDocumentUploadUrlSchema, input);
   const vendor = await requireVendorProfile();
   await loadOwnBooking(parsed.bookingId, vendor.email);
   const supabase = await createServerClient();
@@ -409,7 +410,7 @@ export async function createVendorDocumentUploadUrl(
 }
 
 export async function registerVendorDocument(input: unknown): Promise<{ url: string | null }> {
-  const parsed = registerVendorDocumentSchema.parse(input);
+  const parsed = parseInput(registerVendorDocumentSchema, input);
   const vendor = await requireVendorProfile();
   const existing = await loadOwnBooking(parsed.bookingId, vendor.email);
   const supabase = await createServerClient();
@@ -441,7 +442,7 @@ export async function registerVendorDocument(input: unknown): Promise<{ url: str
 }
 
 export async function removeVendorDocument(input: unknown): Promise<void> {
-  const parsed = removeVendorDocumentSchema.parse(input);
+  const parsed = parseInput(removeVendorDocumentSchema, input);
   const vendor = await requireVendorProfile();
   const existing = await loadOwnBooking(parsed.bookingId, vendor.email);
   const supabase = await createServerClient();
@@ -482,7 +483,7 @@ async function loadOwnBookingForCheckout(
 export async function createVendorCheckoutSession(
   input: unknown,
 ): Promise<VendorCheckoutSessionResult> {
-  const parsed = createVendorCheckoutSessionSchema.parse(input);
+  const parsed = parseInput(createVendorCheckoutSessionSchema, input);
   const vendor = await requireVendorProfile();
   const admin = createAdminClient();
 
@@ -553,7 +554,7 @@ export async function createVendorCheckoutSession(
 export async function confirmVendorCheckoutSession(
   input: unknown,
 ): Promise<FinalizeVendorBookingResult> {
-  const parsed = confirmVendorCheckoutSessionSchema.parse(input);
+  const parsed = parseInput(confirmVendorCheckoutSessionSchema, input);
   const vendor = await requireVendorProfile();
   const admin = createAdminClient();
 
@@ -637,7 +638,7 @@ async function loadPendingBookingForReview(
 }
 
 export async function approveVendorBooking(input: unknown): Promise<void> {
-  const parsed = reviewVendorBookingSchema.parse(input);
+  const parsed = parseInput(reviewVendorBookingSchema, input);
   await assertCanManageVendors(parsed.showId);
 
   const admin = createAdminClient();
@@ -654,7 +655,7 @@ export async function approveVendorBooking(input: unknown): Promise<void> {
 }
 
 export async function rejectVendorBooking(input: unknown): Promise<void> {
-  const parsed = reviewVendorBookingSchema.parse(input);
+  const parsed = parseInput(reviewVendorBookingSchema, input);
   await assertCanManageVendors(parsed.showId);
 
   const admin = createAdminClient();

@@ -48,6 +48,10 @@ export const createShowSchema = z
   .refine((d) => d.endDate >= d.startDate, {
     message: 'End date cannot be before the start date',
     path: ['endDate'],
+  })
+  .refine((d) => d.startDate >= new Date().toISOString().slice(0, 10), {
+    message: 'Start date cannot be in the past',
+    path: ['startDate'],
   });
 
 export type CreateShowInput = z.input<typeof createShowSchema>;

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { parseInput } from '@/shared/lib/action-result';
 import {
   assignJudgeToClassesSchema,
   assignScribeToClassesSchema,
@@ -10,7 +11,7 @@ import {
 import { JUDGING_PATH } from '@/modules/judging/constants';
 
 export async function assignJudgeToClasses(input: unknown): Promise<void> {
-  const { staffId, classIds } = assignJudgeToClassesSchema.parse(input);
+  const { staffId, classIds } = parseInput(assignJudgeToClassesSchema, input);
   const supabase = await createServerClient();
 
   const { data: existingSeats, error: readError } = await supabase
@@ -59,7 +60,7 @@ export async function assignJudgeToClasses(input: unknown): Promise<void> {
 }
 
 export async function assignScribeToClasses(input: unknown): Promise<void> {
-  const { staffId, classIds } = assignScribeToClassesSchema.parse(input);
+  const { staffId, classIds } = parseInput(assignScribeToClassesSchema, input);
   const supabase = await createServerClient();
 
   const { data: existingSeats, error: readError } = await supabase
@@ -107,7 +108,7 @@ export async function assignScribeToClasses(input: unknown): Promise<void> {
 }
 
 export async function setClassPanel(input: unknown): Promise<void> {
-  const { classIds, judgeStaffId, scribeStaffId } = setClassPanelSchema.parse(input);
+  const { classIds, judgeStaffId, scribeStaffId } = parseInput(setClassPanelSchema, input);
   const supabase = await createServerClient();
 
   const rows = classIds.map((classId) => ({

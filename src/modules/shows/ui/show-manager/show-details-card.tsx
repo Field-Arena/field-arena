@@ -15,6 +15,8 @@ import {
   SM_SELECT,
 } from '@/modules/shows/ui/show-manager/tokens';
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
 export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
   const {
     name,
@@ -111,6 +113,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
             <Input
               id={f.id}
               type="date"
+              min={todayIso()}
               value={f.value}
               className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
@@ -171,12 +174,13 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
               e.target.select();
             }}
             onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, '');
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 5);
               setStartingRiderNumber(digits === '' ? 0 : Number(digits));
             }}
             onBlur={() => {
-              if (startingRiderNumber < 1) setStartingRiderNumber(1);
-              save({ startingRiderNumber: startingRiderNumber < 1 ? 1 : startingRiderNumber });
+              const clamped = Math.min(Math.max(startingRiderNumber, 1), 99999);
+              if (clamped !== startingRiderNumber) setStartingRiderNumber(clamped);
+              save({ startingRiderNumber: clamped });
             }}
           />
           <p className="mt-2 text-[12.5px] leading-[1.5] text-pretty text-[#7C8A84]">

@@ -9,6 +9,7 @@ import { env } from '@/shared/lib/env';
 import { sendEmail } from '@/shared/lib/email';
 import { ROUTES } from '@/shared/constants/routes';
 import { ROLE_PERMISSION_DEFAULTS, PERMISSION_KEYS } from '@/shared/constants/permissions';
+import { parseInput } from '@/shared/lib/action-result';
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
@@ -158,7 +159,7 @@ export async function createOrganization(input: unknown): Promise<CreateOrganiza
 
 export async function resendOrganizerInvite(input: unknown): Promise<{ email: string }> {
   await requireSuperAdmin();
-  const { orgId } = resendOrganizerInviteSchema.parse(input);
+  const { orgId } = parseInput(resendOrganizerInviteSchema, input);
   const admin = createAdminClient();
 
   const { data: org, error: orgError } = await admin
@@ -265,7 +266,7 @@ export async function addOrganizationOwner(
 
 export async function removeOrganizationOwner(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { orgId, userId } = removeOrganizationOwnerSchema.parse(input);
+  const { orgId, userId } = parseInput(removeOrganizationOwnerSchema, input);
 
   const admin = createAdminClient();
   const { error } = await admin
@@ -321,7 +322,7 @@ export async function resendAllPendingOrganizerInvites(): Promise<{
 
 export async function updateOrganization(input: unknown) {
   await requireSuperAdmin();
-  const parsed = updateOrganizationSchema.parse(input);
+  const parsed = parseInput(updateOrganizationSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -345,7 +346,7 @@ export async function updateOrganization(input: unknown) {
 
 export async function setOrganizationSuspended(input: unknown) {
   await requireSuperAdmin();
-  const { id, value } = organizationFlagSchema.parse(input);
+  const { id, value } = parseInput(organizationFlagSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('organizations').update({ suspended: value }).eq('id', id);
@@ -356,7 +357,7 @@ export async function setOrganizationSuspended(input: unknown) {
 
 export async function setOrganizationDeleted(input: unknown) {
   await requireSuperAdmin();
-  const { id, value } = organizationFlagSchema.parse(input);
+  const { id, value } = parseInput(organizationFlagSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -421,7 +422,7 @@ export async function addSuperAdmin(input: unknown): Promise<AddSuperAdminResult
 
 export async function removeSuperAdmin(input: unknown): Promise<{ ok: true }> {
   const caller = await requireSuperAdmin();
-  const { id } = superAdminIdSchema.parse(input);
+  const { id } = parseInput(superAdminIdSchema, input);
 
   if (id === caller.id) {
     throw new Error("You can't remove your own account.");
@@ -489,7 +490,7 @@ function defaultPermissionsForRole(role: string): Record<string, boolean> {
 
 export async function addOrgStaff(input: unknown): Promise<{ email: string; emailSent: boolean }> {
   await requireSuperAdmin();
-  const parsed = addOrgStaffSchema.parse(input);
+  const parsed = parseInput(addOrgStaffSchema, input);
   const email = parsed.email.trim().toLowerCase();
   const name = parsed.name.trim();
   const nameParts = name.split(/\s+/);
@@ -580,7 +581,7 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string; emai
 
 export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { staffId, role } = changeStaffRoleSchema.parse(input);
+  const { staffId, role } = parseInput(changeStaffRoleSchema, input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
   if (error) throw new Error(error.message);
@@ -591,7 +592,7 @@ export async function changeStaffRole(input: unknown): Promise<{ ok: true }> {
 
 export async function updateStaffPermissions(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { staffId, permissions } = updateStaffPermissionsSchema.parse(input);
+  const { staffId, permissions } = parseInput(updateStaffPermissionsSchema, input);
   const supabase = await createServerClient();
   const { error } = await supabase
     .from('staff_assignments')
@@ -605,7 +606,7 @@ export async function updateStaffPermissions(input: unknown): Promise<{ ok: true
 
 export async function removeStaffAssignment(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { staffId } = staffIdSchema.parse(input);
+  const { staffId } = parseInput(staffIdSchema, input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('staff_assignments').delete().eq('id', staffId);
   if (error) throw new Error(error.message);
@@ -621,7 +622,7 @@ function emptyToNull(value: string | null | undefined): string | null {
 
 export async function createLead(input: unknown): Promise<{ id: string }> {
   await requireSuperAdmin();
-  const parsed = createLeadSchema.parse(input);
+  const parsed = parseInput(createLeadSchema, input);
   const supabase = await createServerClient();
 
   const showsNumber = parsed.showsPerYear ? Number(parsed.showsPerYear) : null;
@@ -651,7 +652,7 @@ export async function createLead(input: unknown): Promise<{ id: string }> {
 
 export async function updateLead(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const parsed = updateLeadSchema.parse(input);
+  const parsed = parseInput(updateLeadSchema, input);
   const { id } = parsed;
 
   const updates: Database['public']['Tables']['leads']['Update'] = {
@@ -692,7 +693,7 @@ export async function updateLead(input: unknown): Promise<{ ok: true }> {
  * edit made elsewhere since the page rendered. */
 export async function toggleLeadChecklistItem(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { id, itemId, done } = toggleChecklistItemSchema.parse(input);
+  const { id, itemId, done } = parseInput(toggleChecklistItemSchema, input);
   const supabase = await createServerClient();
 
   const { data: lead, error: readError } = await supabase
@@ -720,7 +721,7 @@ export async function toggleLeadChecklistItem(input: unknown): Promise<{ ok: tru
 }
 
 export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: boolean }> {
-  const { id } = leadIdSchema.parse(input);
+  const { id } = parseInput(leadIdSchema, input);
   const supabase = await createServerClient();
 
   const { data: lead, error: readError } = await supabase
@@ -790,7 +791,7 @@ export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: b
 
 export async function createScoringSheet(input: unknown): Promise<{ id: string }> {
   await requireSuperAdmin();
-  const parsed = createSheetSchema.parse(input);
+  const parsed = parseInput(createSheetSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -816,7 +817,7 @@ export async function createScoringSheet(input: unknown): Promise<{ id: string }
 
 export async function updateScoringSheet(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const parsed = updateSheetSchema.parse(input);
+  const parsed = parseInput(updateSheetSchema, input);
   const { id } = parsed;
 
   const updates: Database['public']['Tables']['scoring_catalog']['Update'] = {
@@ -844,7 +845,7 @@ export async function updateScoringSheet(input: unknown): Promise<{ ok: true }> 
 
 export async function deleteScoringSheet(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { id } = sheetIdSchema.parse(input);
+  const { id } = parseInput(sheetIdSchema, input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('scoring_catalog').delete().eq('id', id);
   if (error) throw new Error(error.message);
@@ -855,7 +856,7 @@ export async function deleteScoringSheet(input: unknown): Promise<{ ok: true }> 
 
 export async function uploadCatalogDocument(input: unknown): Promise<{ id: string }> {
   await requireSuperAdmin();
-  const parsed = uploadDocumentSchema.parse(input);
+  const parsed = parseInput(uploadDocumentSchema, input);
   const supabase = await createServerClient();
 
   const bytes = Buffer.from(parsed.dataBase64, 'base64');
@@ -884,7 +885,7 @@ export async function uploadCatalogDocument(input: unknown): Promise<{ id: strin
 
 export async function deleteCatalogDocument(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { id } = documentIdSchema.parse(input);
+  const { id } = parseInput(documentIdSchema, input);
   const supabase = await createServerClient();
 
   const { data: row } = await supabase
@@ -906,7 +907,7 @@ export async function deleteCatalogDocument(input: unknown): Promise<{ ok: true 
 
 export async function moveCatalogDocument(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { id, folder } = moveDocumentSchema.parse(input);
+  const { id, folder } = parseInput(moveDocumentSchema, input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('catalog_documents').update({ folder }).eq('id', id);
   if (error) throw new Error(error.message);
@@ -921,7 +922,7 @@ export async function moveCatalogDocument(input: unknown): Promise<{ ok: true }>
  * (legacy rematchUnmatchedUploads). */
 export async function renameCatalogDocument(input: unknown): Promise<{ ok: true }> {
   await requireSuperAdmin();
-  const { id, name } = renameDocumentSchema.parse(input);
+  const { id, name } = parseInput(renameDocumentSchema, input);
   const supabase = await createServerClient();
   const { error } = await supabase.from('catalog_documents').update({ name }).eq('id', id);
   if (error) throw new Error(error.message);
@@ -939,7 +940,7 @@ export async function rematchCatalogDocuments(input: unknown): Promise<{
   failed: number;
 }> {
   await requireSuperAdmin();
-  const { renames } = rematchDocumentsSchema.parse(input);
+  const { renames } = parseInput(rematchDocumentsSchema, input);
   const supabase = await createServerClient();
 
   let fixed = 0;
@@ -960,7 +961,7 @@ export async function rematchCatalogDocuments(input: unknown): Promise<{
 
 export async function moveCatalogDocuments(input: unknown): Promise<{ moved: number }> {
   await requireSuperAdmin();
-  const { ids, folder } = moveDocumentsSchema.parse(input);
+  const { ids, folder } = parseInput(moveDocumentsSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('catalog_documents').update({ folder }).in('id', ids);
@@ -972,7 +973,7 @@ export async function moveCatalogDocuments(input: unknown): Promise<{ moved: num
 
 export async function updateSettlement(input: unknown): Promise<void> {
   await requireSuperAdmin();
-  const data = updateSettlementSchema.parse(input);
+  const data = parseInput(updateSettlementSchema, input);
 
   const supabase = await createServerClient();
   const { error } = await supabase

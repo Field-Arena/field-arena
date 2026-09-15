@@ -6,6 +6,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getShowStage } from '@/modules/shows/data/queries';
+import { parseInput } from '@/shared/lib/action-result';
 import {
   createShowSchema,
   createClassSchema,
@@ -71,7 +72,7 @@ async function resolveOrgId(): Promise<string> {
 }
 
 export async function createShow(input: unknown): Promise<{ id: string }> {
-  const parsed = createShowSchema.parse(input);
+  const parsed = parseInput(createShowSchema, input);
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
   const id = crypto.randomUUID();
@@ -128,7 +129,7 @@ export async function createDraftShow(): Promise<{ id: string }> {
 }
 
 export async function createClass(input: unknown): Promise<void> {
-  const parsed = createClassSchema.parse(input);
+  const parsed = parseInput(createClassSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('classes').insert({
@@ -153,7 +154,7 @@ export async function createClass(input: unknown): Promise<void> {
 }
 
 export async function createDivision(input: unknown): Promise<{ id: string }> {
-  const parsed = createDivisionSchema.parse(input);
+  const parsed = parseInput(createDivisionSchema, input);
   const supabase = await createServerClient();
 
   const { count } = await supabase
@@ -184,7 +185,7 @@ export async function createDivision(input: unknown): Promise<{ id: string }> {
 }
 
 export async function renameDivision(input: unknown): Promise<void> {
-  const parsed = renameDivisionSchema.parse(input);
+  const parsed = parseInput(renameDivisionSchema, input);
   const supabase = await createServerClient();
 
   const { data: division, error: readError } = await supabase
@@ -225,7 +226,7 @@ export async function deleteDivision(divisionId: string): Promise<void> {
 }
 
 export async function createAddOn(input: unknown): Promise<{ id: string }> {
-  const parsed = createAddOnSchema.parse(input);
+  const parsed = parseInput(createAddOnSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -317,7 +318,7 @@ export async function advanceRunnerState(
 }
 
 export async function updateShowDetails(input: unknown): Promise<void> {
-  const parsed = updateShowDetailsSchema.parse(input);
+  const parsed = parseInput(updateShowDetailsSchema, input);
   const supabase = await createServerClient();
 
   const { data: current, error: readError } = await supabase
@@ -353,7 +354,7 @@ export async function updateShowDetails(input: unknown): Promise<void> {
 }
 
 export async function updateShowLocations(input: unknown): Promise<void> {
-  const parsed = updateShowLocationsSchema.parse(input);
+  const parsed = parseInput(updateShowLocationsSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -393,7 +394,7 @@ export async function applySavedVenue(showId: string, venueId: string): Promise<
 }
 
 export async function updateSchedulePrefs(input: unknown): Promise<void> {
-  const parsed = updateSchedulePrefsSchema.parse(input);
+  const parsed = parseInput(updateSchedulePrefsSchema, input);
   const supabase = await createServerClient();
 
   const { data: current, error: readError } = await supabase
@@ -472,7 +473,7 @@ export async function deleteShow(showId: string): Promise<void> {
 }
 
 export async function updateContact(input: unknown): Promise<void> {
-  const parsed = updateContactSchema.parse(input);
+  const parsed = parseInput(updateContactSchema, input);
   const supabase = await createServerClient();
 
   const { data: current, error: readError } = await supabase
@@ -499,7 +500,7 @@ export async function updateContact(input: unknown): Promise<void> {
 }
 
 export async function updatePrizeList(input: unknown): Promise<void> {
-  const parsed = updatePrizeListSchema.parse(input);
+  const parsed = parseInput(updatePrizeListSchema, input);
   const supabase = await createServerClient();
 
   const { data: current, error: readError } = await supabase
@@ -524,7 +525,7 @@ export async function updatePrizeList(input: unknown): Promise<void> {
 }
 
 export async function updateDocumentRequirements(input: unknown): Promise<void> {
-  const parsed = updateDocumentRequirementsSchema.parse(input);
+  const parsed = parseInput(updateDocumentRequirementsSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -537,7 +538,7 @@ export async function updateDocumentRequirements(input: unknown): Promise<void> 
 }
 
 export async function updateMerchandise(input: unknown): Promise<void> {
-  const parsed = updateMerchandiseSchema.parse(input);
+  const parsed = parseInput(updateMerchandiseSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -550,7 +551,7 @@ export async function updateMerchandise(input: unknown): Promise<void> {
 }
 
 export async function saveWaiverText(input: unknown): Promise<void> {
-  const parsed = saveWaiverTextSchema.parse(input);
+  const parsed = parseInput(saveWaiverTextSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -575,7 +576,7 @@ export async function approveWaiver(showId: string, waiverText: string): Promise
 }
 
 export async function updateTicketWindow(input: unknown): Promise<void> {
-  const parsed = updateTicketWindowSchema.parse(input);
+  const parsed = parseInput(updateTicketWindowSchema, input);
   const supabase = await createServerClient();
 
   const close = parsed.ticketCloseDate
@@ -593,7 +594,7 @@ export async function updateTicketWindow(input: unknown): Promise<void> {
 }
 
 export async function addCatalogGroup(input: unknown): Promise<{ added: number }> {
-  const parsed = addCatalogGroupSchema.parse(input);
+  const parsed = parseInput(addCatalogGroupSchema, input);
   const supabase = await createServerClient();
 
   const division = parsed.division ?? parsed.group;
@@ -627,7 +628,7 @@ export async function addCatalogGroup(input: unknown): Promise<{ added: number }
 }
 
 export async function removeCatalogGroup(input: unknown): Promise<void> {
-  const parsed = addCatalogGroupSchema.pick({ showId: true, group: true }).parse(input);
+  const parsed = parseInput(addCatalogGroupSchema.pick({ showId: true, group: true }), input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -643,7 +644,7 @@ export async function removeCatalogGroup(input: unknown): Promise<void> {
 }
 
 export async function addCustomClass(input: unknown): Promise<void> {
-  const parsed = addCustomClassSchema.parse(input);
+  const parsed = parseInput(addCustomClassSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('classes').insert({
@@ -667,7 +668,7 @@ export async function addCustomClass(input: unknown): Promise<void> {
 }
 
 export async function createTocClass(input: unknown): Promise<void> {
-  const parsed = createTocClassSchema.parse(input);
+  const parsed = parseInput(createTocClassSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('classes').insert({
@@ -693,7 +694,7 @@ export async function createTocClass(input: unknown): Promise<void> {
 }
 
 export async function addQualTypePreset(input: unknown): Promise<void> {
-  const parsed = addQualTypePresetSchema.parse(input);
+  const parsed = parseInput(addQualTypePresetSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('qual_types').insert({
@@ -714,7 +715,7 @@ export async function addQualTypePreset(input: unknown): Promise<void> {
 }
 
 export async function updateAddOn(input: unknown): Promise<void> {
-  const parsed = updateCatalogItemSchema.parse(input);
+  const parsed = parseInput(updateCatalogItemSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -745,7 +746,7 @@ export async function deleteAddOn(id: string): Promise<void> {
 }
 
 export async function createVendorItem(input: unknown): Promise<{ id: string }> {
-  const parsed = createVendorItemSchema.parse(input);
+  const parsed = parseInput(createVendorItemSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -766,7 +767,7 @@ export async function createVendorItem(input: unknown): Promise<{ id: string }> 
 }
 
 export async function updateVendorItem(input: unknown): Promise<void> {
-  const parsed = updateVendorItemSchema.parse(input);
+  const parsed = parseInput(updateVendorItemSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -829,7 +830,7 @@ export async function loadStandardVendorSpaces(showId: string): Promise<Standard
 }
 
 export async function createQualType(input: unknown): Promise<{ id: string }> {
-  const parsed = createQualTypeSchema.parse(input);
+  const parsed = parseInput(createQualTypeSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -844,7 +845,7 @@ export async function createQualType(input: unknown): Promise<{ id: string }> {
 }
 
 export async function updateQualType(input: unknown): Promise<void> {
-  const parsed = updateCatalogItemSchema.parse(input);
+  const parsed = parseInput(updateCatalogItemSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -875,7 +876,7 @@ export async function deleteQualType(id: string): Promise<void> {
 }
 
 export async function uploadShowBranding(input: unknown): Promise<void> {
-  const parsed = uploadShowBrandingSchema.parse(input);
+  const parsed = parseInput(uploadShowBrandingSchema, input);
   const supabase = await createServerClient();
 
   const bucket = parsed.kind === 'logo' ? 'logos' : 'show-images';
@@ -903,7 +904,7 @@ export async function uploadShowBranding(input: unknown): Promise<void> {
 }
 
 export async function uploadVendorMap(input: unknown): Promise<{ url: string | null }> {
-  const parsed = uploadVendorMapSchema.parse(input);
+  const parsed = parseInput(uploadVendorMapSchema, input);
   const supabase = await createServerClient();
 
   const bytes = Buffer.from(parsed.dataBase64, 'base64');
@@ -955,7 +956,7 @@ export async function removeVendorMap(showId: string): Promise<void> {
 }
 
 export async function updateClassReview(input: unknown): Promise<void> {
-  const parsed = updateClassReviewSchema.parse(input);
+  const parsed = parseInput(updateClassReviewSchema, input);
   const supabase = await createServerClient();
 
   const patch = {
@@ -972,7 +973,7 @@ export async function updateClassReview(input: unknown): Promise<void> {
 }
 
 export async function reorderClasses(input: unknown): Promise<void> {
-  const parsed = reorderClassesSchema.parse(input);
+  const parsed = parseInput(reorderClassesSchema, input);
   const supabase = await createServerClient();
 
   // Persist the manual running order as sequential run_order values (0-based).
@@ -993,7 +994,7 @@ export async function reorderClasses(input: unknown): Promise<void> {
 }
 
 export async function removeClass(input: unknown): Promise<void> {
-  const parsed = removeClassSchema.parse(input);
+  const parsed = parseInput(removeClassSchema, input);
   const supabase = await createServerClient();
 
   const { count: entryCount, error: entryError } = await supabase
@@ -1015,7 +1016,7 @@ export async function removeClass(input: unknown): Promise<void> {
 }
 
 export async function removeShowDocument(input: unknown): Promise<void> {
-  const parsed = removeShowDocumentSchema.parse(input);
+  const parsed = parseInput(removeShowDocumentSchema, input);
   const supabase = await createServerClient();
 
   const { data: doc, error: readError } = await supabase
@@ -1035,7 +1036,7 @@ export async function removeShowDocument(input: unknown): Promise<void> {
 }
 
 export async function updateDocumentEvents(input: unknown): Promise<void> {
-  const parsed = updateDocumentEventsSchema.parse(input);
+  const parsed = parseInput(updateDocumentEventsSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -1048,7 +1049,7 @@ export async function updateDocumentEvents(input: unknown): Promise<void> {
 }
 
 export async function saveTestTemplate(input: unknown): Promise<{ id: string }> {
-  const parsed = saveTestTemplateSchema.parse(input);
+  const parsed = parseInput(saveTestTemplateSchema, input);
   const supabase = await createServerClient();
 
   // Keep the legacy movements/collectives columns in sync from the structured
@@ -1140,7 +1141,7 @@ export async function deleteTestTemplate(id: string): Promise<void> {
 }
 
 export async function assignTestTemplateToClass(input: unknown): Promise<void> {
-  const parsed = assignTestTemplateToClassSchema.parse(input);
+  const parsed = parseInput(assignTestTemplateToClassSchema, input);
   const supabase = await createServerClient();
 
   const { data: template, error: templateError } = await supabase
@@ -1173,7 +1174,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
 }
 
 export async function saveShowExpenses(input: unknown): Promise<void> {
-  const parsed = saveShowExpensesSchema.parse(input);
+  const parsed = parseInput(saveShowExpensesSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -1188,7 +1189,7 @@ export async function saveShowExpenses(input: unknown): Promise<void> {
 export async function createDocumentUploadUrl(
   input: unknown,
 ): Promise<{ path: string; token: string }> {
-  const parsed = createDocumentUploadUrlSchema.parse(input);
+  const parsed = parseInput(createDocumentUploadUrlSchema, input);
   const supabase = await createServerClient();
 
   const safeName = parsed.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -1201,7 +1202,7 @@ export async function createDocumentUploadUrl(
 }
 
 export async function registerShowDocument(input: unknown): Promise<{ id: string }> {
-  const parsed = registerShowDocumentSchema.parse(input);
+  const parsed = parseInput(registerShowDocumentSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
@@ -1225,7 +1226,7 @@ function revalidateSchedule(showId: string): void {
 }
 
 export async function updateScheduleRules(input: unknown): Promise<void> {
-  const parsed = updateScheduleRulesSchema.parse(input);
+  const parsed = parseInput(updateScheduleRulesSchema, input);
   const supabase = await createServerClient();
 
   const { data: current, error: readError } = await supabase
@@ -1257,7 +1258,7 @@ export async function updateScheduleRules(input: unknown): Promise<void> {
 }
 
 export async function setClassDuration(input: unknown): Promise<void> {
-  const parsed = setClassDurationSchema.parse(input);
+  const parsed = parseInput(setClassDurationSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -1270,7 +1271,7 @@ export async function setClassDuration(input: unknown): Promise<void> {
 }
 
 export async function moveClassToRingDay(input: unknown): Promise<void> {
-  const parsed = moveClassToRingDaySchema.parse(input);
+  const parsed = parseInput(moveClassToRingDaySchema, input);
   const supabase = await createServerClient();
 
   const { data: show, error: showError } = await supabase
@@ -1297,7 +1298,7 @@ export async function moveClassToRingDay(input: unknown): Promise<void> {
 }
 
 export async function scratchEntry(input: unknown): Promise<void> {
-  const parsed = scratchEntrySchema.parse(input);
+  const parsed = parseInput(scratchEntrySchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -1310,7 +1311,7 @@ export async function scratchEntry(input: unknown): Promise<void> {
 }
 
 export async function reorderRide(input: unknown): Promise<void> {
-  const parsed = reorderRideSchema.parse(input);
+  const parsed = parseInput(reorderRideSchema, input);
   const supabase = await createServerClient();
 
   const { data: entries, error: readError } = await supabase
