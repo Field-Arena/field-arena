@@ -1,7 +1,9 @@
 'use client';
 
-import { listPendingWrites, type PendingWrite } from './db';
+import { listPendingWrites, deletePendingWrite, bumpAttempts, type PendingWrite } from './db';
 import { replayPendingWrite } from './queue';
+import { hasConnectedPeers, relayWrite } from './webrtc/relay-transport';
+import type { OfflineActionName } from './registry';
 
 // Background flush: replays whatever is still sitting in IndexedDB once the
 // connection is back. Runs on mount, on the browser's `online` event, and on
@@ -44,9 +46,21 @@ export async function flushPendingWrites(): Promise<void> {
         await replayPendingWrite(write);
       } catch (error) {
         if (isNetworkFailure(error)) {
-          // Still offline (or the request itself failed to reach the
-          // server) — stop here, the next trigger will pick up where this
-          // left off. Keep write order intact.
+          // Still offline directly — try a paired peer with its own
+          // connection before giving up on this write (see
+          // offline/webrtc/relay-transport.ts).
+          if (hasConnectedPeers()) {
+            try {
+              await relayWrite(write.actionName as OfflineActionName, write.payload);
+              await deletePendingWrite(write.id).catch(() => undefined);
+              continue;
+            } catch {
+              await bumpAttempts(write).catch(() => undefined);
+            }
+          }
+          // No peer, or the peer couldn't reach the server either — stop
+          // here, the next trigger will pick up where this left off. Keep
+          // write order intact.
           break;
         }
         // A real server-side error (validation, permission, stale seat…) —

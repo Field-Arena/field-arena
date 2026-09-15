@@ -62,7 +62,7 @@ export function ScoringScreen({
   panelCandidates: PanelCandidate[];
 }) {
   const { state, refetch, applyOptimistic } = useScoringState(classId, initialState);
-  const { online, pendingCount } = useOfflineSync(classId);
+  const { online, pendingCount, pairedCount } = useOfflineSync(classId);
 
   const currentEntry = useMemo(() => {
     if (state.classState.workingInEntryId) {
@@ -162,7 +162,7 @@ export function ScoringScreen({
   if (!currentEntry) {
     const hasNoEntries = state.entries.length === 0 && state.holdingEntries.length === 0;
     return (
-      <ScreenShell state={state} online={online} pendingCount={pendingCount}>
+      <ScreenShell state={state} online={online} pendingCount={pendingCount} pairedCount={pairedCount}>
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
           {hasNoEntries
             ? 'No riders are entered in this class yet.'
@@ -241,7 +241,7 @@ export function ScoringScreen({
   }
 
   return (
-    <ScreenShell state={state} online={online} pendingCount={pendingCount}>
+    <ScreenShell state={state} online={online} pendingCount={pendingCount} pairedCount={pairedCount}>
       <div className="mb-6">
         <ScoringToolbar
           open={state.classState.open}
@@ -542,11 +542,13 @@ function ScreenShell({
   state,
   online,
   pendingCount,
+  pairedCount,
   children,
 }: {
   state: ClassScoringState;
   online: boolean;
   pendingCount: number;
+  pairedCount: number;
   children: React.ReactNode;
 }) {
   return (
@@ -568,7 +570,7 @@ function ScreenShell({
           </Link>
         </div>
       </div>
-      <OfflineStatusBanner online={online} pendingCount={pendingCount} />
+      <OfflineStatusBanner online={online} pendingCount={pendingCount} pairedCount={pairedCount} />
       {children}
     </>
   );

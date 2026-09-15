@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import type { ScopedAuth } from '@/shared/lib/supabase/token-client';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getMySeat, getTestForClass } from '@/modules/scoring/data/queries';
 import {
@@ -45,13 +46,18 @@ import {
 
 const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
 
-async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judge' | 'scribe') {
-  const profile = await getStaffProfile();
+async function assertSeatAccess(
+  classId: string,
+  seatId: string,
+  seatRole: 'judge' | 'scribe',
+  scoped?: ScopedAuth,
+) {
+  const profile = await getStaffProfile(scoped);
   if (profile?.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) {
     return { signerName: profile.name };
   }
 
-  const mySeat = await getMySeat(classId);
+  const mySeat = await getMySeat(classId, scoped);
   if (mySeat?.seatId !== seatId || mySeat.role !== seatRole) {
     throw new Error('You do not have permission to score this seat.');
   }
@@ -83,10 +89,11 @@ async function writeMark(params: {
   field: 'movements' | 'collectives';
   key: string;
   value: number;
+  scoped?: ScopedAuth;
 }) {
-  await assertSeatAccess(params.classId, params.seatId, params.seatRole);
+  await assertSeatAccess(params.classId, params.seatId, params.seatRole, params.scoped);
 
-  const supabase = await createServerClient();
+  const supabase = params.scoped?.client ?? (await createServerClient());
   const existing = await getScoreRow(supabase, params.entryId, params.seatId);
   const map = parseMarkMap(existing?.[params.field]);
 
@@ -121,7 +128,7 @@ async function writeMark(params: {
   // top of this file.
 }
 
-export async function setMark(input: unknown) {
+export async function setMark(input: unknown, scoped?: ScopedAuth) {
   const parsed = setMarkSchema.parse(input);
   await writeMark({
     classId: parsed.classId,
@@ -131,10 +138,11 @@ export async function setMark(input: unknown) {
     field: 'movements',
     key: String(parsed.movementNum),
     value: parsed.value,
+    scoped,
   });
 }
 
-export async function setCollective(input: unknown) {
+export async function setCollective(input: unknown, scoped?: ScopedAuth) {
   const parsed = setCollectiveSchema.parse(input);
   await writeMark({
     classId: parsed.classId,
@@ -144,18 +152,20 @@ export async function setCollective(input: unknown) {
     field: 'collectives',
     key: parsed.key,
     value: parsed.value,
+    scoped,
   });
 }
 
-export async function setRemark(input: unknown) {
+export async function setRemark(input: unknown, scoped?: ScopedAuth) {
   const parsed = setRemarkSchema.parse(input);
   await assertSeatAccess(
     parsed.classId,
     parsed.seatId,
-    await seatRoleFor(parsed.classId, parsed.seatId),
+    await seatRoleFor(parsed.classId, parsed.seatId, scoped),
+    scoped,
   );
 
-  const supabase = await createServerClient();
+  const supabase = scoped?.client ?? (await createServerClient());
   const patch = { [String(parsed.movementNum)]: parsed.text } as unknown as Json;
 
   const { error } = await supabase.rpc('merge_score_json', {
@@ -168,15 +178,16 @@ export async function setRemark(input: unknown) {
   if (error) throw error;
 }
 
-export async function setFinalRemarks(input: unknown) {
+export async function setFinalRemarks(input: unknown, scoped?: ScopedAuth) {
   const parsed = setFinalRemarksSchema.parse(input);
   await assertSeatAccess(
     parsed.classId,
     parsed.seatId,
-    await seatRoleFor(parsed.classId, parsed.seatId),
+    await seatRoleFor(parsed.classId, parsed.seatId, scoped),
+    scoped,
   );
 
-  const supabase = await createServerClient();
+  const supabase = scoped?.client ?? (await createServerClient());
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
 
   const { error } = await supabase.from('scores').upsert(
@@ -192,15 +203,16 @@ export async function setFinalRemarks(input: unknown) {
   if (error) throw error;
 }
 
-export async function toggleErrorAt(input: unknown) {
+export async function toggleErrorAt(input: unknown, scoped?: ScopedAuth) {
   const parsed = toggleErrorAtSchema.parse(input);
   await assertSeatAccess(
     parsed.classId,
     parsed.seatId,
-    await seatRoleFor(parsed.classId, parsed.seatId),
+    await seatRoleFor(parsed.classId, parsed.seatId, scoped),
+    scoped,
   );
 
-  const supabase = await createServerClient();
+  const supabase = scoped?.client ?? (await createServerClient());
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
   const errorAt = asBooleanMap(existing?.error_at);
   const key = String(parsed.movementNum);
@@ -669,8 +681,12 @@ export async function unpublishResults(input: unknown) {
   revalidatePath(JUDGING_HISTORY_PATH);
 }
 
-async function seatRoleFor(classId: string, seatId: string): Promise<'judge' | 'scribe'> {
-  const mySeat = await getMySeat(classId);
+async function seatRoleFor(
+  classId: string,
+  seatId: string,
+  scoped?: ScopedAuth,
+): Promise<'judge' | 'scribe'> {
+  const mySeat = await getMySeat(classId, scoped);
   if (mySeat?.seatId === seatId) return mySeat.role;
 
   return 'judge';

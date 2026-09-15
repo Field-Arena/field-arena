@@ -10,13 +10,23 @@ import { StatusPill } from '@/shared/ui/organizer/status-pill';
 export function OfflineStatusBanner({
   online,
   pendingCount,
+  pairedCount = 0,
 }: {
   online: boolean;
   pendingCount: number;
+  pairedCount?: number;
 }) {
   if (online && pendingCount === 0) return null;
 
   if (!online) {
+    if (pairedCount > 0) {
+      return (
+        <StatusPill bg="#E9F3EC" border="#E9F3EC" fg="#1A5B3C" className="mb-4">
+          Offline — relaying through a paired device
+          {pendingCount > 0 ? ` (${String(pendingCount)} waiting)` : ''}.
+        </StatusPill>
+      );
+    }
     return (
       <StatusPill bg="#FBF0D8" border="#FBF0D8" fg="#8A6D14" className="mb-4">
         Offline — your marks are saving on this device and will upload automatically once

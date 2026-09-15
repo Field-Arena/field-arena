@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import type { ScopedAuth } from '@/shared/lib/supabase/token-client';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
 import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
@@ -244,11 +245,11 @@ export async function listPanelCandidates(classId: string): Promise<PanelCandida
     .map((s) => ({ staffId: s.id, name: s.name, role: s.role }));
 }
 
-export async function getMySeat(classId: string): Promise<MySeat | null> {
-  const profile = await getStaffProfile();
+export async function getMySeat(classId: string, scoped?: ScopedAuth): Promise<MySeat | null> {
+  const profile = await getStaffProfile(scoped);
   if (!profile) return null;
 
-  const supabase = await createServerClient();
+  const supabase = scoped?.client ?? (await createServerClient());
 
   const { data: cls, error: classError } = await supabase
     .from('classes')

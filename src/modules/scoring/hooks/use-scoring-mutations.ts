@@ -45,6 +45,15 @@ function silentMutationOptions() {
     // waits on the device for the background sync) — react-query shouldn't
     // also retry on top of that.
     retry: false,
+    // React Query's default networkMode ('online') *pauses* a mutation —
+    // never calls mutationFn at all — while navigator.onLine is false, and
+    // only resumes it once the browser reports back online. That silently
+    // defeats the whole point of durableQueued: enqueueDurableWrite needs to
+    // run immediately (it's what persists the write to IndexedDB before
+    // attempting it) regardless of connectivity. 'always' makes mutationFn
+    // fire unconditionally and lets the durable queue's own retry/offline
+    // handling own that decision instead.
+    networkMode: 'always' as const,
     onError: () => {
       toast.error(
         "Offline — this mark is saved on your device and will sync once you're back online.",
