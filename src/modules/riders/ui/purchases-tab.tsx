@@ -200,7 +200,10 @@ export function PurchasesTab({
           rider={rider}
           summary={summary}
           order={stablingOrder}
-          entriesCount={entries.length}
+          classLines={entries.map((entry) => ({
+            label: entry.class ? classDisplayName(entry.class) : 'Class',
+            fee: feeForEntry(orders, entry.classId, entry.horseId),
+          }))}
         />
       )}
 
@@ -219,13 +222,13 @@ function Receipt({
   rider,
   summary,
   order,
-  entriesCount,
+  classLines,
 }: {
   show: ShowRow;
   rider: RiderRow;
   summary: ReturnType<typeof summarizePurchases>;
   order: RiderVisibleOrderRow | null;
-  entriesCount: number;
+  classLines: { label: string; fee: number | null }[];
 }) {
   return (
     <div
@@ -250,10 +253,14 @@ function Receipt({
       <p style={{ margin: '0 0 10px' }}>Hi {rider.first_name ?? 'there'},</p>
       <table style={{ width: '100%', fontSize: 13 }}>
         <tbody>
-          <tr>
-            <td>Class entries ({entriesCount})</td>
-            <td style={{ textAlign: 'right' }}>{formatMoneyExact(summary.classEntriesTotal)}</td>
-          </tr>
+          {classLines.map((line, index) => (
+            <tr key={`${line.label}-${String(index)}`}>
+              <td>{line.label}</td>
+              <td style={{ textAlign: 'right' }}>
+                {line.fee != null ? formatMoneyExact(line.fee) : '—'}
+              </td>
+            </tr>
+          ))}
           {summary.addOnLines.map((line, index) => (
             <tr key={`${line.label}-${String(index)}`}>
               <td>
