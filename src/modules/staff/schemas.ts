@@ -3,6 +3,7 @@ import { ADD_USER_ROLES } from './constants';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { PERMISSION_KEYS } from '@/shared/constants/permissions';
 import { emailSchema } from '@/shared/schemas/email';
+import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 export const addStaffUserSchema = z
   .object({
@@ -69,7 +70,13 @@ export const updateStaffDetailsSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required').max(80),
   lastName: z.string().trim().min(1, 'Last name is required').max(80),
   email: emailSchema(),
-  phone: z.string().trim().max(40).optional().default(''),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
+    .optional()
+    .default(''),
 
   isSteward: z.boolean().optional().default(false),
 });
@@ -79,7 +86,13 @@ const importStaffRowSchema = z.object({
   firstName: z.string().trim().max(80),
   lastName: z.string().trim().max(80),
   role: z.string().trim().min(1).max(40),
-  phone: z.string().trim().max(40).optional().default(''),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
+    .optional()
+    .default(''),
   email: emailSchema(),
 });
 
@@ -88,3 +101,25 @@ export const importStaffListSchema = z.object({
   rows: z.array(importStaffRowSchema).min(1).max(500),
 });
 export type ImportStaffListInput = z.input<typeof importStaffListSchema>;
+
+export const updateRiderContactInfoSchema = z.object({
+  riderId: z.uuid(),
+  showId: z.uuid(), // used only to check the caller's canManageStaff on this show
+  firstName: z.string().trim().max(80),
+  lastName: z.string().trim().max(80),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
+    .optional()
+    .default(''),
+});
+export type UpdateRiderContactInfoInput = z.input<typeof updateRiderContactInfoSchema>;
+
+export const assignRingAnnouncerSchema = z.object({
+  showId: z.uuid(),
+  ringName: z.string().trim().min(1).max(120),
+  staffAssignmentId: z.uuid().nullable(),
+});
+export type AssignRingAnnouncerInput = z.input<typeof assignRingAnnouncerSchema>;

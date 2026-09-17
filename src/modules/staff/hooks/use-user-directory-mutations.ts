@@ -13,6 +13,9 @@ import {
   importStaffList,
   reassignStaffShow,
   updateStaffDetails,
+  assignRingAnnouncer,
+  updateRiderContactInfo,
+  verifyRiderHorseDocument,
 } from '../data/mutations';
 import type {
   AddStaffUserInput,
@@ -21,7 +24,10 @@ import type {
   ImportStaffListInput,
   ReassignStaffShowInput,
   UpdateStaffDetailsInput,
+  AssignRingAnnouncerInput,
+  UpdateRiderContactInfoInput,
 } from '../schemas';
+import type { VerifyHorseDocumentInput } from '@/modules/shows/schemas';
 
 export function useAddStaffUser(options?: { onSuccess?: () => void }) {
   const router = useRouter();
@@ -114,6 +120,54 @@ export function useRemoveStaffAssignment(options?: { onSuccess?: () => void }) {
     },
     onError: (error) => {
       toast.error(readableError(error, 'Could not remove this person'));
+    },
+  });
+}
+
+export function useUpdateRiderContactInfo(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (input: UpdateRiderContactInfoInput) =>
+      unwrap(await updateRiderContactInfo(input)),
+    onSuccess: () => {
+      toast.success('Saved');
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, "Could not save this rider's details"));
+    },
+  });
+}
+
+export function useVerifyRiderHorseDocument(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (input: VerifyHorseDocumentInput) =>
+      unwrap(await verifyRiderHorseDocument(input)),
+    onSuccess: () => {
+      toast.success('Saved');
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, 'Could not save this document'));
+    },
+  });
+}
+
+export function useAssignRingAnnouncer() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (input: AssignRingAnnouncerInput) => unwrap(await assignRingAnnouncer(input)),
+    onSuccess: () => {
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, 'Could not save that ring assignment'));
     },
   });
 }
