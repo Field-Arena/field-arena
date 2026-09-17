@@ -2,12 +2,22 @@ import { z } from 'zod';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { PERMISSION_KEYS } from '@/shared/constants/permissions';
 import { emailSchema } from '@/shared/schemas/email';
+import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 const optionalText = (max: number) =>
   z
     .string()
     .trim()
     .max(max)
+    .optional()
+    .transform((value) => (value === '' ? undefined : value));
+
+const optionalPhone = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((value) => (value === '' ? undefined : value));
 
@@ -52,7 +62,7 @@ export const updateOrganizationSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(2, 'Organization name is required').max(160),
   email: z.union([z.email('Enter a valid email address'), z.literal('')]).optional(),
-  phone: optionalText(60),
+  phone: optionalPhone(60),
   website: optionalText(200),
   city: optionalText(120),
   region: optionalText(120),
@@ -130,11 +140,21 @@ const blankToUndef = z
     return undefined;
   });
 
+const blankPhoneToUndef = z
+  .string()
+  .trim()
+  .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
+  .optional()
+  .transform((v) => {
+    if (v && v.length > 0) return v;
+    return undefined;
+  });
+
 export const createLeadSchema = z.object({
   orgName: z.string().trim().min(1, 'An organization name is required').max(200),
   contactName: blankToUndef,
   email: blankToUndef,
-  phone: blankToUndef,
+  phone: blankPhoneToUndef,
   website: blankToUndef,
   showsPerYear: blankToUndef,
 });
@@ -154,7 +174,7 @@ export const updateLeadSchema = z.object({
   orgName: z.string().trim().min(1).max(200).optional(),
   contactName: z.string().trim().max(200).nullish(),
   email: z.string().trim().max(200).nullish(),
-  phone: z.string().trim().max(60).nullish(),
+  phone: z.string().trim().max(60).refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).nullish(),
   website: z.string().trim().max(200).nullish(),
   status: z.enum(LEAD_STATUS_VALUES).optional(),
   notes: z.string().max(8000).nullish(),

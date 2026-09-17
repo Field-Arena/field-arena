@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
+import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 export const vendorSignUpSchema = z.object({
   name: z.string().trim().min(1, 'Your name is required').max(200),
@@ -50,6 +51,7 @@ export const applyToShowSchema = z.object({
     .string()
     .trim()
     .max(40)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
   website: z
@@ -85,6 +87,7 @@ export const applyToShowPublicSchema = z.object({
     .string()
     .trim()
     .max(40)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
   website: z
