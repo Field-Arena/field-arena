@@ -9,8 +9,9 @@ import {
   addManualHorseSchema,
   verifyHorseDocumentSchema,
   remindHorseDocumentsSchema,
+  reviewHorseDocumentSchema,
 } from '@/modules/shows/schemas';
-import { HORSES_PATH } from '@/modules/shows/constants';
+import { HORSES_PATH, DOCUMENTS_PATH } from '@/modules/shows/constants';
 import type { ManualHorseEntry } from '@/modules/shows/data/horses-queries';
 import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
 
@@ -58,18 +59,24 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
   const uploads = (horse.document_uploads ?? []) as {
     requirementId?: string;
     verified?: boolean;
+    status?: string;
     expirationDate?: string | null;
   }[];
   /* Legacy allowed an organizer to correct a rider-entered expiry typo through
    * this same route, patching only the fields present in the body
    * (verify-horse-document, api/rider/[resource].js). Spreading the parsed
    * fields conditionally keeps that: a verified-only call leaves the stored
-   * date alone, and a date-only correction leaves verification alone. */
+   * date alone, and a date-only correction leaves verification alone.
+   * `status` is kept in sync with `verified` so the newer review workflow
+   * (reviewHorseDocument) reads a consistent status for rows only ever
+   * touched through this older checkbox route. */
   const next = uploads.map((u) =>
     u.requirementId === parsed.requirementId
       ? {
           ...u,
-          ...(parsed.verified !== undefined ? { verified: parsed.verified } : {}),
+          ...(parsed.verified !== undefined
+            ? { verified: parsed.verified, status: parsed.verified ? 'approved' : 'pending' }
+            : {}),
           ...(parsed.expirationDate !== undefined
             ? { expirationDate: parsed.expirationDate }
             : {}),
@@ -84,6 +91,57 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath(HORSES_PATH);
+  revalidatePath(DOCUMENTS_PATH);
+}
+
+export async function reviewHorseDocument(input: unknown): Promise<void> {
+  const parsed = parseInput(reviewHorseDocumentSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: horse, error: readError } = await supabase
+    .from('horses')
+    .select('document_uploads')
+    .eq('id', parsed.horseId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const uploads = (horse.document_uploads ?? []) as {
+    requirementId?: string;
+    verified?: boolean;
+    status?: string;
+    rejectionReason?: string;
+    rejectionNote?: string;
+    replacementRequestedAt?: string;
+    reviewedAt?: string;
+  }[];
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const now = new Date().toISOString();
+
+  const next = uploads.map((u) => {
+    if (u.requirementId !== parsed.requirementId) return u;
+    return {
+      ...u,
+      status: parsed.status,
+      verified: parsed.status === 'approved',
+      rejectionReason: parsed.status === 'rejected' ? parsed.rejectionReason : undefined,
+      rejectionNote: parsed.status === 'rejected' ? parsed.rejectionNote : undefined,
+      replacementRequestedAt: parsed.status === 'replacement_requested' ? now : undefined,
+      reviewedAt: now,
+      reviewedBy: user?.id,
+    };
+  });
+
+  const { error } = await supabase
+    .from('horses')
+    .update({ document_uploads: next })
+    .eq('id', parsed.horseId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(HORSES_PATH);
+  revalidatePath(DOCUMENTS_PATH);
 }
 
 async function sendReminderEmail(params: {

@@ -13,6 +13,9 @@ const CONSTRAINT_MESSAGES: Record<string, string> = {
   staff_assignments_show_email_key: 'That email is already on this show.',
   member_database_org_email_key: 'Someone with that email is already in your database.',
   organizations_email_key: 'An organization with that email already exists.',
+  show_entries_number_unique_idx: 'That entry number is already assigned to another entry.',
+  show_horses_bridle_unique_idx: 'That bridle number is already assigned to another horse.',
+  show_entries_back_number_unique_idx: 'That back number is already assigned to another entry.',
 };
 
 interface PostgresError {

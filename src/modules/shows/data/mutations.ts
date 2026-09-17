@@ -1032,7 +1032,7 @@ export async function removeShowDocument(input: unknown): Promise<void> {
   await supabase.storage.from(SHOW_DOCS_BUCKET).remove([doc.path]);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/documents`);
-  revalidatePath('/dashboard/documents');
+  revalidatePath('/dashboard/documents/resources');
 }
 
 export async function updateDocumentEvents(input: unknown): Promise<void> {
@@ -1216,7 +1216,7 @@ export async function registerShowDocument(input: unknown): Promise<{ id: string
   }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/documents`);
-  revalidatePath('/dashboard/documents');
+  revalidatePath('/dashboard/documents/resources');
   return { id: data.id };
 }
 

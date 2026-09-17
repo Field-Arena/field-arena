@@ -387,3 +387,87 @@ export const RING_SIZE_LABEL: Record<string, string> = {
 };
 
 export const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;
+
+// ── Documents filing cabinet ────────────────────────────────────────────
+
+export const DOCUMENTS_PATH = '/dashboard/documents';
+
+export const FILING_CABINET_SECTIONS = [
+  { key: 'entry-ledger', label: 'Entry Ledger', status: 'active' },
+  { key: 'membership-ledger', label: 'Membership Ledger', status: 'active' },
+  { key: 'unprocessed', label: 'Unprocessed Documents', status: 'active' },
+  { key: 'issues', label: 'Issues / Notes / Requests', status: 'active' },
+  { key: 'resources', label: 'Resources', status: 'active' },
+  { key: 'music', label: 'Music', status: 'soon' },
+  { key: 'volunteers', label: 'Volunteers', status: 'soon' },
+  { key: 'print-center', label: 'Print Center', status: 'active' },
+  { key: 'quick-reports', label: 'Quick Reports', status: 'active' },
+  { key: 'post-show-reports', label: 'Post-Show Reports', status: 'soon' },
+] as const;
+
+export type FilingCabinetSectionKey = (typeof FILING_CABINET_SECTIONS)[number]['key'];
+
+export const ENTRY_NUMBER_PAD_WIDTH = 3;
+export const BRIDLE_NUMBER_PAD_WIDTH = 3;
+export const BACK_NUMBER_PAD_WIDTH = 3;
+
+export const REJECTION_REASONS = [
+  'unreadable',
+  'incorrect_file',
+  'expired',
+  'duplicate',
+  'ineligible',
+  'other',
+] as const;
+
+export const REJECTION_REASON_LABELS: Record<(typeof REJECTION_REASONS)[number], string> = {
+  unreadable: 'Unreadable / corrupt',
+  incorrect_file: 'Incorrect file',
+  expired: 'Expired',
+  duplicate: 'Duplicate',
+  ineligible: 'Ineligible',
+  other: 'Other',
+};
+
+export const DOCUMENT_REVIEW_STATUSES = [
+  'pending',
+  'approved',
+  'rejected',
+  'replacement_requested',
+] as const;
+
+export const SHOW_ENTRY_STATUSES = [
+  'submitted',
+  'documents_received',
+  'documents_verified',
+  'checkin_released',
+  'cleared',
+  'scratched',
+] as const;
+
+export const SHOW_ENTRY_STATUS_LABELS: Record<(typeof SHOW_ENTRY_STATUSES)[number], string> = {
+  submitted: 'Entry submitted',
+  documents_received: 'Documents received',
+  documents_verified: 'Documents verified',
+  checkin_released: 'Check-in packet released',
+  cleared: 'Cleared to compete',
+  scratched: 'Scratched',
+};
+
+export const MEMBERSHIP_FLAGS = [
+  'expired_membership',
+  'missing_horse_registration',
+  'owner_name_mismatch',
+  'missing_identifiers',
+  'other',
+] as const;
+
+export const MEMBERSHIP_FLAG_LABELS: Record<(typeof MEMBERSHIP_FLAGS)[number], string> = {
+  expired_membership: 'Expired membership',
+  missing_horse_registration: 'Missing horse registration',
+  owner_name_mismatch: 'Owner name mismatch',
+  missing_identifiers: 'Missing identifiers',
+  other: 'Other unresolved requirement',
+};
+
+export const ENTRY_ISSUE_KINDS = ['document', 'membership', 'number', 'note', 'request'] as const;

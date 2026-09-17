@@ -8,11 +8,13 @@ import {
   addManualHorse,
   verifyHorseDocument,
   remindHorseDocuments,
+  reviewHorseDocument,
 } from '@/modules/shows/data/horses-mutations';
 import type {
   AddManualHorseInput,
   VerifyHorseDocumentInput,
   RemindHorseDocumentsInput,
+  ReviewHorseDocumentInput,
 } from '@/modules/shows/schemas';
 
 export function useAddManualHorse(options?: { onSuccess?: () => void }) {
@@ -53,6 +55,22 @@ export function useRemindHorseDocuments() {
     },
     onError: (error) => {
       toast.error(readableError(error, 'Could not send the reminder'));
+    },
+  });
+}
+
+export function useReviewHorseDocument(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: ReviewHorseDocumentInput) => reviewHorseDocument(input),
+    onSuccess: () => {
+      toast.success('Review saved');
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, 'Could not save the review'));
     },
   });
 }

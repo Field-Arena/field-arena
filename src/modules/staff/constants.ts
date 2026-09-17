@@ -49,6 +49,13 @@ export const ORGANIZER_NAV = [
     tip: 'Every horse entered, and what documents are still missing',
   },
   {
+    key: 'documents',
+    label: 'Documents',
+    icon: 'documents',
+    href: '/dashboard/documents',
+    tip: 'Entry ledger, membership checks, document review, issues, and printing',
+  },
+  {
     key: 'eventsales',
     label: 'Event Sales',
     icon: 'eventsales',
