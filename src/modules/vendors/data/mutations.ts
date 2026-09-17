@@ -164,10 +164,19 @@ interface VendorDocumentUpload {
   verified: boolean;
 }
 
+/* Not actually a "must be platform_role Vendor" gate — every call site below
+ * either creates a brand-new booking under the caller's own email (same
+ * trust level as the public, unauthenticated apply form) or re-verifies
+ * ownership of an existing booking by comparing its `contact` column to this
+ * email (see loadOwnBooking/signVendorAgreement), matching RLS's own
+ * lower(contact)=lower(jwt email) check exactly. That lets a staff account
+ * (e.g. a ShowAdmin whose email also owns an approved vendor booking) manage
+ * that booking from their own dashboard session, without a separate Vendor
+ * login. */
 async function requireVendorProfile(): Promise<{ id: string; email: string }> {
   const profile = await getStaffProfile();
-  if (profile?.platform_role !== 'Vendor') {
-    throw new Error('Only a signed-in Vendor account can do this.');
+  if (!profile) {
+    throw new Error('Please sign in first.');
   }
   return { id: profile.id, email: profile.email };
 }
