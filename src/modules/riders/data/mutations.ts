@@ -255,6 +255,8 @@ export async function updateHorse(input: unknown): Promise<HorseRow> {
   if (parsed.stable !== undefined) updates.stable = parsed.stable;
   if (parsed.trainer !== undefined) updates.trainer = parsed.trainer;
   if (parsed.trainerPhone !== undefined) updates.trainer_phone = parsed.trainerPhone;
+  if (parsed.height !== undefined) updates.height = parsed.height;
+  if (parsed.farrier !== undefined) updates.farrier = parsed.farrier;
   if (parsed.isStallion !== undefined) updates.is_stallion = parsed.isStallion;
   if (Object.keys(updates).length === 0) throw new Error('No valid fields to update.');
 

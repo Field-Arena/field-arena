@@ -1,4 +1,4 @@
-import { getCurrentRiderProfile } from '@/modules/riders/data/queries';
+import { getCurrentRiderProfile, listRiderShowLinks } from '@/modules/riders/data/queries';
 
 const HUNTER_DEEP = '#1F3A2E';
 const GOLD = '#C9A227';
@@ -12,6 +12,11 @@ export default async function RiderLayout({ children }: { children: React.ReactN
   const name = rider
     ? [rider.first_name, rider.last_name].filter(Boolean).join(' ') || rider.email
     : null;
+
+  // Only shown when it's unambiguous which show's number applies — a rider
+  // entered in more than one show doesn't get a single header-wide number.
+  const shows = rider ? await listRiderShowLinks() : [];
+  const riderNumber = shows.length === 1 ? (shows[0]?.riderNumber ?? null) : null;
 
   return (
     <div
@@ -46,7 +51,11 @@ export default async function RiderLayout({ children }: { children: React.ReactN
         </div>
         {name && (
           <div style={{ fontSize: 13, color: '#CBD8D0', textAlign: 'right' }}>
-            Signed in as <b style={{ color: '#fff', display: 'block', fontSize: 14 }}>{name}</b>
+            Signed in as{' '}
+            <b style={{ color: '#fff', display: 'block', fontSize: 14 }}>
+              {name}
+              {riderNumber && ` · Rider #${riderNumber}`}
+            </b>
           </div>
         )}
       </header>

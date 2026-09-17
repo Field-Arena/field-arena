@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getCurrentRiderProfile } from '@/modules/riders/data/queries';
+import { getCurrentRiderProfile, listRiderShowLinks } from '@/modules/riders/data/queries';
 import { RiderAuthForm } from '@/modules/riders/ui/rider-auth-form';
 import { RiderWelcomePanel } from '@/modules/riders/ui/rider-welcome-panel';
 
@@ -25,9 +25,21 @@ export default async function RiderPortalPage({
   // back to that show instead of stopping at the generic welcome screen.
   if (rider && next) redirect(next);
 
+  // No explicit destination, but a rider entered in exactly one show doesn't
+  // need to be told to go find their ticket link — send them straight there.
+  // Two or more shows is genuinely ambiguous (which one?), so that case (and
+  // the zero-shows case) falls through to the welcome screen below.
+  const shows = rider ? await listRiderShowLinks() : [];
+  const onlyShow = shows.length === 1 ? shows[0] : undefined;
+  if (onlyShow) redirect(`/rider/shows/${onlyShow.showId}`);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-      {rider ? <RiderWelcomePanel rider={rider} /> : <RiderAuthForm returnTo={next} />}
+      {rider ? (
+        <RiderWelcomePanel rider={rider} shows={shows} />
+      ) : (
+        <RiderAuthForm returnTo={next} />
+      )}
     </main>
   );
 }

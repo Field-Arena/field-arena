@@ -232,6 +232,35 @@ function LegacyHorseCard({
             }}
           />
         </div>
+        <div>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
+            Height (hands)
+          </label>
+          <input
+            placeholder="e.g. 15.2"
+            defaultValue={horse.height ?? ''}
+            style={fieldInputStyle}
+            onBlur={(event) => {
+              updateHorse.mutate({ id: horse.id, height: event.target.value });
+            }}
+          />
+        </div>
+        <div>
+          <label
+            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
+          >
+            Farrier
+          </label>
+          <input
+            defaultValue={horse.farrier ?? ''}
+            style={fieldInputStyle}
+            onBlur={(event) => {
+              updateHorse.mutate({ id: horse.id, farrier: event.target.value });
+            }}
+          />
+        </div>
       </div>
 
       <label

@@ -125,7 +125,7 @@ export function ScheduleTab({
           const subtitle = entry.class ? classSubtitle(entry.class) : null;
           return (
             <div key={entry.id} style={legacyRideRowStyle}>
-              <div style={legacyRideNumStyle}>{index + 1}</div>
+              <div style={legacyRideNumStyle}>Ride {index + 1}</div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={legacyRideTitleStyle}>
                   {entry.class ? entryClassName(entry.class) : 'Class'}

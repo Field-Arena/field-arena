@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useSignOutRider } from '@/modules/riders/hooks/use-rider-auth-mutations';
+import { DocumentReminderBanner } from '@/modules/riders/ui/document-reminder-banner';
 import { HorseTabView } from '@/modules/riders/ui/horse-tab-view';
 import { LEGACY_COLOR, LEGACY_GEORGIA } from '@/modules/riders/ui/legacy-theme';
 import { ProfileTab } from '@/modules/riders/ui/profile-tab';
 import { PurchasesTab } from '@/modules/riders/ui/purchases-tab';
 import { ResultsView } from '@/modules/riders/ui/results-view';
+import { RingScheduleStrip } from '@/modules/riders/ui/ring-schedule-strip';
 import { ScheduleTab } from '@/modules/riders/ui/schedule-tab';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
@@ -20,6 +22,7 @@ import type {
   RiderRow,
   ShowRow,
 } from '@/modules/riders/types';
+import type { RingScheduleStatus } from '@/modules/riders/data/queries';
 
 type DashTab = 'schedule' | 'profile' | 'horse' | 'purchases' | 'results';
 
@@ -48,6 +51,7 @@ export function RiderShowDashboard({
   orders,
   horses,
   documentRequirements,
+  ringSchedule,
 }: {
   rider: RiderRow;
   show: ShowRow;
@@ -58,6 +62,7 @@ export function RiderShowDashboard({
   orders: RiderVisibleOrderRow[];
   horses: HorseWithDocumentUrls[];
   documentRequirements: DocumentRequirement[];
+  ringSchedule: RingScheduleStatus[];
 }) {
   const [activeTab, setActiveTab] = useState<DashTab>('schedule');
   const signOut = useSignOutRider();
@@ -197,6 +202,16 @@ export function RiderShowDashboard({
             Your show details, schedule, and everything you&apos;ve purchased — in one place.
           </p>
         </div>
+
+        <DocumentReminderBanner
+          horses={horses}
+          documentRequirements={documentRequirements}
+          onGoToHorseTab={() => {
+            setActiveTab('horse');
+          }}
+        />
+
+        <RingScheduleStrip rows={ringSchedule} />
 
         {activeTab === 'schedule' && (
           <ScheduleTab

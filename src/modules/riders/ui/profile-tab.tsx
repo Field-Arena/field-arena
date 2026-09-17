@@ -53,8 +53,6 @@ export function ProfileTab({ rider }: { rider: RiderRow }) {
           <EditableRow rider={rider} field="phone" label="Phone" type="tel" />
           <EditableRow rider={rider} field="street" label="Street" />
           <EditableRow rider={rider} field="city" label="City" />
-          <EditableRow rider={rider} field="state" label="State" />
-          <EditableRow rider={rider} field="zip" label="Zip" />
         </div>
         <div>
           <div style={legacyBlockTitleStyle}>Emergency contact</div>
