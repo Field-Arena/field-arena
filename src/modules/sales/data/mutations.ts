@@ -7,6 +7,7 @@ import { getStripeClient } from '@/shared/lib/stripe';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { ROUTES } from '@/shared/constants/routes';
+import { parseInput } from '@/shared/lib/action-result';
 import { refundSaleSchema, chargeMoreSchema } from '@/modules/sales/schemas';
 import { MAX_CHARGE_RECORD_ATTEMPTS } from '@/modules/sales/constants';
 import { SETTLED_ORDER_STATUS, SETTLED_BOOKING_STATUS } from '@/shared/lib/sales-math';
@@ -79,7 +80,7 @@ async function assertCanRefund(showId: string): Promise<void> {
 }
 
 export async function refundSale(input: unknown): Promise<void> {
-  const parsed = refundSaleSchema.parse(input);
+  const parsed = parseInput(refundSaleSchema, input);
   await assertCanRefund(parsed.showId);
 
   const amountCents = toCents(parsed.amount);
@@ -151,7 +152,7 @@ export async function refundSale(input: unknown): Promise<void> {
 }
 
 export async function chargeMore(input: unknown): Promise<void> {
-  const parsed = chargeMoreSchema.parse(input);
+  const parsed = parseInput(chargeMoreSchema, input);
   await assertCanRefund(parsed.showId);
 
   const amountCents = toCents(parsed.amount);

@@ -133,6 +133,27 @@ function HorseCard({
             }}
           />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`height-${horse.id}`}>Height (hands)</Label>
+          <Input
+            id={`height-${horse.id}`}
+            placeholder="e.g. 15.2"
+            defaultValue={horse.height ?? ''}
+            onBlur={(event) => {
+              updateHorse.mutate({ id: horse.id, height: event.target.value });
+            }}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`farrier-${horse.id}`}>Farrier</Label>
+          <Input
+            id={`farrier-${horse.id}`}
+            defaultValue={horse.farrier ?? ''}
+            onBlur={(event) => {
+              updateHorse.mutate({ id: horse.id, farrier: event.target.value });
+            }}
+          />
+        </div>
       </div>
 
       <label className="text-forest flex items-center gap-2 text-sm">

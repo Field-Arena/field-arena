@@ -6,15 +6,18 @@ import { SearchInput } from '@/shared/ui/organizer/search-input';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { cn } from '@/shared/lib/utils';
 import { formatDateShort } from '@/shared/lib/format/date';
-import { USER_STATUS_META } from '../constants';
+import { USER_STATUS_META, ADD_USER_ROLES } from '../constants';
 import { roleRank } from '../utils';
 import { AddUserDialog, type ClassOption } from './add-user-dialog';
 import { UploadStaffListDialog } from './upload-staff-list-dialog';
 import { ExportStaffListButton } from './export-staff-list-button';
 import { PermissionsListDialog } from './permissions-list-dialog';
 import { StaffEditDialog } from './staff-edit-dialog';
+import { RingCoverageCard } from './ring-coverage-card';
+import { RiderDetailDialog } from './rider-detail-dialog';
+import { VendorDetailDialog } from './vendor-detail-dialog';
 import { VendorApprovalActions } from '@/modules/vendors/ui/vendor-approval-actions';
-import type { UserDirectoryRow, UserDirectoryStatus } from '../types';
+import type { UserDirectoryRow, UserDirectoryStatus, RingCoverageData } from '../types';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
 const FILTER_SELECT_CLASS =
@@ -27,12 +30,14 @@ export function UsersDirectory({
   shows,
   initialShowId,
   classesByShow,
+  ringCoverageByShow,
 }: {
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
   initialShowId: string;
 
   classesByShow: Record<string, ClassOption[]>;
+  ringCoverageByShow: Record<string, RingCoverageData>;
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
   const [search, setSearch] = useState('');
@@ -41,6 +46,8 @@ export function UsersDirectory({
   const [statusFilter, setStatusFilter] = useState('');
   const [cogginsOnly, setCogginsOnly] = useState(false);
   const [editingRow, setEditingRow] = useState<UserDirectoryRow | null>(null);
+  const [viewingRiderRow, setViewingRiderRow] = useState<UserDirectoryRow | null>(null);
+  const [viewingVendorRow, setViewingVendorRow] = useState<UserDirectoryRow | null>(null);
   const [page, setPage] = useState(1);
 
   const targetShow = shows.find((s) => s.id === targetShowId) ?? shows[0] ?? null;
@@ -48,11 +55,20 @@ export function UsersDirectory({
     () => rows.filter((r) => r.kind === 'staff' && r.showId === targetShowId),
     [rows, targetShowId],
   );
-
-  const roleTypes = useMemo(
-    () => [...new Set(rows.map((r) => r.role))].sort((a, b) => a.localeCompare(b)),
-    [rows],
+  const targetShowAnnouncers = useMemo(
+    () =>
+      targetShowStaff
+        .filter((r) => r.role === 'Announcer')
+        .map((r) => ({ id: r.id, name: r.name, isSteward: r.isSteward })),
+    [targetShowStaff],
   );
+  const targetShowRingCoverage = ringCoverageByShow[targetShowId] ?? { rings: [], assignments: {} };
+
+  /* The full role catalog, not just roles someone currently holds — an
+   * organizer with no vendors yet should still be able to pick "Vendor" and
+   * see that empty state, same as the Show/Status filters already list every
+   * option regardless of what's present in `rows`. */
+  const roleTypes = useMemo(() => [...ADD_USER_ROLES].sort((a, b) => a.localeCompare(b)), []);
   const showCoggins = roleFilter === 'Rider';
 
   const noncompliantCount = useMemo(
@@ -269,31 +285,22 @@ export function UsersDirectory({
               </div>
             ) : (
               pagedRows.map((row) => {
-                const clickable = row.kind === 'staff';
+                const openRow = () => {
+                  if (row.kind === 'staff') setEditingRow(row);
+                  else if (row.kind === 'rider') setViewingRiderRow(row);
+                  else setViewingVendorRow(row);
+                };
                 const meta = USER_STATUS_META[row.status];
                 return (
                   <div
                     key={row.key}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={
-                      clickable
-                        ? () => {
-                            setEditingRow(row);
-                          }
-                        : undefined
-                    }
-                    onKeyDown={
-                      clickable
-                        ? (e) => {
-                            if (e.key === 'Enter' || e.key === ' ') setEditingRow(row);
-                          }
-                        : undefined
-                    }
-                    className={cn(
-                      'grid items-center gap-3.5 border-b border-[#F1F4F3] px-4 py-3 text-[13px] last:border-b-0',
-                      clickable && 'cursor-pointer transition-colors hover:bg-[#F8FAF9]',
-                    )}
+                    role="button"
+                    tabIndex={0}
+                    onClick={openRow}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') openRow();
+                    }}
+                    className="grid cursor-pointer items-center gap-3.5 border-b border-[#F1F4F3] px-4 py-3 text-[13px] transition-colors last:border-b-0 hover:bg-[#F8FAF9]"
                     style={{ gridTemplateColumns: columns }}
                   >
                     <span className="text-ink-deep min-w-0 truncate font-semibold">{row.name}</span>
@@ -306,7 +313,13 @@ export function UsersDirectory({
                         {meta.label}
                       </StatusPill>
                       {row.kind === 'vendor' && row.status === 'pending' && (
-                        <VendorApprovalActions bookingId={row.id} showId={row.showId} />
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <VendorApprovalActions bookingId={row.id} showId={row.showId} />
+                        </span>
                       )}
                     </span>
                     {showCoggins && (
@@ -356,6 +369,14 @@ export function UsersDirectory({
         </div>
       </Card>
 
+      {targetShow && (
+        <RingCoverageCard
+          showId={targetShow.id}
+          coverage={targetShowRingCoverage}
+          announcers={targetShowAnnouncers}
+        />
+      )}
+
       <StaffEditDialog
         row={editingRow}
         shows={shows}
@@ -363,10 +384,32 @@ export function UsersDirectory({
           setEditingRow(null);
         }}
       />
+      {viewingRiderRow && (
+        <RiderDetailDialog
+          row={viewingRiderRow}
+          onClose={() => {
+            setViewingRiderRow(null);
+          }}
+        />
+      )}
+      {viewingVendorRow && (
+        <VendorDetailDialog
+          row={viewingVendorRow}
+          onClose={() => {
+            setViewingVendorRow(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
+/* Matches legacy's cogginsCellHtml exactly: once uploaded, the date and the
+ * up/ver ticks are always shown together, side by side -- expired only
+ * changes how the date renders (red, "Expired " prefix), it never hides
+ * whether the document was uploaded or verified. A date-required document
+ * with no date on file is its own red case, distinct from an actual past
+ * date. */
 function CogginsCell({ row }: { row: UserDirectoryRow }) {
   if (row.role !== 'Rider') return <span className="text-[#98A29D]">—</span>;
 
@@ -376,19 +419,29 @@ function CogginsCell({ row }: { row: UserDirectoryRow }) {
   if (coggins.reason === 'missing') {
     return <span className="text-[12.5px] font-bold text-[#B4432F]">✕ Not uploaded</span>;
   }
-  if (coggins.reason === 'expired') {
-    return (
-      <span className="text-[12.5px] font-bold text-[#B4432F]">
-        Expired {coggins.expirationDate ? formatDateShort(coggins.expirationDate) : ''}
-      </span>
-    );
-  }
-  if (coggins.reason === 'unverified') {
-    return <span className="text-[12.5px] font-semibold text-[#8A6D0B]">Not yet verified</span>;
-  }
+
+  const isExpired = coggins.reason === 'expired';
+
   return (
-    <span className="text-[12.5px] font-semibold text-[#1A5B3C]">
-      ✓ {coggins.expirationDate ? formatDateShort(coggins.expirationDate) : 'Compliant'}
+    <span className="text-[12.5px] whitespace-nowrap">
+      {coggins.expirationDate ? (
+        <span className={isExpired ? 'font-bold text-[#B4432F]' : 'text-ink-deep'}>
+          {isExpired ? 'Expired ' : ''}
+          {formatDateShort(coggins.expirationDate)}
+        </span>
+      ) : (
+        <span className="font-bold text-[#B4432F]">no date on file</span>
+      )}{' '}
+      <span className="font-semibold text-[#1A5B3C]">✓</span>
+      <span className="text-[10.5px] text-[#98A29D]"> up</span>{' '}
+      <span
+        className={
+          coggins.verified ? 'font-semibold text-[#1A5B3C]' : 'font-semibold text-[#8A6D0B]'
+        }
+      >
+        {coggins.verified ? '✓' : '◐'}
+      </span>
+      <span className="text-[10.5px] text-[#98A29D]"> ver</span>
     </span>
   );
 }

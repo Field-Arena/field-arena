@@ -6,6 +6,7 @@ import { ROUTES } from '@/shared/constants/routes';
 import {
   getCurrentRiderProfile,
   getPublicShowForRider,
+  getRiderRingSchedule,
   getWaiverSignature,
   listRiderEntriesForShow,
   listRiderHorses,
@@ -44,11 +45,12 @@ export default async function RiderShowPage({
   const rider = await getCurrentRiderProfile();
 
   if (!rider) {
+    const signInHref = `${ROUTES.rider}?next=${encodeURIComponent(`/rider/shows/${showId}`)}`;
     return (
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-12">
         <ShowTicketDetail detail={detail} />
         <div className="border-line bg-mint text-forest rounded-lg border p-4 text-sm">
-          <Link href={ROUTES.rider} className="font-semibold underline underline-offset-2">
+          <Link href={signInHref} className="font-semibold underline underline-offset-2">
             Sign in or create an account
           </Link>{' '}
           to enter classes at this show.
@@ -75,7 +77,11 @@ export default async function RiderShowPage({
 
   const entries = await listRiderEntriesForShow(showId);
   if (entries.length > 0) {
-    const [orders, horses] = await Promise.all([listRiderOrdersForShow(showId), listRiderHorses()]);
+    const [orders, horses, ringSchedule] = await Promise.all([
+      listRiderOrdersForShow(showId),
+      listRiderHorses(),
+      getRiderRingSchedule(showId),
+    ]);
     return (
       <RiderShowDashboard
         rider={rider}
@@ -87,6 +93,7 @@ export default async function RiderShowPage({
         orders={orders}
         horses={horses}
         documentRequirements={documentRequirements}
+        ringSchedule={ringSchedule}
       />
     );
   }
@@ -104,8 +111,7 @@ export default async function RiderShowPage({
    * exactly as legacy's priceCart did — so this restores the presentation
    * without inventing an enforcement legacy never had. */
   const organizerWaiverText = detail.show.waiver_text?.trim() ?? '';
-  const rawWaiverText =
-    organizerWaiverText.length > 0 ? organizerWaiverText : WAIVER_TEXT_DEFAULT;
+  const rawWaiverText = organizerWaiverText.length > 0 ? organizerWaiverText : WAIVER_TEXT_DEFAULT;
   /* Filled in before the rider ever sees it — the template's {{SHOW_NAME}} /
    * {{SHOW_DATES}} / {{ORGANIZER_NAME}} tokens were previously rendered
    * literally into the paragraph a rider signs their legal name under. */

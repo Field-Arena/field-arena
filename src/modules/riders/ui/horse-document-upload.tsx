@@ -46,7 +46,9 @@ export function HorseDocumentUpload({
               )}
             </div>
           ) : (
-            <div className="text-xs text-amber-700">Not uploaded yet</div>
+            <div className="text-xs text-amber-700">
+              Not uploaded yet — PDF or photo, optional for now, upload any time before the show
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2">

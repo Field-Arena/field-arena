@@ -24,11 +24,12 @@ import type {
 export function useSignUpRider(options?: {
   onVerifyNeeded?: (email: string) => void;
   onAlreadyRegistered?: () => void;
+  returnTo?: string;
 }) {
   const router = useRouter();
 
   return useMutation<RiderSignUpOutcome, Error, RiderSignUpInput>({
-    mutationFn: (input) => signUpRider(input),
+    mutationFn: (input) => signUpRider(input, options?.returnTo),
     onSuccess: (outcome) => {
       switch (outcome.status) {
         case 'verify':
@@ -50,11 +51,11 @@ export function useSignUpRider(options?: {
   });
 }
 
-export function useVerifyRiderSignUpCode() {
+export function useVerifyRiderSignUpCode(returnTo?: string) {
   const router = useRouter();
 
   return useMutation<RiderVerifyOutcome, Error, RiderVerifyInput>({
-    mutationFn: (input) => verifyRiderSignUpCode(input),
+    mutationFn: (input) => verifyRiderSignUpCode(input, returnTo),
     onSuccess: (outcome) => {
       if (outcome.status === 'error') {
         toast.error(outcome.message);

@@ -79,13 +79,6 @@ export function RunShowCard({ data }: { data: RunShowData }) {
           <Link href={`/dashboard/announcing?show=${data.showId}`} className={ghostButtonClass}>
             Announcer view
           </Link>
-          <GhostButton
-            onClick={() => {
-              toast('Live scoring isn’t built yet — coming in a later update.');
-            }}
-          >
-            Start live scoring
-          </GhostButton>
 
           {data.published && (
             <GhostButton

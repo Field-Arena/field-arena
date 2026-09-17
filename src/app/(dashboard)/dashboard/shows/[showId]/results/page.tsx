@@ -43,6 +43,21 @@ export default async function ShowResultsPage({
     getShowResults(showId),
   ]);
 
+  /* Mirrors getOrganizerContext's canViewMoney resolution — an Organizer (or
+   * an impersonating SuperAdmin) always has it; anyone else needs the
+   * canExportRoster grant checked explicitly. This toggle has no RLS
+   * backstop to pair with (the same rows are already visible on-screen to
+   * any staffed role via can_view_show, so there's no row/column to gate —
+   * hiding the button is the actual control here, not a security boundary). */
+  let canExportRoster = context.profile.platform_role === 'Organizer' || context.impersonating;
+  if (!canExportRoster) {
+    const { data: allowed } = await supabase.rpc('has_show_permission', {
+      target_show_id: showId,
+      permission_key: 'canExportRoster',
+    });
+    canExportRoster = allowed === true;
+  }
+
   return (
     <ShowManagerShell
       showId={showId}
@@ -54,7 +69,7 @@ export default async function ShowResultsPage({
       stage={vitals.stage}
       canViewMoney={context.canViewMoney}
     >
-      <ResultsPanel showName={show.name} rows={rows} />
+      <ResultsPanel showName={show.name} rows={rows} canExportRoster={canExportRoster} />
     </ShowManagerShell>
   );
 }

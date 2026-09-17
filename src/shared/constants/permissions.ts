@@ -14,6 +14,8 @@ export const PERMISSION_KEYS = [
   'canManageHoldingQueue',
 
   'canRefund',
+
+  'canManageEntryLedger',
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
@@ -31,6 +33,7 @@ export const ROLE_PERMISSION_DEFAULTS: Record<string, Partial<Record<PermissionK
     canPublishShow: true,
     canExportRoster: true,
     canManageHoldingQueue: true,
+    canManageEntryLedger: true,
   },
   Judge: { canScratch: true, canSkip: true, canEliminate: true, canEnterScores: true },
   Scribe: { canScratch: true, canSkip: true, canEliminate: true, canEnterScores: true },
@@ -53,4 +56,5 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   canExportRoster: 'Export the roster',
   canManageHoldingQueue: 'Manage the holding queue',
   canRefund: 'Issue refunds',
+  canManageEntryLedger: 'Manage the entry ledger and filing cabinet',
 };

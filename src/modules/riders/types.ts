@@ -109,6 +109,8 @@ export interface HorseWithDocumentUrls {
   stable: string | null;
   trainer: string | null;
   trainer_phone: string | null;
+  height: string | null;
+  farrier: string | null;
   is_stallion: boolean | null;
   created_at: string;
   documentUploads: HorseDocumentUploadWithUrl[];

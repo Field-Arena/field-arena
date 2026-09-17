@@ -8,7 +8,8 @@ import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 export const metadata: Metadata = { title: 'Results — Field & Arena' };
 
 export default async function JudgingResultsPage() {
-  const assignments = await listMyAssignments();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const assignments = await listMyAssignments(todayIso);
   const done = assignments.filter(isAssignmentComplete);
 
   const placingsByClass = await Promise.all(

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { RIDER_CATEGORIES } from '@/modules/riders/constants';
 import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
+import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 export const riderSignUpSchema = z.object({
   email: requiredEmailSchema('Enter a valid email address so we can send your code'),
@@ -35,7 +36,7 @@ export type RiderResendCodeInput = z.infer<typeof riderResendCodeSchema>;
 
 export const riderProfileUpdateSchema = z
   .object({
-    phone: z.string().trim().optional(),
+    phone: z.string().trim().refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).optional(),
     street: z.string().trim().optional(),
     city: z.string().trim().optional(),
     state: z.string().trim().optional(),
@@ -47,7 +48,7 @@ export const riderProfileUpdateSchema = z
     ecFirstName: z.string().trim().optional(),
     ecLastName: z.string().trim().optional(),
     ecRel: z.string().trim().optional(),
-    ecPhone: z.string().trim().optional(),
+    ecPhone: z.string().trim().refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'No fields to update.',
@@ -63,7 +64,11 @@ export const riderDetailsFormSchema = z.object({
   ecFirstName: z.string().trim().min(1, "Emergency contact's first name is required"),
   ecLastName: z.string().trim().min(1, "Emergency contact's last name is required"),
   ecRel: z.string().trim().optional(),
-  ecPhone: z.string().trim().min(1, "Emergency contact's phone is required"),
+  ecPhone: z
+    .string()
+    .trim()
+    .min(1, "Emergency contact's phone is required")
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE),
 });
 
 export type RiderDetailsFormInput = z.infer<typeof riderDetailsFormSchema>;
@@ -78,7 +83,9 @@ export const horseUpdateSchema = z.object({
   id: z.uuid(),
   stable: z.string().trim().optional(),
   trainer: z.string().trim().optional(),
-  trainerPhone: z.string().trim().optional(),
+  trainerPhone: z.string().trim().refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).optional(),
+  height: z.string().trim().optional(),
+  farrier: z.string().trim().optional(),
   isStallion: z.boolean().optional(),
 });
 

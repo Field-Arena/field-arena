@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
+import { parseInput } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
 import {
   setStableCountSchema,
@@ -55,7 +56,7 @@ async function writeChart(
 }
 
 export async function setStableCount(input: unknown): Promise<void> {
-  const parsed = setStableCountSchema.parse(input);
+  const parsed = parseInput(setStableCountSchema, input);
   const supabase = await createServerClient();
   const chart = await readChart(supabase, parsed.showId);
 
@@ -74,7 +75,7 @@ export async function setStableCount(input: unknown): Promise<void> {
 }
 
 export async function updateStableField(input: unknown): Promise<void> {
-  const parsed = updateStableFieldSchema.parse(input);
+  const parsed = parseInput(updateStableFieldSchema, input);
   const supabase = await createServerClient();
   const chart = await readChart(supabase, parsed.showId);
 
@@ -93,7 +94,7 @@ export async function updateStableField(input: unknown): Promise<void> {
 }
 
 export async function generateStableStalls(input: unknown): Promise<void> {
-  const parsed = generateStableStallsSchema.parse(input);
+  const parsed = parseInput(generateStableStallsSchema, input);
   const supabase = await createServerClient();
   const chart = await readChart(supabase, parsed.showId);
 
@@ -107,7 +108,7 @@ export async function generateStableStalls(input: unknown): Promise<void> {
 }
 
 export async function renameStall(input: unknown): Promise<void> {
-  const parsed = renameStallSchema.parse(input);
+  const parsed = parseInput(renameStallSchema, input);
   const supabase = await createServerClient();
   const chart = await readChart(supabase, parsed.showId);
 
@@ -126,7 +127,7 @@ export async function renameStall(input: unknown): Promise<void> {
 }
 
 export async function toggleStallClosed(input: unknown): Promise<void> {
-  const parsed = toggleStallClosedSchema.parse(input);
+  const parsed = parseInput(toggleStallClosedSchema, input);
   const supabase = await createServerClient();
   const chart = await readChart(supabase, parsed.showId);
 
@@ -157,7 +158,7 @@ export async function toggleStallClosed(input: unknown): Promise<void> {
 }
 
 export async function toggleStableChartStatus(input: unknown): Promise<void> {
-  const parsed = toggleStableChartStatusSchema.parse(input);
+  const parsed = parseInput(toggleStableChartStatusSchema, input);
   const supabase = await createServerClient();
   const chart = await readChart(supabase, parsed.showId);
 
@@ -168,7 +169,7 @@ export async function toggleStableChartStatus(input: unknown): Promise<void> {
 }
 
 export async function autoAssignStableStalls(input: unknown): Promise<void> {
-  const parsed = autoAssignStableStallsSchema.parse(input);
+  const parsed = parseInput(autoAssignStableStallsSchema, input);
   const supabase = await createServerClient();
 
   const [chart, horsesData] = await Promise.all([
@@ -244,7 +245,7 @@ interface SavedVenueStable {
 }
 
 export async function applySavedLocationStables(input: unknown): Promise<void> {
-  const parsed = applySavedLocationStablesSchema.parse(input);
+  const parsed = parseInput(applySavedLocationStablesSchema, input);
 
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');

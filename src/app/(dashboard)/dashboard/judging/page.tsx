@@ -10,6 +10,7 @@ import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignm
 import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
 import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
 import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
+import { isAssignmentComplete } from '@/modules/judging/utils/is-assignment-complete';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
 import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
@@ -22,7 +23,7 @@ export default async function JudgingPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const [profile, realAssignments, realPanelContacts] = await Promise.all([
     getStaffProfile(),
-    listMyAssignments(),
+    listMyAssignments(todayIso),
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
@@ -87,7 +88,12 @@ export default async function JudgingPage() {
               </Card>
             ) : (
               today.map((a) => (
-                <AssignmentCard key={`${a.classId}-${a.seatId}`} assignment={a} variant="today" />
+                <AssignmentCard
+                  key={`${a.classId}-${a.seatId}`}
+                  assignment={a}
+                  variant="today"
+                  completed={isAssignmentComplete(a)}
+                />
               ))
             )}
           </div>

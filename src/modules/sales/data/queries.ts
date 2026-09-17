@@ -1,7 +1,41 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import type { SaleStatus, SaleType, SaleRow } from '@/modules/sales/types';
+import type {
+  SaleStatus,
+  SaleType,
+  SaleRow,
+  SaleLineItem,
+  SaleLineItemGroup,
+} from '@/modules/sales/types';
+
+/* Mirrors riders/constants.ts's ORDER_LINE_ITEM_KINDS ('class_entry' |
+ * 'qualification' | 'addon') by hand rather than importing it — a module
+ * must not import another module's internals, and this is the one place
+ * sales needs to turn that kind into a report-facing group label. */
+function groupForOrderItemKind(kind: unknown): SaleLineItemGroup {
+  if (kind === 'class_entry') return 'Entry fees';
+  if (kind === 'qualification') return 'Qualifications';
+  return 'Add-ons';
+}
+
+/* orders.items is jsonb, written by the riders module as its own
+ * OrderLineItem shape (kind, label, qty, unitPrice, amount, ...). Sales only
+ * needs label/qty/unitPrice/amount for the invoice view, and a module must
+ * not import another module's internal types, so this reads the same column
+ * through its own narrow local shape instead. */
+function parseOrderItems(raw: unknown): SaleLineItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+    .map((item) => ({
+      label: typeof item.label === 'string' ? item.label : 'Item',
+      qty: typeof item.qty === 'number' ? item.qty : 1,
+      unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : 0,
+      amount: typeof item.amount === 'number' ? item.amount : 0,
+      group: groupForOrderItemKind(item.kind),
+    }));
+}
 
 function deriveStatus(amountTotal: number, feeTotal: number, refundedAmount: number): SaleStatus {
   const refundableBase = amountTotal - feeTotal;
@@ -30,6 +64,7 @@ function toSaleRow(
   customer: string,
   showId: string,
   showName: string,
+  items: SaleLineItem[],
 ): SaleRow {
   const amountTotal = raw.amount_total ?? 0;
   const feeTotal = raw.fee_total ?? 0;
@@ -50,6 +85,7 @@ function toSaleRow(
     maxRefundable: Math.round(Math.max(0, amountTotal - feeTotal - refundedAmount) * 100) / 100,
     hasSavedCard: !!(raw.stripe_customer_id && raw.stripe_payment_method_id),
     stripePaymentIntentId: raw.stripe_payment_intent_id,
+    items,
   };
 }
 
@@ -78,7 +114,7 @@ export async function listSales(showId: string): Promise<SaleRow[]> {
     admin
       .from('orders')
       .select(
-        'id, rider_id, amount_total, fee_total, refunded_amount, additional_charges_total, created_at, paid_at, stripe_payment_intent_id, stripe_customer_id, stripe_payment_method_id',
+        'id, rider_id, amount_total, fee_total, refunded_amount, additional_charges_total, created_at, paid_at, stripe_payment_intent_id, stripe_customer_id, stripe_payment_method_id, items',
       )
       .eq('show_id', showId)
       .eq('status', 'paid'),
@@ -111,11 +147,49 @@ export async function listSales(showId: string): Promise<SaleRow[]> {
   }
 
   const orderRows = ordersRes.data.map((o) =>
-    toSaleRow(o, 'order', 'Rider', riderNames.get(o.rider_id) ?? 'Unknown rider', showId, showName),
+    toSaleRow(
+      o,
+      'order',
+      'Rider',
+      riderNames.get(o.rider_id) ?? 'Unknown rider',
+      showId,
+      showName,
+      parseOrderItems(o.items),
+    ),
   );
 
+  const vendorBookingIds = vendorRes.data.map((v) => v.id);
+  const vendorItemsByBooking = new Map<string, SaleLineItem[]>();
+  if (vendorBookingIds.length > 0) {
+    const { data: bookingItems, error: bookingItemsError } = await admin
+      .from('vendor_booking_items')
+      .select('booking_id, qty, vendor_items(name, price)')
+      .in('booking_id', vendorBookingIds);
+    if (bookingItemsError) throw bookingItemsError;
+    for (const row of bookingItems) {
+      const list = vendorItemsByBooking.get(row.booking_id) ?? [];
+      const unitPrice = row.vendor_items.price ?? 0;
+      list.push({
+        label: row.vendor_items.name,
+        qty: row.qty ?? 1,
+        unitPrice,
+        amount: Math.round(unitPrice * (row.qty ?? 1) * 100) / 100,
+        group: 'Vendor items',
+      });
+      vendorItemsByBooking.set(row.booking_id, list);
+    }
+  }
+
   const vendorRows = vendorRes.data.map((v) =>
-    toSaleRow(v, 'vendor_booking', 'Vendor', v.name, showId, showName),
+    toSaleRow(
+      v,
+      'vendor_booking',
+      'Vendor',
+      v.name,
+      showId,
+      showName,
+      vendorItemsByBooking.get(v.id) ?? [],
+    ),
   );
 
   return [...orderRows, ...vendorRows].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));

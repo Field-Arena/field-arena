@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2Icon } from 'lucide-react';
+import { ExternalLinkIcon, Loader2Icon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -179,6 +179,25 @@ function StaffEditForm({
           />
           Steward
         </label>
+      )}
+
+      {/* Opens the real organizer-facing screen for this show — the same
+          pattern as the rider roster's "Experience as a rider" link — rather
+          than faking a login as this specific person. */}
+      {(role === 'Judge' || role === 'Scribe' || role === 'Announcer') && (
+        <a
+          href={
+            role === 'Announcer'
+              ? `/dashboard/announcing?show=${row.showId}`
+              : `/dashboard/judging?show=${row.showId}`
+          }
+          target="_blank"
+          rel="noreferrer"
+          className="text-ink-deep hover:border-gold inline-flex w-fit items-center gap-2 rounded-lg border border-[#EDF0EE] px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#F5F7F6]"
+        >
+          Experience as {role}
+          <ExternalLinkIcon className="size-[13px]" aria-hidden />
+        </a>
       )}
 
       <div className="flex justify-end">

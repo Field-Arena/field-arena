@@ -3,6 +3,16 @@ import type { SALE_TYPES, SALE_STATUSES } from '@/modules/sales/constants';
 export type SaleType = (typeof SALE_TYPES)[number];
 export type SaleStatus = (typeof SALE_STATUSES)[number];
 
+export type SaleLineItemGroup = 'Entry fees' | 'Qualifications' | 'Add-ons' | 'Vendor items';
+
+export interface SaleLineItem {
+  label: string;
+  qty: number;
+  unitPrice: number;
+  amount: number;
+  group: SaleLineItemGroup;
+}
+
 export interface SaleRow {
   id: string;
   saleType: 'order' | 'vendor_booking';
@@ -21,6 +31,7 @@ export interface SaleRow {
   maxRefundable: number;
   hasSavedCard: boolean;
   stripePaymentIntentId: string | null;
+  items: SaleLineItem[];
 }
 
 export interface SalesStats {

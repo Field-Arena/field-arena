@@ -63,7 +63,28 @@ async function assignmentScopeStaffIds(profile: {
   return data.map((s) => s.id);
 }
 
-export async function listMyAssignments(): Promise<AssignmentRow[]> {
+/** The date this class effectively falls on for "today / upcoming / history"
+ * purposes. Prefers the class's own scheduled date when set. Otherwise, for
+ * a multi-day show that hasn't been day-by-day scheduled yet, falls back to
+ * "today" whenever today is anywhere within the show's start/end range —
+ * not just the show's very first day — so a judge on a class with no
+ * specific date doesn't lose it to History the moment day one of a
+ * multi-day show passes, even though the show (and their panel seat) is
+ * still very much live. */
+function resolveClassDate(
+  classDate: string | null,
+  showStartDate: string | null,
+  showEndDate: string | null,
+  todayIso: string,
+): string | null {
+  if (classDate) return classDate;
+  if (showStartDate && showEndDate && showStartDate <= todayIso && todayIso <= showEndDate) {
+    return todayIso;
+  }
+  return showStartDate;
+}
+
+export async function listMyAssignments(todayIso: string): Promise<AssignmentRow[]> {
   const profile = await getStaffProfile();
   if (!profile) return [];
 
@@ -109,7 +130,7 @@ export async function listMyAssignments(): Promise<AssignmentRow[]> {
   const showIds = [...new Set(classes.data.map((c) => c.show_id))];
   const { data: shows, error: showError } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date')
+    .select('id, name, date_label, start_date, end_date')
     .in('id', showIds);
   if (showError) throw showError;
 
@@ -150,7 +171,12 @@ export async function listMyAssignments(): Promise<AssignmentRow[]> {
         showId: cls.show_id,
         showName: show?.name ?? 'Unknown show',
         showDate: show?.date_label ?? cls.date,
-        classDate: show?.start_date ?? null,
+        classDate: resolveClassDate(
+          cls.date,
+          show?.start_date ?? null,
+          show?.end_date ?? null,
+          todayIso,
+        ),
         classTime: cls.time,
         ring: cls.location,
         seatId: seat.seat_id,

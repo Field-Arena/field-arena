@@ -17,7 +17,6 @@ import { ClassDivisionsCard } from '@/modules/shows/ui/show-manager/class-divisi
 import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-documents-card';
 import { MerchandiseCard } from '@/modules/shows/ui/show-manager/merchandise-card';
 import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
-import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
 import { ShareShowLink } from '@/modules/shows/ui/show-manager/share-show-link';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import { env } from '@/shared/lib/env';
@@ -114,15 +113,6 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
           waiverApprovedText={show.waiverApprovedText}
         />
       </div>
-      <SchedulePreferencesCard
-        showId={show.id}
-        startDate={show.startDate}
-        endDate={show.endDate}
-        prefs={show.schedulePrefs}
-        dayStartTimes={show.dayStartTimes}
-        dayEndTimes={show.dayEndTimes}
-        classes={classes}
-      />
       <SectionFooter
         currentTab="Setup"
         showId={show.id}

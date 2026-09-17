@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { parseInput } from '@/shared/lib/action-result';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getMySeat, getTestForClass } from '@/modules/scoring/data/queries';
 import {
@@ -122,7 +123,7 @@ async function writeMark(params: {
 }
 
 export async function setMark(input: unknown) {
-  const parsed = setMarkSchema.parse(input);
+  const parsed = parseInput(setMarkSchema, input);
   await writeMark({
     classId: parsed.classId,
     entryId: parsed.entryId,
@@ -135,7 +136,7 @@ export async function setMark(input: unknown) {
 }
 
 export async function setCollective(input: unknown) {
-  const parsed = setCollectiveSchema.parse(input);
+  const parsed = parseInput(setCollectiveSchema, input);
   await writeMark({
     classId: parsed.classId,
     entryId: parsed.entryId,
@@ -148,7 +149,7 @@ export async function setCollective(input: unknown) {
 }
 
 export async function setRemark(input: unknown) {
-  const parsed = setRemarkSchema.parse(input);
+  const parsed = parseInput(setRemarkSchema, input);
   await assertSeatAccess(
     parsed.classId,
     parsed.seatId,
@@ -169,7 +170,7 @@ export async function setRemark(input: unknown) {
 }
 
 export async function setFinalRemarks(input: unknown) {
-  const parsed = setFinalRemarksSchema.parse(input);
+  const parsed = parseInput(setFinalRemarksSchema, input);
   await assertSeatAccess(
     parsed.classId,
     parsed.seatId,
@@ -193,7 +194,7 @@ export async function setFinalRemarks(input: unknown) {
 }
 
 export async function toggleErrorAt(input: unknown) {
-  const parsed = toggleErrorAtSchema.parse(input);
+  const parsed = parseInput(toggleErrorAtSchema, input);
   await assertSeatAccess(
     parsed.classId,
     parsed.seatId,
@@ -227,7 +228,7 @@ export async function toggleErrorAt(input: unknown) {
 }
 
 export async function submitScoresheet(input: unknown) {
-  const parsed = submitScoresheetSchema.parse(input);
+  const parsed = parseInput(submitScoresheetSchema, input);
 
   const mySeat = await getMySeat(parsed.classId);
   if (mySeat?.seatId !== parsed.seatId || mySeat.role !== 'judge') {
@@ -248,7 +249,7 @@ export async function submitScoresheet(input: unknown) {
 }
 
 export async function reopenScoresheet(input: unknown) {
-  const parsed = reopenScoresheetSchema.parse(input);
+  const parsed = parseInput(reopenScoresheetSchema, input);
   const supabase = await createServerClient();
 
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
@@ -280,7 +281,7 @@ export async function reopenScoresheet(input: unknown) {
 }
 
 export async function correctEntry(input: unknown) {
-  const parsed = correctEntrySchema.parse(input);
+  const parsed = parseInput(correctEntrySchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -293,7 +294,7 @@ export async function correctEntry(input: unknown) {
 }
 
 export async function advanceRide(input: unknown) {
-  const parsed = advanceRideSchema.parse(input);
+  const parsed = parseInput(advanceRideSchema, input);
   const supabase = await createServerClient();
 
   const [entryRes, panelRes, scoresRes, classRes] = await Promise.all([
@@ -355,12 +356,12 @@ export async function advanceRide(input: unknown) {
 }
 
 export async function scratchRide(input: unknown) {
-  const parsed = scratchRideSchema.parse(input);
+  const parsed = parseInput(scratchRideSchema, input);
   await setTerminalStatus(parsed.classId, parsed.entryId, 'scratched', null);
 }
 
 export async function disqualifyRide(input: unknown) {
-  const parsed = disqualifyRideSchema.parse(input);
+  const parsed = parseInput(disqualifyRideSchema, input);
   await setTerminalStatus(parsed.classId, parsed.entryId, 'disqualified', parsed.reason);
 }
 
@@ -397,7 +398,7 @@ async function setTerminalStatus(
 }
 
 export async function unfinishRide(input: unknown) {
-  const parsed = unfinishRideSchema.parse(input);
+  const parsed = parseInput(unfinishRideSchema, input);
   const supabase = await createServerClient();
 
   const { data: entry, error: entryError } = await supabase
@@ -435,13 +436,13 @@ export async function unfinishRide(input: unknown) {
 }
 
 export async function skipRide(input: unknown) {
-  const parsed = skipRideSchema.parse(input);
+  const parsed = parseInput(skipRideSchema, input);
   await swapRideOrder(parsed.classId, parsed.entryId, 1);
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
 export async function unskipRide(input: unknown) {
-  const parsed = unskipRideSchema.parse(input);
+  const parsed = parseInput(unskipRideSchema, input);
   await swapRideOrder(parsed.classId, parsed.entryId, -1);
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
@@ -479,7 +480,7 @@ async function swapRideOrder(classId: string, entryId: string, direction: 1 | -1
 }
 
 export async function addHoldingEntry(input: unknown) {
-  const parsed = addHoldingEntrySchema.parse(input);
+  const parsed = parseInput(addHoldingEntrySchema, input);
   const supabase = await createServerClient();
 
   const { data: entries, error: countError } = await supabase
@@ -506,7 +507,7 @@ export async function addHoldingEntry(input: unknown) {
 }
 
 export async function removeHoldingEntry(input: unknown) {
-  const parsed = removeHoldingEntrySchema.parse(input);
+  const parsed = parseInput(removeHoldingEntrySchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -520,7 +521,7 @@ export async function removeHoldingEntry(input: unknown) {
 }
 
 export async function workInEntry(input: unknown) {
-  const parsed = workInEntrySchema.parse(input);
+  const parsed = parseInput(workInEntrySchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -533,7 +534,7 @@ export async function workInEntry(input: unknown) {
 }
 
 export async function upsertPanelSeat(input: unknown) {
-  const parsed = upsertPanelSeatSchema.parse(input);
+  const parsed = parseInput(upsertPanelSeatSchema, input);
   const supabase = await createServerClient();
 
   const row: {
@@ -559,7 +560,7 @@ export async function upsertPanelSeat(input: unknown) {
 }
 
 export async function removePanelSeat(input: unknown) {
-  const parsed = removePanelSeatSchema.parse(input);
+  const parsed = parseInput(removePanelSeatSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -573,7 +574,7 @@ export async function removePanelSeat(input: unknown) {
 }
 
 export async function setClassTest(input: unknown) {
-  const parsed = setClassTestSchema.parse(input);
+  const parsed = parseInput(setClassTestSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase.from('class_tests').upsert(
@@ -592,7 +593,7 @@ export async function setClassTest(input: unknown) {
 }
 
 export async function setClassEntries(input: unknown) {
-  const parsed = setClassEntriesSchema.parse(input);
+  const parsed = parseInput(setClassEntriesSchema, input);
   const supabase = await createServerClient();
 
   const { error: deleteScoresError } = await supabase
@@ -627,7 +628,7 @@ export async function setClassEntries(input: unknown) {
 }
 
 export async function toggleScoringOpen(input: unknown) {
-  const parsed = toggleScoringOpenSchema.parse(input);
+  const parsed = parseInput(toggleScoringOpenSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -640,7 +641,7 @@ export async function toggleScoringOpen(input: unknown) {
 }
 
 export async function publishResults(input: unknown) {
-  const parsed = publishResultsSchema.parse(input);
+  const parsed = parseInput(publishResultsSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase
@@ -655,7 +656,7 @@ export async function publishResults(input: unknown) {
 }
 
 export async function unpublishResults(input: unknown) {
-  const parsed = unpublishResultsSchema.parse(input);
+  const parsed = parseInput(unpublishResultsSchema, input);
   const supabase = await createServerClient();
 
   const { error } = await supabase

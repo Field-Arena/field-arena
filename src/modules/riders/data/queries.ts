@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
 import {
   HORSE_DOCUMENTS_BUCKET,
   HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS,
@@ -34,6 +35,68 @@ export async function getCurrentRiderProfile(): Promise<RiderRow | null> {
   const { data, error } = await supabase.from('riders').select('*').eq('id', user.id).maybeSingle();
   if (error) throw error;
   return data;
+}
+
+export interface RiderShowLink {
+  showId: string;
+  showName: string;
+  /* The rider's assigned number for this show (class_entries.num, assigned
+   * once per checkout by nextRiderNumberForShow in checkout.ts — same value
+   * across every entry the rider has for that show). Null only if every
+   * entry is somehow missing it. */
+  riderNumber: string | null;
+}
+
+/* Every show this rider has at least one class_entries row in — the /rider
+ * landing page uses this to skip the generic welcome screen and go straight
+ * to the one show a rider is actually entered in, rather than making them
+ * hunt down the original ticket link every time they sign back in. Also the
+ * source for the persistent "Rider #N" portal header badge. */
+export async function listRiderShowLinks(): Promise<RiderShowLink[]> {
+  const supabase = await createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: entries, error } = await supabase
+    .from('class_entries')
+    .select('class_id, num')
+    .eq('rider_id', user.id);
+  if (error) throw error;
+  if (entries.length === 0) return [];
+
+  const classIds = [...new Set(entries.map((e) => e.class_id))];
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('id, show_id')
+    .in('id', classIds);
+  if (classError) throw classError;
+  const showIdByClass = new Map(classes.map((c) => [c.id, c.show_id]));
+
+  const riderNumberByShow = new Map<string, string>();
+  for (const entry of entries) {
+    const showId = showIdByClass.get(entry.class_id);
+    if (!showId || riderNumberByShow.has(showId)) continue;
+    if (entry.num) riderNumberByShow.set(showId, entry.num);
+  }
+
+  const showIds = [...new Set(classes.map((c) => c.show_id))];
+  if (showIds.length === 0) return [];
+
+  const { data: shows, error: showsError } = await supabase
+    .from('shows')
+    .select('id, name, start_date')
+    .in('id', showIds)
+    .order('start_date', { ascending: false, nullsFirst: false });
+  if (showsError) throw showsError;
+
+  return shows.map((s) => ({
+    showId: s.id,
+    showName: s.name,
+    riderNumber: riderNumberByShow.get(s.id) ?? null,
+  }));
 }
 
 async function getActiveEntryCountsByClass(classIds: string[]): Promise<Record<string, number>> {
@@ -191,6 +254,8 @@ export async function listRiderHorses(): Promise<HorseWithDocumentUrls[]> {
         stable: horse.stable,
         trainer: horse.trainer,
         trainer_phone: horse.trainer_phone,
+        height: horse.height,
+        farrier: horse.farrier,
         is_stallion: horse.is_stallion,
         created_at: horse.created_at,
         documentUploads,
@@ -478,4 +543,39 @@ export async function getRiderScorecard(entryId: string): Promise<RiderScorecard
     finalPct: entry.final_pct,
     cards,
   };
+}
+
+export interface RingScheduleStatus {
+  ring: string;
+  label: string;
+  status: ScheduleStatus;
+}
+
+/* Rider-portal counterpart to the judge/scorer LiveClockStrip
+ * (scoring/ui/live-clock-strip.tsx) — same real scheduleDelta formula
+ * (classes.time + scoring_pos + the fixed RIDE_MINUTES pace), reused
+ * rather than re-derived, just run across every ring with a class open
+ * right now instead of the one class a judge is scoring. A ring with no
+ * classes.time set simply doesn't get a status (scheduleDelta returns
+ * null) -- the same graceful gap the scoring screen already ships with. */
+export async function getRiderRingSchedule(showId: string): Promise<RingScheduleStatus[]> {
+  const supabase = await createServerClient();
+
+  const { data: classes, error } = await supabase
+    .from('classes')
+    .select('location, arena, time, scoring_pos')
+    .eq('show_id', showId)
+    .eq('scoring_open', true);
+  if (error) throw error;
+
+  const now = new Date();
+  const rows: RingScheduleStatus[] = [];
+  for (const cls of classes) {
+    const ring = cls.location ?? cls.arena;
+    if (!ring) continue;
+    const result = scheduleDelta(cls.time, cls.scoring_pos ?? 0, now);
+    if (!result) continue;
+    rows.push({ ring, label: result.label, status: result.status });
+  }
+  return rows;
 }

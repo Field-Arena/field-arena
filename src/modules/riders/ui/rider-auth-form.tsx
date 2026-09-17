@@ -19,7 +19,7 @@ import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/a
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 
-export function RiderAuthForm() {
+export function RiderAuthForm({ returnTo }: { returnTo?: string } = {}) {
   const [step, setStep] = useState<RiderSignUpStep>('account');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -34,6 +34,7 @@ export function RiderAuthForm() {
   });
 
   const signUp = useSignUpRider({
+    returnTo,
     onVerifyNeeded: (confirmedEmail) => {
       setFormError(null);
       setAlreadyRegistered(false);
@@ -46,7 +47,7 @@ export function RiderAuthForm() {
       setAlreadyRegistered(true);
     },
   });
-  const verify = useVerifyRiderSignUpCode();
+  const verify = useVerifyRiderSignUpCode(returnTo);
   const resend = useResendRiderSignUpCode();
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export function RiderAuthForm() {
           We sent a {EMAIL_CODE_LENGTH}-digit code to confirm this address.
         </p>
 
-        <div className="border-line-mint bg-mint mb-[26px] inline-flex items-center gap-2.5 rounded-[10px] border py-2.5 pr-3 pl-3.5">
+        <div className="border-line-mint bg-mint mb-[26px] inline-flex items-center gap-2 rounded-[10px] border py-2 pr-2 pl-3.5">
           <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
           <span className="text-forest text-sm font-medium">{email}</span>
           <Button
@@ -84,7 +85,7 @@ export function RiderAuthForm() {
               setFormError(null);
               verify.reset();
             }}
-            className="border-line-mint-2 text-fa-muted hover:text-gold ml-0.5 h-auto rounded-none border-l px-0 py-0.5 pl-[11px] text-[12.5px] font-bold transition-colors hover:bg-transparent"
+            className="border-line-mint-2 text-fa-muted hover:border-gold hover:text-gold h-auto shrink-0 rounded-full border bg-white px-2.5 py-1 text-[12.5px] font-bold transition-colors hover:bg-white"
           >
             Change
           </Button>

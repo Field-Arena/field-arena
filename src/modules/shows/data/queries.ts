@@ -82,11 +82,17 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
   const classIds = classes.map((c) => c.id);
   const feeByClass = new Map(classes.map((c) => [c.id, c.fee ?? 0]));
 
-  let entries: { rider: string | null; horse: string | null; class_id: string }[] = [];
+  let entries: {
+    rider: string | null;
+    rider_id: string | null;
+    horse: string | null;
+    horse_id: string | null;
+    class_id: string;
+  }[] = [];
   if (classIds.length > 0) {
     const { data, error } = await supabase
       .from('class_entries')
-      .select('rider, horse, class_id')
+      .select('rider, rider_id, horse, horse_id, class_id')
       .in('class_id', classIds);
     if (error) throw error;
     entries = data;
@@ -102,8 +108,14 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
   ]);
   if (orderError) throw orderError;
 
-  const riders = new Set(entries.map((e) => e.rider).filter(Boolean));
-  const horses = new Set(entries.map((e) => e.horse).filter(Boolean));
+  /* A real account's entry can carry a blank denormalized name text (see
+   * riders/ui/profile-tab.tsx — nothing in the app ever sets first_name/
+   * last_name), which silently dropped every such rider from this Set when
+   * it only read the text column. rider_id/horse_id are the real identity;
+   * the text is only needed as a fallback for manual/legacy entries that
+   * were never linked to a real riders/horses row. */
+  const riders = new Set(entries.map((e) => e.rider_id ?? e.rider).filter(Boolean));
+  const horses = new Set(entries.map((e) => e.horse_id ?? e.horse).filter(Boolean));
 
   return {
     riders: riders.size,

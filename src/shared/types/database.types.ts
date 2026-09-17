@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       add_ons: {
@@ -214,6 +189,7 @@ export type Database = {
           ride_started_at: string | null
           rider: string | null
           rider_id: string | null
+          show_entry_id: string | null
           status: string | null
           test_override: Json | null
         }
@@ -238,6 +214,7 @@ export type Database = {
           ride_started_at?: string | null
           rider?: string | null
           rider_id?: string | null
+          show_entry_id?: string | null
           status?: string | null
           test_override?: Json | null
         }
@@ -262,6 +239,7 @@ export type Database = {
           ride_started_at?: string | null
           rider?: string | null
           rider_id?: string | null
+          show_entry_id?: string | null
           status?: string | null
           test_override?: Json | null
         }
@@ -292,6 +270,13 @@ export type Database = {
             columns: ["rider_id"]
             isOneToOne: false
             referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_entries_show_entry_id_fkey"
+            columns: ["show_entry_id"]
+            isOneToOne: false
+            referencedRelation: "show_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -405,6 +390,7 @@ export type Database = {
           qual_fee: number | null
           qual_types: Json | null
           qualifying: boolean | null
+          requires_back_number: boolean
           results_published: boolean | null
           results_published_at: string | null
           ribbon_colors: Json | null
@@ -440,6 +426,7 @@ export type Database = {
           qual_fee?: number | null
           qual_types?: Json | null
           qualifying?: boolean | null
+          requires_back_number?: boolean
           results_published?: boolean | null
           results_published_at?: string | null
           ribbon_colors?: Json | null
@@ -475,6 +462,7 @@ export type Database = {
           qual_fee?: number | null
           qual_types?: Json | null
           qualifying?: boolean | null
+          requires_back_number?: boolean
           results_published?: boolean | null
           results_published_at?: string | null
           ribbon_colors?: Json | null
@@ -576,10 +564,184 @@ export type Database = {
           },
         ]
       }
+      entry_issues: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          detail: string | null
+          id: string
+          kind: string
+          link_id: string | null
+          link_kind: string | null
+          message: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          show_entry_id: string
+          show_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          id?: string
+          kind: string
+          link_id?: string | null
+          link_kind?: string | null
+          message: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          show_entry_id: string
+          show_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          id?: string
+          kind?: string
+          link_id?: string | null
+          link_kind?: string | null
+          message?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          show_entry_id?: string
+          show_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_issues_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_issues_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_issues_show_entry_id_fkey"
+            columns: ["show_entry_id"]
+            isOneToOne: false
+            referencedRelation: "show_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_issues_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entry_membership_checks: {
+        Row: {
+          association: string | null
+          created_at: string
+          flags: Json
+          horse_registration_number: string | null
+          horse_registration_status: string
+          id: string
+          member_database_id: string | null
+          membership_status: string
+          notes: string | null
+          owner_membership_number: string | null
+          rider_membership_number: string | null
+          show_entry_id: string
+          show_id: string
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          association?: string | null
+          created_at?: string
+          flags?: Json
+          horse_registration_number?: string | null
+          horse_registration_status?: string
+          id?: string
+          member_database_id?: string | null
+          membership_status?: string
+          notes?: string | null
+          owner_membership_number?: string | null
+          rider_membership_number?: string | null
+          show_entry_id: string
+          show_id: string
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          association?: string | null
+          created_at?: string
+          flags?: Json
+          horse_registration_number?: string | null
+          horse_registration_status?: string
+          id?: string
+          member_database_id?: string | null
+          membership_status?: string
+          notes?: string | null
+          owner_membership_number?: string | null
+          rider_membership_number?: string | null
+          show_entry_id?: string
+          show_id?: string
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_membership_checks_member_database_id_fkey"
+            columns: ["member_database_id"]
+            isOneToOne: false
+            referencedRelation: "member_database"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_membership_checks_show_entry_id_fkey"
+            columns: ["show_entry_id"]
+            isOneToOne: true
+            referencedRelation: "show_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_membership_checks_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entry_membership_checks_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       horses: {
         Row: {
           created_at: string
           document_uploads: Json | null
+          farrier: string | null
+          height: string | null
           id: string
           is_stallion: boolean | null
           name: string
@@ -591,6 +753,8 @@ export type Database = {
         Insert: {
           created_at?: string
           document_uploads?: Json | null
+          farrier?: string | null
+          height?: string | null
           id?: string
           is_stallion?: boolean | null
           name: string
@@ -602,6 +766,8 @@ export type Database = {
         Update: {
           created_at?: string
           document_uploads?: Json | null
+          farrier?: string | null
+          height?: string | null
           id?: string
           is_stallion?: boolean | null
           name?: string
@@ -1143,6 +1309,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ring_assignments: {
+        Row: {
+          id: string
+          ring_name: string
+          show_id: string
+          staff_assignment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          ring_name: string
+          show_id: string
+          staff_assignment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          ring_name?: string
+          show_id?: string
+          staff_assignment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ring_assignments_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ring_assignments_staff_assignment_id_fkey"
+            columns: ["staff_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "staff_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_assignments: {
         Row: {
           created_at: string
@@ -1293,8 +1498,125 @@ export type Database = {
         }
         Relationships: []
       }
+      show_entries: {
+        Row: {
+          back_number: string | null
+          cleared_at: string | null
+          cleared_by: string | null
+          created_at: string
+          entry_number: string
+          id: string
+          rider_id: string | null
+          rider_name: string
+          show_horse_id: string
+          show_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          back_number?: string | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          created_at?: string
+          entry_number: string
+          id?: string
+          rider_id?: string | null
+          rider_name: string
+          show_horse_id: string
+          show_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          back_number?: string | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          created_at?: string
+          entry_number?: string
+          id?: string
+          rider_id?: string | null
+          rider_name?: string
+          show_horse_id?: string
+          show_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_entries_cleared_by_fkey"
+            columns: ["cleared_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_entries_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_entries_show_horse_id_fkey"
+            columns: ["show_horse_id"]
+            isOneToOne: false
+            referencedRelation: "show_horses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_entries_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      show_horses: {
+        Row: {
+          bridle_number: string
+          created_at: string
+          horse_id: string | null
+          horse_name: string
+          id: string
+          show_id: string
+        }
+        Insert: {
+          bridle_number: string
+          created_at?: string
+          horse_id?: string | null
+          horse_name: string
+          id?: string
+          show_id: string
+        }
+        Update: {
+          bridle_number?: string
+          created_at?: string
+          horse_id?: string | null
+          horse_name?: string
+          id?: string
+          show_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_horses_horse_id_fkey"
+            columns: ["horse_id"]
+            isOneToOne: false
+            referencedRelation: "horses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_horses_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shows: {
         Row: {
+          back_number_enabled: boolean
           created_at: string
           date_label: string | null
           day_end_times: Json | null
@@ -1323,6 +1645,9 @@ export type Database = {
           show_type: string | null
           stable_chart: Json | null
           start_date: string | null
+          starting_back_number: number | null
+          starting_bridle_number: number
+          starting_entry_number: number
           starting_rider_number: number | null
           status: string | null
           ticket_close: string | null
@@ -1339,6 +1664,7 @@ export type Database = {
           waiver_text: string | null
         }
         Insert: {
+          back_number_enabled?: boolean
           created_at?: string
           date_label?: string | null
           day_end_times?: Json | null
@@ -1367,6 +1693,9 @@ export type Database = {
           show_type?: string | null
           stable_chart?: Json | null
           start_date?: string | null
+          starting_back_number?: number | null
+          starting_bridle_number?: number
+          starting_entry_number?: number
           starting_rider_number?: number | null
           status?: string | null
           ticket_close?: string | null
@@ -1383,6 +1712,7 @@ export type Database = {
           waiver_text?: string | null
         }
         Update: {
+          back_number_enabled?: boolean
           created_at?: string
           date_label?: string | null
           day_end_times?: Json | null
@@ -1411,6 +1741,9 @@ export type Database = {
           show_type?: string | null
           stable_chart?: Json | null
           start_date?: string | null
+          starting_back_number?: number | null
+          starting_bridle_number?: number
+          starting_entry_number?: number
           starting_rider_number?: number | null
           status?: string | null
           ticket_close?: string | null
@@ -1900,6 +2233,10 @@ export type Database = {
       }
       booking_show_id: { Args: { target_booking_id: string }; Returns: string }
       can_access_org: { Args: { target_org_id: string }; Returns: boolean }
+      can_manage_org_test_templates: {
+        Args: { target_org_id: string }
+        Returns: boolean
+      }
       can_manage_show: { Args: { target_show_id: string }; Returns: boolean }
       can_view_show: { Args: { target_show_id: string }; Returns: boolean }
       class_results_published: {
@@ -1950,11 +2287,24 @@ export type Database = {
         Args: { division_id: string; new_name: string }
         Returns: undefined
       }
+      resolve_show_entry_numbering: {
+        Args: { target_class_entry_id: string }
+        Returns: {
+          out_back_number: string
+          out_bridle_number: string
+          out_entry_number: string
+          out_show_entry_id: string
+        }[]
+      }
       rider_in_viewable_show: {
         Args: { target_rider_id: string }
         Returns: boolean
       }
       safe_uuid: { Args: { value: string }; Returns: string }
+      scores_seat_role: {
+        Args: { p_class_id: string; p_seat_id: string }
+        Returns: string
+      }
       show_is_publicly_visible: {
         Args: { target_show_id: string }
         Returns: boolean
@@ -1979,12 +2329,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2008,11 +2358,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2033,11 +2383,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2058,11 +2408,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2075,11 +2425,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2089,9 +2439,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

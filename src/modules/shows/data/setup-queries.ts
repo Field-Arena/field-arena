@@ -20,6 +20,19 @@ import {
   type AwardsReport,
 } from '@/modules/shows/awards-engine';
 import { calcPlatformFee } from '@/shared/lib/fees';
+import { GOVERNING_BODIES } from '@/modules/shows/schemas';
+
+/** Drops any value outside the current governing-body enum before it ever
+ * reaches a form. A stale/legacy value stored on an old show would otherwise
+ * get round-tripped straight back through updateShowDetailsSchema's strict
+ * z.enum() on the very next save of *any* field on that show — including
+ * ones the organizer never touched — and fail with a validation error. */
+function sanitizeGoverningBodies(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string =>
+    (GOVERNING_BODIES as readonly string[]).includes(v as string),
+  );
+}
 import {
   netCollected,
   SETTLED_ORDER_STATUS,
@@ -410,7 +423,7 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
     endDate: data.end_date,
     timezone: data.timezone,
     startingRiderNumber: data.starting_rider_number ?? 101,
-    governingBodies: (data.governing_bodies ?? []) as string[],
+    governingBodies: sanitizeGoverningBodies(data.governing_bodies),
     venueId: data.venue_id,
     venueName: data.venue_name,
     locations: (data.locations ?? []) as unknown as RingRow[],
@@ -532,9 +545,21 @@ export async function getShowCompleteness(showId: string): Promise<ShowCompleten
       ok: docs.length > 0,
     },
     {
+      /* "No merchandise sales" is itself a complete, deliberate answer — this
+       * used to require merchEnabled to be true, so an organizer who
+       * correctly selected "No" saw this flagged as unfinished forever, with
+       * no way to ever clear it. The only genuinely incomplete state is
+       * "Yes" with no items actually added yet. */
       name: 'Merchandise Sales',
-      items: [{ label: 'Storefront turned on', ok: catalog.merchEnabled }],
-      ok: catalog.merchEnabled,
+      items: [
+        {
+          label: catalog.merchEnabled
+            ? 'At least one item added'
+            : 'Marked as no merchandise sales',
+          ok: !catalog.merchEnabled || catalog.merchItems.length > 0,
+        },
+      ],
+      ok: !catalog.merchEnabled || catalog.merchItems.length > 0,
     },
     {
       name: 'Staffing',
@@ -1075,6 +1100,11 @@ export interface TestBuilderPageData {
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
+  /** Class labels currently using each template, keyed by template name.
+   * assignTestTemplateToClass copies the template's fields into class_tests
+   * rather than keeping a live foreign key, so name is the only link back —
+   * good enough for this display-only hint (not used to gate anything). */
+  assignedByTemplateName: Record<string, string[]>;
 }
 
 export async function getTestBuilderPageData(showId: string): Promise<TestBuilderPageData | null> {
@@ -1095,6 +1125,20 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   ]);
   if (classesRes.error) throw classesRes.error;
 
+  const classIds = classesRes.data.map((c) => c.id);
+  const classTestsRes = classIds.length
+    ? await supabase.from('class_tests').select('class_id, name').in('class_id', classIds)
+    : { data: [], error: null };
+  if (classTestsRes.error) throw classTestsRes.error;
+
+  const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
+  const assignedByTemplateName: Record<string, string[]> = {};
+  for (const row of classTestsRes.data) {
+    const label = classLabelById.get(row.class_id);
+    if (!label) continue;
+    (assignedByTemplateName[row.name] ??= []).push(label);
+  }
+
   return {
     showId: show.data.id,
     showName: show.data.name,
@@ -1102,6 +1146,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     templates,
     catalog,
     classes: classesRes.data,
+    assignedByTemplateName,
   };
 }
 
@@ -1622,8 +1667,7 @@ export async function getShowAwards(
         ? (entry.test_override as Record<string, unknown>)
         : null;
     const overrideName = typeof override?.name === 'string' ? override.name : null;
-    const testName =
-      overrideName ?? classTestNameById.get(entry.class_id) ?? 'No test assigned';
+    const testName = overrideName ?? classTestNameById.get(entry.class_id) ?? 'No test assigned';
     testTally[testName] = (testTally[testName] ?? 0) + 1;
   }
   const testTotal = Object.values(testTally).reduce((sum, n) => sum + n, 0);

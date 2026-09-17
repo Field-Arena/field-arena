@@ -14,7 +14,15 @@ import {
   TableRow,
 } from '@/shared/ui/shadcn/table';
 
-export function ResultsPanel({ showName, rows }: { showName: string; rows: ShowResultRow[] }) {
+export function ResultsPanel({
+  showName,
+  rows,
+  canExportRoster,
+}: {
+  showName: string;
+  rows: ShowResultRow[];
+  canExportRoster: boolean;
+}) {
   const byClass = new Map<string, ShowResultRow[]>();
   for (const row of rows) {
     const list = byClass.get(row.classId) ?? [];
@@ -29,24 +37,26 @@ export function ResultsPanel({ showName, rows }: { showName: string; rows: ShowR
           Every class&apos;s riders and scores, ranked per test for Test of Choice classes.
           Unscored riders are included so this doubles as a full roster.
         </p>
-        <PrimaryButton
-          type="button"
-          className="flex-none whitespace-nowrap"
-          onClick={() => {
-            const csv = buildResultsCsv(rows);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = resultsCsvFilename(showName);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }}
-        >
-          Export CSV
-        </PrimaryButton>
+        {canExportRoster && (
+          <PrimaryButton
+            type="button"
+            className="flex-none whitespace-nowrap"
+            onClick={() => {
+              const csv = buildResultsCsv(rows);
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = resultsCsvFilename(showName);
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Export CSV
+          </PrimaryButton>
+        )}
       </div>
 
       {byClass.size === 0 ? (

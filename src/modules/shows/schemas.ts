@@ -1,11 +1,21 @@
 import { z } from 'zod';
 import { MAX_STABLES, MAX_STALLS_PER_STABLE } from '@/modules/shows/constants';
+import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 const optionalText = (max: number) =>
   z
     .string()
     .trim()
     .max(max)
+    .optional()
+    .transform((value) => (value === '' ? undefined : value));
+
+const optionalPhone = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((value) => (value === '' ? undefined : value));
 
@@ -48,6 +58,10 @@ export const createShowSchema = z
   .refine((d) => d.endDate >= d.startDate, {
     message: 'End date cannot be before the start date',
     path: ['endDate'],
+  })
+  .refine((d) => d.startDate >= new Date().toISOString().slice(0, 10), {
+    message: 'Start date cannot be in the past',
+    path: ['startDate'],
   });
 
 export type CreateShowInput = z.input<typeof createShowSchema>;
@@ -200,7 +214,7 @@ export type ReorderClassesInput = z.input<typeof reorderClassesSchema>;
 export const updateContactSchema = z.object({
   showId: z.uuid(),
   website: optionalText(300),
-  phone: optionalText(40),
+  phone: optionalPhone(40),
   contactEmail: z.union([z.email(), z.literal('')]).optional(),
 });
 
@@ -315,6 +329,19 @@ export const addCatalogGroupSchema = z.object({
 });
 
 export type AddCatalogGroupInput = z.input<typeof addCatalogGroupSchema>;
+
+export const updateGroupLocationSchema = z.object({
+  showId: z.uuid(),
+  group: z.string().trim().min(1).max(120),
+  location: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => v ?? ''),
+});
+
+export type UpdateGroupLocationInput = z.input<typeof updateGroupLocationSchema>;
 
 export const addCustomClassSchema = z.object({
   showId: z.uuid(),
@@ -694,3 +721,131 @@ export const reorderRideSchema = z.object({
 });
 
 export type ReorderRideInput = z.input<typeof reorderRideSchema>;
+
+// ── Documents filing cabinet ────────────────────────────────────────────
+
+export const reviewHorseDocumentSchema = z
+  .object({
+    showId: z.uuid(),
+    horseId: z.uuid(),
+    requirementId: z.string().trim().min(1),
+    status: z.enum(['approved', 'rejected', 'replacement_requested']),
+    rejectionReason: z
+      .enum(['unreadable', 'incorrect_file', 'expired', 'duplicate', 'ineligible', 'other'])
+      .optional(),
+    rejectionNote: z.string().trim().max(500).optional(),
+  })
+  .refine((d) => d.status !== 'rejected' || !!d.rejectionReason, {
+    message: 'Pick a reason for the rejection',
+    path: ['rejectionReason'],
+  })
+  .refine((d) => d.status !== 'rejected' || d.rejectionReason !== 'other' || !!d.rejectionNote, {
+    message: 'Add a short explanation',
+    path: ['rejectionNote'],
+  });
+
+export type ReviewHorseDocumentInput = z.input<typeof reviewHorseDocumentSchema>;
+
+export const updateEntryNumberSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  entryNumber: z.string().trim().min(1).max(20),
+});
+
+export type UpdateEntryNumberInput = z.input<typeof updateEntryNumberSchema>;
+
+export const updateBridleNumberSchema = z.object({
+  showId: z.uuid(),
+  showHorseId: z.uuid(),
+  bridleNumber: z.string().trim().min(1).max(20),
+});
+
+export type UpdateBridleNumberInput = z.input<typeof updateBridleNumberSchema>;
+
+export const updateBackNumberSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  backNumber: z.string().trim().min(1).max(20).nullable(),
+});
+
+export type UpdateBackNumberInput = z.input<typeof updateBackNumberSchema>;
+
+export const updateShowEntryStatusSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  status: z.enum([
+    'submitted',
+    'documents_received',
+    'documents_verified',
+    'checkin_released',
+    'scratched',
+  ]),
+});
+
+export type UpdateShowEntryStatusInput = z.input<typeof updateShowEntryStatusSchema>;
+
+export const markEntryClearedSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+});
+
+export type MarkEntryClearedInput = z.input<typeof markEntryClearedSchema>;
+
+export const linkMembershipRecordSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  memberDatabaseId: z.uuid().nullable(),
+});
+
+export type LinkMembershipRecordInput = z.input<typeof linkMembershipRecordSchema>;
+
+export const updateMembershipCheckSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  association: optionalText(80),
+  riderMembershipNumber: optionalText(60),
+  horseRegistrationNumber: optionalText(60),
+  ownerMembershipNumber: optionalText(60),
+  membershipStatus: z.enum(['active', 'inactive', 'unknown']),
+  horseRegistrationStatus: z.enum(['active', 'inactive', 'unknown']),
+  flags: z.array(
+    z.enum([
+      'expired_membership',
+      'missing_horse_registration',
+      'owner_name_mismatch',
+      'missing_identifiers',
+      'other',
+    ]),
+  ),
+  notes: optionalText(500),
+});
+
+export type UpdateMembershipCheckInput = z.input<typeof updateMembershipCheckSchema>;
+
+export const setMembershipVerificationStatusSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  verificationStatus: z.enum(['unverified', 'verified', 'flagged']),
+});
+
+export type SetMembershipVerificationStatusInput = z.input<
+  typeof setMembershipVerificationStatusSchema
+>;
+
+export const addManualIssueSchema = z.object({
+  showId: z.uuid(),
+  showEntryId: z.uuid(),
+  kind: z.enum(['note', 'request']),
+  message: z.string().trim().min(1).max(300),
+  detail: optionalText(1000),
+});
+
+export type AddManualIssueInput = z.input<typeof addManualIssueSchema>;
+
+export const resolveIssueSchema = z.object({
+  showId: z.uuid(),
+  issueId: z.uuid(),
+  resolutionNote: optionalText(500),
+});
+
+export type ResolveIssueInput = z.input<typeof resolveIssueSchema>;

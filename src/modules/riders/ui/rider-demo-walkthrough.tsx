@@ -46,6 +46,7 @@ const CLASS_DEFAULTS = {
   scoring_pos: null,
   run_order: null,
   sponsor: null,
+  requires_back_number: false,
   show_id: DEMO_SHOW_ID,
   test_options: null,
   time: '9:00 AM',

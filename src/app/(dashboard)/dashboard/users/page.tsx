@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { listAllUsersAcrossShows } from '@/modules/staff/data/queries';
+import { listAllUsersAcrossShows, getRingCoverageByShow } from '@/modules/staff/data/queries';
 import { listClasses } from '@/modules/shows/data/setup-queries';
 import { UsersDirectory } from '@/modules/staff/ui/users-directory';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
@@ -27,9 +27,10 @@ export default async function UsersPage({
     );
   }
 
-  const [users, classLists] = await Promise.all([
+  const [users, classLists, ringCoverageByShow] = await Promise.all([
     listAllUsersAcrossShows(context.shows),
     Promise.all(context.shows.map((show) => listClasses(show.id))),
+    getRingCoverageByShow(context.shows),
   ]);
 
   const classesByShow: Record<string, ClassOption[]> = {};
@@ -46,6 +47,7 @@ export default async function UsersPage({
       shows={context.shows}
       initialShowId={context.currentShow.id}
       classesByShow={classesByShow}
+      ringCoverageByShow={ringCoverageByShow}
     />
   );
 }

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
+import { ASSIGNMENT_ROLE_TO_WORKSPACE } from '@/modules/staff/constants';
 
 /**
  * The workspaces a single staff user is actually entitled to — their global
@@ -13,16 +14,9 @@ import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
  * both workspaces), matching how the legacy app worked.
  */
 
-const ASSIGNMENT_ROLE_TO_WORKSPACE: Record<string, string> = {
-  'Show Admin': 'ShowAdmin',
-  Judge: 'Judge',
-  Scribe: 'Scribe',
-  Announcer: 'Announcer',
-  ShowStaff: 'ShowStaff',
-};
-
 export async function getUserWorkspaceRoles(profile: {
   id: string;
+  email: string | null;
   platform_role: string | null;
 }): Promise<string[]> {
   const roles = new Set<string>();
@@ -41,6 +35,25 @@ export async function getUserWorkspaceRoles(profile: {
   for (const row of assignments) {
     const mapped = row.role ? ASSIGNMENT_ROLE_TO_WORKSPACE[row.role] : undefined;
     if (mapped && ROLE_WORKSPACES[mapped]) roles.add(mapped);
+  }
+
+  /* Vendor is never a staff_assignments row (see ensureVendorProfile in
+   * modules/vendors/data/mutations.ts), so it can't be picked up by the loop
+   * above. Instead, surface it once an organizer has actually approved a
+   * booking under this email — matching RLS's own lower(contact)=lower(jwt
+   * email) ownership rule, not platform_role. A still-pending booking stays
+   * hidden here; it shows up for the organizer to review, not as a workspace
+   * tile yet. */
+  if (!roles.has('Vendor') && profile.email) {
+    const { data: booking, error: vendorError } = await supabase
+      .from('vendor_bookings')
+      .select('id')
+      .ilike('contact', profile.email)
+      .in('status', ['approved', 'paid'])
+      .limit(1)
+      .maybeSingle();
+    if (vendorError) throw vendorError;
+    if (booking) roles.add('Vendor');
   }
 
   return [...roles];

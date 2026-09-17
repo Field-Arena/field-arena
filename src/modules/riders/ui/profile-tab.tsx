@@ -53,8 +53,6 @@ export function ProfileTab({ rider }: { rider: RiderRow }) {
           <EditableRow rider={rider} field="phone" label="Phone" type="tel" />
           <EditableRow rider={rider} field="street" label="Street" />
           <EditableRow rider={rider} field="city" label="City" />
-          <EditableRow rider={rider} field="state" label="State" />
-          <EditableRow rider={rider} field="zip" label="Zip" />
         </div>
         <div>
           <div style={legacyBlockTitleStyle}>Emergency contact</div>
@@ -106,18 +104,24 @@ function EditableRow({
 }) {
   const [editing, setEditing] = useState(false);
   const currentValue = rider[RIDER_ROW_VALUE[field]] ?? '';
+  // Saved value wins over the (possibly still-stale) rider prop until
+  // router.refresh() delivers fresh data — otherwise the display briefly
+  // reverts to the old/blank value in the gap between the mutation
+  // resolving and the refresh actually landing.
+  const [savedValue, setSavedValue] = useState<string | null>(null);
   const updateProfile = useUpdateRiderProfile({
     onSuccess: () => {
       setEditing(false);
     },
   });
+  const displayValue = savedValue ?? currentValue;
 
   if (!editing) {
     return (
       <div style={rowStyle}>
         <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: LEGACY_COLOR.ink }}>{currentValue || 'Not set'}</span>
+          <span style={{ color: LEGACY_COLOR.ink }}>{displayValue || 'Not set'}</span>
           <button
             type="button"
             style={{ ...legacyButtonGhostStyle, padding: '4px 10px', fontSize: 12 }}
@@ -138,17 +142,24 @@ function EditableRow({
       <input
         autoFocus
         type={type}
-        defaultValue={currentValue}
+        defaultValue={displayValue}
         disabled={updateProfile.isPending}
         style={inputStyle}
         onBlur={(event) => {
           const value = event.target.value.trim();
 
-          if (value === currentValue) {
+          if (value === displayValue) {
             setEditing(false);
             return;
           }
-          updateProfile.mutate({ [field]: value });
+          updateProfile.mutate(
+            { [field]: value },
+            {
+              onSuccess: () => {
+                setSavedValue(value);
+              },
+            },
+          );
         }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') setEditing(false);

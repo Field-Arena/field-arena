@@ -22,7 +22,13 @@ import { buildSalesCsv } from '@/modules/sales/utils/build-sales-csv';
 import { salesCsvFilename } from '@/modules/sales/utils/sales-csv-filename';
 import { RefundDialog } from '@/modules/sales/ui/refund-dialog';
 import { ChargeMoreDialog } from '@/modules/sales/ui/charge-more-dialog';
-import { EventSalesViewTabs } from '@/modules/sales/ui/event-sales-view-tabs';
+import {
+  EventSalesViewTabs,
+  type EventSalesViewMode,
+} from '@/modules/sales/ui/event-sales-view-tabs';
+import { InvoiceModal } from '@/modules/sales/ui/invoice-modal';
+import { ByProductView } from '@/modules/sales/ui/by-product-view';
+import { ByRiderView } from '@/modules/sales/ui/by-rider-view';
 
 /* Legacy moneyCell(amount, isPaid): when money is hidden it did NOT drop the
  * column — it swapped the amount for a Paid/Unpaid pill, so a Show Admin keeps
@@ -35,13 +41,13 @@ function PaidPill({ row }: { row: SaleRow }) {
   );
 }
 
-const STATUS_TONE: Record<SaleRow['status'], StatusTone> = {
+export const STATUS_TONE: Record<SaleRow['status'], StatusTone> = {
   paid: 'success',
   partial: 'warn',
   refunded: 'neutral',
 };
 
-const STATUS_LABEL: Record<SaleRow['status'], string> = {
+export const STATUS_LABEL: Record<SaleRow['status'], string> = {
   paid: 'Paid',
   partial: 'Partially refunded',
   refunded: 'Refunded',
@@ -84,6 +90,8 @@ export function EventSalesScreen({
   const [page, setPage] = useState(0);
   const [refundTarget, setRefundTarget] = useState<SaleRow | null>(null);
   const [chargeTarget, setChargeTarget] = useState<SaleRow | null>(null);
+  const [invoiceTarget, setInvoiceTarget] = useState<SaleRow | null>(null);
+  const [viewMode, setViewMode] = useState<EventSalesViewMode>('customer');
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -187,7 +195,7 @@ export function EventSalesScreen({
         ))}
       </div>
 
-      <EventSalesViewTabs />
+      <EventSalesViewTabs mode={viewMode} onChange={setViewMode} />
 
       <div className="mb-3 flex justify-end gap-2.5">
         {/* The CSV carries amountTotal, so it follows the same gate as the
@@ -236,129 +244,177 @@ export function EventSalesScreen({
       </div>
 
       <div id="print-report" className="overflow-hidden rounded-[12px] border border-[#E9EDEB]">
-        <div style={{ overflowX: 'auto' }}>
-          <Table className="w-full min-w-[760px] border-collapse text-[13.5px]">
-            <TableCaption className="sr-only">Paid rider entries and vendor purchases</TableCaption>
-            <TableHeader>
-              <TableRow className="border-b border-[#E9EDEB] bg-[#FAFAF6] hover:bg-transparent">
-                {COLUMNS.map((col) => (
-                  <TableHead
-                    key={col.key}
-                    scope="col"
-                    className={cn(
-                      HEAD_CELL_CLASS,
-                      col.align === 'right' ? 'text-right' : 'text-left',
-                    )}
-                  >
-                    {col.label}
-                  </TableHead>
-                ))}
-                {canRefund && (
-                  <TableHead scope="col" className={cn(HEAD_CELL_CLASS, 'text-right')}>
-                    Actions
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="[&_tr:last-child]:border-b">
-              {pageRows.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={canRefund ? 7 : 6}
-                    className="px-4 py-10 text-center text-[13px] whitespace-normal text-[#98A29D]"
-                  >
-                    No sales match this filter yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pageRows.map((row) => (
-                  <TableRow
-                    key={`${row.saleType}-${row.id}`}
-                    className="border-b border-[#EEF2F0] hover:bg-transparent"
-                  >
-                    <TableCell className="text-ink-deep px-3 py-2.5 font-semibold whitespace-normal">
-                      {row.customer}
-                    </TableCell>
-                    <TableCell className="px-3 py-2.5 whitespace-normal">{row.type}</TableCell>
-                    <TableCell className="px-3 py-2.5 whitespace-normal">{row.showName}</TableCell>
-                    <TableCell className="px-3 py-2.5">
-                      {row.date ? formatTimestamp(row.date) : '—'}
-                    </TableCell>
-                    <TableCell className="px-3 py-2.5 text-right">
-                      {canViewMoney ? formatMoneyExact(row.amountTotal) : <PaidPill row={row} />}
-                    </TableCell>
-                    <TableCell className="px-3 py-2.5 whitespace-normal">
-                      <StatusBadge tone={STATUS_TONE[row.status]}>
-                        {STATUS_LABEL[row.status]}
-                      </StatusBadge>
-                    </TableCell>
+        {viewMode === 'product' && (
+          <div className="p-[16px_18px]">
+            <ByProductView rows={rows} canViewMoney={canViewMoney} />
+          </div>
+        )}
+        {viewMode === 'rider' && (
+          <div className="p-[16px_18px]">
+            <ByRiderView rows={rows} canViewMoney={canViewMoney} />
+          </div>
+        )}
+        {viewMode === 'customer' && (
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <Table className="w-full min-w-[760px] border-collapse text-[13.5px]">
+                <TableCaption className="sr-only">
+                  Paid rider entries and vendor purchases
+                </TableCaption>
+                <TableHeader>
+                  <TableRow className="border-b border-[#E9EDEB] bg-[#FAFAF6] hover:bg-transparent">
+                    {COLUMNS.map((col) => (
+                      <TableHead
+                        key={col.key}
+                        scope="col"
+                        className={cn(
+                          HEAD_CELL_CLASS,
+                          col.align === 'right' ? 'text-right' : 'text-left',
+                        )}
+                      >
+                        {col.label}
+                      </TableHead>
+                    ))}
                     {canRefund && (
-                      <TableCell className="px-3 py-2.5 text-right whitespace-normal">
-                        <div className="flex justify-end gap-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            disabled={row.maxRefundable <= 0}
-                            onClick={() => {
-                              setRefundTarget(row);
-                            }}
-                            className="h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold text-[#B4432F] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#C7B9B5] disabled:no-underline disabled:opacity-100"
-                          >
-                            Refund
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            disabled={!row.hasSavedCard}
-                            title={row.hasSavedCard ? undefined : 'No saved card on file'}
-                            onClick={() => {
-                              setChargeTarget(row);
-                            }}
-                            className="text-forest h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B7C0BB] disabled:no-underline disabled:opacity-100"
-                          >
-                            Charge more
-                          </Button>
-                        </div>
-                      </TableCell>
+                      <TableHead scope="col" className={cn(HEAD_CELL_CLASS, 'text-right')}>
+                        Actions
+                      </TableHead>
                     )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody className="[&_tr:last-child]:border-b">
+                  {pageRows.length === 0 ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={canRefund ? 7 : 6}
+                        className="px-4 py-10 text-center text-[13px] whitespace-normal text-[#98A29D]"
+                      >
+                        No sales match this filter yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pageRows.map((row) => (
+                      <TableRow
+                        key={`${row.saleType}-${row.id}`}
+                        onClick={() => {
+                          setInvoiceTarget(row);
+                        }}
+                        className="cursor-pointer border-b border-[#EEF2F0] hover:bg-[#FAFAF6]"
+                      >
+                        <TableCell className="text-ink-deep px-3 py-2.5 font-semibold whitespace-normal">
+                          {row.customer}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 whitespace-normal">{row.type}</TableCell>
+                        <TableCell className="px-3 py-2.5 whitespace-normal">
+                          {row.showName}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5">
+                          {row.date ? formatTimestamp(row.date) : '—'}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 text-right">
+                          {canViewMoney ? (
+                            formatMoneyExact(row.amountTotal)
+                          ) : (
+                            <PaidPill row={row} />
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-2.5 whitespace-normal">
+                          <StatusBadge tone={STATUS_TONE[row.status]}>
+                            {STATUS_LABEL[row.status]}
+                          </StatusBadge>
+                        </TableCell>
+                        {canRefund && (
+                          <TableCell
+                            className="px-3 py-2.5 text-right whitespace-normal"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <div className="flex justify-end gap-3">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={row.maxRefundable <= 0}
+                                onClick={() => {
+                                  setRefundTarget(row);
+                                }}
+                                className="h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold text-[#B4432F] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#C7B9B5] disabled:no-underline disabled:opacity-100"
+                              >
+                                Refund
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={!row.hasSavedCard}
+                                title={row.hasSavedCard ? undefined : 'No saved card on file'}
+                                onClick={() => {
+                                  setChargeTarget(row);
+                                }}
+                                className="text-forest h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B7C0BB] disabled:no-underline disabled:opacity-100"
+                              >
+                                Charge more
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 border-t border-[#E9EDEB] px-4 py-3.5">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={clampedPage === 0}
-              onClick={() => {
-                setPage((p) => Math.max(0, p - 1));
-              }}
-              className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
-            >
-              ← Previous
-            </Button>
-            <span className="text-[13px] text-[#6E7C76]">
-              Page {clampedPage + 1} of {totalPages}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={clampedPage >= totalPages - 1}
-              onClick={() => {
-                setPage((p) => Math.min(totalPages - 1, p + 1));
-              }}
-              className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
-            >
-              Next →
-            </Button>
-          </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 border-t border-[#E9EDEB] px-4 py-3.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={clampedPage === 0}
+                  onClick={() => {
+                    setPage((p) => Math.max(0, p - 1));
+                  }}
+                  className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
+                >
+                  ← Previous
+                </Button>
+                <span className="text-[13px] text-[#6E7C76]">
+                  Page {clampedPage + 1} of {totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={clampedPage >= totalPages - 1}
+                  onClick={() => {
+                    setPage((p) => Math.min(totalPages - 1, p + 1));
+                  }}
+                  className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
+                >
+                  Next →
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
+      {invoiceTarget && (
+        <InvoiceModal
+          sale={invoiceTarget}
+          canRefund={canRefund}
+          canViewMoney={canViewMoney}
+          onClose={() => {
+            setInvoiceTarget(null);
+          }}
+          onRefund={() => {
+            setRefundTarget(invoiceTarget);
+            setInvoiceTarget(null);
+          }}
+          onChargeMore={() => {
+            setChargeTarget(invoiceTarget);
+            setInvoiceTarget(null);
+          }}
+        />
+      )}
       {refundTarget && (
         <RefundDialog
           showId={showId}

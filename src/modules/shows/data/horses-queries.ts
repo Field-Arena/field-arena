@@ -19,6 +19,21 @@ interface RawUpload {
   path?: string;
   expirationDate?: string;
   verified?: boolean;
+  status?: string;
+  rejectionReason?: string;
+  rejectionNote?: string;
+  reviewedAt?: string;
+}
+
+export type DocumentReviewStatus = 'pending' | 'approved' | 'rejected' | 'replacement_requested';
+
+/* Rows written before the review workflow existed only ever set `verified`.
+ * Every read resolves `status` from the newer field first, falling back to
+ * the boolean so old rows still render correctly without a backfill. */
+function resolveReviewStatus(up: RawUpload): DocumentReviewStatus {
+  if (up.status === 'approved' || up.status === 'rejected' || up.status === 'replacement_requested')
+    return up.status;
+  return up.verified ? 'approved' : 'pending';
 }
 
 export interface HorseDocumentStatus {
@@ -35,6 +50,10 @@ export interface HorseDocumentStatus {
   expired: boolean;
 
   needsApproval: boolean;
+
+  status: DocumentReviewStatus;
+  rejectionReason: string | null;
+  rejectionNote: string | null;
 }
 
 export interface HorseRow {
@@ -47,6 +66,8 @@ export interface HorseRow {
   riderEmail: string | null;
   classesCount: number;
   isStallion: boolean;
+  height: string | null;
+  farrier: string | null;
   documents: HorseDocumentStatus[];
 
   complete: boolean;
@@ -136,17 +157,21 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
   const uploadsByHorseId = new Map<string, RawUpload[]>();
   const stallionByHorseId = new Map<string, boolean>();
   const riderIdByHorseId = new Map<string, string | null>();
+  const heightByHorseId = new Map<string, string | null>();
+  const farrierByHorseId = new Map<string, string | null>();
 
   if (horseIds.length > 0) {
     const { data: records, error } = await supabase
       .from('horses')
-      .select('id, document_uploads, is_stallion, rider_id')
+      .select('id, document_uploads, is_stallion, rider_id, height, farrier')
       .in('id', horseIds);
     if (error) throw error;
     for (const r of records) {
       uploadsByHorseId.set(r.id, (r.document_uploads ?? []) as unknown as RawUpload[]);
       stallionByHorseId.set(r.id, r.is_stallion ?? false);
       riderIdByHorseId.set(r.id, r.rider_id);
+      heightByHorseId.set(r.id, r.height);
+      farrierByHorseId.set(r.id, r.farrier);
     }
   }
 
@@ -179,7 +204,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
           !!req.requiresExpiration &&
           !!up.expirationDate &&
           up.expirationDate < todayStr;
-        const needsApproval = uploaded && !!req.requiresApproval && !up.verified;
+        const status = uploaded ? resolveReviewStatus(up) : 'pending';
+        const needsApproval = uploaded && !!req.requiresApproval && status === 'pending';
 
         let url: string | null = null;
         if (uploaded && up.path) {
@@ -197,17 +223,26 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
           expirationDate: up?.expirationDate ?? null,
           requiresExpiration: !!req.requiresExpiration,
           requiresApproval: !!req.requiresApproval,
-          verified: !!up?.verified,
+          verified: status === 'approved',
           expired,
           needsApproval,
+          status,
+          rejectionReason: up?.rejectionReason ?? null,
+          rejectionNote: up?.rejectionNote ?? null,
         };
       }),
     );
   }
 
   function summarize(documents: HorseDocumentStatus[]) {
+    const blocked = (d: HorseDocumentStatus) =>
+      !d.uploaded ||
+      d.expired ||
+      d.needsApproval ||
+      d.status === 'rejected' ||
+      d.status === 'replacement_requested';
     return {
-      complete: documents.every((d) => d.uploaded && !d.expired && !d.needsApproval),
+      complete: documents.every((d) => !blocked(d)),
       missingLabels: documents.filter((d) => !d.uploaded).map((d) => d.label),
       needsVerification: documents.some((d) => d.needsApproval),
       cogginsExpired: documents.some((d) => d.label === COGGINS_LABEL && d.expired),
@@ -236,6 +271,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         riderEmail: riderId ? (emailByRiderId.get(riderId) ?? null) : null,
         classesCount: group.classes,
         isStallion: group.horseId ? (stallionByHorseId.get(group.horseId) ?? false) : false,
+        height: group.horseId ? (heightByHorseId.get(group.horseId) ?? null) : null,
+        farrier: group.horseId ? (farrierByHorseId.get(group.horseId) ?? null) : null,
         documents,
         complete,
         missingLabels,
@@ -257,6 +294,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         riderEmail: null,
         classesCount: 0,
         isStallion: mh.isStallion,
+        height: null,
+        farrier: null,
         documents,
         complete,
         missingLabels,

@@ -5,12 +5,22 @@ import {
   MAX_STABLES,
   MAX_STALLS_PER_STABLE,
 } from '@/modules/organizations/constants';
+import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 const optionalText = (max: number) =>
   z
     .string()
     .trim()
     .max(max)
+    .optional()
+    .transform((value) => (value === '' ? undefined : value));
+
+const optionalPhone = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((value) => (value === '' ? undefined : value));
 
@@ -24,7 +34,7 @@ export const completeOrgProfileSchema = z.object({
   name: z.string().trim().min(2, 'Organization name is required').max(160),
   email: z.email('Enter a valid email address'),
   website: optionalText(200),
-  phone: optionalText(60),
+  phone: optionalPhone(60),
   city: optionalText(120),
   region: optionalText(120),
   country: optionalText(120),
@@ -37,7 +47,7 @@ export const addOrgMemberSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
   email: z.email('Enter a valid email address'),
-  phone: optionalText(40),
+  phone: optionalPhone(40),
   role: optionalText(60),
   membershipStatus: z.enum(['active', 'inactive']).default('active'),
   membershipExpires: optionalText(20),
@@ -67,7 +77,7 @@ export const venueFormSchema = z.object({
   name: z.string().trim().min(1, 'Venue name is required').max(160),
   address: optionalText(240),
   website: optionalText(200),
-  phone: optionalText(60),
+  phone: optionalPhone(60),
   contact: optionalText(120),
   rings: z.array(ringRowSchema).max(MAX_RINGS).default([]),
   stables: z.array(venueStableSchema).max(MAX_STABLES).default([]),
@@ -94,7 +104,7 @@ const memberFields = {
   name: z.string().trim().min(1, 'A name is required').max(200),
   role: z.enum(MEMBER_TYPES),
   email: z.union([z.email('Enter a valid email address'), z.literal('')]).optional(),
-  phone: optionalText(60),
+  phone: optionalPhone(60),
   membershipStatus: z.enum(['active', 'inactive']),
 
   membershipExpires: z
