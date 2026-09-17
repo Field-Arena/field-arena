@@ -330,6 +330,19 @@ export const addCatalogGroupSchema = z.object({
 
 export type AddCatalogGroupInput = z.input<typeof addCatalogGroupSchema>;
 
+export const updateGroupLocationSchema = z.object({
+  showId: z.uuid(),
+  group: z.string().trim().min(1).max(120),
+  location: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => v ?? ''),
+});
+
+export type UpdateGroupLocationInput = z.input<typeof updateGroupLocationSchema>;
+
 export const addCustomClassSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(2, 'Name this class').max(160),

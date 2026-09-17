@@ -10,6 +10,7 @@ import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 import {
   useAddCatalogGroup,
   useRemoveCatalogGroup,
+  useUpdateGroupLocation,
 } from '@/modules/shows/hooks/use-select-events-mutations';
 import { SM_SELECT } from '@/modules/shows/ui/show-manager/tokens';
 
@@ -36,6 +37,7 @@ export function GroupRow({
 
   const add = useAddCatalogGroup();
   const remove = useRemoveCatalogGroup();
+  const updateLocation = useUpdateGroupLocation();
   const pending = add.isPending || remove.isPending;
 
   function toggle() {
@@ -85,7 +87,9 @@ export function GroupRow({
         <select
           value={location}
           onChange={(e) => {
-            setLocation(e.target.value);
+            const next = e.target.value;
+            setLocation(next);
+            if (selected) updateLocation.mutate({ showId: data.showId, group, location: next });
           }}
           aria-label={`Location for ${group}`}
           className={cn(SM_SELECT, 'w-auto min-w-[150px] flex-none py-2 text-[13px]')}

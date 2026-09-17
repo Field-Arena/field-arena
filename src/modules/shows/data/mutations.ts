@@ -26,6 +26,7 @@ import {
   saveWaiverTextSchema,
   updateTicketWindowSchema,
   addCatalogGroupSchema,
+  updateGroupLocationSchema,
   addCustomClassSchema,
   createTocClassSchema,
   addQualTypePresetSchema,
@@ -640,6 +641,21 @@ export async function removeCatalogGroup(input: unknown): Promise<void> {
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(SHOWS_PATH);
+  revalidatePath(SCHEDULE_PATH);
+}
+
+export async function updateGroupLocation(input: unknown): Promise<void> {
+  const parsed = parseInput(updateGroupLocationSchema, input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase
+    .from('classes')
+    .update({ location: parsed.location || null })
+    .eq('show_id', parsed.showId)
+    .eq('division', parsed.group);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(SCHEDULE_PATH);
 }
 

@@ -10,6 +10,7 @@ import {
   addQualTypePreset,
   createTocClass,
   removeCatalogGroup,
+  updateGroupLocation,
   updateTicketWindow,
 } from '@/modules/shows/data/mutations';
 import type {
@@ -17,6 +18,7 @@ import type {
   AddCustomClassInput,
   AddQualTypePresetInput,
   CreateTocClassInput,
+  UpdateGroupLocationInput,
   UpdateTicketWindowInput,
 } from '@/modules/shows/schemas';
 
@@ -67,6 +69,21 @@ export function useRemoveCatalogGroup() {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not remove these classes'));
+    },
+  });
+}
+
+export function useUpdateGroupLocation() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: UpdateGroupLocationInput) => updateGroupLocation(input),
+    onSuccess: () => {
+      toast.success('Location saved');
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not save this location'));
     },
   });
 }
