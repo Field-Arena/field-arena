@@ -1,20 +1,35 @@
-const NOT_BUILT_TIP = 'Not built yet — coming in a later update';
-const DISABLED_TABS = ['By Product', 'By Rider'] as const;
+export type EventSalesViewMode = 'customer' | 'product' | 'rider';
 
-export function EventSalesViewTabs() {
+const TABS: { mode: EventSalesViewMode; label: string }[] = [
+  { mode: 'customer', label: 'By Customer' },
+  { mode: 'product', label: 'By Product' },
+  { mode: 'rider', label: 'By Rider' },
+];
+
+export function EventSalesViewTabs({
+  mode,
+  onChange,
+}: {
+  mode: EventSalesViewMode;
+  onChange: (mode: EventSalesViewMode) => void;
+}) {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
-      <span className="rounded-[9px] bg-[#0D2C23] px-4 py-2 text-[13px] font-bold text-white">
-        By Customer
-      </span>
-      {DISABLED_TABS.map((label) => (
-        <span
-          key={label}
-          title={NOT_BUILT_TIP}
-          className="cursor-not-allowed rounded-[9px] border border-[#D9E1DD] bg-white px-4 py-2 text-[13px] font-semibold text-[#B7C0BB]"
+      {TABS.map((tab) => (
+        <button
+          key={tab.mode}
+          type="button"
+          onClick={() => {
+            onChange(tab.mode);
+          }}
+          className={
+            tab.mode === mode
+              ? 'rounded-[9px] bg-[#0D2C23] px-4 py-2 text-[13px] font-bold text-white'
+              : 'rounded-[9px] border border-[#D9E1DD] bg-white px-4 py-2 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:border-[#0D2C23]'
+          }
         >
-          {label}
-        </span>
+          {tab.label}
+        </button>
       ))}
     </div>
   );
