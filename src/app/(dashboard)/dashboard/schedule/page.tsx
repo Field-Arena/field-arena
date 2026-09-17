@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getMasterSchedule } from '@/modules/shows/data/setup-queries';
+import {
+  getMasterSchedule,
+  getShowSetupDetail,
+  listClasses,
+} from '@/modules/shows/data/setup-queries';
 import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { MasterScheduleView } from '@/modules/shows/ui/schedule/master-schedule-view';
+import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
 
 export const metadata: Metadata = { title: 'Master Schedule — Field & Arena' };
 
@@ -30,7 +35,11 @@ export default async function MasterSchedulePage({
     );
   }
 
-  const data = await getMasterSchedule(context.currentShow.id);
+  const [data, showDetail, classes] = await Promise.all([
+    getMasterSchedule(context.currentShow.id),
+    getShowSetupDetail(context.currentShow.id),
+    listClasses(context.currentShow.id),
+  ]);
   const hasRides = data?.schedule.arenas.some((a) => a.items.some((it) => it.type === 'ride'));
 
   return (
@@ -54,7 +63,26 @@ export default async function MasterSchedulePage({
           />
         )
       ) : (
-        <MasterScheduleView data={data} />
+        <>
+          {/* Pacing/order/lunch/day-time preferences moved here from Setup —
+              client feedback: deciding these before any entries exist is
+              premature, they only make sense once there's a real schedule to
+              tune (client's own words: "should be made after the entries
+              are done"). This page already gates everything below on
+              hasRides, which is exactly that condition. */}
+          {showDetail && (
+            <SchedulePreferencesCard
+              showId={context.currentShow.id}
+              startDate={showDetail.startDate}
+              endDate={showDetail.endDate}
+              prefs={showDetail.schedulePrefs}
+              dayStartTimes={showDetail.dayStartTimes}
+              dayEndTimes={showDetail.dayEndTimes}
+              classes={classes}
+            />
+          )}
+          <MasterScheduleView data={data} />
+        </>
       )}
     </WorkspacePage>
   );

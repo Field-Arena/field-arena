@@ -545,9 +545,21 @@ export async function getShowCompleteness(showId: string): Promise<ShowCompleten
       ok: docs.length > 0,
     },
     {
+      /* "No merchandise sales" is itself a complete, deliberate answer — this
+       * used to require merchEnabled to be true, so an organizer who
+       * correctly selected "No" saw this flagged as unfinished forever, with
+       * no way to ever clear it. The only genuinely incomplete state is
+       * "Yes" with no items actually added yet. */
       name: 'Merchandise Sales',
-      items: [{ label: 'Storefront turned on', ok: catalog.merchEnabled }],
-      ok: catalog.merchEnabled,
+      items: [
+        {
+          label: catalog.merchEnabled
+            ? 'At least one item added'
+            : 'Marked as no merchandise sales',
+          ok: !catalog.merchEnabled || catalog.merchItems.length > 0,
+        },
+      ],
+      ok: !catalog.merchEnabled || catalog.merchItems.length > 0,
     },
     {
       name: 'Staffing',
@@ -1655,8 +1667,7 @@ export async function getShowAwards(
         ? (entry.test_override as Record<string, unknown>)
         : null;
     const overrideName = typeof override?.name === 'string' ? override.name : null;
-    const testName =
-      overrideName ?? classTestNameById.get(entry.class_id) ?? 'No test assigned';
+    const testName = overrideName ?? classTestNameById.get(entry.class_id) ?? 'No test assigned';
     testTally[testName] = (testTally[testName] ?? 0) + 1;
   }
   const testTotal = Object.values(testTally).reduce((sum, n) => sum + n, 0);

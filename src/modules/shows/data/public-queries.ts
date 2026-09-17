@@ -38,9 +38,12 @@ export interface PublicShowListItem {
 }
 
 /**
- * The public shows directory — every published, publicly-visible show, newest
- * first. One link (`/shows`) an organizer can post once; anyone who opens it
- * sees every show they've published and can pick one to view and enter.
+ * The public shows directory — every published, publicly-visible show that
+ * hasn't already finished, newest first. One link (`/shows`) an organizer
+ * can post once; anyone who opens it sees every show they've published and
+ * can pick one to view and enter — a show that already ended can't be
+ * entered, so it's excluded rather than left to clutter the list. A show
+ * with no dates at all can't be judged past/future, so it stays visible.
  *
  * Same security note as getPublicShowPage: `shows_select_published` is what
  * actually filters this to published shows at public orgs — a plain anon
@@ -49,10 +52,15 @@ export interface PublicShowListItem {
 export async function listPublicShows(): Promise<PublicShowListItem[]> {
   const supabase = await createServerClient();
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const { data: shows, error } = await supabase
     .from('shows')
     .select('id, name, date_label, start_date, end_date, org_id, venue_name, logo_path')
     .eq('published', true)
+    .or(
+      `end_date.gte.${today},and(end_date.is.null,start_date.gte.${today}),and(end_date.is.null,start_date.is.null)`,
+    )
     .order('start_date', { ascending: false, nullsFirst: false });
   if (error) throw error;
   if (shows.length === 0) return [];
