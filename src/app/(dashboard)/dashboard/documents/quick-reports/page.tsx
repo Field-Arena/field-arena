@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
+import { getQuickReportsPageData } from '@/modules/shows/data/quick-reports-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
-import { HorsesReportScreen } from '@/modules/shows/ui/filing-cabinet/horses-report-screen';
+import { QuickReportsScreen } from '@/modules/shows/ui/filing-cabinet/quick-reports-screen';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Quick Reports — Field & Arena' };
@@ -15,7 +15,7 @@ export default async function QuickReportsPage({
   const { show: requestedShowId } = await searchParams;
   const context = await getOrganizerContext(requestedShowId);
 
-  const data = context.currentShow ? await getHorsesPageData(context.currentShow.id) : null;
+  const data = context.currentShow ? await getQuickReportsPageData(context.currentShow.id) : null;
 
   return (
     <FilingCabinetShell
@@ -25,7 +25,7 @@ export default async function QuickReportsPage({
       currentShow={context.currentShow}
     >
       {data ? (
-        <HorsesReportScreen data={data} />
+        <QuickReportsScreen data={data} />
       ) : (
         <EmptyPanel
           title="Show not found"
