@@ -3,6 +3,8 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
+import { awardUnitsFor, type AwardClassInput } from '@/modules/shows/awards-engine';
+import { ribbonFor, type RibbonColor } from '@/modules/shows/constants';
 
 export interface ShowListItem {
   id: string;
@@ -502,6 +504,8 @@ function ticketCloseAt(value: string | null): number | null {
 }
 
 export interface ShowResultRow {
+  unitLabel: string;
+  pooled: boolean;
   classId: string;
   className: string;
   division: string | null;
@@ -512,6 +516,10 @@ export interface ShowResultRow {
   testName: string | null;
   pct: number | null;
   rank: number | null;
+  ribbonPlace: string | null;
+  ribbonName: string | null;
+  ribbonBg: string | null;
+  ribbonFg: string | null;
 }
 
 function extractResultTestName(override: unknown): string | null {
@@ -568,13 +576,19 @@ function rankByTest(
  * each class — this is the source for the organizer-facing CSV export
  * (Show Manager → Results). Unscored entries (no final_pct yet) are still
  * listed with pct/rank null, so the export doubles as a full-roster sheet,
- * not just a winners list. */
+ * not just a winners list.
+ *
+ * Classes sharing an award_scope of 'division'/'group' (the same pooling
+ * the Awards screen already uses, via awardUnitsFor) are ranked together
+ * as one combined placing here too — previously this ranked strictly per
+ * class, so a class configured to share a championship with others still
+ * showed separate, wrong placings/ribbons on this screen. */
 export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
   const supabase = await createServerClient();
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
-    .select('id, label, division')
+    .select('id, label, division, group_name, award_scope, ribbon_places, ribbon_colors')
     .eq('show_id', showId)
     .order('label');
   if (classError) throw classError;
@@ -595,11 +609,28 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
     entriesByClass.set(e.class_id, list);
   }
 
+  const classById = new Map(classes.map((c) => [c.id, c]));
+
+  const awardInputs: AwardClassInput[] = classes.map((c) => ({
+    id: c.id,
+    label: c.label,
+    awardScope: c.award_scope,
+    division: c.division,
+    groupName: c.group_name,
+    ribbonPlaces: c.ribbon_places ?? 6,
+    ribbonColors: c.ribbon_colors as RibbonColor[] | null,
+    entries: [],
+  }));
+  const units = awardUnitsFor(awardInputs);
+
   const rows: ShowResultRow[] = [];
-  for (const cls of classes) {
-    const classEntries = entriesByClass.get(cls.id) ?? [];
-    const parsed = classEntries.map((e) => ({
+  for (const unit of units) {
+    const unitEntries = unit.classes.flatMap((cls) =>
+      (entriesByClass.get(cls.id) ?? []).map((e) => ({ ...e, classId: cls.id })),
+    );
+    const parsed = unitEntries.map((e) => ({
       entryId: e.id,
+      classId: e.classId,
       num: e.num,
       rider: e.rider ?? '—',
       horse: e.horse ?? '—',
@@ -609,17 +640,27 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
     }));
     const ranks = rankByTest(parsed);
     for (const e of parsed) {
+      const cls = classById.get(e.classId);
+      const rank = ranks.get(e.entryId) ?? null;
+      const earnsRibbon = rank !== null && rank <= unit.ribbonPlaces;
+      const ribbon = earnsRibbon ? ribbonFor(rank - 1, unit.ribbonColors) : null;
       rows.push({
-        classId: cls.id,
-        className: cls.label,
-        division: cls.division,
+        unitLabel: unit.label,
+        pooled: unit.pooled,
+        classId: e.classId,
+        className: cls?.label ?? unit.label,
+        division: cls?.division ?? null,
         entryId: e.entryId,
         num: e.num,
         rider: e.rider,
         horse: e.horse,
         testName: e.testName,
         pct: e.pct,
-        rank: ranks.get(e.entryId) ?? null,
+        rank,
+        ribbonPlace: ribbon?.place ?? null,
+        ribbonName: ribbon?.name ?? null,
+        ribbonBg: ribbon?.bg ?? null,
+        ribbonFg: ribbon?.fg ?? null,
       });
     }
   }

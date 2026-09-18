@@ -23,19 +23,23 @@ export function ResultsPanel({
   rows: ShowResultRow[];
   canExportRoster: boolean;
 }) {
-  const byClass = new Map<string, ShowResultRow[]>();
+  const byUnit = new Map<string, ShowResultRow[]>();
   for (const row of rows) {
-    const list = byClass.get(row.classId) ?? [];
+    const list = byUnit.get(row.unitLabel) ?? [];
     list.push(row);
-    byClass.set(row.classId, list);
+    byUnit.set(row.unitLabel, list);
+  }
+  for (const unitRows of byUnit.values()) {
+    unitRows.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
   }
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
         <p className="text-[13.5px] text-[#5A6B63]">
-          Every class&apos;s riders and scores, ranked per test for Test of Choice classes.
-          Unscored riders are included so this doubles as a full roster.
+          Every class&apos;s riders and scores, ranked per test for Test of Choice classes and
+          combined for classes sharing a championship. Unscored riders are included so this
+          doubles as a full roster.
         </p>
         {canExportRoster && (
           <PrimaryButton
@@ -59,36 +63,47 @@ export function ResultsPanel({
         )}
       </div>
 
-      {byClass.size === 0 ? (
+      {byUnit.size === 0 ? (
         <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
           No classes yet.
         </Card>
       ) : (
-        [...byClass.entries()].map(([classId, classRows]) => {
-          const distinctTests = new Set(classRows.map((r) => r.testName ?? ''));
+        [...byUnit.entries()].map(([unitLabel, unitRows]) => {
+          const distinctTests = new Set(unitRows.map((r) => r.testName ?? ''));
           const isMultiTest = distinctTests.size > 1;
+          const pooled = unitRows[0]?.pooled ?? false;
+          const pooledClasses = pooled
+            ? [...new Set(unitRows.map((r) => r.className))].sort((a, b) => a.localeCompare(b))
+            : [];
           return (
-            <Card key={classId} className="p-[16px_18px]">
-              <h3 className="text-ink-deep mb-2 font-[Newsreader,serif] text-[17px] font-semibold">
-                {classRows[0]?.className}
-                {classRows[0]?.division ? (
+            <Card key={unitLabel} className="p-[16px_18px]">
+              <h3 className="text-ink-deep mb-1 font-[Newsreader,serif] text-[17px] font-semibold">
+                {unitLabel}
+                {unitRows[0]?.division ? (
                   <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
-                    ({classRows[0].division})
+                    ({unitRows[0].division})
                   </span>
                 ) : null}
               </h3>
+              {pooled && (
+                <p className="mb-2 text-[12px] text-[#7A8781]">
+                  Combined placing across: {pooledClasses.join(', ')}
+                </p>
+              )}
               <Table className="border-collapse text-[13.5px]">
                 <TableHeader className="[&_tr]:border-0">
                   <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
                     <TableHead className="h-auto p-2">Place</TableHead>
+                    <TableHead className="h-auto p-2">Ribbon</TableHead>
                     <TableHead className="h-auto p-2">Rider</TableHead>
                     <TableHead className="h-auto p-2">Horse</TableHead>
+                    {pooled && <TableHead className="h-auto p-2">Class</TableHead>}
                     {isMultiTest && <TableHead className="h-auto p-2">Test</TableHead>}
                     <TableHead className="h-auto p-2 text-right">Score</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {classRows.map((row) => (
+                  {unitRows.map((row) => (
                     <TableRow
                       key={row.entryId}
                       className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent"
@@ -96,12 +111,27 @@ export function ResultsPanel({
                       <TableCell className="text-ink-deep p-2 font-bold whitespace-normal">
                         {row.rank ?? '—'}
                       </TableCell>
+                      <TableCell className="p-2 whitespace-normal">
+                        {row.ribbonName && (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ background: row.ribbonBg ?? undefined, color: row.ribbonFg ?? undefined }}
+                          >
+                            {row.ribbonPlace} · {row.ribbonName}
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-ink-deep p-2 whitespace-normal">
                         {row.rider}
                       </TableCell>
                       <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
                         {row.horse}
                       </TableCell>
+                      {pooled && (
+                        <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
+                          {row.className}
+                        </TableCell>
+                      )}
                       {isMultiTest && (
                         <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
                           {row.testName ?? '—'}
