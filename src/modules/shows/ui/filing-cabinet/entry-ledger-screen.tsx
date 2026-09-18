@@ -24,6 +24,7 @@ import {
   useUpdateBridleNumber,
   useUpdateBackNumber,
 } from '@/modules/shows/hooks/use-entry-ledger-mutations';
+import { EntryDetailDialog } from '@/modules/shows/ui/filing-cabinet/entry-detail-dialog';
 
 const DOC_STATUS_TONE: Record<DocumentRollupStatus, StatusTone> = {
   complete: 'success',
@@ -78,6 +79,8 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
   const updateEntryNumber = useUpdateEntryNumber();
   const updateBridleNumber = useUpdateBridleNumber();
   const updateBackNumber = useUpdateBackNumber();
+  const [openEntryId, setOpenEntryId] = useState<string | null>(null);
+  const openRow = rows.find((r) => r.showEntryId === openEntryId) ?? null;
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
@@ -130,8 +133,18 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
             </TableHeader>
             <TableBody>
               {rows.map((row) => (
-                <TableRow key={row.showEntryId}>
-                  <TableCell>
+                <TableRow
+                  key={row.showEntryId}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setOpenEntryId(row.showEntryId);
+                  }}
+                >
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     <NumberCell
                       value={row.entryNumber}
                       pending={updateEntryNumber.isPending}
@@ -140,7 +153,11 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
                       }}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     <NumberCell
                       value={row.bridleNumber}
                       pending={updateBridleNumber.isPending}
@@ -149,7 +166,11 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
                       }}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     <NumberCell
                       value={row.backNumber ?? ''}
                       pending={updateBackNumber.isPending}
@@ -185,7 +206,11 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
                       {DOC_STATUS_LABEL[row.documentStatus]}
                     </StatusBadge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     {row.openIssueCount > 0 ? (
                       <Link
                         href={`/dashboard/documents/issues?show=${showId}`}
@@ -203,6 +228,13 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
           </Table>
         </Card>
       )}
+
+      <EntryDetailDialog
+        row={openRow}
+        onClose={() => {
+          setOpenEntryId(null);
+        }}
+      />
     </div>
   );
 }

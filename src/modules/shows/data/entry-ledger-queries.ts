@@ -8,6 +8,27 @@ export type ShowEntryStatus = (typeof SHOW_ENTRY_STATUSES)[number];
 
 export type DocumentRollupStatus = 'complete' | 'needs_attention' | 'missing';
 
+export interface EntryDetailClassLine {
+  classId: string;
+  classLabel: string;
+  fee: number;
+}
+
+export interface EntryDetailDocument {
+  requirementId: string;
+  label: string;
+  status: string;
+  expirationDate: string | null;
+}
+
+export interface EntryDetailIssue {
+  id: string;
+  kind: string;
+  message: string;
+  detail: string | null;
+  status: string;
+}
+
 export interface EntryLedgerRow {
   showEntryId: string;
   showHorseId: string;
@@ -19,12 +40,15 @@ export interface EntryLedgerRow {
   horseName: string;
   horseId: string | null;
   classes: string[];
+  classLines: EntryDetailClassLine[];
   status: ShowEntryStatus;
   fees: number;
   amountPaid: number;
   balance: number;
   documentStatus: DocumentRollupStatus;
+  documents: EntryDetailDocument[];
   openIssueCount: number;
+  issues: EntryDetailIssue[];
 }
 
 export interface EntryLedgerPageData {
@@ -99,13 +123,17 @@ export async function getEntryLedgerPageData(showId: string): Promise<EntryLedge
 
   const { data: openIssues, error: issuesError } = await supabase
     .from('entry_issues')
-    .select('show_entry_id')
+    .select('id, show_entry_id, kind, message, detail, status')
     .eq('show_id', showId)
     .eq('status', 'open');
   if (issuesError) throw issuesError;
   const openIssueCountByEntry = new Map<string, number>();
+  const issuesByEntry = new Map<string, EntryDetailIssue[]>();
   for (const row of openIssues) {
     openIssueCountByEntry.set(row.show_entry_id, (openIssueCountByEntry.get(row.show_entry_id) ?? 0) + 1);
+    const list = issuesByEntry.get(row.show_entry_id) ?? [];
+    list.push({ id: row.id, kind: row.kind, message: row.message, detail: row.detail, status: row.status });
+    issuesByEntry.set(row.show_entry_id, list);
   }
 
   const horseRowByKey = new Map<string, HorseRow>();
@@ -128,12 +156,15 @@ export async function getEntryLedgerPageData(showId: string): Promise<EntryLedge
     const myClassEntries = entriesByShowEntryId.get(entry.id) ?? [];
 
     const classLabels: string[] = [];
+    const classLines: EntryDetailClassLine[] = [];
     let fees = 0;
     let amountPaid = 0;
     for (const ce of myClassEntries) {
       const cls = classById.get(ce.class_id);
       if (cls) {
-        classLabels.push(cls.display_name ?? cls.label);
+        const label = cls.display_name ?? cls.label;
+        classLabels.push(label);
+        classLines.push({ classId: cls.id, classLabel: label, fee: cls.fee ?? 0 });
         fees += cls.fee ?? 0;
       }
       if (ce.order_id) {
@@ -169,12 +200,20 @@ export async function getEntryLedgerPageData(showId: string): Promise<EntryLedge
       horseName,
       horseId,
       classes: classLabels.sort((a, b) => a.localeCompare(b)),
+      classLines: classLines.sort((a, b) => a.classLabel.localeCompare(b.classLabel)),
       status: entry.status as ShowEntryStatus,
       fees,
       amountPaid,
       balance: Math.max(0, fees - amountPaid),
       documentStatus,
+      documents: (horseRow?.documents ?? []).map((d) => ({
+        requirementId: d.requirementId,
+        label: d.label,
+        status: d.status,
+        expirationDate: d.expirationDate,
+      })),
       openIssueCount: openIssueCountByEntry.get(entry.id) ?? 0,
+      issues: issuesByEntry.get(entry.id) ?? [],
     };
   });
 
