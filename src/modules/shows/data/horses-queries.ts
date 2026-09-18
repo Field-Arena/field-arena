@@ -131,14 +131,21 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
 
     for (const entry of entries) {
       if (!entry.horse) continue;
-      const existing = byHorse.get(entry.horse);
+      // Grouping by name text alone merged two different horses that
+      // happen to share a name (e.g. two riders both naming a horse
+      // "Midnight") into one row, silently dropping one horse's identity.
+      // horse_id is the real identity; only entries with no linked horse
+      // row (manual/legacy) fall back to matching by name, same as
+      // horseRowKey() elsewhere in this module.
+      const key = entry.horse_id ?? entry.horse;
+      const existing = byHorse.get(key);
       if (existing) {
         existing.classes += 1;
         existing.horseId ??= entry.horse_id;
         existing.riderId ??= entry.rider_id;
         if (entry.rider) existing.riderNames.add(entry.rider);
       } else {
-        byHorse.set(entry.horse, {
+        byHorse.set(key, {
           name: entry.horse,
           rider: entry.rider,
           riderId: entry.rider_id,
