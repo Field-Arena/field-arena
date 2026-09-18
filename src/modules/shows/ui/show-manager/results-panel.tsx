@@ -122,7 +122,7 @@ export function ResultsPanel({
                         )}
                       </TableCell>
                       <TableCell className="text-ink-deep p-2 whitespace-normal">
-                        {row.rider}
+                        <span className="text-[#98A29D]">#{row.num}</span> {row.rider}
                       </TableCell>
                       <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
                         {row.horse}

@@ -597,10 +597,28 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
   const classIds = classes.map((c) => c.id);
   const { data: entries, error: entryError } = await supabase
     .from('class_entries')
-    .select('id, class_id, num, rider, horse, final_pct, collective_total, test_override')
+    .select('id, class_id, num, rider, rider_id, horse, final_pct, collective_total, test_override')
     .in('class_id', classIds)
     .order('ride_order');
   if (entryError) throw entryError;
+
+  // entry.rider is a denormalized text snapshot that can be blank for a real
+  // account (nothing captures a rider's own first/last name at signup —
+  // only the waiver's typed signature does, and only from here on). Resolve
+  // through the real riders row first, falling back to the text/email chain
+  // used elsewhere in this codebase, rather than showing a blank name.
+  const riderIds = [...new Set(entries.map((e) => e.rider_id).filter((id): id is string => !!id))];
+  const { data: riderRows, error: ridersError } = riderIds.length
+    ? await supabase.from('riders').select('id, first_name, last_name, email').in('id', riderIds)
+    : { data: [], error: null };
+  if (ridersError) throw ridersError;
+  const riderById = new Map(riderRows.map((r) => [r.id, r]));
+
+  function resolveRiderName(e: { rider: string | null; rider_id: string | null }): string {
+    const riderRow = e.rider_id ? riderById.get(e.rider_id) : undefined;
+    const fromAccount = riderRow ? [riderRow.first_name, riderRow.last_name].filter(Boolean).join(' ') : '';
+    return [fromAccount, e.rider, riderRow?.email].find((v) => v?.trim()) ?? '—';
+  }
 
   const entriesByClass = new Map<string, typeof entries>();
   for (const e of entries) {
@@ -632,7 +650,7 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
       entryId: e.id,
       classId: e.classId,
       num: e.num,
-      rider: e.rider ?? '—',
+      rider: resolveRiderName(e),
       horse: e.horse ?? '—',
       testName: extractResultTestName(e.test_override),
       pct: parseResultPct(e.final_pct),
