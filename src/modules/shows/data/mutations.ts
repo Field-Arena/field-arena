@@ -1162,7 +1162,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
 
   const { data: template, error: templateError } = await supabase
     .from('test_templates')
-    .select('name, movements, collectives, sections')
+    .select('name, movements, collectives, sections, version_year')
     .eq('id', parsed.templateId)
     .single();
   if (templateError) throw new Error(templateError.message);
@@ -1171,6 +1171,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
     {
       class_id: parsed.classId,
       name: template.name,
+      edition: template.version_year,
       movements: template.movements,
       collectives: template.collectives,
       sections: template.sections,

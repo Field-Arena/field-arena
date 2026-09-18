@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getEntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
+import { getTestPrintCounts } from '@/modules/shows/data/test-print-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { PrintCenterScreen } from '@/modules/shows/ui/filing-cabinet/print-center-screen';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
@@ -15,7 +16,12 @@ export default async function PrintCenterPage({
   const { show: requestedShowId } = await searchParams;
   const context = await getOrganizerContext(requestedShowId);
 
-  const data = context.currentShow ? await getEntryLedgerPageData(context.currentShow.id) : null;
+  const [data, testPrintData] = context.currentShow
+    ? await Promise.all([
+        getEntryLedgerPageData(context.currentShow.id),
+        getTestPrintCounts(context.currentShow.id),
+      ])
+    : [null, null];
 
   return (
     <FilingCabinetShell
@@ -25,7 +31,7 @@ export default async function PrintCenterPage({
       currentShow={context.currentShow}
     >
       {data ? (
-        <PrintCenterScreen data={data} />
+        <PrintCenterScreen data={data} testPrintData={testPrintData} />
       ) : (
         <EmptyPanel title="Show not found" note="This show may have been removed." />
       )}
