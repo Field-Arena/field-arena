@@ -99,10 +99,10 @@ export function ShowPickerCombobox({
                     onClick={() => {
                       selectShow(show.id);
                     }}
-                    className={`block w-full truncate px-3 py-2 text-left text-[13.5px] ${
+                    className={`block w-full truncate px-3 py-2 text-left text-[13.5px] transition-colors ${
                       active
                         ? 'text-forest bg-[#EAF4EC] font-semibold'
-                        : 'text-ink-deep hover:bg-[#F5F7F6]'
+                        : 'text-ink-deep hover:bg-[#E9EDEB]'
                     }`}
                   >
                     {show.name}
