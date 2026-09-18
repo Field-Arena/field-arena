@@ -1,10 +1,12 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import {
   DEFAULT_SHOW_EXPENSES,
   PNL_CATEGORY_ORDER,
   DEFAULT_SCHEDULE_PREFS,
   UPPER_LEVELS,
+  SHOW_DOCS_BUCKET,
   type RibbonColor,
 } from '@/modules/shows/constants';
 import {
@@ -389,6 +391,18 @@ export interface ShowSetupDetail {
   merchItems: MerchItem[];
   waiverText: string | null;
   waiverApprovedText: string | null;
+  waiverDocumentUrl: string | null;
+  waiverDocumentName: string | null;
+}
+
+/* Riders have no read access to the `documents` storage bucket (RLS there
+ * is staff-only, via can_view_show) — a signed URL generated with the admin
+ * client is what lets a rider actually open the file, same pattern as
+ * resolveVendorMapUrl in modules/vendors/data/queries.ts. */
+async function resolveWaiverDocumentUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const { data } = await createAdminClient().storage.from(SHOW_DOCS_BUCKET).createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
 }
 
 export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetail | null> {
@@ -397,7 +411,7 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
   const { data, error } = await supabase
     .from('shows')
     .select(
-      'id, org_id, name, show_details, show_type, start_date, end_date, timezone, starting_rider_number, governing_bodies, venue_id, venue_name, locations, schedule_prefs, day_start_times, day_end_times, document_requirements, merchandise_enabled, merch_items, waiver_text, waiver_approved_text',
+      'id, org_id, name, show_details, show_type, start_date, end_date, timezone, starting_rider_number, governing_bodies, venue_id, venue_name, locations, schedule_prefs, day_start_times, day_end_times, document_requirements, merchandise_enabled, merch_items, waiver_text, waiver_approved_text, waiver_document_path, waiver_document_name',
     )
     .eq('id', showId)
     .maybeSingle();
@@ -439,6 +453,8 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
     merchItems: (data.merch_items ?? []) as unknown as MerchItem[],
     waiverText: data.waiver_text,
     waiverApprovedText: data.waiver_approved_text,
+    waiverDocumentUrl: await resolveWaiverDocumentUrl(data.waiver_document_path),
+    waiverDocumentName: data.waiver_document_name,
   };
 }
 

@@ -111,6 +111,8 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
           showId={show.id}
           waiverText={show.waiverText}
           waiverApprovedText={show.waiverApprovedText}
+          waiverDocumentUrl={show.waiverDocumentUrl}
+          waiverDocumentName={show.waiverDocumentName}
         />
       </div>
       <SectionFooter

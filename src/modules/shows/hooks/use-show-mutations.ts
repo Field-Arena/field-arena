@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
+import { createClient } from '@/shared/lib/supabase/client';
 import {
   createShow,
   createDraftShow,
@@ -25,6 +26,9 @@ import {
   updateMerchandise,
   saveWaiverText,
   approveWaiver,
+  createWaiverDocumentUploadUrl,
+  registerWaiverDocument,
+  removeWaiverDocument,
 } from '@/modules/shows/data/mutations';
 import type {
   CreateShowInput,
@@ -250,6 +254,54 @@ export function useApproveWaiver(options?: { onSuccess?: () => void }) {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not approve the waiver'));
+    },
+  });
+}
+
+export function useUploadWaiverDocument(options?: {
+  onSuccess?: (result: { extractedText: string | null }) => void;
+}) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async ({ showId, file }: { showId: string; file: File }) => {
+      const { path, token } = await createWaiverDocumentUploadUrl({ showId, name: file.name });
+
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from('documents')
+        .uploadToSignedUrl(path, token, file, { contentType: file.type || 'application/pdf' });
+      if (error) throw new Error(error.message);
+
+      return registerWaiverDocument({ showId, name: file.name, path });
+    },
+    onSuccess: (result) => {
+      toast.success(
+        result.extractedText
+          ? 'Waiver document uploaded — text extracted into the waiver below'
+          : 'Waiver document uploaded',
+      );
+      router.refresh();
+      options?.onSuccess?.(result);
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not upload this document'));
+    },
+  });
+}
+
+export function useRemoveWaiverDocument(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (showId: string) => removeWaiverDocument({ showId }),
+    onSuccess: () => {
+      toast.success('Waiver document removed');
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not remove this document'));
     },
   });
 }

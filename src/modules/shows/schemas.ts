@@ -678,6 +678,27 @@ export const registerShowDocumentSchema = z.object({
 
 export type RegisterShowDocumentInput = z.input<typeof registerShowDocumentSchema>;
 
+export const createWaiverDocumentUploadUrlSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+});
+
+export type CreateWaiverDocumentUploadUrlInput = z.input<typeof createWaiverDocumentUploadUrlSchema>;
+
+export const registerWaiverDocumentSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  path: z.string().trim().min(1).max(400),
+});
+
+export type RegisterWaiverDocumentInput = z.input<typeof registerWaiverDocumentSchema>;
+
+export const removeWaiverDocumentSchema = z.object({
+  showId: z.uuid(),
+});
+
+export type RemoveWaiverDocumentInput = z.input<typeof removeWaiverDocumentSchema>;
+
 export const updateScheduleRulesSchema = z.object({
   showId: z.uuid(),
   hardRuleEnabled: z.boolean().optional(),

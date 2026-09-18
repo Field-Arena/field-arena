@@ -1661,6 +1661,8 @@ export type Database = {
           venue_name: string | null
           waiver_approved_at: string | null
           waiver_approved_text: string | null
+          waiver_document_name: string | null
+          waiver_document_path: string | null
           waiver_text: string | null
         }
         Insert: {
@@ -1709,6 +1711,8 @@ export type Database = {
           venue_name?: string | null
           waiver_approved_at?: string | null
           waiver_approved_text?: string | null
+          waiver_document_name?: string | null
+          waiver_document_path?: string | null
           waiver_text?: string | null
         }
         Update: {
@@ -1757,6 +1761,8 @@ export type Database = {
           venue_name?: string | null
           waiver_approved_at?: string | null
           waiver_approved_text?: string | null
+          waiver_document_name?: string | null
+          waiver_document_path?: string | null
           waiver_text?: string | null
         }
         Relationships: [

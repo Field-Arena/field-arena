@@ -74,6 +74,7 @@ export interface PublicShowDetail {
    * RLS, so this is resolved server-side. */
   feeModel: string | null;
   orgName: string | null;
+  waiverDocumentUrl: string | null;
 }
 
 export type RiderSignUpOutcome =

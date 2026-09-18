@@ -138,7 +138,13 @@ export default async function RiderShowPage({
         </div>
       )}
 
-      <WaiverForm showId={showId} waiverText={waiverText} existingSignature={waiverSignature} />
+      <WaiverForm
+        showId={showId}
+        waiverText={waiverText}
+        existingSignature={waiverSignature}
+        waiverDocumentUrl={detail.waiverDocumentUrl}
+        waiverDocumentName={detail.show.waiver_document_name}
+      />
 
       <RiderDetailsForm rider={rider} />
 

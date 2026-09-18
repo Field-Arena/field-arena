@@ -2,6 +2,7 @@ import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
+import { SHOW_DOCS_BUCKET } from '@/modules/shows/constants';
 import {
   HORSE_DOCUMENTS_BUCKET,
   HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS,
@@ -207,12 +208,24 @@ export async function getPublicShowForRider(showId: string): Promise<PublicShowD
     .maybeSingle();
   if (orgError) throw orgError;
 
+  // The `documents` storage bucket's RLS is staff-only (can_view_show) — a
+  // signed URL from the admin client is what actually lets a rider open the
+  // file, same as venueAddress/org above.
+  let waiverDocumentUrl: string | null = null;
+  if (show.waiver_document_path) {
+    const { data: signed } = await admin.storage
+      .from(SHOW_DOCS_BUCKET)
+      .createSignedUrl(show.waiver_document_path, 3600);
+    waiverDocumentUrl = signed?.signedUrl ?? null;
+  }
+
   return {
     show,
     classes: classesWithCapacity,
     addOns: addOnsWithRemaining,
     qualTypes,
     venueAddress,
+    waiverDocumentUrl,
     feeModel: org?.fee_model ?? null,
     orgName: org?.name ?? null,
   };

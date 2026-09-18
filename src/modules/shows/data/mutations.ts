@@ -1,6 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { PDFParse } from 'pdf-parse';
+import { extractRawText } from 'mammoth';
 import type { Json } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
@@ -48,6 +50,9 @@ import {
   reorderRideSchema,
   createDocumentUploadUrlSchema,
   registerShowDocumentSchema,
+  createWaiverDocumentUploadUrlSchema,
+  registerWaiverDocumentSchema,
+  removeWaiverDocumentSchema,
 } from '@/modules/shows/schemas';
 import {
   VENDOR_SPACE_TEMPLATE,
@@ -574,6 +579,116 @@ export async function approveWaiver(showId: string, waiverText: string): Promise
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${showId}`);
+}
+
+export async function createWaiverDocumentUploadUrl(
+  input: unknown,
+): Promise<{ path: string; token: string }> {
+  const parsed = parseInput(createWaiverDocumentUploadUrlSchema, input);
+  const supabase = await createServerClient();
+
+  const safeName = parsed.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${parsed.showId}/waiver-${crypto.randomUUID()}-${safeName}`;
+
+  const { data, error } = await supabase.storage.from(SHOW_DOCS_BUCKET).createSignedUploadUrl(path);
+  if (error) throw new Error(error.message);
+
+  return { path: data.path, token: data.token };
+}
+
+async function extractPdfText(bytes: ArrayBuffer): Promise<string | null> {
+  const parser = new PDFParse({ data: new Uint8Array(bytes) });
+  try {
+    const result = await parser.getText();
+    return result.text.trim();
+  } finally {
+    await parser.destroy();
+  }
+}
+
+async function extractDocxText(bytes: ArrayBuffer): Promise<string | null> {
+  const result = await extractRawText({ buffer: Buffer.from(bytes) });
+  return result.value.trim();
+}
+
+/* PDF, Word (.docx), and plain text only — an image would need OCR, out of
+ * scope. A parse failure (encrypted/corrupt PDF, a scanned document with no
+ * text layer, an unsupported extension) degrades to no extracted text
+ * rather than failing the upload — the file still attaches and the
+ * organizer can type the waiver text themselves. */
+async function extractDocumentText(bytes: ArrayBuffer, name: string): Promise<string | null> {
+  const lower = name.toLowerCase();
+  try {
+    let text: string | null = null;
+    if (lower.endsWith('.pdf')) text = await extractPdfText(bytes);
+    else if (lower.endsWith('.docx')) text = await extractDocxText(bytes);
+    else if (lower.endsWith('.txt')) text = new TextDecoder().decode(bytes).trim();
+
+    return text && text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function registerWaiverDocument(
+  input: unknown,
+): Promise<{ extractedText: string | null }> {
+  const parsed = parseInput(registerWaiverDocumentSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: existing } = await supabase
+    .from('shows')
+    .select('waiver_document_path')
+    .eq('id', parsed.showId)
+    .single();
+
+  const { data: downloaded, error: downloadError } = await supabase.storage
+    .from(SHOW_DOCS_BUCKET)
+    .download(parsed.path);
+  const extractedText = downloadError
+    ? null
+    : await extractDocumentText(await downloaded.arrayBuffer(), parsed.name);
+
+  const { error } = await supabase
+    .from('shows')
+    .update({
+      waiver_document_path: parsed.path,
+      waiver_document_name: parsed.name,
+      ...(extractedText !== null ? { waiver_text: extractedText } : {}),
+    })
+    .eq('id', parsed.showId);
+  if (error) throw new Error(error.message);
+
+  if (existing?.waiver_document_path) {
+    await supabase.storage.from(SHOW_DOCS_BUCKET).remove([existing.waiver_document_path]);
+  }
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}`);
+  return { extractedText };
+}
+
+export async function removeWaiverDocument(input: unknown): Promise<void> {
+  const parsed = parseInput(removeWaiverDocumentSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from('shows')
+    .select('waiver_document_path')
+    .eq('id', parsed.showId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const { error } = await supabase
+    .from('shows')
+    .update({ waiver_document_path: null, waiver_document_name: null })
+    .eq('id', parsed.showId);
+  if (error) throw new Error(error.message);
+
+  if (existing.waiver_document_path) {
+    await supabase.storage.from(SHOW_DOCS_BUCKET).remove([existing.waiver_document_path]);
+  }
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
 
 export async function updateTicketWindow(input: unknown): Promise<void> {
