@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { ROUTES } from '@/shared/constants/routes';
 import {
   getCurrentRiderProfile,
@@ -39,14 +39,12 @@ export default async function RiderShowPage({
   searchParams: Promise<{ order?: string; checkoutSession?: string; checkoutCanceled?: string }>;
 }) {
   const { showId } = await params;
-  if (!isUuid(showId)) notFound();
+  const id = await resolveShowIdParam(showId);
+  if (!id) notFound();
 
   // Neither fetch depends on the other's result — both were previously
   // awaited one after another even though nothing here needs that order.
-  const [detail, rider] = await Promise.all([
-    getPublicShowForRider(showId),
-    getCurrentRiderProfile(),
-  ]);
+  const [detail, rider] = await Promise.all([getPublicShowForRider(id), getCurrentRiderProfile()]);
   if (!detail) notFound();
 
   if (!rider) {
@@ -80,12 +78,12 @@ export default async function RiderShowPage({
 
   const documentRequirements = parseDocumentRequirements(detail.show.document_requirements);
 
-  const entries = await listRiderEntriesForShow(showId);
+  const entries = await listRiderEntriesForShow(id);
   if (entries.length > 0) {
     const [orders, horses, ringSchedule] = await Promise.all([
-      listRiderOrdersForShow(showId),
+      listRiderOrdersForShow(id),
       listRiderHorses(),
-      getRiderRingSchedule(showId),
+      getRiderRingSchedule(id),
     ]);
     return (
       <RiderShowDashboard
@@ -105,8 +103,8 @@ export default async function RiderShowPage({
 
   const [horses, waiverSignature, knownTrainerNames] = await Promise.all([
     listRiderHorses(),
-    getWaiverSignature(showId),
-    getKnownTrainerNames(showId),
+    getWaiverSignature(id),
+    getKnownTrainerNames(id),
   ]);
 
   /* Legacy always put a waiver in front of the rider, falling back to the
@@ -145,7 +143,7 @@ export default async function RiderShowPage({
       )}
 
       <WaiverForm
-        showId={showId}
+        showId={id}
         waiverText={waiverText}
         existingSignature={waiverSignature}
         waiverDocumentUrl={detail.waiverDocumentUrl}
@@ -169,7 +167,7 @@ export default async function RiderShowPage({
       <ClassHorseAssignment classes={detail.classes} horses={horses} />
 
       <CheckoutSummary
-        showId={showId}
+        showId={id}
         classes={detail.classes}
         addOns={detail.addOns}
         qualTypes={detail.qualTypes}

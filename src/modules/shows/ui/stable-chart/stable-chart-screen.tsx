@@ -36,7 +36,13 @@ import { StablingGroupsSidebar } from '@/modules/shows/ui/stable-chart/stabling-
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
 
-export function StableChartScreen({ data }: { data: StableChartPageData }) {
+export function StableChartScreen({
+  data,
+  publicId,
+}: {
+  data: StableChartPageData;
+  publicId?: string;
+}) {
   const { showId, showName, chart, savedLocations, groups } = data;
 
   const setCount = useSetStableCount();
@@ -107,7 +113,7 @@ export function StableChartScreen({ data }: { data: StableChartPageData }) {
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-4 flex flex-wrap items-center gap-2.5 print:hidden">
-        <Link href={`/dashboard/horses?show=${showId}`} className={ghostButtonClass}>
+        <Link href={`/dashboard/horses?show=${publicId ?? showId}`} className={ghostButtonClass}>
           🐴 Back to Horses
         </Link>
         {totalStalls > 0 && (

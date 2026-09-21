@@ -366,6 +366,7 @@ export interface MerchItem {
 
 export interface ShowSetupDetail {
   id: string;
+  slug: string | null;
   orgId: string;
   name: string;
   org: string | null;
@@ -413,7 +414,7 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
   const { data, error } = await supabase
     .from('shows')
     .select(
-      'id, org_id, name, show_details, show_type, start_date, end_date, timezone, starting_rider_number, governing_bodies, venue_id, venue_name, locations, schedule_prefs, day_start_times, day_end_times, document_requirements, merchandise_enabled, merch_items, waiver_text, waiver_approved_text, waiver_document_path, waiver_document_name',
+      'id, slug, org_id, name, show_details, show_type, start_date, end_date, timezone, starting_rider_number, governing_bodies, venue_id, venue_name, locations, schedule_prefs, day_start_times, day_end_times, document_requirements, merchandise_enabled, merch_items, waiver_text, waiver_approved_text, waiver_document_path, waiver_document_name',
     )
     .eq('id', showId)
     .maybeSingle();
@@ -431,6 +432,7 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
 
   return {
     id: data.id,
+    slug: data.slug,
     orgId: data.org_id,
     name: data.name,
     org: showDetails.org ?? null,

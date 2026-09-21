@@ -5,7 +5,7 @@ import { TicketWindowCard } from '@/modules/shows/ui/show-manager/ticket-window-
 import { SelectEventsPicker } from '@/modules/shows/ui/show-manager/select-events-picker';
 import { SelectedClassesCard } from '@/modules/shows/ui/show-manager/selected-classes-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
@@ -17,7 +17,8 @@ export default async function SelectEventsPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = isUuid(showId) ? await getSelectEventsData(showId) : null;
+  const id = await resolveShowIdParam(showId);
+  const data = id ? await getSelectEventsData(id) : null;
 
   if (!data) {
     return (
@@ -35,7 +36,7 @@ export default async function SelectEventsPage({
 
   return (
     <ShowManagerShell
-      showId={data.showId}
+      showId={showId}
       showName={data.showName}
       activeTab="Select Events"
       orgName={context.orgName}
@@ -46,7 +47,7 @@ export default async function SelectEventsPage({
     >
       <TicketWindowCard data={data} />
       <SelectEventsPicker data={data} />
-      <SelectedClassesCard data={data} />
+      <SelectedClassesCard data={data} publicId={showId} />
     </ShowManagerShell>
   );
 }

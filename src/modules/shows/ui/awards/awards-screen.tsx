@@ -15,7 +15,7 @@ export function AwardsScreen({
 }: {
   awards: ShowAwards;
 
-  shows: { id: string; name: string }[];
+  shows: { id: string; slug: string | null; name: string }[];
 
   discipline: string;
 }) {

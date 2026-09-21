@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getPublicVendorApplyShow } from '@/modules/vendors/data/queries';
@@ -15,9 +15,10 @@ export default async function VendorPublicApplyPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  if (!isUuid(showId)) notFound();
+  const id = await resolveShowIdParam(showId);
+  if (!id) notFound();
 
-  const show = await getPublicVendorApplyShow(showId);
+  const show = await getPublicVendorApplyShow(id);
   if (!show) notFound();
 
   const profile = await getStaffProfile();

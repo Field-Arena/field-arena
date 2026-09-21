@@ -18,10 +18,12 @@ import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 export function DocumentsCard({
   showId,
+  publicId,
   documents,
   classes,
 }: {
   showId: string;
+  publicId?: string;
   documents: ShowDocumentRow[];
   classes: { id: string; label: string }[];
 }) {
@@ -159,7 +161,7 @@ export function DocumentsCard({
         )}
       </Card>
 
-      <SectionFooter currentTab="Documents" showId={showId} />
+      <SectionFooter currentTab="Documents" showId={publicId ?? showId} />
     </>
   );
 }

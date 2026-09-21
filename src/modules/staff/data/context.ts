@@ -69,7 +69,10 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     listShowsForOrg(orgId),
   ]);
 
-  const currentShow = shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  const currentShow =
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
+    shows[0] ??
+    null;
 
   let canViewMoney = profile.platform_role === 'Organizer' || impersonatedOrgId !== null;
   if (!canViewMoney && currentShow) {

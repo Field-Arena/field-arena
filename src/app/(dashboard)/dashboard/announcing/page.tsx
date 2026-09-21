@@ -58,7 +58,7 @@ export default async function AnnouncingPage({
 
         <p style={{ marginTop: 26 }}>
           <a
-            href={`${ANNOUNCING_RESULTS_PATH}?show=${currentShow.id}`}
+            href={`${ANNOUNCING_RESULTS_PATH}?show=${currentShow.slug ?? currentShow.id}`}
             className="dash-btn dash-btn-outline"
           >
             View results — live →

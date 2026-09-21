@@ -62,8 +62,30 @@ import {
   arenaLabelForRing,
 } from '@/modules/shows/constants';
 import { formatDateShort } from '@/shared/lib/format/date';
+import { slugify } from '@/modules/shows/utils/slugify';
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
+
+// Auto-generated at creation, never regenerated on rename (a show keeps
+// its URL once created — don't break a link an organizer already shared).
+// Collisions are rare (duplicate show names aren't common) but shows.name
+// has no uniqueness constraint at all, so this guards against it rather
+// than assuming it away.
+async function generateUniqueShowSlug(supabase: SupabaseClient, name: string): Promise<string> {
+  const base = slugify(name);
+  let candidate = base;
+  for (let suffix = 2; suffix < 50; suffix++) {
+    const { data, error } = await supabase
+      .from('shows')
+      .select('id')
+      .eq('slug', candidate)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return candidate;
+    candidate = `${base}-${String(suffix)}`;
+  }
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
 
 // A class's arena is never typed in directly — it always mirrors the size
 // configured for whichever ring/location it's assigned to (Venue screen),
@@ -100,7 +122,7 @@ async function resolveOrgId(): Promise<string> {
   );
 }
 
-export async function createShow(input: unknown): Promise<{ id: string }> {
+export async function createShow(input: unknown): Promise<{ id: string; slug: string }> {
   const parsed = parseInput(createShowSchema, input);
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
@@ -112,10 +134,13 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
       ? formatDateShort(parsed.startDate)
       : `${formatDateShort(parsed.startDate)} – ${formatDateShort(parsed.endDate)}`);
 
+  const slug = await generateUniqueShowSlug(supabase, parsed.name);
+
   const { error } = await supabase.from('shows').insert({
     id,
     org_id: orgId,
     name: parsed.name,
+    slug,
     venue_name: parsed.venueName ?? null,
     start_date: parsed.startDate,
     end_date: parsed.endDate,
@@ -134,18 +159,20 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
-  return { id };
+  return { id, slug };
 }
 
-export async function createDraftShow(): Promise<{ id: string }> {
+export async function createDraftShow(): Promise<{ id: string; slug: string }> {
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
   const id = crypto.randomUUID();
+  const slug = await generateUniqueShowSlug(supabase, 'New Show');
 
   const { error } = await supabase.from('shows').insert({
     id,
     org_id: orgId,
     name: 'New Show',
+    slug,
     published: false,
     status: 'yellow',
   });
@@ -154,7 +181,7 @@ export async function createDraftShow(): Promise<{ id: string }> {
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
-  return { id };
+  return { id, slug };
 }
 
 export async function createClass(input: unknown): Promise<void> {

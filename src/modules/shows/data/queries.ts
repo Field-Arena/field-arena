@@ -8,6 +8,7 @@ import { ribbonFor, type RibbonColor } from '@/modules/shows/constants';
 
 export interface ShowListItem {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -43,7 +44,9 @@ export async function listShowsForOrg(orgId: string): Promise<ShowListItem[]> {
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, end_date, status, published, venue_name, venue_id')
+    .select(
+      'id, slug, name, date_label, start_date, end_date, status, published, venue_name, venue_id',
+    )
     .eq('org_id', orgId)
     .order('start_date', { ascending: false });
   if (error) throw error;
@@ -62,6 +65,7 @@ export async function listShowsForOrg(orgId: string): Promise<ShowListItem[]> {
 
   return data.map((show) => ({
     id: show.id,
+    slug: show.slug,
     name: show.name,
     dateLabel: show.date_label,
     startDate: show.start_date,
@@ -204,6 +208,7 @@ export async function getShowManagerVitals(showId: string): Promise<ShowManagerV
 
 export interface RunShowData {
   showId: string;
+  showSlug: string | null;
   showName: string;
   stage: string;
   published: boolean;
@@ -219,7 +224,9 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
   const showResult = await supabase
     .from('shows')
-    .select('id, name, published, published_at, runner_state, waiver_text, waiver_approved_text')
+    .select(
+      'id, slug, name, published, published_at, runner_state, waiver_text, waiver_approved_text',
+    )
     .eq('id', showId)
     .maybeSingle();
   if (showResult.error) throw showResult.error;
@@ -237,6 +244,7 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
   return {
     showId: show.id,
+    showSlug: show.slug,
     showName: show.name,
     stage,
     published: show.published ?? false,
@@ -254,6 +262,7 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
 export interface IncompleteShowSummary {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -265,7 +274,7 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, venue_name')
+    .select('id, slug, name, date_label, start_date, venue_name')
     .eq('org_id', orgId)
     .eq('published', false)
     .order('start_date', { ascending: true, nullsFirst: false });
@@ -273,6 +282,7 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
 
   return data.map((s) => ({
     id: s.id,
+    slug: s.slug,
     name: s.name,
     dateLabel: s.date_label,
     startDate: s.start_date,
@@ -291,7 +301,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, venue_name, published, runner_state')
+    .select('id, slug, name, date_label, start_date, venue_name, published, runner_state')
     .eq('org_id', orgId)
     .order('start_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
@@ -322,6 +332,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 
     return {
       id: s.id,
+      slug: s.slug,
       name: s.name,
       dateLabel: s.date_label,
       startDate: s.start_date,

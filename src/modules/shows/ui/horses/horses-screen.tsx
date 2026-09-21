@@ -55,10 +55,12 @@ interface HorseCounts {
 export function HorsesScreen({
   data,
   stableChartSummary,
+  publicId,
 }: {
   data: HorsesPageData;
 
   stableChartSummary: StableChartSummary | null;
+  publicId?: string;
 }) {
   const { showId, showName, requirements, rows } = data;
   const [sort, setSort] = useState<{ col: SortCol | null; dir: 1 | -1 }>({ col: null, dir: 1 });
@@ -111,7 +113,10 @@ export function HorsesScreen({
           </ScreenLede>
         </div>
         <div className="flex flex-none items-center gap-2.5">
-          <Link href={`/dashboard/horses/stable-chart?show=${showId}`} className={ghostButtonClass}>
+          <Link
+            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}`}
+            className={ghostButtonClass}
+          >
             🏠 Stable Chart
           </Link>
           <AddHorseDialog showId={showId} />

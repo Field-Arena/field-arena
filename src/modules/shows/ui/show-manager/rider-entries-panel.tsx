@@ -22,7 +22,13 @@ import { BrandingCard } from '@/modules/shows/ui/show-manager/branding-card';
 import { VendorMapCard } from '@/modules/shows/ui/show-manager/vendor-map-card';
 import { VendorSpacesCard } from '@/modules/shows/ui/show-manager/vendor-spaces-card';
 
-export function RiderEntriesPanel({ data }: { data: RiderEntriesData }) {
+export function RiderEntriesPanel({
+  data,
+  publicId,
+}: {
+  data: RiderEntriesData;
+  publicId?: string;
+}) {
   const createAddOn = useCreateAddOn();
   const updateAddOn = useUpdateAddOn();
   const deleteAddOn = useDeleteAddOn();
@@ -103,7 +109,7 @@ export function RiderEntriesPanel({ data }: { data: RiderEntriesData }) {
 
       <SectionFooter
         currentTab="Rider Entries"
-        showId={data.showId}
+        showId={publicId ?? data.showId}
         blockedReason={!data.published ? data.notPublishedReason : null}
       />
     </>

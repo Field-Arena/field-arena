@@ -68,7 +68,11 @@ export default async function HorsesPage({
         newShowSlot={<NewShowButton className="px-[15px] py-2.5 text-[13px]" />}
       />
 
-      <HorsesScreen data={horsesData} stableChartSummary={stableChartSummary} />
+      <HorsesScreen
+        data={horsesData}
+        stableChartSummary={stableChartSummary}
+        publicId={context.currentShow.slug ?? context.currentShow.id}
+      />
     </div>
   );
 }

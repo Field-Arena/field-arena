@@ -3,7 +3,7 @@ import { getTestBuilderPageData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { TestBuilderCard } from '@/modules/shows/ui/show-manager/test-builder-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
@@ -11,7 +11,8 @@ export const metadata: Metadata = { title: 'Test Builder — Field & Arena' };
 
 export default async function TestBuilderPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
-  const data = isUuid(showId) ? await getTestBuilderPageData(showId) : null;
+  const id = await resolveShowIdParam(showId);
+  const data = id ? await getTestBuilderPageData(id) : null;
 
   if (!data) {
     return (
@@ -29,7 +30,7 @@ export default async function TestBuilderPage({ params }: { params: Promise<{ sh
 
   return (
     <ShowManagerShell
-      showId={data.showId}
+      showId={showId}
       showName={data.showName}
       activeTab="Test Builder"
       orgName={context.orgName}

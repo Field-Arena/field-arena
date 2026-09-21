@@ -21,6 +21,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
   const openSales = useOpenTicketSales();
   const closeSales = useCloseTicketSales();
   const approve = useApproveSchedule();
+  const publicId = data.showSlug ?? data.showId;
 
   return (
     <>
@@ -76,14 +77,14 @@ export function RunShowCard({ data }: { data: RunShowData }) {
             </PrimaryButton>
           )}
 
-          <Link href={`/dashboard/announcing?show=${data.showId}`} className={ghostButtonClass}>
+          <Link href={`/dashboard/announcing?show=${publicId}`} className={ghostButtonClass}>
             Announcer view
           </Link>
 
           {data.published && (
             <GhostButton
               onClick={() => {
-                void copyVendorApplyLink(data.showId);
+                void copyVendorApplyLink(publicId);
               }}
             >
               Copy vendor application link
@@ -104,7 +105,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
               <Input
                 type="text"
                 readOnly
-                value={ticketLinkUrl(data.showId)}
+                value={ticketLinkUrl(publicId)}
                 onClick={(event) => {
                   event.currentTarget.select();
                 }}
@@ -112,7 +113,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
               />
               <GhostButton
                 onClick={() => {
-                  void copyTicketLink(data.showId);
+                  void copyTicketLink(publicId);
                 }}
               >
                 Copy link
@@ -120,7 +121,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
-                href={`/rider/shows/${data.showId}`}
+                href={`/rider/shows/${publicId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={ghostButtonClass}
@@ -132,7 +133,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
         )}
       </Card>
 
-      <SectionFooter currentTab="Run Show" showId={data.showId} />
+      <SectionFooter currentTab="Run Show" showId={publicId} />
     </>
   );
 }

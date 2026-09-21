@@ -1694,6 +1694,7 @@ export type Database = {
           show_details: Json | null
           show_image_path: string | null
           show_type: string | null
+          slug: string | null
           stable_chart: Json | null
           start_date: string | null
           starting_back_number: number | null
@@ -1744,6 +1745,7 @@ export type Database = {
           show_details?: Json | null
           show_image_path?: string | null
           show_type?: string | null
+          slug?: string | null
           stable_chart?: Json | null
           start_date?: string | null
           starting_back_number?: number | null
@@ -1794,6 +1796,7 @@ export type Database = {
           show_details?: Json | null
           show_image_path?: string | null
           show_type?: string | null
+          slug?: string | null
           stable_chart?: Json | null
           start_date?: string | null
           starting_back_number?: number | null

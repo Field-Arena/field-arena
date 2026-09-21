@@ -40,7 +40,7 @@ export function AnnouncerHistoryTable({ history }: { history: HistoryRow[] }) {
               <td className="r">{row.scoredCount}</td>
               <td className="r">
                 <a
-                  href={`${ANNOUNCING_RESULTS_PATH}?show=${row.showId}`}
+                  href={`${ANNOUNCING_RESULTS_PATH}?show=${row.showSlug ?? row.showId}`}
                   className="dash-btn dash-btn-outline"
                 >
                   Results →

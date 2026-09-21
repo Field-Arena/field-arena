@@ -74,8 +74,15 @@ function NumberCell({
   );
 }
 
-export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
+export function EntryLedgerScreen({
+  data,
+  publicId,
+}: {
+  data: EntryLedgerPageData;
+  publicId?: string;
+}) {
   const { showId, showName, rows } = data;
+  const linkId = publicId ?? showId;
   const updateEntryNumber = useUpdateEntryNumber();
   const updateBridleNumber = useUpdateBridleNumber();
   const updateBackNumber = useUpdateBackNumber();
@@ -94,7 +101,7 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
           </ScreenLede>
         </div>
         <Link
-          href={`/dashboard/documents/print-center?show=${showId}`}
+          href={`/dashboard/documents/print-center?show=${linkId}`}
           className="inline-flex"
         >
           <GhostButton>
@@ -213,7 +220,7 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
                   >
                     {row.openIssueCount > 0 ? (
                       <Link
-                        href={`/dashboard/documents/issues?show=${showId}`}
+                        href={`/dashboard/documents/issues?show=${linkId}`}
                         className="text-status-danger font-bold underline"
                       >
                         {row.openIssueCount}

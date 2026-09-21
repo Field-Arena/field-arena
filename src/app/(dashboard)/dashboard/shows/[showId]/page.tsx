@@ -21,7 +21,7 @@ import { ShareShowLink } from '@/modules/shows/ui/show-manager/share-show-link';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import { env } from '@/shared/lib/env';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 import { ROUTES } from '@/shared/constants/routes';
@@ -30,7 +30,8 @@ export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
 
 export default async function ShowManagerPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
-  const show = isUuid(showId) ? await getShowSetupDetail(showId) : null;
+  const id = await resolveShowIdParam(showId);
+  const show = id ? await getShowSetupDetail(id) : null;
 
   if (!show) {
     return (
@@ -65,7 +66,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
     >
       <ReadinessMeter completeness={completeness} />
       <ShareShowLink
-        url={`${env.siteUrl}/show/${show.id}`}
+        url={`${env.siteUrl}/show/${show.slug ?? show.id}`}
         browseUrl={`${env.siteUrl}${ROUTES.browseShows}`}
       />
       <div id="show-details" className="scroll-mt-24">
@@ -74,6 +75,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
       <div id="venue" className="scroll-mt-24">
         <VenueCard
           showId={show.id}
+          publicId={showId}
           venueId={show.venueId}
           locations={show.locations}
           venues={venues}
@@ -117,7 +119,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
       </div>
       <SectionFooter
         currentTab="Setup"
-        showId={show.id}
+        showId={showId}
         blockedReason={
           nextIncompleteSection
             ? `${nextIncompleteSection.name} still needs attention — see Setup Readiness above.`

@@ -13,7 +13,13 @@ import { SM_CARD_PAD, SM_SECTION_HEAD } from '@/modules/shows/ui/show-manager/to
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 
-export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
+export function SelectedClassesCard({
+  data,
+  publicId,
+}: {
+  data: SelectEventsData;
+  publicId?: string;
+}) {
   const groups = new Map<string, { count: number; fee: number; location: string | null }>();
   for (const cls of data.classes) {
     const key = cls.division ?? 'Ungrouped';
@@ -86,7 +92,7 @@ export function SelectedClassesCard({ data }: { data: SelectEventsData }) {
 
       <SectionFooter
         currentTab="Select Events"
-        showId={data.showId}
+        showId={publicId ?? data.showId}
         blockedReason={
           groups.size === 0
             ? "You haven't selected any events yet — riders won't have anything to register for."

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getPublicShowPage } from '@/modules/shows/data/public-queries';
 import { PublicShowPage } from '@/modules/shows/ui/public/public-show-page';
 
@@ -10,8 +10,9 @@ export async function generateMetadata({
   params: Promise<{ showId: string }>;
 }): Promise<Metadata> {
   const { showId } = await params;
-  if (!isUuid(showId)) return { title: 'Show — Field & Arena' };
-  const show = await getPublicShowPage(showId);
+  const id = await resolveShowIdParam(showId);
+  if (!id) return { title: 'Show — Field & Arena' };
+  const show = await getPublicShowPage(id);
   if (!show) return { title: 'Show — Field & Arena' };
   return {
     title: `${show.name} — Field & Arena`,
@@ -25,9 +26,10 @@ export default async function PublicShowRoute({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  if (!isUuid(showId)) notFound();
+  const id = await resolveShowIdParam(showId);
+  if (!id) notFound();
 
-  const show = await getPublicShowPage(showId);
+  const show = await getPublicShowPage(id);
   if (!show) notFound();
 
   return <PublicShowPage data={show} />;

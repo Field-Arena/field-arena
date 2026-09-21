@@ -31,7 +31,10 @@ export default async function OperationsPage({
 }) {
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
-  const currentShow = shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  const currentShow =
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
+    shows[0] ??
+    null;
 
   if (!currentShow) {
     return (
@@ -65,7 +68,8 @@ export default async function OperationsPage({
   // One card per ring, not per class — see groupRingsForBoard.
   const ringCards = groupRingsForBoard(rings);
   const live = ringCards.filter((r) => r.current?.scoringOpen).length;
-  const navHref = (path: string) => `/dashboard/operations/${path}?show=${currentShow.id}`;
+  const publicId = currentShow.slug ?? currentShow.id;
+  const navHref = (path: string) => `/dashboard/operations/${path}?show=${publicId}`;
 
   return (
     <>
@@ -86,13 +90,13 @@ export default async function OperationsPage({
             <form method="get" className="contents">
               <select
                 name="show"
-                defaultValue={currentShow.id}
+                defaultValue={publicId}
                 className="dash-select"
                 style={{ maxWidth: 380 }}
                 aria-label="Select show"
               >
                 {shows.map((show) => (
-                  <option key={show.id} value={show.id}>
+                  <option key={show.id} value={show.slug ?? show.id}>
                     {show.name}
                   </option>
                 ))}
@@ -144,7 +148,7 @@ export default async function OperationsPage({
               return (
                 <Link
                   key={card.ring}
-                  href={`/dashboard/operations/schedule?show=${currentShow.id}`}
+                  href={`/dashboard/operations/schedule?show=${publicId}`}
                   className={`card-row ${cls?.scoringOpen ? 'today' : ''}`}
                   style={{ color: 'inherit', textDecoration: 'none' }}
                 >

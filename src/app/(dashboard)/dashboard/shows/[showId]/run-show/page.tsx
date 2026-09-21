@@ -4,14 +4,15 @@ import { getOrganizerContext } from '@/modules/staff/data/context';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { RunShowCard } from '@/modules/shows/ui/show-manager/run-show-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 
 export const metadata: Metadata = { title: 'Run Show — Field & Arena' };
 
 export default async function RunShowPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
+  const id = await resolveShowIdParam(showId);
   const [data, context] = await Promise.all([
-    isUuid(showId) ? getRunShowData(showId) : Promise.resolve(null),
+    id ? getRunShowData(id) : Promise.resolve(null),
     getOrganizerContext(showId),
   ]);
 
@@ -26,7 +27,7 @@ export default async function RunShowPage({ params }: { params: Promise<{ showId
 
   return (
     <ShowManagerShell
-      showId={data.showId}
+      showId={showId}
       showName={data.showName}
       activeTab="Run Show"
       orgName={context.orgName}

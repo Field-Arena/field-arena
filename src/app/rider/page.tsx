@@ -31,7 +31,7 @@ export default async function RiderPortalPage({
   // the zero-shows case) falls through to the welcome screen below.
   const shows = rider ? await listRiderShowLinks() : [];
   const onlyShow = shows.length === 1 ? shows[0] : undefined;
-  if (onlyShow) redirect(`/rider/shows/${onlyShow.showId}`);
+  if (onlyShow) redirect(`/rider/shows/${onlyShow.showSlug ?? onlyShow.showId}`);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">

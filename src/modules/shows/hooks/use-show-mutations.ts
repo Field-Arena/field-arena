@@ -55,10 +55,10 @@ export function useCreateShow() {
 
   return useMutation({
     mutationFn: (input: CreateShowInput) => createShow(input),
-    onSuccess: ({ id }) => {
+    onSuccess: ({ slug }) => {
       toast.success('Show created — start with Setup.');
 
-      router.push(`/dashboard/shows/${id}`);
+      router.push(`/dashboard/shows/${slug}`);
     },
     onError: (error) => {
       toast.error(message(error, 'Could not create the show'));
@@ -332,8 +332,8 @@ export function useCreateDraftShow() {
 
   return useMutation({
     mutationFn: () => createDraftShow(),
-    onSuccess: ({ id }) => {
-      router.push(`/dashboard/shows/${id}`);
+    onSuccess: ({ slug }) => {
+      router.push(`/dashboard/shows/${slug}`);
       router.refresh();
     },
     onError: (error) => {

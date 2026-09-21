@@ -65,12 +65,12 @@ export function WorkspaceHeader({
             <form method="get" className="contents">
               <select
                 name="show"
-                defaultValue={currentShow.id}
+                defaultValue={currentShow.slug ?? currentShow.id}
                 className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
                 aria-label="Select show"
               >
                 {shows.map((show) => (
-                  <option key={show.id} value={show.id}>
+                  <option key={show.id} value={show.slug ?? show.id}>
                     {show.name}
                     {show.dateLabel ? ` (${show.dateLabel})` : ''}
                   </option>
@@ -89,7 +89,11 @@ export function WorkspaceHeader({
           {trailingSlot && <span className="ml-auto">{trailingSlot}</span>}
         </div>
 
-        <ShowStatsRow stats={stats} canViewMoney={canViewMoney} showId={currentShow?.id} />
+        <ShowStatsRow
+          stats={stats}
+          canViewMoney={canViewMoney}
+          showId={currentShow?.slug ?? currentShow?.id}
+        />
 
         {rings.length > 0 && (
           <div className="mt-4 flex items-stretch overflow-hidden rounded-[10px] border border-[#E9EDEB]">

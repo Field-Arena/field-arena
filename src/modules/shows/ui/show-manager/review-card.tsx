@@ -35,7 +35,8 @@ import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 const REVIEW_TABLE_HEAD =
   'px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
 
-export function ReviewCard({ data }: { data: ScheduleReviewData }) {
+export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publicId?: string }) {
+  const id = publicId ?? data.showId;
   const [rows, setRows] = useState(data.classes);
   const [entriesPerClass, setEntriesPerClass] = useState(5);
   const { mutate: update } = useUpdateClassReview();
@@ -68,7 +69,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
           <p className="text-[13px] text-[#98A29D] italic">
             No classes scheduled yet — pick some in{' '}
             <Link
-              href={`/dashboard/shows/${data.showId}/select-events`}
+              href={`/dashboard/shows/${id}/select-events`}
               className="text-forest font-semibold underline underline-offset-2"
             >
               Select Events
@@ -251,7 +252,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
 
       <SectionFooter
         currentTab="Schedule / Review"
-        showId={data.showId}
+        showId={id}
         blockedReason={
           rows.length === 0
             ? 'No classes are scheduled yet — add some in Select Events before moving on.'

@@ -53,6 +53,7 @@ export async function getCurrentRiderProfile(): Promise<RiderRow | null> {
 
 export interface RiderShowLink {
   showId: string;
+  showSlug: string | null;
   showName: string;
   /* The rider's assigned number for this show (class_entries.num, assigned
    * once per checkout by nextRiderNumberForShow in checkout.ts — same value
@@ -99,13 +100,14 @@ export async function listRiderShowLinks(): Promise<RiderShowLink[]> {
 
   const { data: shows, error: showsError } = await supabase
     .from('shows')
-    .select('id, name, start_date')
+    .select('id, slug, name, start_date')
     .in('id', showIds)
     .order('start_date', { ascending: false, nullsFirst: false });
   if (showsError) throw showsError;
 
   return shows.map((s) => ({
     showId: s.id,
+    showSlug: s.slug,
     showName: s.name,
     riderNumber: riderNumberByShow.get(s.id) ?? null,
   }));

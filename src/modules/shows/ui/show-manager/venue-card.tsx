@@ -28,6 +28,7 @@ import {
 
 export function VenueCard({
   showId,
+  publicId,
   venueId,
   locations,
   venues,
@@ -35,6 +36,7 @@ export function VenueCard({
   classes,
 }: {
   showId: string;
+  publicId?: string;
   venueId: string | null;
   locations: RingRow[];
   venues: VenueOption[];
@@ -203,7 +205,7 @@ export function VenueCard({
             a saved venue&rsquo;s stable layout instead of building one from scratch.
           </p>
           <Link
-            href={`/dashboard/horses/stable-chart?show=${showId}`}
+            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}`}
             className={primaryButtonClass + ' rounded-[9px]'}
           >
             <IconBarn size={15} />

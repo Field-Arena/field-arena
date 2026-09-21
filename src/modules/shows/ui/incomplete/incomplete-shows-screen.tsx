@@ -100,7 +100,7 @@ export function IncompleteShowsScreen({
               </Button>
 
               <Link
-                href={`/dashboard/shows/${show.id}`}
+                href={`/dashboard/shows/${show.slug ?? show.id}`}
                 className="inline-flex items-center gap-2 rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold whitespace-nowrap text-[#16261F] transition-colors hover:border-[#B4432F]"
               >
                 <span className="size-1.5 rounded-full bg-[#B4432F]" />
@@ -120,7 +120,7 @@ export function IncompleteShowsScreen({
 
       {openRow && (
         <MissingSectionsDialog
-          showId={openRow.show.id}
+          showId={openRow.show.slug ?? openRow.show.id}
           showName={openRow.show.name}
           sections={openRow.completeness.sections}
           onClose={() => {

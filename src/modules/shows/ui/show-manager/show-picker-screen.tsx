@@ -83,7 +83,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
 
                 {show.published ? (
                   <Link
-                    href={`/dashboard/shows/${show.id}/run-show`}
+                    href={`/dashboard/shows/${show.slug ?? show.id}/run-show`}
                     className="inline-flex items-center gap-[7px] rounded-full border border-[#B9D8C0] bg-[#E3F0E5] px-[15px] py-2 text-[13px] font-bold whitespace-nowrap text-[#2E7048]"
                   >
                     <span className="size-[7px] rounded-full bg-[#2E7048]" />
@@ -92,7 +92,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
                 ) : (
                   <>
                     <Link
-                      href={`/dashboard/shows/${show.id}`}
+                      href={`/dashboard/shows/${show.slug ?? show.id}`}
                       className="inline-flex items-center gap-2 rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold whitespace-nowrap text-[#16261F] transition-colors hover:border-[#B4432F]"
                     >
                       <span className="size-1.5 rounded-full bg-[#B4432F]" />
@@ -115,7 +115,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
 
       {openRow && (
         <MissingSectionsDialog
-          showId={openRow.show.id}
+          showId={openRow.show.slug ?? openRow.show.id}
           showName={openRow.show.name}
           sections={openRow.completeness.sections}
           onClose={() => {

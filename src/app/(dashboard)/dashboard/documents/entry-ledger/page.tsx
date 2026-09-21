@@ -25,7 +25,10 @@ export default async function EntryLedgerPage({
       currentShow={context.currentShow}
     >
       {data ? (
-        <EntryLedgerScreen data={data} />
+        <EntryLedgerScreen
+          data={data}
+          publicId={context.currentShow?.slug ?? context.currentShow?.id}
+        />
       ) : (
         <EmptyPanel title="Show not found" note="This show may have been removed." />
       )}
