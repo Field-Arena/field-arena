@@ -4,12 +4,18 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
+import { useRefreshingMutation } from '@/shared/hooks/use-refreshing-mutation';
 import {
   setStableCount,
   updateStableField,
   generateStableStalls,
   renameStall,
-  toggleStallClosed,
+  setStallStatus,
+  unassignStall,
+  updateStallNote,
+  reassignStall,
+  swapStalls,
+  assignGroupToStable,
   toggleStableChartStatus,
   autoAssignStableStalls,
   applySavedLocationStables,
@@ -19,7 +25,12 @@ import type {
   UpdateStableFieldInput,
   GenerateStableStallsInput,
   RenameStallInput,
-  ToggleStallClosedInput,
+  SetStallStatusInput,
+  UnassignStallInput,
+  UpdateStallNoteInput,
+  ReassignStallInput,
+  SwapStallsInput,
+  AssignGroupToStableInput,
   ToggleStableChartStatusInput,
   AutoAssignStableStallsInput,
   ApplySavedLocationStablesInput,
@@ -78,16 +89,39 @@ export function useRenameStall() {
   });
 }
 
-export function useToggleStallClosed() {
-  const router = useRouter();
-  return useMutation({
-    mutationFn: (input: ToggleStallClosedInput) => toggleStallClosed(input),
-    onSuccess: () => {
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not update this stall'));
-    },
+export function useSetStallStatus() {
+  return useRefreshingMutation((input: SetStallStatusInput) => setStallStatus(input), {
+    errorFallback: 'Could not update this stall',
+  });
+}
+
+export function useUnassignStall() {
+  return useRefreshingMutation((input: UnassignStallInput) => unassignStall(input), {
+    errorFallback: 'Could not unassign this stall',
+  });
+}
+
+export function useUpdateStallNote() {
+  return useRefreshingMutation((input: UpdateStallNoteInput) => updateStallNote(input), {
+    errorFallback: 'Could not save that note',
+  });
+}
+
+export function useReassignStall() {
+  return useRefreshingMutation((input: ReassignStallInput) => reassignStall(input), {
+    errorFallback: 'Could not move that horse',
+  });
+}
+
+export function useSwapStalls() {
+  return useRefreshingMutation((input: SwapStallsInput) => swapStalls(input), {
+    errorFallback: 'Could not swap those stalls',
+  });
+}
+
+export function useAssignGroupToStable() {
+  return useRefreshingMutation((input: AssignGroupToStableInput) => assignGroupToStable(input), {
+    errorFallback: 'Could not place that group',
   });
 }
 

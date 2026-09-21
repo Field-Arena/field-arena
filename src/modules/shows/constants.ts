@@ -203,6 +203,33 @@ export const HORSE_STAT_TINTS = {
 export const MAX_STABLES = 40;
 export const MAX_STALLS_PER_STABLE = 300;
 
+// 'occupied' is always system-derived from a horse assignment — never a
+// direct target of the manual stall-status mutation.
+export const STALL_STATUSES = [
+  'available',
+  'occupied',
+  'reserved',
+  'unusable',
+  'tack',
+  'hold',
+] as const;
+export const MANUALLY_SETTABLE_STALL_STATUSES = [
+  'available',
+  'reserved',
+  'unusable',
+  'tack',
+  'hold',
+] as const;
+
+export const STALL_STATUS_LABELS: Record<(typeof STALL_STATUSES)[number], string> = {
+  available: 'Available',
+  occupied: 'Occupied',
+  reserved: 'Reserved',
+  unusable: 'Unusable',
+  tack: 'Tack Stall',
+  hold: 'Hold',
+};
+
 export const DEFAULT_SHOW_EXPENSES = [
   'Venue / facility rental',
   'Judges',

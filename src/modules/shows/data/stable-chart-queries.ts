@@ -1,6 +1,13 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
+import {
+  getStableAssignmentGroups,
+  type StableAssignmentGroup,
+} from '@/modules/shows/data/stable-assignment-groups-queries';
+import { STALL_STATUSES } from '@/modules/shows/constants';
+
+export type StallStatus = (typeof STALL_STATUSES)[number];
 
 export interface StableChartStall {
   id: string;
@@ -10,8 +17,12 @@ export interface StableChartStall {
   horseId: string | null;
   horseName: string | null;
   riderName: string | null;
+  trainerName: string | null;
   shavings: number;
-  closed: boolean;
+
+  status: StallStatus;
+  statusReason: string | null;
+  note: string | null;
 
   isStallion: boolean;
 }
@@ -50,6 +61,40 @@ export interface StableChartPageData {
   chart: StableChart;
   horseRows: StableChartHorseRow[];
   savedLocations: SavedLocationOption[];
+  groups: StableAssignmentGroup[];
+}
+
+// Backward-compat: shows saved before the status enum existed only have
+// `closed`/`horseId` on each stall. Derive `status` from that old shape when
+// it's missing so existing charts keep rendering correctly.
+function isStallStatus(value: unknown): value is StallStatus {
+  return (STALL_STATUSES as readonly string[]).includes(value as string);
+}
+
+function normalizeStall(raw: unknown): StableChartStall {
+  const s = (raw ?? {}) as Partial<StableChartStall> & { closed?: unknown };
+  const status: StallStatus = isStallStatus(s.status)
+    ? s.status
+    : s.closed === true
+      ? 'unusable'
+      : (s.horseId ?? s.horseName)
+        ? 'occupied'
+        : 'available';
+
+  return {
+    id: s.id ?? '',
+    number: s.number ?? 0,
+    label: s.label ?? '',
+    horseId: s.horseId ?? null,
+    horseName: s.horseName ?? null,
+    riderName: s.riderName ?? null,
+    trainerName: s.trainerName ?? null,
+    shavings: s.shavings ?? 0,
+    status,
+    statusReason: s.statusReason ?? null,
+    note: s.note ?? null,
+    isStallion: s.isStallion ?? false,
+  };
 }
 
 export function normalizeStableChart(raw: unknown): StableChart {
@@ -57,9 +102,19 @@ export function normalizeStableChart(raw: unknown): StableChart {
     status?: unknown;
     stables?: unknown;
   };
+  const stables = Array.isArray(obj.stables) ? obj.stables : [];
   return {
     status: obj.status === 'published' ? 'published' : 'draft',
-    stables: Array.isArray(obj.stables) ? (obj.stables as StableChartStable[]) : [],
+    stables: (stables as unknown[]).map((raw) => {
+      const s = (raw ?? {}) as Partial<StableChartStable>;
+      return {
+        id: s.id ?? '',
+        name: s.name ?? '',
+        stallCount: s.stallCount ?? 0,
+        rowCount: s.rowCount ?? 1,
+        stalls: (Array.isArray(s.stalls) ? s.stalls : []).map(normalizeStall),
+      };
+    }),
   };
 }
 
@@ -68,25 +123,34 @@ export interface StableChartSummary {
   occupied: number;
   available: number;
   closed: number;
+  reserved: number;
+  tack: number;
+  hold: number;
 }
 
 export function summarizeStableChart(chart: StableChart): StableChartSummary | null {
-  const total = chart.stables.reduce((n, b) => n + b.stalls.length, 0);
+  const allStalls = chart.stables.flatMap((b) => b.stalls);
+  const total = allStalls.length;
   if (!total) return null;
-  const occupied = chart.stables.reduce(
-    (n, b) => n + b.stalls.filter((s) => !s.closed && !!s.horseId).length,
-    0,
-  );
-  const closed = chart.stables.reduce((n, b) => n + b.stalls.filter((s) => s.closed).length, 0);
-  return { total, occupied, available: total - occupied - closed, closed };
+  const countOf = (status: StallStatus) => allStalls.filter((s) => s.status === status).length;
+  return {
+    total,
+    occupied: countOf('occupied'),
+    available: countOf('available'),
+    closed: countOf('unusable'),
+    reserved: countOf('reserved'),
+    tack: countOf('tack'),
+    hold: countOf('hold'),
+  };
 }
 
 export async function getStableChartPageData(showId: string): Promise<StableChartPageData | null> {
   const supabase = await createServerClient();
 
-  const [showResult, horsesData] = await Promise.all([
+  const [showResult, horsesData, groups] = await Promise.all([
     supabase.from('shows').select('id, name, org_id, stable_chart').eq('id', showId).maybeSingle(),
     getHorsesPageData(showId),
+    getStableAssignmentGroups(showId),
   ]);
   if (showResult.error) throw showResult.error;
   if (!showResult.data || !horsesData) return null;
@@ -121,5 +185,6 @@ export async function getStableChartPageData(showId: string): Promise<StableChar
     chart: normalizeStableChart(show.stable_chart),
     horseRows,
     savedLocations,
+    groups,
   };
 }

@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { MAX_STABLES, MAX_STALLS_PER_STABLE } from '@/modules/shows/constants';
+import {
+  MAX_STABLES,
+  MAX_STALLS_PER_STABLE,
+  MANUALLY_SETTABLE_STALL_STATUSES,
+} from '@/modules/shows/constants';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 const optionalText = (max: number) =>
@@ -379,6 +383,16 @@ export const updateCatalogItemSchema = z.object({
 
 export type UpdateCatalogItemInput = z.input<typeof updateCatalogItemSchema>;
 
+export const updateAddOnSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1, 'Name is required').max(160),
+  price: z.coerce.number().min(0).max(100000),
+  stalls: z.coerce.number().int().min(0).max(99).default(0),
+  tack: z.coerce.number().int().min(0).max(99).default(0),
+});
+
+export type UpdateAddOnInput = z.input<typeof updateAddOnSchema>;
+
 const optionalQty = z
   .union([z.coerce.number().int().min(0).max(100000), z.literal('')])
   .optional()
@@ -625,13 +639,61 @@ export const renameStallSchema = z.object({
 
 export type RenameStallInput = z.input<typeof renameStallSchema>;
 
-export const toggleStallClosedSchema = z.object({
+export const setStallStatusSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  stallId: z.string().trim().min(1),
+  status: z.enum(MANUALLY_SETTABLE_STALL_STATUSES),
+  reason: z.string().trim().max(200).optional(),
+});
+
+export type SetStallStatusInput = z.input<typeof setStallStatusSchema>;
+
+export const unassignStallSchema = z.object({
   showId: z.uuid(),
   stableId: z.string().trim().min(1),
   stallId: z.string().trim().min(1),
 });
 
-export type ToggleStallClosedInput = z.input<typeof toggleStallClosedSchema>;
+export type UnassignStallInput = z.input<typeof unassignStallSchema>;
+
+export const updateStallNoteSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  stallId: z.string().trim().min(1),
+  note: z.string().trim().max(500).nullable(),
+});
+
+export type UpdateStallNoteInput = z.input<typeof updateStallNoteSchema>;
+
+export const reassignStallSchema = z.object({
+  showId: z.uuid(),
+  fromStableId: z.string().trim().min(1),
+  fromStallId: z.string().trim().min(1),
+  toStableId: z.string().trim().min(1),
+  toStallId: z.string().trim().min(1),
+});
+
+export type ReassignStallInput = z.input<typeof reassignStallSchema>;
+
+export const swapStallsSchema = z.object({
+  showId: z.uuid(),
+  stableAId: z.string().trim().min(1),
+  stallAId: z.string().trim().min(1),
+  stableBId: z.string().trim().min(1),
+  stallBId: z.string().trim().min(1),
+});
+
+export type SwapStallsInput = z.input<typeof swapStallsSchema>;
+
+export const assignGroupToStableSchema = z.object({
+  showId: z.uuid(),
+  trainerKey: z.string().trim().min(1),
+  targetStableId: z.string().trim().min(1),
+  targetStartStallId: z.string().trim().min(1).optional(),
+});
+
+export type AssignGroupToStableInput = z.input<typeof assignGroupToStableSchema>;
 
 export const toggleStableChartStatusSchema = z.object({ showId: z.uuid() });
 
@@ -683,7 +745,9 @@ export const createWaiverDocumentUploadUrlSchema = z.object({
   name: z.string().trim().min(1, 'A file name is required').max(300),
 });
 
-export type CreateWaiverDocumentUploadUrlInput = z.input<typeof createWaiverDocumentUploadUrlSchema>;
+export type CreateWaiverDocumentUploadUrlInput = z.input<
+  typeof createWaiverDocumentUploadUrlSchema
+>;
 
 export const registerWaiverDocumentSchema = z.object({
   showId: z.uuid(),

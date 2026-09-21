@@ -1,6 +1,7 @@
 'use client';
 
 import { truncateHorseName } from '@/modules/shows/utils/truncate-horse-name';
+import { STALL_STATUS_LABELS } from '@/modules/shows/constants';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
 
 export function StableChartPrintView({
@@ -29,7 +30,6 @@ export function StableChartPrintView({
           </p>
           <div className="grid grid-cols-4 gap-4">
             {stable.stalls.map((stall) => {
-              const occupied = !!(stall.horseId ?? stall.horseName);
               return (
                 <div
                   key={stall.id}
@@ -37,18 +37,24 @@ export function StableChartPrintView({
                   style={{ pageBreakInside: 'avoid' }}
                 >
                   <div className="text-[34px] leading-none font-extrabold">{stall.label}</div>
-                  {stall.closed ? (
-                    <div className="text-lg font-bold text-[#888]">Closed</div>
-                  ) : occupied ? (
+                  {stall.status === 'occupied' ? (
                     <>
                       <div className="text-xl">{truncateHorseName(stall.riderName ?? '')}</div>
                       <div className="text-[22px] font-bold">
                         {truncateHorseName(stall.horseName ?? '')}
                       </div>
+                      {stall.trainerName && <div className="text-base">{stall.trainerName}</div>}
                       <div className="text-base">Shavings owed: {stall.shavings}</div>
                     </>
-                  ) : (
+                  ) : stall.status === 'available' ? (
                     <div className="text-lg text-[#888]">Empty</div>
+                  ) : (
+                    <>
+                      <div className="text-lg font-bold text-[#888]">
+                        {STALL_STATUS_LABELS[stall.status]}
+                      </div>
+                      {stall.statusReason && <div className="text-base">{stall.statusReason}</div>}
+                    </>
                   )}
                 </div>
               );
