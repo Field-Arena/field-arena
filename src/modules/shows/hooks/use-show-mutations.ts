@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
 import { createClient } from '@/shared/lib/supabase/client';
+import { useRefreshingMutation } from '@/shared/hooks/use-refreshing-mutation';
 import {
   createShow,
   createDraftShow,
@@ -261,10 +262,8 @@ export function useApproveWaiver(options?: { onSuccess?: () => void }) {
 export function useUploadWaiverDocument(options?: {
   onSuccess?: (result: { extractedText: string | null }) => void;
 }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async ({ showId, file }: { showId: string; file: File }) => {
+  return useRefreshingMutation(
+    async ({ showId, file }: { showId: string; file: File }) => {
       const { path, token } = await createWaiverDocumentUploadUrl({ showId, name: file.name });
 
       const supabase = createClient();
@@ -275,55 +274,41 @@ export function useUploadWaiverDocument(options?: {
 
       return registerWaiverDocument({ showId, name: file.name, path });
     },
-    onSuccess: (result) => {
-      toast.success(
+    {
+      successMessage: (result) =>
         result.extractedText
           ? 'Waiver document uploaded — text extracted into the waiver below'
           : 'Waiver document uploaded',
-      );
-      router.refresh();
-      options?.onSuccess?.(result);
+      errorFallback: 'Could not upload this document',
+      onSuccess: (result) => {
+        options?.onSuccess?.(result);
+      },
     },
-    onError: (error) => {
-      toast.error(message(error, 'Could not upload this document'));
-    },
-  });
+  );
 }
 
 export function useRemoveWaiverDocument(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: (showId: string) => removeWaiverDocument({ showId }),
+  return useRefreshingMutation((showId: string) => removeWaiverDocument({ showId }), {
+    successMessage: 'Waiver document removed',
+    errorFallback: 'Could not remove this document',
     onSuccess: () => {
-      toast.success('Waiver document removed');
-      router.refresh();
       options?.onSuccess?.();
-    },
-    onError: (error) => {
-      toast.error(message(error, 'Could not remove this document'));
     },
   });
 }
 
 export function useSetShowPublished() {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: ({ showId, published }: { showId: string; published: boolean }) =>
+  return useRefreshingMutation(
+    ({ showId, published }: { showId: string; published: boolean }) =>
       setShowPublished(showId, published),
-    onSuccess: (_data, { published }) => {
-      toast.success(
+    {
+      successMessage: (_data, { published }) =>
         published
           ? 'Show published — riders can now see and enter it'
           : 'Show unpublished — it is hidden from riders again',
-      );
-      router.refresh();
+      errorFallback: 'Could not change publish state',
     },
-    onError: (error) => {
-      toast.error(message(error, 'Could not change publish state'));
-    },
-  });
+  );
 }
 
 export function useDeleteShow(options?: { onSuccess?: () => void }) {
