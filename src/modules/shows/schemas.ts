@@ -728,6 +728,13 @@ export const saveShowExpensesSchema = z.object({
 
 export type SaveShowExpensesInput = z.input<typeof saveShowExpensesSchema>;
 
+export const markRingPacketPrintedSchema = z.object({
+  showId: z.uuid(),
+  classIds: z.array(z.uuid()).min(1),
+});
+
+export type MarkRingPacketPrintedInput = z.input<typeof markRingPacketPrintedSchema>;
+
 export const createDocumentUploadUrlSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(1, 'A file name is required').max(300),

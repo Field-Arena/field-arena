@@ -432,6 +432,7 @@ export const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;
 // ── Documents filing cabinet ────────────────────────────────────────────
 
 export const DOCUMENTS_PATH = '/dashboard/documents';
+export const PRINT_CENTER_PATH = '/dashboard/documents/print-center';
 
 export const FILING_CABINET_SECTIONS = [
   { key: 'entry-ledger', label: 'Entry Ledger', status: 'active' },

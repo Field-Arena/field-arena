@@ -1447,7 +1447,7 @@ export async function setClassDuration(input: unknown): Promise<void> {
 
   const { error } = await supabase
     .from('classes')
-    .update({ min_per_ride: parsed.minutes })
+    .update({ min_per_ride: parsed.minutes, schedule_updated_at: new Date().toISOString() })
     .eq('id', parsed.classId);
   if (error) throw new Error(error.message);
 
@@ -1474,7 +1474,7 @@ export async function moveClassToRingDay(input: unknown): Promise<void> {
 
   const { error } = await supabase
     .from('classes')
-    .update({ location: parsed.ring, date })
+    .update({ location: parsed.ring, date, schedule_updated_at: new Date().toISOString() })
     .eq('id', parsed.classId);
   if (error) throw new Error(error.message);
 
@@ -1487,7 +1487,7 @@ export async function scratchEntry(input: unknown): Promise<void> {
 
   const { error } = await supabase
     .from('class_entries')
-    .update({ status: 'scratched' })
+    .update({ status: 'scratched', updated_at: new Date().toISOString() })
     .eq('id', parsed.entryId);
   if (error) throw new Error(error.message);
 
@@ -1509,17 +1509,18 @@ export async function reorderRide(input: unknown): Promise<void> {
   const target = Math.max(0, Math.min(parsed.toIndex, ids.length));
   ids.splice(target, 0, parsed.entryId);
 
+  const now = new Date().toISOString();
   for (const [index, id] of ids.entries()) {
     const { error } = await supabase
       .from('class_entries')
-      .update({ ride_order: 10_000 + index })
+      .update({ ride_order: 10_000 + index, updated_at: now })
       .eq('id', id);
     if (error) throw new Error(error.message);
   }
   for (const [index, id] of ids.entries()) {
     const { error } = await supabase
       .from('class_entries')
-      .update({ ride_order: index + 1 })
+      .update({ ride_order: index + 1, updated_at: now })
       .eq('id', id);
     if (error) throw new Error(error.message);
   }
