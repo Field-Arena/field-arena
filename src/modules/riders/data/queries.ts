@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
@@ -25,12 +26,24 @@ import type {
   WaiverSignatureRow,
 } from '@/modules/riders/types';
 
-export async function getCurrentRiderProfile(): Promise<RiderRow | null> {
+/* auth.getUser() re-verifies the JWT against Supabase's Auth server on
+ * every call (unlike getSession(), which trusts the local cookie) — a real
+ * network round trip. Every function below independently called it, so a
+ * single rider-show-page render made 4+ of these. React's cache() dedupes
+ * by (function, arguments) within one request/render pass, so every call
+ * site here now shares one round trip instead of repeating it. */
+const getCachedRiderUser = cache(async () => {
   const supabase = await createServerClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return user;
+});
+
+export async function getCurrentRiderProfile(): Promise<RiderRow | null> {
+  const supabase = await createServerClient();
+
+  const user = await getCachedRiderUser();
   if (!user) return null;
 
   const { data, error } = await supabase.from('riders').select('*').eq('id', user.id).maybeSingle();
@@ -56,9 +69,7 @@ export interface RiderShowLink {
 export async function listRiderShowLinks(): Promise<RiderShowLink[]> {
   const supabase = await createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedRiderUser();
   if (!user) return [];
 
   const { data: entries, error } = await supabase
@@ -234,9 +245,7 @@ export async function getPublicShowForRider(showId: string): Promise<PublicShowD
 export async function listRiderHorses(): Promise<HorseWithDocumentUrls[]> {
   const supabase = await createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedRiderUser();
   if (!user) return [];
 
   const { data: horses, error } = await supabase
@@ -280,9 +289,7 @@ export async function listRiderHorses(): Promise<HorseWithDocumentUrls[]> {
 export async function getWaiverSignature(showId: string): Promise<WaiverSignatureRow | null> {
   const supabase = await createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedRiderUser();
   if (!user) return null;
 
   const { data, error } = await supabase
@@ -298,9 +305,7 @@ export async function getWaiverSignature(showId: string): Promise<WaiverSignatur
 export async function listRiderEntriesForShow(showId: string): Promise<RiderEntryDetail[]> {
   const supabase = await createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedRiderUser();
   if (!user) return [];
 
   const { data: showClasses, error: classListError } = await supabase
@@ -361,9 +366,7 @@ export async function listRiderEntriesForShow(showId: string): Promise<RiderEntr
 export async function listRiderOrdersForShow(showId: string): Promise<RiderVisibleOrderRow[]> {
   const supabase = await createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedRiderUser();
   if (!user) return [];
 
   const { data, error } = await supabase
@@ -426,9 +429,7 @@ function parseScorecardMarkValues(raw: unknown): Record<string, number | null> {
 export async function getRiderScorecard(entryId: string): Promise<RiderScorecard | null> {
   const supabase = await createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedRiderUser();
   if (!user) return null;
 
   const { data: entry, error: entryError } = await supabase
