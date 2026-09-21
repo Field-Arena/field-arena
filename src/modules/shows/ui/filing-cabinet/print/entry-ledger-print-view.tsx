@@ -7,7 +7,7 @@ export function EntryLedgerPrintView({ showName, rows }: { showName: string; row
   if (rows.length === 0) return null;
 
   return (
-    <div className="hidden p-10 print:block">
+    <div data-print-report className="hidden p-10 print:block">
       <h1 className="text-[26px] font-bold">{showName} — Entry Ledger</h1>
       <p className="mb-4 text-sm text-[#555]">
         {rows.length} entries · printed {new Date().toLocaleDateString()}

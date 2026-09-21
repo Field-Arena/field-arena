@@ -6,7 +6,7 @@ export function TestPrintView({ showName, rows }: { showName: string; rows: Test
   if (rows.length === 0) return null;
 
   return (
-    <div className="hidden p-10 print:block">
+    <div data-print-report className="hidden p-10 print:block">
       <h1 className="text-[26px] font-bold">{showName} — Test Copy Counts</h1>
       <p className="mb-4 text-sm text-[#555]">
         {rows.length} classes · printed {new Date().toLocaleDateString()}

@@ -6,7 +6,7 @@ export function NumberCardsPrintView({ showName, rows }: { showName: string; row
   if (rows.length === 0) return null;
 
   return (
-    <div className="hidden print:block">
+    <div data-print-report className="hidden print:block">
       <div className="grid grid-cols-2 gap-6 p-8">
         {rows.map((row) => (
           <div

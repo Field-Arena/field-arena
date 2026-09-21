@@ -12,7 +12,7 @@ export function RingPacketPrintView({
   if (classes.length === 0) return null;
 
   return (
-    <div className="hidden p-10 print:block">
+    <div data-print-report className="hidden p-10 print:block">
       {classes.map((cls, i) => (
         <div
           key={cls.classId}
