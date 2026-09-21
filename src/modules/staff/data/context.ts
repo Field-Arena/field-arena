@@ -23,12 +23,18 @@ export interface OrganizerContext {
 }
 
 export async function getOrganizerContext(requestedShowId?: string): Promise<OrganizerContext> {
-  const profile = await getStaffProfile();
+  // None of these three depend on each other's result (each reads its own
+  // cookie/session independently) — they used to run one after another,
+  // with previewingAsShowAdmin all the way at the bottom of this function
+  // despite not needing anything computed in between.
+  const [profile, impersonatedOrgId, previewingAsShowAdmin] = await Promise.all([
+    getStaffProfile(),
+    getImpersonatedOrgId(),
+    getPreviewingAsShowAdmin(),
+  ]);
   if (!profile) redirect('/login?error=no_profile');
 
   const supabase = await createServerClient();
-
-  const impersonatedOrgId = await getImpersonatedOrgId();
 
   if (profile.platform_role === 'SuperAdmin' && !impersonatedOrgId) {
     redirect('/dashboard/superadmin');
@@ -74,7 +80,6 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     canViewMoney = allowed === true;
   }
 
-  const previewingAsShowAdmin = await getPreviewingAsShowAdmin();
   if (previewingAsShowAdmin) canViewMoney = false;
 
   return {

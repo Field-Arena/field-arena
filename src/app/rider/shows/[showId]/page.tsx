@@ -39,10 +39,13 @@ export default async function RiderShowPage({
   const { showId } = await params;
   if (!isUuid(showId)) notFound();
 
-  const detail = await getPublicShowForRider(showId);
+  // Neither fetch depends on the other's result — both were previously
+  // awaited one after another even though nothing here needs that order.
+  const [detail, rider] = await Promise.all([
+    getPublicShowForRider(showId),
+    getCurrentRiderProfile(),
+  ]);
   if (!detail) notFound();
-
-  const rider = await getCurrentRiderProfile();
 
   if (!rider) {
     const signInHref = `${ROUTES.rider}?next=${encodeURIComponent(`/rider/shows/${showId}`)}`;
