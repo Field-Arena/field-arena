@@ -41,6 +41,8 @@ const CLASS_DEFAULTS = {
   results_published_at: null,
   ribbon_colors: null,
   ribbon_places: null,
+  ring_packet_printed_at: null,
+  schedule_updated_at: null,
   score_format: null,
   scoring_open: null,
   scoring_pos: null,

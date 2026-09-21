@@ -192,6 +192,7 @@ export type Database = {
           show_entry_id: string | null
           status: string | null
           test_override: Json | null
+          updated_at: string | null
         }
         Insert: {
           advanced_past?: boolean | null
@@ -217,6 +218,7 @@ export type Database = {
           show_entry_id?: string | null
           status?: string | null
           test_override?: Json | null
+          updated_at?: string | null
         }
         Update: {
           advanced_past?: boolean | null
@@ -242,6 +244,7 @@ export type Database = {
           show_entry_id?: string | null
           status?: string | null
           test_override?: Json | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -277,6 +280,45 @@ export type Database = {
             columns: ["show_entry_id"]
             isOneToOne: false
             referencedRelation: "show_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_order_checks: {
+        Row: {
+          checked_at: string
+          checked_by: string
+          class_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          checked_at?: string
+          checked_by: string
+          class_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          checked_at?: string
+          checked_by?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_order_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_order_checks_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: true
+            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
         ]
@@ -395,7 +437,9 @@ export type Database = {
           results_published_at: string | null
           ribbon_colors: Json | null
           ribbon_places: number | null
+          ring_packet_printed_at: string | null
           run_order: number | null
+          schedule_updated_at: string | null
           score_format: string | null
           scoring_open: boolean | null
           scoring_pos: number | null
@@ -431,7 +475,9 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          ring_packet_printed_at?: string | null
           run_order?: number | null
+          schedule_updated_at?: string | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
@@ -467,7 +513,9 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          ring_packet_printed_at?: string | null
           run_order?: number | null
+          schedule_updated_at?: string | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
