@@ -15,6 +15,11 @@ interface EntryCartState {
    * tells those apart, since it only renders when test_options is non-empty. */
   testChoices: Record<string, string>;
 
+  /* Trainer/barn name, "stable with" request, and notes — captured once per
+   * cart, not per add-on line, and only required when the cart includes a
+   * stalls/tack-granting add-on (see cartNeedsStablingDetails). */
+  stablingDetails: { trainerName: string; stableWith: string; notes: string };
+
   toggleClass: (classId: string) => void;
   toggleQualification: (classId: string, qualTypeId: string) => void;
   setAddOnQuantity: (addOnId: string, qty: number) => void;
@@ -22,6 +27,7 @@ interface EntryCartState {
   addClassHorseSlot: (classId: string) => void;
   removeClassHorseSlot: (classId: string, slotIndex: number) => void;
   setTestChoice: (classId: string, testTitle: string) => void;
+  setStablingDetails: (patch: Partial<EntryCartState['stablingDetails']>) => void;
   reset: () => void;
 }
 
@@ -31,6 +37,7 @@ const INITIAL_STATE = {
   classHorseAssignments: {} as Record<string, (string | null)[]>,
   addOnQuantities: {} as Record<string, number>,
   testChoices: {} as Record<string, string>,
+  stablingDetails: { trainerName: '', stableWith: '', notes: '' },
 };
 
 export const useEntryCartStore = create<EntryCartState>((set) => ({
@@ -101,6 +108,10 @@ export const useEntryCartStore = create<EntryCartState>((set) => ({
 
   setTestChoice: (classId, testTitle) => {
     set((state) => ({ testChoices: { ...state.testChoices, [classId]: testTitle } }));
+  },
+
+  setStablingDetails: (patch) => {
+    set((state) => ({ stablingDetails: { ...state.stablingDetails, ...patch } }));
   },
 
   reset: () => {

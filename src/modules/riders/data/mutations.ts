@@ -472,6 +472,12 @@ export async function createCheckoutSession(
     const admin = createAdminClient();
     const priced = await priceCart(admin, rider.id, parsed.showId, parsed.cart, parsed.addOns);
 
+    if (priced.needsStablingDetails && !parsed.stabling) {
+      throw new UserFacingError(
+        'Your cart includes stalls — fill in the stabling details above before checking out.',
+      );
+    }
+
     const { data: order, error: orderError } = await admin
       .from('orders')
       .insert({
@@ -481,6 +487,7 @@ export async function createCheckoutSession(
         status: 'pending',
         items: itemsToJson(priced.items),
         fee_total: priced.feeTotal,
+        stabling_request: parsed.stabling ? (parsed.stabling as unknown as Json) : null,
       })
       .select()
       .single();

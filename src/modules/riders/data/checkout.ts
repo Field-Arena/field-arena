@@ -14,7 +14,11 @@ import {
 import { parseTicketWindow } from '@/modules/riders/utils/parse-ticket-window';
 import { getTicketWindowStatus } from '@/modules/riders/utils/get-ticket-window-status';
 import { riderCategoryToDivisionCode } from '@/modules/riders/utils/rider-category-to-division-code';
-import type { CheckoutAddOnLine, CheckoutCartLine } from '@/modules/riders/schemas';
+import type {
+  CheckoutAddOnLine,
+  CheckoutCartLine,
+  CheckoutStablingDetails,
+} from '@/modules/riders/schemas';
 import type {
   ClassEntryRow,
   FinalizeOrderResult,
@@ -255,6 +259,11 @@ export async function priceCart(
     }
   }
 
+  const needsStablingDetails = addOnLines.some((line) => {
+    const addOn = addOnById.get(line.addOnId);
+    return !!addOn && ((addOn.stalls ?? 0) > 0 || (addOn.tack ?? 0) > 0);
+  });
+
   return {
     showId,
     currency: (org.currency ?? 'usd').toLowerCase(),
@@ -263,6 +272,7 @@ export async function priceCart(
     total,
     feeTotal,
     chargesEnabled,
+    needsStablingDetails,
   };
 }
 
@@ -362,8 +372,9 @@ async function buildTestOverrideLookup(
   const choices = [
     ...new Set(
       items
-        .filter((item) => item.kind === 'class_entry' && item.testChoice)
-        .map((item) => item.testChoice as string),
+        .filter((item) => item.kind === 'class_entry')
+        .map((item) => item.testChoice)
+        .filter((testChoice): testChoice is string => Boolean(testChoice)),
     ),
   ];
   const lookup = new Map<string, Json>();
@@ -387,6 +398,63 @@ async function buildTestOverrideLookup(
     });
   }
   return lookup;
+}
+
+/* Materializes the stabling details captured pre-payment (order.stabling_request,
+ * an ephemeral jsonb staging field) into a real stabling_requests row — but
+ * only for a PAID order, same guarantee class_entries already gives, since
+ * this runs inside finalizeClaimedOrder right alongside them. horse_stalls/
+ * tack_stalls are derived here rather than trusted from the client, by
+ * summing qty * add_ons.stalls / add_ons.tack across the order's own addon
+ * line items. */
+async function materializeStablingRequest(
+  admin: AdminClient,
+  order: OrderRow,
+  rider: RiderRow,
+  items: OrderLineItem[],
+): Promise<void> {
+  const details = order.stabling_request as CheckoutStablingDetails | null;
+  if (!details?.trainerName) return;
+
+  const addOnIds = [
+    ...new Set(
+      items
+        .filter((item) => item.kind === 'addon')
+        .map((item) => item.refId)
+        .filter((refId): refId is string => Boolean(refId)),
+    ),
+  ];
+  if (!addOnIds.length) return;
+
+  const { data: addOnRows, error: addOnError } = await admin
+    .from('add_ons')
+    .select('id, stalls, tack')
+    .in('id', addOnIds);
+  if (addOnError) throw addOnError;
+  const addOnById = new Map(addOnRows.map((a) => [a.id, a]));
+
+  let horseStalls = 0;
+  let tackStalls = 0;
+  for (const item of items) {
+    if (item.kind !== 'addon' || !item.refId) continue;
+    const addOn = addOnById.get(item.refId);
+    if (!addOn) continue;
+    horseStalls += (addOn.stalls ?? 0) * item.qty;
+    tackStalls += (addOn.tack ?? 0) * item.qty;
+  }
+  if (horseStalls === 0 && tackStalls === 0) return;
+
+  const { error: insertError } = await admin.from('stabling_requests').insert({
+    show_id: order.show_id,
+    order_id: order.id,
+    rider_id: rider.id,
+    trainer_name: details.trainerName,
+    horse_stalls: horseStalls,
+    tack_stalls: tackStalls,
+    stable_with: details.stableWith ?? null,
+    notes: details.notes ?? null,
+  });
+  if (insertError) throw insertError;
 }
 
 async function finalizeClaimedOrder(
@@ -476,6 +544,8 @@ async function finalizeClaimedOrder(
     activeCountByClass.set(classId, activeCount + 1);
     created.push(row);
   }
+
+  await materializeStablingRequest(admin, order, rider, items);
 
   return {
     ok: true,

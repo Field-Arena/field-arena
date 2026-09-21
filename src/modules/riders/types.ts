@@ -21,7 +21,7 @@ export type OrderRow = Database['public']['Tables']['orders']['Row'];
  * grant will fail at the database, not silently return null. */
 export type RiderVisibleOrderRow = Omit<
   OrderRow,
-  'stripe_customer_id' | 'stripe_payment_method_id'
+  'stripe_customer_id' | 'stripe_payment_method_id' | 'stabling_request'
 >;
 export type ClassEntryRow = Database['public']['Tables']['class_entries']['Row'];
 export type WaiverSignatureRow = Database['public']['Tables']['waiver_signatures']['Row'];
@@ -140,6 +140,10 @@ export interface PricedCart {
   total: number;
   feeTotal: number;
   chargesEnabled: boolean;
+
+  // True when the cart includes an add-on that grants horse stalls or tack
+  // stalls — createCheckoutSession requires stabling details in that case.
+  needsStablingDetails: boolean;
 }
 
 export interface CheckoutSessionResult {

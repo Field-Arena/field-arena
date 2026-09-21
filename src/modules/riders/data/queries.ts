@@ -302,6 +302,21 @@ export async function getWaiverSignature(showId: string): Promise<WaiverSignatur
   return data;
 }
 
+/* "Stable With" autocomplete needs to suggest OTHER riders' trainer/barn
+ * names for this show — but stabling_requests' RLS only lets a rider read
+ * their own row (or staff read all). Trainer names aren't sensitive (they
+ * end up on the stable chart regardless), so this narrow, single-column
+ * read goes through the admin client rather than widening RLS. */
+export async function getKnownTrainerNames(showId: string): Promise<string[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('stabling_requests')
+    .select('trainer_name')
+    .eq('show_id', showId);
+  if (error) throw error;
+  return [...new Set(data.map((r) => r.trainer_name.trim()).filter(Boolean))].sort();
+}
+
 export async function listRiderEntriesForShow(showId: string): Promise<RiderEntryDetail[]> {
   const supabase = await createServerClient();
 

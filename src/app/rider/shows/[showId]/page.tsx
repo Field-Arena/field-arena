@@ -5,6 +5,7 @@ import { isUuid } from '@/shared/lib/utils';
 import { ROUTES } from '@/shared/constants/routes';
 import {
   getCurrentRiderProfile,
+  getKnownTrainerNames,
   getPublicShowForRider,
   getRiderRingSchedule,
   getWaiverSignature,
@@ -22,6 +23,7 @@ import { RiderDetailsForm } from '@/modules/riders/ui/rider-details-form';
 import { HorseManager } from '@/modules/riders/ui/horse-manager';
 import { ClassPicker } from '@/modules/riders/ui/class-picker';
 import { AddOnPicker } from '@/modules/riders/ui/addon-picker';
+import { StablingDetailsForm } from '@/modules/riders/ui/stabling-details-form';
 import { ClassHorseAssignment } from '@/modules/riders/ui/class-horse-assignment';
 import { CheckoutSummary } from '@/modules/riders/ui/checkout-summary';
 import { CheckoutConfirmation } from '@/modules/riders/ui/checkout-confirmation';
@@ -101,9 +103,10 @@ export default async function RiderShowPage({
     );
   }
 
-  const [horses, waiverSignature] = await Promise.all([
+  const [horses, waiverSignature, knownTrainerNames] = await Promise.all([
     listRiderHorses(),
     getWaiverSignature(showId),
+    getKnownTrainerNames(showId),
   ]);
 
   /* Legacy always put a waiver in front of the rider, falling back to the
@@ -156,6 +159,12 @@ export default async function RiderShowPage({
       <ClassPicker classes={detail.classes} qualTypes={detail.qualTypes} />
 
       <AddOnPicker addOns={detail.addOns} />
+
+      <StablingDetailsForm
+        addOns={detail.addOns}
+        horses={horses}
+        knownTrainerNames={knownTrainerNames}
+      />
 
       <ClassHorseAssignment classes={detail.classes} horses={horses} />
 
