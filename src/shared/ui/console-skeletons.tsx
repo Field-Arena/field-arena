@@ -60,6 +60,27 @@ export function ConsolePageSkeleton({ tiles = 5 }: { tiles?: number }) {
   );
 }
 
+/* Theme-neutral (unlike ConsolePageSkeleton's cream/tan superadmin colors)
+ * — used as the loading.tsx fallback on organizer/rider routes, which use
+ * a different (forest/hunter/gold) palette. */
+export function WorkspacePageSkeleton({ cards = 3 }: { cards?: number }) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2.5">
+        <Bar className="h-3 w-24" />
+        <Bar className="h-7 w-64" />
+      </div>
+      {Array.from({ length: cards }).map((_, i) => (
+        <div key={i} className="space-y-3 rounded-[12px] border border-[#E7ECE9] bg-white p-5">
+          <Bar className="h-4 w-40" />
+          <Bar className="h-3 w-full" />
+          <Bar className="h-3 w-5/6" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function LeadDetailSkeleton() {
   return (
     <div className="space-y-6">
