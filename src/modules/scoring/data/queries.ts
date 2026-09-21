@@ -30,36 +30,44 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     .single();
   if (classError) throw classError;
 
-  const [showRes, classTestRes, panelRes, entriesRes, scoresRes] = await Promise.all([
-    supabase.from('shows').select('name').eq('id', cls.show_id).single(),
-    supabase
-      .from('class_tests')
-      .select('name, movements, collectives')
-      .eq('class_id', classId)
-      .maybeSingle(),
-    supabase
-      .from('class_panel')
-      .select('seat_id, position, judge_staff_id, scribe_staff_id')
-      .eq('class_id', classId),
-    supabase
-      .from('class_entries')
-      .select(
-        'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override, ride_started_at',
-      )
-      .eq('class_id', classId)
-      .order('ride_order'),
-    supabase
-      .from('scores')
-      .select(
-        'id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted, signed_by, signed_at, updated_at',
-      )
-      .eq('class_id', classId),
-  ]);
+  const [showRes, classTestRes, panelRes, entriesRes, scoresRes, orderCheckRes] = await Promise.all(
+    [
+      supabase.from('shows').select('name').eq('id', cls.show_id).single(),
+      supabase
+        .from('class_tests')
+        .select('name, movements, collectives')
+        .eq('class_id', classId)
+        .maybeSingle(),
+      supabase
+        .from('class_panel')
+        .select('seat_id, position, judge_staff_id, scribe_staff_id')
+        .eq('class_id', classId),
+      supabase
+        .from('class_entries')
+        .select(
+          'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override, ride_started_at',
+        )
+        .eq('class_id', classId)
+        .order('ride_order'),
+      supabase
+        .from('scores')
+        .select(
+          'id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted, signed_by, signed_at, updated_at',
+        )
+        .eq('class_id', classId),
+      supabase
+        .from('class_order_checks')
+        .select('checked_at, checker:users!checked_by(name)')
+        .eq('class_id', classId)
+        .maybeSingle(),
+    ],
+  );
   if (showRes.error) throw showRes.error;
   if (classTestRes.error) throw classTestRes.error;
   if (panelRes.error) throw panelRes.error;
   if (entriesRes.error) throw entriesRes.error;
   if (scoresRes.error) throw scoresRes.error;
+  if (orderCheckRes.error) throw orderCheckRes.error;
 
   let test = classTestRes.data
     ? parseTestDefinition(classTestRes.data.name, classTestRes.data)
@@ -179,6 +187,9 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
       pos: cls.scoring_pos ?? 0,
       workingInEntryId: cls.working_in_entry_id,
       resultsPublished: cls.results_published ?? false,
+      orderChecked: orderCheckRes.data
+        ? { at: orderCheckRes.data.checked_at, byName: orderCheckRes.data.checker.name }
+        : null,
     },
     scheduledTime: cls.time ?? null,
     ring: cls.location ?? null,

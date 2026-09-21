@@ -173,6 +173,11 @@ export const toggleScoringOpenSchema = z.object({
 });
 export type ToggleScoringOpenInput = z.infer<typeof toggleScoringOpenSchema>;
 
+export const markOrderCheckedSchema = z.object({
+  classId: z.uuid(),
+});
+export type MarkOrderCheckedInput = z.infer<typeof markOrderCheckedSchema>;
+
 export const publishResultsSchema = z.object({
   classId: z.uuid(),
 });

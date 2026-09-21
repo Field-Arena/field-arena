@@ -76,6 +76,7 @@ export interface ClassScoringState {
     pos: number;
     workingInEntryId: string | null;
     resultsPublished: boolean;
+    orderChecked: { at: string; byName: string } | null;
   };
 
   scheduledTime: string | null;

@@ -22,6 +22,7 @@ import {
   advanceRideSchema,
   correctEntrySchema,
   disqualifyRideSchema,
+  markOrderCheckedSchema,
   publishResultsSchema,
   removeHoldingEntrySchema,
   removePanelSeatSchema,
@@ -57,6 +58,20 @@ async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judg
     throw new Error('You do not have permission to score this seat.');
   }
   return { signerName: mySeat.name };
+}
+
+// Class-level, not per-seat: any scribe seated on this class's panel may
+// mark it, not just one specific seat_id. The real boundary is the
+// assert_order_check_scribe_seat trigger on class_order_checks — this is
+// UX only, same as assertSeatAccess above.
+async function assertScribeSeatOnClass(classId: string): Promise<void> {
+  const profile = await getStaffProfile();
+  if (profile?.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) return;
+
+  const mySeat = await getMySeat(classId);
+  if (mySeat?.role !== 'scribe') {
+    throw new Error('You do not have permission to check ride order for this class.');
+  }
 }
 
 async function getScoreRow(
@@ -635,6 +650,27 @@ export async function toggleScoringOpen(input: unknown) {
     .from('classes')
     .update({ scoring_open: parsed.open })
     .eq('id', parsed.classId);
+  if (error) throw error;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+}
+
+export async function markOrderChecked(input: unknown) {
+  const parsed = parseInput(markOrderCheckedSchema, input);
+  await assertScribeSeatOnClass(parsed.classId);
+  const supabase = await createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in.');
+
+  const { error } = await supabase
+    .from('class_order_checks')
+    .upsert(
+      { class_id: parsed.classId, checked_at: new Date().toISOString(), checked_by: user.id },
+      { onConflict: 'class_id' },
+    );
   if (error) throw error;
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
