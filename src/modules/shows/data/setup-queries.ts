@@ -401,7 +401,9 @@ export interface ShowSetupDetail {
  * resolveVendorMapUrl in modules/vendors/data/queries.ts. */
 async function resolveWaiverDocumentUrl(path: string | null): Promise<string | null> {
   if (!path) return null;
-  const { data } = await createAdminClient().storage.from(SHOW_DOCS_BUCKET).createSignedUrl(path, 3600);
+  const { data } = await createAdminClient()
+    .storage.from(SHOW_DOCS_BUCKET)
+    .createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
 }
 
@@ -733,6 +735,10 @@ export interface CatalogListItem {
   id: string;
   name: string;
   price: number;
+  // Only meaningful for add-ons (how many horse/tack stalls one unit
+  // grants) — undefined for qualifications and vendor spaces.
+  stalls?: number;
+  tack?: number;
 }
 
 export interface VendorSpaceItem extends CatalogListItem {
@@ -765,7 +771,11 @@ export async function getRiderEntriesData(showId: string): Promise<RiderEntriesD
       )
       .eq('id', showId)
       .maybeSingle(),
-    supabase.from('add_ons').select('id, name, price').eq('show_id', showId).order('name'),
+    supabase
+      .from('add_ons')
+      .select('id, name, price, stalls, tack')
+      .eq('show_id', showId)
+      .order('name'),
     supabase
       .from('vendor_items')
       .select('id, name, price, qty')
@@ -817,7 +827,13 @@ export async function getRiderEntriesData(showId: string): Promise<RiderEntriesD
     logoUrl,
     bannerUrl,
     vendorMapUrl,
-    addOns: addOns.data.map((a) => ({ id: a.id, name: a.name, price: a.price ?? 0 })),
+    addOns: addOns.data.map((a) => ({
+      id: a.id,
+      name: a.name,
+      price: a.price ?? 0,
+      stalls: a.stalls ?? 0,
+      tack: a.tack ?? 0,
+    })),
     vendorSpaces: vendorItems.data.map((v) => ({
       id: v.id,
       name: v.name,

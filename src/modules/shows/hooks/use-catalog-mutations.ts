@@ -24,6 +24,7 @@ import type {
   CreateQualTypeInput,
   CreateVendorItemInput,
   UpdateCatalogItemInput,
+  UpdateAddOnInput,
   UpdateVendorItemInput,
   UploadShowBrandingInput,
   UploadVendorMapInput,
@@ -55,7 +56,7 @@ export function useUpdateAddOn() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (input: UpdateCatalogItemInput) => updateAddOn(input),
+    mutationFn: (input: UpdateAddOnInput) => updateAddOn(input),
     onSuccess: () => {
       router.refresh();
     },

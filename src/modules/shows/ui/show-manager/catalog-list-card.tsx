@@ -27,27 +27,42 @@ export function CatalogListCard({
   onRemove,
   creating,
   extraAction,
+  stablingFields,
 }: {
   title: string;
   note: string;
   emptyNote: string;
   placeholder: string;
   items: CatalogListItem[];
-  onCreate: (name: string, price: number) => void;
-  onRename: (item: CatalogListItem, name: string, price: number) => void;
+  onCreate: (name: string, price: number, stalls: number, tack: number) => void;
+  onRename: (
+    item: CatalogListItem,
+    name: string,
+    price: number,
+    stalls: number,
+    tack: number,
+  ) => void;
   onRemove: (id: string) => void;
   creating: boolean;
 
   extraAction?: ReactNode;
+  // Shows "stalls"/"tack" count inputs alongside name/price — only
+  // meaningful for the Add-Ons list, since that's the only catalog whose
+  // rows can grant stabling when purchased.
+  stablingFields?: boolean;
 }) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('0');
+  const [stalls, setStalls] = useState('0');
+  const [tack, setTack] = useState('0');
 
   function add() {
     if (!name.trim()) return;
-    onCreate(name.trim(), Number(price) || 0);
+    onCreate(name.trim(), Number(price) || 0, Number(stalls) || 0, Number(tack) || 0);
     setName('');
     setPrice('0');
+    setStalls('0');
+    setTack('0');
   }
 
   return (
@@ -62,7 +77,13 @@ export function CatalogListCard({
       ) : (
         <div className="mb-3 flex flex-col gap-2">
           {items.map((item) => (
-            <CatalogRow key={item.id} item={item} onRename={onRename} onRemove={onRemove} />
+            <CatalogRow
+              key={item.id}
+              item={item}
+              onRename={onRename}
+              onRemove={onRemove}
+              stablingFields={stablingFields}
+            />
           ))}
         </div>
       )}
@@ -93,6 +114,30 @@ export function CatalogListCard({
           }}
           aria-label={`New ${title.toLowerCase()} price`}
         />
+        {stablingFields && (
+          <>
+            <span className="text-[12px] text-[#6E7C76]">stalls</span>
+            <Input
+              className={cn('h-auto', SM_ROW_INPUT, 'w-[64px] flex-none')}
+              inputMode="numeric"
+              value={stalls}
+              onChange={(e) => {
+                setStalls(e.target.value);
+              }}
+              aria-label="New add-on stalls granted per unit"
+            />
+            <span className="text-[12px] text-[#6E7C76]">tack</span>
+            <Input
+              className={cn('h-auto', SM_ROW_INPUT, 'w-[64px] flex-none')}
+              inputMode="numeric"
+              value={tack}
+              onChange={(e) => {
+                setTack(e.target.value);
+              }}
+              aria-label="New add-on tack stalls granted per unit"
+            />
+          </>
+        )}
         <Button
           type="button"
           variant="ghost"

@@ -41,16 +41,17 @@ export function RiderEntriesPanel({ data }: { data: RiderEntriesData }) {
 
       <CatalogListCard
         title="Add-Ons"
-        note="Stabling, tack stalls, shavings, and anything else a rider can add to their entry. Check which ones you're offering and set each fee."
+        note="Stabling, tack stalls, shavings, and anything else a rider can add to their entry. Check which ones you're offering, set each fee, and — for a stall add-on — how many horse/tack stalls one unit grants (that's what lets Auto Assign know how many stalls a rider actually bought)."
         emptyNote="No add-ons configured — add whatever this show offers"
         placeholder="e.g. Overnight Stall"
         items={data.addOns}
         creating={createAddOn.isPending}
-        onCreate={(name, price) => {
-          createAddOn.mutate({ showId: data.showId, name, price, qty: '' });
+        stablingFields
+        onCreate={(name, price, stalls, tack) => {
+          createAddOn.mutate({ showId: data.showId, name, price, qty: '', stalls, tack });
         }}
-        onRename={(item, name, price) => {
-          updateAddOn.mutate({ id: item.id, name, price });
+        onRename={(item, name, price, stalls, tack) => {
+          updateAddOn.mutate({ id: item.id, name, price, stalls, tack });
         }}
         onRemove={(id) => {
           deleteAddOn.mutate(id);

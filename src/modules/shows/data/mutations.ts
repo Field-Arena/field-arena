@@ -33,6 +33,7 @@ import {
   createTocClassSchema,
   addQualTypePresetSchema,
   updateCatalogItemSchema,
+  updateAddOnSchema,
   createVendorItemSchema,
   updateVendorItemSchema,
   createQualTypeSchema,
@@ -846,12 +847,17 @@ export async function addQualTypePreset(input: unknown): Promise<void> {
 }
 
 export async function updateAddOn(input: unknown): Promise<void> {
-  const parsed = parseInput(updateCatalogItemSchema, input);
+  const parsed = parseInput(updateAddOnSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('add_ons')
-    .update({ name: parsed.name, price: parsed.price })
+    .update({
+      name: parsed.name,
+      price: parsed.price,
+      stalls: parsed.stalls,
+      tack: parsed.tack,
+    })
     .eq('id', parsed.id)
     .select('show_id')
     .single();
