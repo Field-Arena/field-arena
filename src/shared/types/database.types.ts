@@ -1052,6 +1052,7 @@ export type Database = {
           refunded_amount: number | null
           rider_id: string
           show_id: string
+          stabling_request: Json | null
           status: string | null
           stripe_customer_id: string | null
           stripe_payment_intent_id: string | null
@@ -1071,6 +1072,7 @@ export type Database = {
           refunded_amount?: number | null
           rider_id: string
           show_id: string
+          stabling_request?: Json | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -1090,6 +1092,7 @@ export type Database = {
           refunded_amount?: number | null
           rider_id?: string
           show_id?: string
+          stabling_request?: Json | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -1778,6 +1781,70 @@ export type Database = {
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stabling_requests: {
+        Row: {
+          created_at: string
+          horse_stalls: number
+          id: string
+          notes: string | null
+          order_id: string
+          rider_id: string
+          show_id: string
+          stable_with: string | null
+          tack_stalls: number
+          trainer_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          horse_stalls?: number
+          id?: string
+          notes?: string | null
+          order_id: string
+          rider_id: string
+          show_id: string
+          stable_with?: string | null
+          tack_stalls?: number
+          trainer_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          horse_stalls?: number
+          id?: string
+          notes?: string | null
+          order_id?: string
+          rider_id?: string
+          show_id?: string
+          stable_with?: string | null
+          tack_stalls?: number
+          trainer_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stabling_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stabling_requests_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stabling_requests_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
             referencedColumns: ["id"]
           },
         ]
