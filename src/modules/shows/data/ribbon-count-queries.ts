@@ -1,14 +1,26 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
-import { awardUnitsFor, type AwardClassInput } from '@/modules/shows/awards-engine';
-import type { RibbonColor } from '@/modules/shows/constants';
+import {
+  awardUnitsFor,
+  unitPlacings,
+  type AwardClassInput,
+  type AwardEntry,
+} from '@/modules/shows/awards-engine';
+import { DEFAULT_SCHEDULE_PREFS, type RibbonColor } from '@/modules/shows/constants';
+import type { SchedulePrefs } from '@/modules/shows/data/setup-queries';
 
 export interface RibbonCountRow {
   unitLabel: string;
   pooled: boolean;
   classLabels: string[];
   ribbonPlaces: number;
+  // One ribbon set per non-empty placing group from unitPlacings() — the
+  // same primitive the real Awards screen ranks with. Normally 1 per unit;
+  // more than 1 only when the show's awardsByDivision preference splits it
+  // into separate J/Y/A/O groups. Never driven by how many different tests
+  // riders chose (a Test of Choice class still ranks and awards as one
+  // combined group).
   ribbonSets: number;
   entryCount: number;
 }
@@ -19,12 +31,6 @@ export interface RibbonCountPageData {
   rows: RibbonCountRow[];
 }
 
-function extractTestName(override: unknown): string | null {
-  if (!override || typeof override !== 'object') return null;
-  const name = (override as Record<string, unknown>).name;
-  return typeof name === 'string' && name.trim() ? name : null;
-}
-
 export async function getRibbonCountReport(showId: string): Promise<RibbonCountPageData | null> {
   await assertCanManageEntryLedger(showId);
 
@@ -32,15 +38,22 @@ export async function getRibbonCountReport(showId: string): Promise<RibbonCountP
 
   const { data: show, error: showError } = await supabase
     .from('shows')
-    .select('id, name')
+    .select('id, name, schedule_prefs')
     .eq('id', showId)
     .maybeSingle();
   if (showError) throw showError;
   if (!show) return null;
 
+  const prefs = {
+    ...DEFAULT_SCHEDULE_PREFS,
+    ...((show.schedule_prefs ?? {}) as Partial<SchedulePrefs>),
+  };
+
   const { data: classes, error: classesError } = await supabase
     .from('classes')
-    .select('id, label, display_name, division, group_name, award_scope, ribbon_places, ribbon_colors')
+    .select(
+      'id, label, display_name, division, group_name, award_scope, ribbon_places, ribbon_colors',
+    )
     .eq('show_id', showId);
   if (classesError) throw classesError;
 
@@ -49,19 +62,22 @@ export async function getRibbonCountReport(showId: string): Promise<RibbonCountP
   const classIds = classes.map((c) => c.id);
   const { data: entries, error: entriesError } = await supabase
     .from('class_entries')
-    .select('class_id, test_override, status')
-    .in('class_id', classIds)
-    .neq('status', 'scratched');
+    .select('class_id, num, rider, horse, final_pct, collective_total, division')
+    .in('class_id', classIds);
   if (entriesError) throw entriesError;
 
-  const testNamesByClass = new Map<string, Set<string>>();
-  const entryCountByClass = new Map<string, number>();
-  for (const e of entries) {
-    entryCountByClass.set(e.class_id, (entryCountByClass.get(e.class_id) ?? 0) + 1);
-    const testName = extractTestName(e.test_override) ?? '';
-    const set = testNamesByClass.get(e.class_id) ?? new Set<string>();
-    set.add(testName);
-    testNamesByClass.set(e.class_id, set);
+  const byClass = new Map<string, AwardEntry[]>();
+  for (const entry of entries) {
+    const list = byClass.get(entry.class_id) ?? [];
+    list.push({
+      num: entry.num,
+      name: entry.rider ?? '',
+      horse: entry.horse ?? '',
+      pct: entry.final_pct == null ? null : Number(entry.final_pct),
+      ctot: entry.collective_total,
+      division: entry.division,
+    });
+    byClass.set(entry.class_id, list);
   }
 
   const awardInputs: AwardClassInput[] = classes.map((c) => ({
@@ -72,29 +88,20 @@ export async function getRibbonCountReport(showId: string): Promise<RibbonCountP
     groupName: c.group_name,
     ribbonPlaces: c.ribbon_places ?? 6,
     ribbonColors: c.ribbon_colors as RibbonColor[] | null,
-    entries: [],
+    entries: byClass.get(c.id) ?? [],
   }));
 
   const units = awardUnitsFor(awardInputs);
 
   const rows: RibbonCountRow[] = units.map((unit) => {
-    const testNames = new Set<string>();
-    let entryCount = 0;
-    for (const cls of unit.classes) {
-      entryCount += entryCountByClass.get(cls.id) ?? 0;
-      for (const name of testNamesByClass.get(cls.id) ?? []) testNames.add(name);
-    }
-    // A class using Test of Choice needs one ribbon set per distinct test
-    // riders actually chose, not one per class — an ordinary class always
-    // has the single '' (no-override) key, so this stays 1 for it.
-    const ribbonSets = entryCount === 0 ? 0 : Math.max(1, testNames.size);
+    const groups = unitPlacings(unit, prefs.awardsByDivision).filter((g) => g.rows.length > 0);
     return {
       unitLabel: unit.label,
       pooled: unit.pooled,
       classLabels: unit.classes.map((c) => c.label),
       ribbonPlaces: unit.ribbonPlaces,
-      ribbonSets,
-      entryCount,
+      ribbonSets: groups.length,
+      entryCount: groups.reduce((sum, g) => sum + g.rows.length, 0),
     };
   });
 
