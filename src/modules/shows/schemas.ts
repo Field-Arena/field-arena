@@ -86,7 +86,10 @@ export type CreateClassInput = z.input<typeof createClassSchema>;
 export const updateClassReviewSchema = z.object({
   classId: z.uuid(),
   showId: z.uuid(),
-  arena: z.string().trim().max(120).nullable().optional(),
+  // Arena is never set directly — it's always derived server-side from
+  // whichever ring/location the class is assigned to (see
+  // resolveArenaForLocation in mutations.ts).
+  location: z.string().trim().max(120).nullable().optional(),
   judgesCount: z.coerce.number().int().min(1).max(9).optional(),
   fee: z.coerce.number().min(0).max(100000).optional(),
   sponsor: z.string().trim().max(120).nullable().optional(),

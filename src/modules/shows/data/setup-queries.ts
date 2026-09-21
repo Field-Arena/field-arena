@@ -863,7 +863,7 @@ export interface ScheduleReviewData {
   showId: string;
   showName: string;
   classes: ScheduleReviewClassRow[];
-  ringNames: string[];
+  rings: RingRow[];
 
   feeModel: string;
   totals: {
@@ -932,8 +932,7 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
     };
   });
 
-  const locations = (show.locations ?? []) as unknown as RingRow[];
-  const ringNames = locations.map((l) => l.name).filter((name): name is string => !!name);
+  const rings = (show.locations ?? []) as unknown as RingRow[];
 
   const totals = rows.reduce(
     (acc, r) => ({
@@ -945,7 +944,7 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
     { classCount: 0, entryCount: 0, grossFees: 0, platformFees: 0 },
   );
 
-  return { showId: show.id, showName: show.name, classes: rows, ringNames, feeModel, totals };
+  return { showId: show.id, showName: show.name, classes: rows, rings, feeModel, totals };
 }
 
 export interface TestTemplateMovement {

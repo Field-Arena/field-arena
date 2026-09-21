@@ -59,8 +59,32 @@ import {
   SHOWS_PATH,
   SCHEDULE_PATH,
   SHOW_DOCS_BUCKET,
+  arenaLabelForRing,
 } from '@/modules/shows/constants';
 import { formatDateShort } from '@/shared/lib/format/date';
+
+type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
+
+// A class's arena is never typed in directly — it always mirrors the size
+// configured for whichever ring/location it's assigned to (Venue screen),
+// so every screen that reads class.arena (rider schedule, tickets,
+// operations' ring display) shows real, meaningful info instead of
+// whatever an organizer happened to type once.
+async function resolveArenaForLocation(
+  supabase: SupabaseClient,
+  showId: string,
+  location: string | null,
+): Promise<string | null> {
+  if (!location) return null;
+  const { data, error } = await supabase
+    .from('shows')
+    .select('locations')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const rings = (data?.locations ?? []) as unknown as { name: string; size: string }[];
+  return arenaLabelForRing(location, rings);
+}
 
 async function resolveOrgId(): Promise<string> {
   const profile = await getStaffProfile();
@@ -730,13 +754,17 @@ export async function addCatalogGroup(input: unknown): Promise<{ added: number }
       ? `${parsed.group} — ${test} — ${parsed.division}`
       : `${parsed.group} — ${test}`;
 
+  const location = parsed.location || null;
+  const arena = await resolveArenaForLocation(supabase, parsed.showId, location);
+
   const rows = parsed.tests.map((test) => ({
     show_id: parsed.showId,
     label: label(test),
     event: parsed.category,
     group_name: parsed.group,
     division,
-    location: parsed.location || null,
+    location,
+    arena,
     fee: parsed.fee,
 
     award_scope: 'group' as const,
@@ -774,9 +802,12 @@ export async function updateGroupLocation(input: unknown): Promise<void> {
   const parsed = parseInput(updateGroupLocationSchema, input);
   const supabase = await createServerClient();
 
+  const location = parsed.location || null;
+  const arena = await resolveArenaForLocation(supabase, parsed.showId, location);
+
   const { error } = await supabase
     .from('classes')
-    .update({ location: parsed.location || null })
+    .update({ location, arena })
     .eq('show_id', parsed.showId)
     .eq('division', parsed.group);
   if (error) throw new Error(error.message);
@@ -1107,7 +1138,12 @@ export async function updateClassReview(input: unknown): Promise<void> {
   const supabase = await createServerClient();
 
   const patch = {
-    ...(parsed.arena !== undefined ? { arena: parsed.arena } : {}),
+    ...(parsed.location !== undefined
+      ? {
+          location: parsed.location,
+          arena: await resolveArenaForLocation(supabase, parsed.showId, parsed.location),
+        }
+      : {}),
     ...(parsed.judgesCount !== undefined ? { judges_count: parsed.judgesCount } : {}),
     ...(parsed.fee !== undefined ? { fee: parsed.fee } : {}),
     ...(parsed.sponsor !== undefined ? { sponsor: parsed.sponsor } : {}),

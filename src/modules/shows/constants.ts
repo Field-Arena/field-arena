@@ -413,6 +413,20 @@ export const RING_SIZE_LABEL: Record<string, string> = {
   small: 'Small (20m × 40m)',
 };
 
+// A class's arena should always reflect the actual size configured for its
+// assigned ring/location (Venue screen) — not a free-typed, disconnected
+// value. Looks up the ring by name and returns its size label, or null when
+// no location is set yet or it doesn't match a configured ring.
+export function arenaLabelForRing(
+  ringName: string | null,
+  rings: { name: string; size: string }[],
+): string | null {
+  if (!ringName) return null;
+  const ring = rings.find((r) => r.name === ringName);
+  if (!ring) return null;
+  return RING_SIZE_LABEL[ring.size] ?? null;
+}
+
 export const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;
 
 // ── Documents filing cabinet ────────────────────────────────────────────
