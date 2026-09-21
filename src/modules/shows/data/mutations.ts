@@ -1,8 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { PDFParse } from 'pdf-parse';
-import { extractRawText } from 'mammoth';
 import type { Json } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
@@ -597,7 +595,18 @@ export async function createWaiverDocumentUploadUrl(
   return { path: data.path, token: data.token };
 }
 
+/* pdf-parse/mammoth are dynamically imported here rather than at module
+ * top-level. This file is a 'use server' actions module imported by hooks
+ * across most of the organizer dashboard (stables, schedule, catalog,
+ * setup, ...), so a static import bundled pdfjs-dist's module-eval-time
+ * canvas/DOMMatrix polyfilling into a shared server chunk loaded on nearly
+ * every request — including ones with nothing to do with waivers — and it
+ * crashed outright in the Vercel serverless runtime, which doesn't have
+ * @napi-rs/canvas's native binary available. Loading it lazily, only when a
+ * waiver document is actually being uploaded, keeps that fragile code out
+ * of every other route's module graph entirely. */
 async function extractPdfText(bytes: ArrayBuffer): Promise<string | null> {
+  const { PDFParse } = await import('pdf-parse');
   const parser = new PDFParse({ data: new Uint8Array(bytes) });
   try {
     const result = await parser.getText();
@@ -608,6 +617,7 @@ async function extractPdfText(bytes: ArrayBuffer): Promise<string | null> {
 }
 
 async function extractDocxText(bytes: ArrayBuffer): Promise<string | null> {
+  const { extractRawText } = await import('mammoth');
   const result = await extractRawText({ buffer: Buffer.from(bytes) });
   return result.value.trim();
 }

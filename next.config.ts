@@ -25,6 +25,15 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Do not advertise the framework/version (BUG-SEC-002).
   poweredByHeader: false,
+  // pdf-parse pulls in pdfjs-dist, which tries to load the native
+  // @napi-rs/canvas package for its DOMMatrix/ImageData polyfills. Bundling
+  // it with Turbopack mangles that native lookup on Vercel's serverless
+  // runtime ("Cannot find module '@napi-rs/canvas'" -> DOMMatrix crash even
+  // on unrelated requests, since the module was getting bundled into a
+  // shared server chunk). Marking it (and mammoth, same class of package)
+  // external means Next requires them normally from node_modules at
+  // runtime instead of bundling them.
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', 'mammoth'],
   experimental: {
     // Catalog-document uploads reach the server as base64 in a Server Action
     // body; the default 1 MB cap rejects any real PDF. 8 MB covers a test sheet
