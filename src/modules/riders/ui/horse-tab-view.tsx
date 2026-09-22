@@ -78,6 +78,7 @@ export function HorseTabView({
         <form
           style={{
             display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'flex-end',
             gap: 8,
             background: LEGACY_COLOR.white,
@@ -92,8 +93,9 @@ export function HorseTabView({
             createHorse.mutate({ name: newHorseName.trim() });
           }}
         >
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: '1 1 180px', minWidth: 0 }}>
             <label
+              htmlFor="dashboard-new-horse-name"
               style={{
                 display: 'block',
                 fontSize: 11,
@@ -104,6 +106,7 @@ export function HorseTabView({
               Horse&apos;s registered name
             </label>
             <input
+              id="dashboard-new-horse-name"
               autoFocus
               placeholder="e.g. Midnight Runner"
               value={newHorseName}
@@ -116,6 +119,17 @@ export function HorseTabView({
               This can&apos;t be changed once added.
             </p>
           </div>
+          <button
+            type="button"
+            style={legacyButtonGhostStyle}
+            disabled={createHorse.isPending}
+            onClick={() => {
+              setNewHorseName('');
+              setAdding(false);
+            }}
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             style={{

@@ -12,11 +12,22 @@
      the floating button never sits on top of live text/controls. */
   --mobile-toggle-clear: 190px;
   display: grid;
-  grid-template-columns: var(--rail) var(--side) 1fr;
+  grid-template-columns: var(--rail) var(--side) minmax(0, 1fr);
   min-height: 100vh;
   background: #f7f5ee;
   color: var(--ink);
   font-family: var(--sans);
+}
+
+.dash-desktop-navigation {
+  display: contents;
+}
+.dash-menu-trigger {
+  display: none;
+}
+.dash :is(a, button, select):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 /* Role rail */
@@ -489,7 +500,7 @@
   position: fixed;
   top: 14px;
   right: 14px;
-  z-index: 2000;
+  z-index: 40;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -530,9 +541,11 @@
   grid-template-columns: 1fr;
   grid-template-rows: minmax(0, 1fr);
 }
-.dash.dash-mobile-frame .dash-rail,
-.dash.dash-mobile-frame .dash-side {
+.dash.dash-mobile-frame .dash-desktop-navigation {
   display: none;
+}
+.dash.dash-mobile-frame .dash-menu-trigger {
+  display: inline-flex;
 }
 .dash.dash-mobile-frame .dash-main {
   min-height: 0;
@@ -561,9 +574,23 @@
   .dash {
     grid-template-columns: 1fr;
   }
-  .dash-rail,
-  .dash-side {
+  .dash-desktop-navigation {
     display: none;
+  }
+  .dash-menu-trigger {
+    display: inline-flex;
+  }
+  .dash-topbar {
+    min-height: 58px;
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+  }
+  .dash-content {
+    padding: 24px 16px 40px;
+  }
+  .dash-head {
+    flex-wrap: wrap;
   }
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);

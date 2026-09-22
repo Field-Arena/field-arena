@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
+import styles from './rider-dashboard.module.css';
 import { useSaveStablingDates } from '@/modules/riders/hooks/use-stabling-mutations';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { computeStablingSummary } from '@/modules/riders/utils/compute-stabling-summary';
@@ -63,54 +64,61 @@ export function PurchasesTab({
       <LegacySecTitle>Your entries &amp; purchases</LegacySecTitle>
 
       <div style={legacyBlockTitleStyle}>Class entries</div>
-      <table style={legacyTableStyle}>
-        <thead>
-          <tr>
-            <th style={legacyTableHeadCellStyle}>Class</th>
-            <th style={legacyTableHeadCellStyle}>Division</th>
-            <th style={legacyTableHeadCellStyle}>Date · time · ring</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Fee</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.length === 0 && (
+      <div
+        className={styles.tableScroll}
+        tabIndex={0}
+        role="region"
+        aria-label="Purchased class entries"
+      >
+        <table style={legacyTableStyle}>
+          <thead>
             <tr>
-              <td style={legacyTableCellStyle} colSpan={4}>
-                No classes entered yet.
-              </td>
+              <th style={legacyTableHeadCellStyle}>Class</th>
+              <th style={legacyTableHeadCellStyle}>Division</th>
+              <th style={legacyTableHeadCellStyle}>Date · time · ring</th>
+              <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Fee</th>
             </tr>
-          )}
-          {entries.map((entry) => {
-            const fee = feeForEntry(orders, entry.classId, entry.horseId);
-            const subtitle = entry.class ? classSubtitle(entry.class) : null;
-            return (
-              <tr key={entry.id}>
-                <td style={legacyTableCellStyle}>
-                  {entry.class ? classDisplayName(entry.class) : 'Class'}
-                  {subtitle && (
-                    <div
-                      style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}
-                    >
-                      {subtitle}
-                    </div>
-                  )}
-                </td>
-                <td style={legacyTableCellStyle}>{entry.class?.division}</td>
-                <td style={legacyTableCellStyle}>
-                  {entry.class
-                    ? [entry.class.date, entry.class.time, entry.class.arena]
-                        .filter(Boolean)
-                        .join(' · ')
-                    : ''}
-                </td>
-                <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
-                  {fee != null ? formatMoneyExact(fee) : '—'}
+          </thead>
+          <tbody>
+            {entries.length === 0 && (
+              <tr>
+                <td style={legacyTableCellStyle} colSpan={4}>
+                  No classes entered yet.
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            )}
+            {entries.map((entry) => {
+              const fee = feeForEntry(orders, entry.classId, entry.horseId);
+              const subtitle = entry.class ? classSubtitle(entry.class) : null;
+              return (
+                <tr key={entry.id}>
+                  <td style={legacyTableCellStyle}>
+                    {entry.class ? classDisplayName(entry.class) : 'Class'}
+                    {subtitle && (
+                      <div
+                        style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}
+                      >
+                        {subtitle}
+                      </div>
+                    )}
+                  </td>
+                  <td style={legacyTableCellStyle}>{entry.class?.division}</td>
+                  <td style={legacyTableCellStyle}>
+                    {entry.class
+                      ? [entry.class.date, entry.class.time, entry.class.arena]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : ''}
+                  </td>
+                  <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+                    {fee != null ? formatMoneyExact(fee) : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       <div style={legacyBlockTitleStyle}>
         Stabling &amp; add-ons{' '}
@@ -130,58 +138,65 @@ export function PurchasesTab({
           Auto-filled from checkout
         </span>
       </div>
-      <table style={legacyTableStyle}>
-        <thead>
-          <tr>
-            <th style={legacyTableHeadCellStyle}>Item</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Qty</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Price</th>
-            <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={legacyTableCellStyle}>Class entries ({entries.length})</td>
-            <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>{entries.length}</td>
-            <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>—</td>
-            <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
-              {formatMoneyExact(summary.classEntriesTotal)}
-            </td>
-          </tr>
-          {summary.addOnLines.map((line, index) => (
-            <tr key={`${line.label}-${String(index)}`}>
-              <td style={legacyTableCellStyle}>{line.label}</td>
-              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>{line.qty}</td>
+      <div
+        className={styles.tableScroll}
+        tabIndex={0}
+        role="region"
+        aria-label="Stabling and add-ons"
+      >
+        <table style={legacyTableStyle}>
+          <thead>
+            <tr>
+              <th style={legacyTableHeadCellStyle}>Item</th>
+              <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Qty</th>
+              <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Price</th>
+              <th style={{ ...legacyTableHeadCellStyle, textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={legacyTableCellStyle}>Class entries ({entries.length})</td>
+              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>{entries.length}</td>
+              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>—</td>
               <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
-                {formatMoneyExact(line.unitPrice)}
-              </td>
-              <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
-                {formatMoneyExact(line.amount)}
+                {formatMoneyExact(summary.classEntriesTotal)}
               </td>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td
-              style={{ ...legacyTableCellStyle, fontWeight: 700, borderBottom: 'none' }}
-              colSpan={3}
-            >
-              Total paid
-            </td>
-            <td
-              style={{
-                ...legacyTableCellStyle,
-                fontWeight: 700,
-                borderBottom: 'none',
-                textAlign: 'right',
-              }}
-            >
-              {formatMoneyExact(summary.totalPaid)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+            {summary.addOnLines.map((line, index) => (
+              <tr key={`${line.label}-${String(index)}`}>
+                <td style={legacyTableCellStyle}>{line.label}</td>
+                <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>{line.qty}</td>
+                <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+                  {formatMoneyExact(line.unitPrice)}
+                </td>
+                <td style={{ ...legacyTableCellStyle, textAlign: 'right' }}>
+                  {formatMoneyExact(line.amount)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td
+                style={{ ...legacyTableCellStyle, fontWeight: 700, borderBottom: 'none' }}
+                colSpan={3}
+              >
+                Total paid
+              </td>
+              <td
+                style={{
+                  ...legacyTableCellStyle,
+                  fontWeight: 700,
+                  borderBottom: 'none',
+                  textAlign: 'right',
+                }}
+              >
+                {formatMoneyExact(summary.totalPaid)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' }}>
         <button

@@ -47,6 +47,7 @@ export function FindPanel({
         className="h-auto"
         style={{ ...searchStyle, fontSize: 16, padding: '14px 16px' }}
         placeholder="Search riders, horses, or vendors…"
+        aria-label="Search riders, horses, or vendors"
         value={term}
         onChange={(e) => {
           setTerm(e.target.value);

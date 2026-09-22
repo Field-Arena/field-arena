@@ -14,6 +14,7 @@ import {
 import { setRailRole } from '@/shared/lib/rail-role';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
+import { MobileWorkspaceMenu } from '@/shared/ui/mobile-workspace-menu';
 import { Tip } from '@/shared/ui/tip';
 import { ImpersonationBanner } from './impersonation-banner';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
@@ -144,8 +145,8 @@ export function OrganizerShell({
       return best;
     }, null);
 
-  const shell = (
-    <div className={cn('dash', mobilePreview && 'dash-mobile-frame')}>
+  const navigation = (
+    <>
       <aside className="dash-rail">
         <div className="dash-rail-logo">
           F<b>&amp;</b>A
@@ -301,7 +302,11 @@ export function OrganizerShell({
             const active = item.key === activeNavItem?.key;
             return (
               <Tip key={item.key} text={item.tip} className="block w-full">
-                <Link href={item.href} className={cn('dash-nav-item', active && 'active')}>
+                <Link
+                  href={item.href}
+                  className={cn('dash-nav-item', active && 'active')}
+                  aria-current={active ? 'page' : undefined}
+                >
                   <NavIcon name={item.icon} />
                   <span>{item.label}</span>
                 </Link>
@@ -326,11 +331,19 @@ export function OrganizerShell({
           </button>
         </div>
       </aside>
+    </>
+  );
 
+  const shell = (
+    <div className={cn('dash', mobilePreview && 'dash-mobile-frame')}>
+      <div className="dash-desktop-navigation">{navigation}</div>
       <div className="dash-main">
         {impersonating && <ImpersonationBanner orgName={impersonatedOrgName} />}
 
         <header className="dash-topbar">
+          <MobileWorkspaceMenu key={pathname} className="dash-menu-trigger">
+            {navigation}
+          </MobileWorkspaceMenu>
           <span className="dash-topbar-title">{activeWorkspace.title}</span>
           <span className="dash-badge">{activeRailRole}</span>
           <span className="dash-topbar-note">{activeWorkspace.hint}</span>

@@ -23,6 +23,7 @@ export default async function RiderLayout({ children }: { children: React.ReactN
       style={{ fontFamily: SYSTEM_SANS, backgroundColor: CREAM, color: INK, minHeight: '100vh' }}
     >
       <header
+        className="flex-wrap gap-4"
         style={{
           background: HUNTER_DEEP,
           color: '#fff',
@@ -50,7 +51,10 @@ export default async function RiderLayout({ children }: { children: React.ReactN
           </div>
         </div>
         {name && (
-          <div style={{ fontSize: 13, color: '#CBD8D0', textAlign: 'right' }}>
+          <div
+            className="max-w-full min-w-0 break-words"
+            style={{ fontSize: 13, color: '#CBD8D0', textAlign: 'right' }}
+          >
             Signed in as{' '}
             <b style={{ color: '#fff', display: 'block', fontSize: 14 }}>
               {name}

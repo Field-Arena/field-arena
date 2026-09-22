@@ -45,13 +45,13 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
           return (
             <div
               key={show.id}
-              className="grid [grid-template-columns:minmax(0,1fr)_auto] items-center gap-[18px] rounded-[10px] border-[1.5px] bg-[#FAF6EC] px-[18px] py-[15px]"
+              className="grid grid-cols-1 items-center gap-[18px] rounded-[10px] border-[1.5px] bg-[#FAF6EC] px-[18px] py-[15px] sm:grid-cols-[minmax(0,1fr)_auto]"
               style={{
                 borderColor: show.published ? '#E9EDEB' : '#B4432F',
                 borderLeft: show.published ? '4px solid #2E7048' : '1.5px solid #B4432F',
               }}
             >
-              <div className="min-w-0">
+              <div className="min-w-0 break-words">
                 <div className="mb-1 font-[Newsreader,serif] text-[17px] font-semibold text-[#0D2C23]">
                   {show.name}
                 </div>
@@ -62,7 +62,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
                 {!complete && (
                   <Button
                     type="button"

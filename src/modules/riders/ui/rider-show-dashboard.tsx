@@ -12,6 +12,8 @@ import { RingScheduleStrip } from '@/modules/riders/ui/ring-schedule-strip';
 import { ScheduleTab } from '@/modules/riders/ui/schedule-tab';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
+import { MobileWorkspaceMenu } from '@/shared/ui/mobile-workspace-menu';
+import styles from './rider-dashboard.module.css';
 import type {
   AddOnWithRemaining,
   ClassWithCapacity,
@@ -34,12 +36,6 @@ const NAV_ITEMS: { key: Exclude<DashTab, 'results'>; label: string; icon: string
 ];
 
 const RAIL_DARK = '#172B21';
-
-const STICKY_SIDEBAR_STYLE = {
-  minHeight: 'calc(100vh - 77px)',
-  position: 'sticky',
-  top: 77,
-} as const;
 
 export function RiderShowDashboard({
   rider,
@@ -69,18 +65,16 @@ export function RiderShowDashboard({
   const firstName = (rider.first_name?.trim() ?? '') || rider.email;
   const hasResults = entries.some((entry) => entry.finalPct != null);
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+  const navigation = (
+    <>
       <aside
+        className={styles.rail}
         style={{
-          width: 56,
-          flex: 'none',
           background: RAIL_DARK,
           padding: '14px 0',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          ...STICKY_SIDEBAR_STYLE,
         }}
       >
         <div
@@ -111,15 +105,13 @@ export function RiderShowDashboard({
       </aside>
 
       <aside
+        className={styles.sidebar}
         style={{
-          width: 220,
-          flex: 'none',
           background: LEGACY_COLOR.hunterDeep,
           padding: '24px 0',
           display: 'flex',
           flexDirection: 'column',
           gap: 2,
-          ...STICKY_SIDEBAR_STYLE,
         }}
       >
         <div
@@ -140,6 +132,8 @@ export function RiderShowDashboard({
               <button
                 key={item.key}
                 type="button"
+                aria-pressed={active}
+                data-navigation-link
                 onClick={() => {
                   setActiveTab(item.key);
                 }}
@@ -190,8 +184,17 @@ export function RiderShowDashboard({
           </button>
         </div>
       </aside>
+    </>
+  );
 
-      <main style={{ flex: 1, minWidth: 0, padding: '28px 32px 80px' }}>
+  return (
+    <div className={styles.dashboard}>
+      <div className={styles.desktopNavigation}>{navigation}</div>
+      <main className={styles.main}>
+        <div className={styles.mobileHeader}>
+          <MobileWorkspaceMenu>{navigation}</MobileWorkspaceMenu>
+          Rider Portal
+        </div>
         <div style={{ marginBottom: 20 }}>
           <h1
             style={{ fontFamily: LEGACY_GEORGIA, fontSize: 26, color: LEGACY_COLOR.ink, margin: 0 }}

@@ -1,0 +1,30 @@
+.navigation {
+  display: flex;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.navigation > aside {
+  position: static;
+  display: flex;
+  height: auto;
+  min-height: 100%;
+  align-self: stretch;
+  overflow: visible;
+}
+
+.navigation > aside:first-child {
+  width: 68px;
+  flex: none;
+}
+
+.navigation > aside:last-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.navigation :is(a, button, select):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}

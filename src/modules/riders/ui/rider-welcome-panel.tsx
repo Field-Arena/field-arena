@@ -25,9 +25,16 @@ export function RiderWelcomePanel({ rider, shows }: { rider: RiderRow; shows: Ri
         <p style={{ fontSize: 13.5, color: LEGACY_COLOR.inkSoft, margin: '6px 0 0' }}>
           {shows.length > 0
             ? "You're entered in more than one show — pick which one to open."
-            : "Your rider account is set up. Open the link to a show's ticket page to enter classes, manage your horses, and see your schedule and results there."}
+            : 'Your rider account is set up. Browse shows to enter classes, manage your horses, and see your schedule and results.'}
         </p>
       </div>
+
+      <Link
+        href="/shows"
+        className="border-hunter-deep text-hunter-deep hover:bg-hunter-pale focus-visible:ring-gold rounded-lg border px-4 py-3 text-center text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none"
+      >
+        Browse shows
+      </Link>
 
       {shows.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

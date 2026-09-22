@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRef } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/ui/shadcn/dialog';
 import { IconCheck, IconX, IconChevronRight } from '@/shared/ui/organizer/icons';
 import type { CompletenessSection } from '@/modules/shows/data/setup-queries';
 
@@ -16,6 +18,7 @@ export function MissingSectionsDialog({
   sections: CompletenessSection[];
   onClose: () => void;
 }) {
+  const returnFocus = useRef<HTMLElement | null>(null);
   const base = `/dashboard/shows/${showId}`;
   const targets: Record<string, string> = {
     'Show Details': `${base}#show-details`,
@@ -30,20 +33,28 @@ export function MissingSectionsDialog({
   const hrefFor = (name: string) => targets[name] ?? base;
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[78] grid cursor-pointer place-items-center bg-[rgba(9,26,21,.42)] p-8"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
+      <DialogContent
+        showCloseButton={false}
+        onOpenAutoFocus={() => {
+          returnFocus.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
         }}
-        className="max-h-[86vh] w-[min(530px,100%)] overflow-y-auto rounded-[14px] bg-white px-[26px] pt-6 pb-[22px] shadow-[0_30px_70px_rgba(9,26,21,.3)]"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocus.current?.focus();
+        }}
+        className="max-h-[86dvh] overflow-y-auto rounded-[14px] bg-white px-[26px] pt-6 pb-[22px] shadow-[0_30px_70px_rgba(9,26,21,.3)] sm:max-w-[530px]"
       >
         <div className="flex items-start gap-3.5">
-          <h2 className="mb-[7px] min-w-0 flex-1 font-[Newsreader,serif] text-[23px] font-semibold tracking-[-.015em] text-[#0D2C23]">
+          <DialogTitle className="mb-[7px] min-w-0 flex-1 font-[Newsreader,serif] text-[23px] font-semibold tracking-[-.015em] text-[#0D2C23]">
             {showName}
-          </h2>
+          </DialogTitle>
           <Button
             type="button"
             variant="ghost"
@@ -55,10 +66,10 @@ export function MissingSectionsDialog({
           </Button>
         </div>
 
-        <p className="mb-[18px] text-[13.5px] leading-[1.5] [text-wrap:pretty] text-[#5A6B63]">
+        <DialogDescription className="mb-[18px] text-[13.5px] leading-[1.5] [text-wrap:pretty] text-[#5A6B63]">
           Tap any section to jump straight to it — the ones marked{' '}
           <IconX size={12} className="inline text-[#B4432F]" /> still need finishing.
-        </p>
+        </DialogDescription>
 
         <div className="flex flex-col gap-0.5">
           {sections.map((sec) => {
@@ -86,7 +97,7 @@ export function MissingSectionsDialog({
             );
           })}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

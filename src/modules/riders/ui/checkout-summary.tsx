@@ -64,14 +64,16 @@ export function CheckoutSummary({
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-fa-muted">Estimated total</span>
-          <span className="text-forest text-lg font-semibold">${total.toFixed(2)}</span>
+          <span className="text-forest text-lg font-semibold">
+            {selectedClassIds.size > 0 && !everyClassAssigned ? '—' : `$${total.toFixed(2)}`}
+          </span>
         </div>
-        {!canCheckout && (
+        {!canCheckout && selectedClassIds.size === 0 && (
           <p className="text-fa-muted text-xs">Choose at least one class or add-on to continue.</p>
         )}
-        {canCheckout && !everyClassAssigned && (
-          <p className="text-destructive text-xs">
-            Assign a horse to every selected class to continue.
+        {!everyClassAssigned && (
+          <p className="text-destructive text-xs" role="status">
+            Assign a horse to every selected class to calculate your total and continue.
           </p>
         )}
         {canCheckout && everyClassAssigned && !everyTestChosen && (

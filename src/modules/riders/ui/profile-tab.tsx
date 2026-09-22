@@ -11,11 +11,13 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import type { RiderProfileUpdateInput } from '@/modules/riders/schemas';
 import type { RiderRow } from '@/modules/riders/types';
+import styles from './rider-dashboard.module.css';
 
 type EditableField = keyof RiderProfileUpdateInput;
 
 const rowStyle: CSSProperties = {
   display: 'flex',
+  flexWrap: 'wrap',
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: 12,
@@ -31,6 +33,8 @@ const inputStyle: CSSProperties = {
   borderRadius: 8,
   border: `1px solid ${LEGACY_COLOR.border}`,
   width: 190,
+  maxWidth: '100%',
+  minWidth: 0,
 };
 
 export function ProfileTab({ rider }: { rider: RiderRow }) {
@@ -42,7 +46,7 @@ export function ProfileTab({ rider }: { rider: RiderRow }) {
   return (
     <div style={legacyCardStyle}>
       <LegacySecTitle>Rider profile</LegacySecTitle>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 16 }}>
+      <div className={styles.profileGrid}>
         <div>
           <div style={legacyBlockTitleStyle}>Rider</div>
           <FixedRow label="Name" value={name} />
@@ -120,10 +124,13 @@ function EditableRow({
     return (
       <div style={rowStyle}>
         <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: LEGACY_COLOR.ink }}>{displayValue || 'Not set'}</span>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, maxWidth: '100%' }}
+        >
+          <span style={{ color: LEGACY_COLOR.ink, minWidth: 0 }}>{displayValue || 'Not set'}</span>
           <button
             type="button"
+            aria-label={`Edit ${label.toLowerCase()}`}
             style={{ ...legacyButtonGhostStyle, padding: '4px 10px', fontSize: 12 }}
             onClick={() => {
               setEditing(true);
@@ -142,6 +149,7 @@ function EditableRow({
       <input
         autoFocus
         type={type}
+        aria-label={label}
         defaultValue={displayValue}
         disabled={updateProfile.isPending}
         style={inputStyle}

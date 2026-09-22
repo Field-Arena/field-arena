@@ -14,11 +14,12 @@ export function SearchInput({
   return (
     <span
       className={cn(
-        'relative inline-flex min-w-[240px] flex-1 basis-[280px] items-center',
+        'relative inline-flex min-w-0 flex-1 basis-[280px] items-center',
         containerClassName,
       )}
     >
       <svg
+        aria-hidden="true"
         width="15"
         height="15"
         viewBox="0 0 24 24"
@@ -34,6 +35,10 @@ export function SearchInput({
       </svg>
       <input
         autoComplete={autoComplete}
+        aria-label={
+          props['aria-label'] ??
+          (props['aria-labelledby'] ? undefined : (props.placeholder ?? 'Search'))
+        }
         className={cn(
           'box-border w-full rounded-[10px] border border-[#D9E1DD] bg-white',
           'py-[11px] pr-3.5 pl-9 text-[13.5px] text-[#16261F]',

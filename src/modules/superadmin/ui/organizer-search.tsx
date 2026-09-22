@@ -24,18 +24,19 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
   const searchParams = useSearchParams();
   const [value, setValue] = useState(() => searchParams.get('q') ?? '');
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapper = useRef<HTMLSpanElement>(null);
 
   const inBilling = pathname.startsWith('/dashboard/superadmin/billing');
 
   useEffect(() => {
-    function onPointerDown(event: MouseEvent) {
+    function onPointerDown(event: PointerEvent) {
       if (!wrapper.current?.contains(event.target as Node)) setOpen(false);
     }
-    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('pointerdown', onPointerDown);
     return () => {
-      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('pointerdown', onPointerDown);
     };
   }, []);
 
@@ -48,6 +49,7 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
 
   function handleChange(next: string) {
     setValue(next);
+    setActiveIndex(-1);
     setOpen(next.trim().length > 0);
 
     if (timer.current) clearTimeout(timer.current);
@@ -61,6 +63,7 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
   }
 
   function pick(org: OrganizerOption) {
+    if (timer.current) clearTimeout(timer.current);
     setValue(org.name);
     setOpen(false);
     router.push(
@@ -81,10 +84,10 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
     : [];
 
   return (
-    <span ref={wrapper} className="relative flex items-center gap-2">
+    <span ref={wrapper} className="relative flex max-w-full min-w-0 items-center gap-2">
       <label
         htmlFor="organizer-search"
-        className="text-fa-muted text-[11px] font-bold tracking-[0.06em] uppercase"
+        className="text-fa-muted shrink-0 text-[11px] font-bold tracking-[0.06em] uppercase"
       >
         Organizer
       </label>
@@ -94,6 +97,10 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
         role="combobox"
         aria-expanded={open}
         aria-controls="organizer-search-menu"
+        aria-autocomplete="list"
+        aria-activedescendant={
+          open && matches[activeIndex] ? `organizer-option-${matches[activeIndex].id}` : undefined
+        }
         autoComplete="off"
         value={value}
         onChange={(event) => {
@@ -102,27 +109,53 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
         onFocus={() => {
           if (value.trim()) setOpen(true);
         }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            setOpen(false);
+            setActiveIndex(-1);
+          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setOpen(value.trim().length > 0);
+            if (matches.length) {
+              const next =
+                event.key === 'ArrowDown'
+                  ? (activeIndex + 1) % matches.length
+                  : activeIndex <= 0
+                    ? matches.length - 1
+                    : activeIndex - 1;
+              setActiveIndex(next);
+            }
+          } else if (event.key === 'Enter' && open && matches[activeIndex]) {
+            event.preventDefault();
+            pick(matches[activeIndex]);
+          } else if (event.key === 'Tab') {
+            setOpen(false);
+          }
+        }}
         placeholder="Search organizers…"
-        className="border-border text-ink focus-visible:border-gold focus-visible:ring-gold/30 h-auto w-[210px] rounded-lg border bg-white px-3 py-1.5 text-[13px] outline-none placeholder:text-[#8a968f] focus-visible:ring-2"
+        className="border-border text-ink focus-visible:border-gold focus-visible:ring-gold/30 h-auto w-[210px] min-w-0 rounded-lg border bg-white px-3 py-1.5 text-[13px] outline-none placeholder:text-[#8a968f] focus-visible:ring-2"
       />
 
       {open && (
         <div
           id="organizer-search-menu"
           role="listbox"
-          className="border-line absolute top-full right-0 z-50 mt-1.5 max-h-[300px] w-[280px] overflow-y-auto rounded-xl border bg-white py-1.5 shadow-[0_18px_44px_rgba(9,26,21,.16)]"
+          className="border-line absolute top-full right-0 z-50 mt-1.5 max-h-[300px] w-[280px] max-w-full overflow-y-auto rounded-xl border bg-white py-1.5 shadow-[0_18px_44px_rgba(9,26,21,.16)]"
         >
           {matches.length === 0 ? (
             <p className="text-fa-muted-2 px-3.5 py-2.5 text-[12.5px]">
               No organizers match &ldquo;{value}&rdquo;.
             </p>
           ) : (
-            matches.map((org) => (
+            matches.map((org, index) => (
               <Button
                 key={org.id}
                 type="button"
                 role="option"
-                aria-selected={false}
+                id={`organizer-option-${org.id}`}
+                aria-selected={index === activeIndex}
+                tabIndex={-1}
                 variant="ghost"
                 onClick={() => {
                   pick(org);
@@ -130,12 +163,15 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
                 className={cn(
                   'flex h-auto w-full items-baseline justify-between gap-3 rounded-none px-3.5 py-2 text-left',
                   'hover:bg-[#F6F3EC]',
+                  index === activeIndex && 'bg-[#F6F3EC]',
                 )}
               >
                 <span className="text-hunter-deep truncate text-[13px] font-semibold">
                   {org.name}
                 </span>
-                <span className="text-fa-muted-2 flex-none text-[11.5px]">{org.location}</span>
+                <span className="text-fa-muted-2 max-w-[45%] truncate text-[11.5px]">
+                  {org.location}
+                </span>
               </Button>
             ))
           )}

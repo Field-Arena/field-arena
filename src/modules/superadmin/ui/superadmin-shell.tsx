@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
 import type { StaffProfile } from '@/modules/auth/data/queries';
 import { RoleRail } from '@/shared/ui/role-rail';
+import { MobileWorkspaceMenu } from '@/shared/ui/mobile-workspace-menu';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { Tip } from '@/shared/ui/tip';
 import { cn } from '@/shared/lib/utils';
@@ -68,17 +69,11 @@ export function SuperAdminShell({
       .map((part) => part.charAt(0).toUpperCase())
       .join('') || 'FA';
 
-  return (
-    <div className="bg-paper text-ink-deep grid min-h-dvh font-[family-name:var(--font-ar)] lg:grid-cols-[74px_248px_minmax(0,1fr)]">
-      <div className="hidden lg:block">
-        <RoleRail
-          currentRole={profile.platform_role}
-          activeRole={activeRailRole}
-          variant="console"
-        />
-      </div>
+  const navigation = (
+    <>
+      <RoleRail currentRole={profile.platform_role} activeRole={activeRailRole} variant="console" />
 
-      <aside className="bg-forest sticky top-0 hidden h-dvh flex-col px-4 pt-[22px] pb-[18px] lg:flex">
+      <aside className="bg-forest sticky top-0 flex h-dvh flex-col overflow-y-auto px-4 pt-[22px] pb-[18px]">
         <div className="flex items-center gap-[11px] px-2 pb-[22px]">
           <span
             className={`bg-gold grid size-8 flex-none place-items-center rounded-lg ${DISPLAY} text-forest text-sm font-semibold tracking-[-.02em]`}
@@ -235,9 +230,17 @@ export function SuperAdminShell({
           </Button>
         </div>
       </aside>
+    </>
+  );
 
+  return (
+    <div className="bg-paper text-ink-deep grid min-h-dvh font-[family-name:var(--font-ar)] lg:grid-cols-[74px_248px_minmax(0,1fr)]">
+      <div className="hidden lg:contents">{navigation}</div>
       <main id="top" className="flex min-w-0 flex-col">
         <header className="border-line bg-paper sticky top-0 z-40 flex min-h-[66px] flex-wrap items-center gap-x-3.5 gap-y-2.5 border-b px-5 py-3 lg:px-8">
+          <MobileWorkspaceMenu key={pathname} className="lg:hidden">
+            {navigation}
+          </MobileWorkspaceMenu>
           {isConsoleRoute && <OrganizerSearch organizers={organizers} />}
 
           <div className="ml-auto flex flex-none items-center gap-2.5">
