@@ -12,6 +12,7 @@ export interface PublicShowClass {
 
 export interface PublicShowPageData {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -28,6 +29,7 @@ export interface PublicShowPageData {
 
 export interface PublicShowListItem {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -56,7 +58,7 @@ export async function listPublicShows(): Promise<PublicShowListItem[]> {
 
   const { data: shows, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, end_date, org_id, venue_name, logo_path')
+    .select('id, slug, name, date_label, start_date, end_date, org_id, venue_name, logo_path')
     .eq('published', true)
     .or(
       `end_date.gte.${today},and(end_date.is.null,start_date.gte.${today}),and(end_date.is.null,start_date.is.null)`,
@@ -75,6 +77,7 @@ export async function listPublicShows(): Promise<PublicShowListItem[]> {
 
   return shows.map((s) => ({
     id: s.id,
+    slug: s.slug,
     name: s.name,
     dateLabel: s.date_label,
     startDate: s.start_date,
@@ -101,7 +104,7 @@ export async function getPublicShowPage(showId: string): Promise<PublicShowPageD
   const { data: show, error } = await supabase
     .from('shows')
     .select(
-      'id, name, date_label, start_date, end_date, org_id, venue_name, logo_path, show_details',
+      'id, slug, name, date_label, start_date, end_date, org_id, venue_name, logo_path, show_details',
     )
     .eq('id', showId)
     .maybeSingle();
@@ -132,6 +135,7 @@ export async function getPublicShowPage(showId: string): Promise<PublicShowPageD
 
   return {
     id: show.id,
+    slug: show.slug,
     name: show.name,
     dateLabel: show.date_label,
     startDate: show.start_date,

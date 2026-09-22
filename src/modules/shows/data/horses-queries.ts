@@ -68,6 +68,8 @@ export interface HorseRow {
   isStallion: boolean;
   height: string | null;
   farrier: string | null;
+  trainer: string | null;
+  stable: string | null;
   documents: HorseDocumentStatus[];
 
   complete: boolean;
@@ -131,14 +133,21 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
 
     for (const entry of entries) {
       if (!entry.horse) continue;
-      const existing = byHorse.get(entry.horse);
+      // Grouping by name text alone merged two different horses that
+      // happen to share a name (e.g. two riders both naming a horse
+      // "Midnight") into one row, silently dropping one horse's identity.
+      // horse_id is the real identity; only entries with no linked horse
+      // row (manual/legacy) fall back to matching by name, same as
+      // horseRowKey() elsewhere in this module.
+      const key = entry.horse_id ?? entry.horse;
+      const existing = byHorse.get(key);
       if (existing) {
         existing.classes += 1;
         existing.horseId ??= entry.horse_id;
         existing.riderId ??= entry.rider_id;
         if (entry.rider) existing.riderNames.add(entry.rider);
       } else {
-        byHorse.set(entry.horse, {
+        byHorse.set(key, {
           name: entry.horse,
           rider: entry.rider,
           riderId: entry.rider_id,
@@ -159,11 +168,13 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
   const riderIdByHorseId = new Map<string, string | null>();
   const heightByHorseId = new Map<string, string | null>();
   const farrierByHorseId = new Map<string, string | null>();
+  const trainerByHorseId = new Map<string, string | null>();
+  const stableByHorseId = new Map<string, string | null>();
 
   if (horseIds.length > 0) {
     const { data: records, error } = await supabase
       .from('horses')
-      .select('id, document_uploads, is_stallion, rider_id, height, farrier')
+      .select('id, document_uploads, is_stallion, rider_id, height, farrier, trainer, stable')
       .in('id', horseIds);
     if (error) throw error;
     for (const r of records) {
@@ -172,6 +183,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
       riderIdByHorseId.set(r.id, r.rider_id);
       heightByHorseId.set(r.id, r.height);
       farrierByHorseId.set(r.id, r.farrier);
+      trainerByHorseId.set(r.id, r.trainer);
+      stableByHorseId.set(r.id, r.stable);
     }
   }
 
@@ -273,6 +286,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         isStallion: group.horseId ? (stallionByHorseId.get(group.horseId) ?? false) : false,
         height: group.horseId ? (heightByHorseId.get(group.horseId) ?? null) : null,
         farrier: group.horseId ? (farrierByHorseId.get(group.horseId) ?? null) : null,
+        trainer: group.horseId ? (trainerByHorseId.get(group.horseId) ?? null) : null,
+        stable: group.horseId ? (stableByHorseId.get(group.horseId) ?? null) : null,
         documents,
         complete,
         missingLabels,
@@ -296,6 +311,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         isStallion: mh.isStallion,
         height: null,
         farrier: null,
+        trainer: null,
+        stable: null,
         documents,
         complete,
         missingLabels,

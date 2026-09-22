@@ -12,7 +12,10 @@ export default async function OperationsVendorsPage({
 }) {
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
-  const currentShow = shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  const currentShow =
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
+    shows[0] ??
+    null;
 
   if (!currentShow) {
     return (
@@ -52,13 +55,13 @@ export default async function OperationsVendorsPage({
             <form method="get" className="contents">
               <select
                 name="show"
-                defaultValue={currentShow.id}
+                defaultValue={currentShow.slug ?? currentShow.id}
                 className="dash-select"
                 style={{ maxWidth: 380 }}
                 aria-label="Select show"
               >
                 {shows.map((show) => (
-                  <option key={show.id} value={show.id}>
+                  <option key={show.id} value={show.slug ?? show.id}>
                     {show.name}
                   </option>
                 ))}

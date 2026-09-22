@@ -12,6 +12,7 @@ export type ShowStatus = 'today' | 'upcoming' | 'completed';
 
 export interface AnnouncerShow {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -60,7 +61,7 @@ export async function listMyShows(): Promise<AnnouncerShow[]> {
   const showIds = [...new Set(staffRows.map((s) => s.show_id))];
   const { data: shows, error: showError } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, end_date')
+    .select('id, slug, name, date_label, start_date, end_date')
     .in('id', showIds);
   if (showError) throw showError;
 
@@ -69,6 +70,7 @@ export async function listMyShows(): Promise<AnnouncerShow[]> {
   return shows
     .map((s) => ({
       id: s.id,
+      slug: s.slug,
       name: s.name,
       dateLabel: s.date_label,
       startDate: s.start_date,
@@ -94,7 +96,11 @@ export function pickCurrentShow(
   shows: AnnouncerShow[],
   requestedShowId: string | undefined,
 ): AnnouncerShow | null {
-  return shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  return (
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
+    shows[0] ??
+    null
+  );
 }
 
 export interface RingEntrySummary {
@@ -298,6 +304,7 @@ export async function listShowSchedule(showId: string): Promise<ScheduleRow[]> {
 
 export interface HistoryRow {
   showId: string;
+  showSlug: string | null;
   showName: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -347,6 +354,7 @@ export async function listAnnouncerHistory(): Promise<HistoryRow[]> {
 
   return completed.map((s) => ({
     showId: s.id,
+    showSlug: s.slug,
     showName: s.name,
     dateLabel: s.dateLabel,
     startDate: s.startDate,

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { ROUTES } from '@/shared/constants/routes';
 import {
   getCurrentRiderProfile,
+  getKnownTrainerNames,
   getPublicShowForRider,
   getRiderRingSchedule,
   getWaiverSignature,
@@ -22,6 +23,7 @@ import { RiderDetailsForm } from '@/modules/riders/ui/rider-details-form';
 import { HorseManager } from '@/modules/riders/ui/horse-manager';
 import { ClassPicker } from '@/modules/riders/ui/class-picker';
 import { AddOnPicker } from '@/modules/riders/ui/addon-picker';
+import { StablingDetailsForm } from '@/modules/riders/ui/stabling-details-form';
 import { ClassHorseAssignment } from '@/modules/riders/ui/class-horse-assignment';
 import { CheckoutSummary } from '@/modules/riders/ui/checkout-summary';
 import { CheckoutConfirmation } from '@/modules/riders/ui/checkout-confirmation';
@@ -37,12 +39,13 @@ export default async function RiderShowPage({
   searchParams: Promise<{ order?: string; checkoutSession?: string; checkoutCanceled?: string }>;
 }) {
   const { showId } = await params;
-  if (!isUuid(showId)) notFound();
+  const id = await resolveShowIdParam(showId);
+  if (!id) notFound();
 
-  const detail = await getPublicShowForRider(showId);
+  // Neither fetch depends on the other's result — both were previously
+  // awaited one after another even though nothing here needs that order.
+  const [detail, rider] = await Promise.all([getPublicShowForRider(id), getCurrentRiderProfile()]);
   if (!detail) notFound();
-
-  const rider = await getCurrentRiderProfile();
 
   if (!rider) {
     const signInHref = `${ROUTES.rider}?next=${encodeURIComponent(`/rider/shows/${showId}`)}`;
@@ -75,12 +78,12 @@ export default async function RiderShowPage({
 
   const documentRequirements = parseDocumentRequirements(detail.show.document_requirements);
 
-  const entries = await listRiderEntriesForShow(showId);
+  const entries = await listRiderEntriesForShow(id);
   if (entries.length > 0) {
     const [orders, horses, ringSchedule] = await Promise.all([
-      listRiderOrdersForShow(showId),
+      listRiderOrdersForShow(id),
       listRiderHorses(),
-      getRiderRingSchedule(showId),
+      getRiderRingSchedule(id),
     ]);
     return (
       <RiderShowDashboard
@@ -98,9 +101,10 @@ export default async function RiderShowPage({
     );
   }
 
-  const [horses, waiverSignature] = await Promise.all([
+  const [horses, waiverSignature, knownTrainerNames] = await Promise.all([
     listRiderHorses(),
-    getWaiverSignature(showId),
+    getWaiverSignature(id),
+    getKnownTrainerNames(id),
   ]);
 
   /* Legacy always put a waiver in front of the rider, falling back to the
@@ -138,7 +142,13 @@ export default async function RiderShowPage({
         </div>
       )}
 
-      <WaiverForm showId={showId} waiverText={waiverText} existingSignature={waiverSignature} />
+      <WaiverForm
+        showId={id}
+        waiverText={waiverText}
+        existingSignature={waiverSignature}
+        waiverDocumentUrl={detail.waiverDocumentUrl}
+        waiverDocumentName={detail.show.waiver_document_name}
+      />
 
       <RiderDetailsForm rider={rider} />
 
@@ -148,10 +158,16 @@ export default async function RiderShowPage({
 
       <AddOnPicker addOns={detail.addOns} />
 
+      <StablingDetailsForm
+        addOns={detail.addOns}
+        horses={horses}
+        knownTrainerNames={knownTrainerNames}
+      />
+
       <ClassHorseAssignment classes={detail.classes} horses={horses} />
 
       <CheckoutSummary
-        showId={showId}
+        showId={id}
         classes={detail.classes}
         addOns={detail.addOns}
         qualTypes={detail.qualTypes}

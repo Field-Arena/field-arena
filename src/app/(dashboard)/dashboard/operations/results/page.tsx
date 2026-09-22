@@ -13,7 +13,10 @@ export default async function OperationsResultsPage({
 }) {
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
-  const currentShow = shows.find((s) => s.id === requestedShowId) ?? shows[0] ?? null;
+  const currentShow =
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
+    shows[0] ??
+    null;
 
   if (!currentShow) {
     return (

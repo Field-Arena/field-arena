@@ -104,6 +104,7 @@ function StaffEditForm({
   const showOptions = shows.some((s) => s.id === row.showId)
     ? shows
     : [{ id: row.showId, name: row.showName }, ...shows];
+  const rowShowPublicId = shows.find((s) => s.id === row.showId)?.slug ?? row.showId;
   const pending =
     changeRole.isPending ||
     updatePermissions.isPending ||
@@ -188,8 +189,8 @@ function StaffEditForm({
         <a
           href={
             role === 'Announcer'
-              ? `/dashboard/announcing?show=${row.showId}`
-              : `/dashboard/judging?show=${row.showId}`
+              ? `/dashboard/announcing?show=${rowShowPublicId}`
+              : `/dashboard/judging?show=${rowShowPublicId}`
           }
           target="_blank"
           rel="noreferrer"

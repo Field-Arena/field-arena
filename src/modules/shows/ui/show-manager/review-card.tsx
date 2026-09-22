@@ -28,13 +28,15 @@ import {
   SM_SECTION_HEAD,
   SM_NOTE,
   SM_ROW_INPUT,
+  SM_SELECT,
 } from '@/modules/shows/ui/show-manager/tokens';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 const REVIEW_TABLE_HEAD =
   'px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
 
-export function ReviewCard({ data }: { data: ScheduleReviewData }) {
+export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publicId?: string }) {
+  const id = publicId ?? data.showId;
   const [rows, setRows] = useState(data.classes);
   const [entriesPerClass, setEntriesPerClass] = useState(5);
   const { mutate: update } = useUpdateClassReview();
@@ -67,7 +69,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
           <p className="text-[13px] text-[#98A29D] italic">
             No classes scheduled yet — pick some in{' '}
             <Link
-              href={`/dashboard/shows/${data.showId}/select-events`}
+              href={`/dashboard/shows/${id}/select-events`}
               className="text-forest font-semibold underline underline-offset-2"
             >
               Select Events
@@ -90,10 +92,10 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                     Division
                   </TableHead>
                   <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
-                    Location
+                    Arena
                   </TableHead>
                   <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
-                    Arena
+                    Location
                   </TableHead>
                   <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
                     Sponsor
@@ -130,17 +132,24 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
                     <TableCell className="px-2.5 py-2 whitespace-nowrap">
                       {c.division ?? '—'}
                     </TableCell>
-                    <TableCell className="px-2.5 py-2 whitespace-nowrap">
-                      {c.location ?? '—'}
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap text-[#6E7C76]">
+                      {c.arena ?? '—'}
                     </TableCell>
                     <TableCell className="px-2.5 py-2 whitespace-normal">
-                      <Input
-                        defaultValue={c.arena ?? ''}
-                        className={cn('h-auto', SM_ROW_INPUT, 'w-[150px]!')}
-                        onBlur={(e) => {
-                          commit(c.id, { arena: e.target.value || null });
+                      <select
+                        defaultValue={c.location ?? ''}
+                        className={cn(SM_SELECT, 'h-auto w-[150px] py-2 text-[13px]')}
+                        onChange={(e) => {
+                          commit(c.id, { location: e.target.value || null });
                         }}
-                      />
+                      >
+                        <option value="">No location set</option>
+                        {data.rings.map((ring) => (
+                          <option key={ring.name} value={ring.name}>
+                            {ring.name}
+                          </option>
+                        ))}
+                      </select>
                     </TableCell>
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       <Input
@@ -243,7 +252,7 @@ export function ReviewCard({ data }: { data: ScheduleReviewData }) {
 
       <SectionFooter
         currentTab="Schedule / Review"
-        showId={data.showId}
+        showId={id}
         blockedReason={
           rows.length === 0
             ? 'No classes are scheduled yet — add some in Select Events before moving on.'

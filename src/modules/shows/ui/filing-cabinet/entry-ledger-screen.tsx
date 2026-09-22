@@ -19,11 +19,10 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SHOW_ENTRY_STATUS_LABELS } from '@/modules/shows/constants';
 import type { EntryLedgerPageData, DocumentRollupStatus } from '@/modules/shows/data/entry-ledger-queries';
-import {
-  useUpdateEntryNumber,
-  useUpdateBridleNumber,
-  useUpdateBackNumber,
-} from '@/modules/shows/hooks/use-entry-ledger-mutations';
+import { useUpdateEntryNumber, useUpdateBackNumber } from '@/modules/shows/hooks/use-entry-ledger-mutations';
+import { EntryDetailDialog } from '@/modules/shows/ui/filing-cabinet/entry-detail-dialog';
+import { BridleNumberAssignDialog } from '@/modules/shows/ui/filing-cabinet/bridle-number-assign-dialog';
+import { BackNumberReprintButton } from '@/modules/shows/ui/filing-cabinet/back-number-reprint-button';
 
 const DOC_STATUS_TONE: Record<DocumentRollupStatus, StatusTone> = {
   complete: 'success',
@@ -73,11 +72,21 @@ function NumberCell({
   );
 }
 
-export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
+export function EntryLedgerScreen({
+  data,
+  publicId,
+  availableBridleNumbers,
+}: {
+  data: EntryLedgerPageData;
+  publicId?: string;
+  availableBridleNumbers: number[];
+}) {
   const { showId, showName, rows } = data;
+  const linkId = publicId ?? showId;
   const updateEntryNumber = useUpdateEntryNumber();
-  const updateBridleNumber = useUpdateBridleNumber();
   const updateBackNumber = useUpdateBackNumber();
+  const [openEntryId, setOpenEntryId] = useState<string | null>(null);
+  const openRow = rows.find((r) => r.showEntryId === openEntryId) ?? null;
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
@@ -91,7 +100,7 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
           </ScreenLede>
         </div>
         <Link
-          href={`/dashboard/documents/print-center?show=${showId}`}
+          href={`/dashboard/documents/print-center?show=${linkId}`}
           className="inline-flex"
         >
           <GhostButton>
@@ -130,8 +139,18 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
             </TableHeader>
             <TableBody>
               {rows.map((row) => (
-                <TableRow key={row.showEntryId}>
-                  <TableCell>
+                <TableRow
+                  key={row.showEntryId}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setOpenEntryId(row.showEntryId);
+                  }}
+                >
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     <NumberCell
                       value={row.entryNumber}
                       pending={updateEntryNumber.isPending}
@@ -140,23 +159,36 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
                       }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <NumberCell
-                      value={row.bridleNumber}
-                      pending={updateBridleNumber.isPending}
-                      onSave={(next) => {
-                        updateBridleNumber.mutate({ showId, showHorseId: row.showHorseId, bridleNumber: next });
-                      }}
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <BridleNumberAssignDialog
+                      showId={showId}
+                      showHorseId={row.showHorseId}
+                      horseName={row.horseName}
+                      currentNumber={row.bridleNumber}
+                      availableNumbers={availableBridleNumbers}
                     />
                   </TableCell>
-                  <TableCell>
-                    <NumberCell
-                      value={row.backNumber ?? ''}
-                      pending={updateBackNumber.isPending}
-                      onSave={(next) => {
-                        updateBackNumber.mutate({ showId, showEntryId: row.showEntryId, backNumber: next });
-                      }}
-                    />
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <NumberCell
+                        value={row.backNumber ?? ''}
+                        pending={updateBackNumber.isPending}
+                        onSave={(next) => {
+                          updateBackNumber.mutate({ showId, showEntryId: row.showEntryId, backNumber: next });
+                        }}
+                      />
+                      {row.backNumber && (
+                        <BackNumberReprintButton showId={showId} showEntryId={row.showEntryId} />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="max-w-[160px] truncate font-semibold" title={row.riderName}>
                     {row.riderName}
@@ -185,10 +217,14 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
                       {DOC_STATUS_LABEL[row.documentStatus]}
                     </StatusBadge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     {row.openIssueCount > 0 ? (
                       <Link
-                        href={`/dashboard/documents/issues?show=${showId}`}
+                        href={`/dashboard/documents/issues?show=${linkId}`}
                         className="text-status-danger font-bold underline"
                       >
                         {row.openIssueCount}
@@ -203,6 +239,13 @@ export function EntryLedgerScreen({ data }: { data: EntryLedgerPageData }) {
           </Table>
         </Card>
       )}
+
+      <EntryDetailDialog
+        row={openRow}
+        onClose={() => {
+          setOpenEntryId(null);
+        }}
+      />
     </div>
   );
 }

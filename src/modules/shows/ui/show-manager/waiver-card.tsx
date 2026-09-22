@@ -1,26 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { UploadIcon, XIcon } from 'lucide-react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { IconCheck } from '@/shared/ui/organizer/icons';
 import { Textarea } from '@/shared/ui/shadcn/textarea';
-import { useSaveWaiverText, useApproveWaiver } from '@/modules/shows/hooks/use-show-mutations';
-import { WAIVER_TEXT_DEFAULT } from '@/modules/shows/schemas';
+import {
+  useSaveWaiverText,
+  useApproveWaiver,
+  useUploadWaiverDocument,
+  useRemoveWaiverDocument,
+} from '@/modules/shows/hooks/use-show-mutations';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 
 export function WaiverCard({
   showId,
   waiverText,
   waiverApprovedText,
+  waiverDocumentUrl,
+  waiverDocumentName,
 }: {
   showId: string;
   waiverText: string | null;
   waiverApprovedText: string | null;
+  waiverDocumentUrl: string | null;
+  waiverDocumentName: string | null;
 }) {
-  const [text, setText] = useState(
-    waiverText === null || waiverText === '' ? WAIVER_TEXT_DEFAULT : waiverText,
-  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState(waiverText ?? '');
+  const upload = useUploadWaiverDocument({
+    onSuccess: ({ extractedText }) => {
+      if (extractedText) setText(extractedText);
+    },
+  });
+  const remove = useRemoveWaiverDocument();
   const [approvedText, setApprovedText] = useState(waiverApprovedText);
   const { mutate: save, isPending: saving } = useSaveWaiverText();
   const { mutate: approve, isPending: approving } = useApproveWaiver({
@@ -40,6 +54,63 @@ export function WaiverCard({
         automatically. Pre-filled with a default draft below — edit it, replace it with your own, or
         leave it as-is. This is not legal advice — have your waiver reviewed by an attorney before
         relying on it.
+      </p>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[8px] bg-[#F6F8F6] p-3">
+        <span className="text-[13px] font-semibold text-[#3D4A44]">
+          Attached document (e.g. the full USEF form)
+        </span>
+        {waiverDocumentUrl && waiverDocumentName ? (
+          <>
+            <a
+              href={waiverDocumentUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-forest text-[13px] font-semibold underline underline-offset-2"
+            >
+              {waiverDocumentName}
+            </a>
+            <GhostButton
+              disabled={remove.isPending}
+              onClick={() => {
+                remove.mutate(showId);
+              }}
+            >
+              <XIcon className="size-3.5" aria-hidden />
+              {remove.isPending ? 'Removing…' : 'Remove'}
+            </GhostButton>
+          </>
+        ) : (
+          <span className="text-[13px] text-[#7A8781] italic">None uploaded yet</span>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf,.docx,.txt,image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) upload.mutate({ showId, file });
+            e.target.value = '';
+          }}
+        />
+        <GhostButton
+          className="ml-auto"
+          disabled={upload.isPending}
+          onClick={() => {
+            fileInputRef.current?.click();
+          }}
+        >
+          <UploadIcon className="size-3.5" aria-hidden />
+          {upload.isPending ? 'Uploading…' : waiverDocumentUrl ? 'Replace file' : 'Upload file'}
+        </GhostButton>
+      </div>
+      <p className={SM_NOTE + ' mb-4'}>
+        Can&rsquo;t paste a long formatted document (like a USEF form) into the text box below and
+        keep it readable? Upload a PDF, Word (.docx), or .txt file instead — its text fills the
+        box below automatically, and riders will also see a link to the original file alongside
+        the typed text when they sign. A scanned or photographed document has no text to pull
+        from, so it will attach but won&rsquo;t fill the box.
       </p>
 
       <div className={`mb-3 text-sm ${approved ? 'text-[#2E7048]' : 'text-status-danger'}`}>

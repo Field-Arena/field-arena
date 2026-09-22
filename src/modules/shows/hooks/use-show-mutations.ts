@@ -4,6 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
+import { createClient } from '@/shared/lib/supabase/client';
+import { useRefreshingMutation } from '@/shared/hooks/use-refreshing-mutation';
 import {
   createShow,
   createDraftShow,
@@ -25,6 +27,9 @@ import {
   updateMerchandise,
   saveWaiverText,
   approveWaiver,
+  createWaiverDocumentUploadUrl,
+  registerWaiverDocument,
+  removeWaiverDocument,
 } from '@/modules/shows/data/mutations';
 import type {
   CreateShowInput,
@@ -50,10 +55,10 @@ export function useCreateShow() {
 
   return useMutation({
     mutationFn: (input: CreateShowInput) => createShow(input),
-    onSuccess: ({ id }) => {
+    onSuccess: ({ slug }) => {
       toast.success('Show created — start with Setup.');
 
-      router.push(`/dashboard/shows/${id}`);
+      router.push(`/dashboard/shows/${slug}`);
     },
     onError: (error) => {
       toast.error(message(error, 'Could not create the show'));
@@ -254,24 +259,56 @@ export function useApproveWaiver(options?: { onSuccess?: () => void }) {
   });
 }
 
-export function useSetShowPublished() {
-  const router = useRouter();
+export function useUploadWaiverDocument(options?: {
+  onSuccess?: (result: { extractedText: string | null }) => void;
+}) {
+  return useRefreshingMutation(
+    async ({ showId, file }: { showId: string; file: File }) => {
+      const { path, token } = await createWaiverDocumentUploadUrl({ showId, name: file.name });
 
-  return useMutation({
-    mutationFn: ({ showId, published }: { showId: string; published: boolean }) =>
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from('documents')
+        .uploadToSignedUrl(path, token, file, { contentType: file.type || 'application/pdf' });
+      if (error) throw new Error(error.message);
+
+      return registerWaiverDocument({ showId, name: file.name, path });
+    },
+    {
+      successMessage: (result) =>
+        result.extractedText
+          ? 'Waiver document uploaded — text extracted into the waiver below'
+          : 'Waiver document uploaded',
+      errorFallback: 'Could not upload this document',
+      onSuccess: (result) => {
+        options?.onSuccess?.(result);
+      },
+    },
+  );
+}
+
+export function useRemoveWaiverDocument(options?: { onSuccess?: () => void }) {
+  return useRefreshingMutation((showId: string) => removeWaiverDocument({ showId }), {
+    successMessage: 'Waiver document removed',
+    errorFallback: 'Could not remove this document',
+    onSuccess: () => {
+      options?.onSuccess?.();
+    },
+  });
+}
+
+export function useSetShowPublished() {
+  return useRefreshingMutation(
+    ({ showId, published }: { showId: string; published: boolean }) =>
       setShowPublished(showId, published),
-    onSuccess: (_data, { published }) => {
-      toast.success(
+    {
+      successMessage: (_data, { published }) =>
         published
           ? 'Show published — riders can now see and enter it'
           : 'Show unpublished — it is hidden from riders again',
-      );
-      router.refresh();
+      errorFallback: 'Could not change publish state',
     },
-    onError: (error) => {
-      toast.error(message(error, 'Could not change publish state'));
-    },
-  });
+  );
 }
 
 export function useDeleteShow(options?: { onSuccess?: () => void }) {
@@ -295,8 +332,8 @@ export function useCreateDraftShow() {
 
   return useMutation({
     mutationFn: () => createDraftShow(),
-    onSuccess: ({ id }) => {
-      router.push(`/dashboard/shows/${id}`);
+    onSuccess: ({ slug }) => {
+      router.push(`/dashboard/shows/${slug}`);
       router.refresh();
     },
     onError: (error) => {

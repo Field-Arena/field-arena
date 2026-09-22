@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       add_ons: {
@@ -96,6 +121,61 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      bridle_number_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_number: string | null
+          old_number: string | null
+          reason: string | null
+          show_horse_id: string
+          show_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_number?: string | null
+          old_number?: string | null
+          reason?: string | null
+          show_horse_id: string
+          show_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_number?: string | null
+          old_number?: string | null
+          reason?: string | null
+          show_horse_id?: string
+          show_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridle_number_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridle_number_changes_show_horse_id_fkey"
+            columns: ["show_horse_id"]
+            isOneToOne: false
+            referencedRelation: "show_horses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridle_number_changes_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       catalog_documents: {
         Row: {
@@ -192,6 +272,7 @@ export type Database = {
           show_entry_id: string | null
           status: string | null
           test_override: Json | null
+          updated_at: string | null
         }
         Insert: {
           advanced_past?: boolean | null
@@ -217,6 +298,7 @@ export type Database = {
           show_entry_id?: string | null
           status?: string | null
           test_override?: Json | null
+          updated_at?: string | null
         }
         Update: {
           advanced_past?: boolean | null
@@ -242,6 +324,7 @@ export type Database = {
           show_entry_id?: string | null
           status?: string | null
           test_override?: Json | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -277,6 +360,45 @@ export type Database = {
             columns: ["show_entry_id"]
             isOneToOne: false
             referencedRelation: "show_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_order_checks: {
+        Row: {
+          checked_at: string
+          checked_by: string
+          class_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          checked_at?: string
+          checked_by: string
+          class_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          checked_at?: string
+          checked_by?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_order_checks_checked_by_fkey"
+            columns: ["checked_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_order_checks_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: true
+            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
         ]
@@ -395,7 +517,9 @@ export type Database = {
           results_published_at: string | null
           ribbon_colors: Json | null
           ribbon_places: number | null
+          ring_packet_printed_at: string | null
           run_order: number | null
+          schedule_updated_at: string | null
           score_format: string | null
           scoring_open: boolean | null
           scoring_pos: number | null
@@ -431,7 +555,9 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          ring_packet_printed_at?: string | null
           run_order?: number | null
+          schedule_updated_at?: string | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
@@ -467,7 +593,9 @@ export type Database = {
           results_published_at?: string | null
           ribbon_colors?: Json | null
           ribbon_places?: number | null
+          ring_packet_printed_at?: string | null
           run_order?: number | null
+          schedule_updated_at?: string | null
           score_format?: string | null
           scoring_open?: boolean | null
           scoring_pos?: number | null
@@ -1052,6 +1180,7 @@ export type Database = {
           refunded_amount: number | null
           rider_id: string
           show_id: string
+          stabling_request: Json | null
           status: string | null
           stripe_customer_id: string | null
           stripe_payment_intent_id: string | null
@@ -1071,6 +1200,7 @@ export type Database = {
           refunded_amount?: number | null
           rider_id: string
           show_id: string
+          stabling_request?: Json | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -1090,6 +1220,7 @@ export type Database = {
           refunded_amount?: number | null
           rider_id?: string
           show_id?: string
+          stabling_request?: Json | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -1498,6 +1629,61 @@ export type Database = {
         }
         Relationships: []
       }
+      show_bridle_numbers: {
+        Row: {
+          created_at: string
+          id: string
+          number: number
+          show_horse_id: string | null
+          show_id: string
+          source_range_id: string | null
+          status: string
+          unavailable_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          number: number
+          show_horse_id?: string | null
+          show_id: string
+          source_range_id?: string | null
+          status?: string
+          unavailable_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          number?: number
+          show_horse_id?: string | null
+          show_id?: string
+          source_range_id?: string | null
+          status?: string
+          unavailable_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_bridle_numbers_show_horse_id_fkey"
+            columns: ["show_horse_id"]
+            isOneToOne: false
+            referencedRelation: "show_horses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_bridle_numbers_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_bridle_numbers_source_range_id_fkey"
+            columns: ["source_range_id"]
+            isOneToOne: false
+            referencedRelation: "show_number_ranges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       show_entries: {
         Row: {
           back_number: string | null
@@ -1574,7 +1760,7 @@ export type Database = {
       }
       show_horses: {
         Row: {
-          bridle_number: string
+          bridle_number: string | null
           created_at: string
           horse_id: string | null
           horse_name: string
@@ -1582,7 +1768,7 @@ export type Database = {
           show_id: string
         }
         Insert: {
-          bridle_number: string
+          bridle_number?: string | null
           created_at?: string
           horse_id?: string | null
           horse_name: string
@@ -1590,7 +1776,7 @@ export type Database = {
           show_id: string
         }
         Update: {
-          bridle_number?: string
+          bridle_number?: string | null
           created_at?: string
           horse_id?: string | null
           horse_name?: string
@@ -1607,6 +1793,51 @@ export type Database = {
           },
           {
             foreignKeyName: "show_horses_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      show_number_ranges: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          range_end: number
+          range_start: number
+          show_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          range_end: number
+          range_start: number
+          show_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          range_end?: number
+          range_start?: number
+          show_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_number_ranges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_number_ranges_show_id_fkey"
             columns: ["show_id"]
             isOneToOne: false
             referencedRelation: "shows"
@@ -1643,6 +1874,7 @@ export type Database = {
           show_details: Json | null
           show_image_path: string | null
           show_type: string | null
+          slug: string | null
           stable_chart: Json | null
           start_date: string | null
           starting_back_number: number | null
@@ -1661,6 +1893,8 @@ export type Database = {
           venue_name: string | null
           waiver_approved_at: string | null
           waiver_approved_text: string | null
+          waiver_document_name: string | null
+          waiver_document_path: string | null
           waiver_text: string | null
         }
         Insert: {
@@ -1691,6 +1925,7 @@ export type Database = {
           show_details?: Json | null
           show_image_path?: string | null
           show_type?: string | null
+          slug?: string | null
           stable_chart?: Json | null
           start_date?: string | null
           starting_back_number?: number | null
@@ -1709,6 +1944,8 @@ export type Database = {
           venue_name?: string | null
           waiver_approved_at?: string | null
           waiver_approved_text?: string | null
+          waiver_document_name?: string | null
+          waiver_document_path?: string | null
           waiver_text?: string | null
         }
         Update: {
@@ -1739,6 +1976,7 @@ export type Database = {
           show_details?: Json | null
           show_image_path?: string | null
           show_type?: string | null
+          slug?: string | null
           stable_chart?: Json | null
           start_date?: string | null
           starting_back_number?: number | null
@@ -1757,6 +1995,8 @@ export type Database = {
           venue_name?: string | null
           waiver_approved_at?: string | null
           waiver_approved_text?: string | null
+          waiver_document_name?: string | null
+          waiver_document_path?: string | null
           waiver_text?: string | null
         }
         Relationships: [
@@ -1772,6 +2012,70 @@ export type Database = {
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stabling_requests: {
+        Row: {
+          created_at: string
+          horse_stalls: number
+          id: string
+          notes: string | null
+          order_id: string
+          rider_id: string
+          show_id: string
+          stable_with: string | null
+          tack_stalls: number
+          trainer_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          horse_stalls?: number
+          id?: string
+          notes?: string | null
+          order_id: string
+          rider_id: string
+          show_id: string
+          stable_with?: string | null
+          tack_stalls?: number
+          trainer_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          horse_stalls?: number
+          id?: string
+          notes?: string | null
+          order_id?: string
+          rider_id?: string
+          show_id?: string
+          stable_with?: string | null
+          tack_stalls?: number
+          trainer_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stabling_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stabling_requests_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stabling_requests_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
             referencedColumns: ["id"]
           },
         ]
@@ -2227,6 +2531,15 @@ export type Database = {
     }
     Functions: {
       abandon_stale_orders: { Args: never; Returns: undefined }
+      assign_bridle_number: {
+        Args: {
+          p_explicit_number?: number
+          p_reason?: string
+          p_show_horse_id: string
+          p_show_id: string
+        }
+        Returns: string
+      }
       booking_is_pending: {
         Args: { target_booking_id: string }
         Returns: boolean
@@ -2439,6 +2752,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

@@ -18,7 +18,7 @@ function groupByDivision(classes: PublicShowClass[]): { division: string; classe
 }
 
 export function PublicShowPage({ data }: { data: PublicShowPageData }) {
-  const enterHref = `/rider/shows/${data.id}`;
+  const enterHref = `/rider/shows/${data.slug ?? data.id}`;
   const groups = groupByDivision(data.classes);
 
   return (

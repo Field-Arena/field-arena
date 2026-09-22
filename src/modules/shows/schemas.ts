@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { MAX_STABLES, MAX_STALLS_PER_STABLE } from '@/modules/shows/constants';
+import {
+  MAX_STABLES,
+  MAX_STALLS_PER_STABLE,
+  MANUALLY_SETTABLE_STALL_STATUSES,
+} from '@/modules/shows/constants';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
 const optionalText = (max: number) =>
@@ -82,7 +86,10 @@ export type CreateClassInput = z.input<typeof createClassSchema>;
 export const updateClassReviewSchema = z.object({
   classId: z.uuid(),
   showId: z.uuid(),
-  arena: z.string().trim().max(120).nullable().optional(),
+  // Arena is never set directly — it's always derived server-side from
+  // whichever ring/location the class is assigned to (see
+  // resolveArenaForLocation in mutations.ts).
+  location: z.string().trim().max(120).nullable().optional(),
   judgesCount: z.coerce.number().int().min(1).max(9).optional(),
   fee: z.coerce.number().min(0).max(100000).optional(),
   sponsor: z.string().trim().max(120).nullable().optional(),
@@ -379,6 +386,16 @@ export const updateCatalogItemSchema = z.object({
 
 export type UpdateCatalogItemInput = z.input<typeof updateCatalogItemSchema>;
 
+export const updateAddOnSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1, 'Name is required').max(160),
+  price: z.coerce.number().min(0).max(100000),
+  stalls: z.coerce.number().int().min(0).max(99).default(0),
+  tack: z.coerce.number().int().min(0).max(99).default(0),
+});
+
+export type UpdateAddOnInput = z.input<typeof updateAddOnSchema>;
+
 const optionalQty = z
   .union([z.coerce.number().int().min(0).max(100000), z.literal('')])
   .optional()
@@ -625,13 +642,61 @@ export const renameStallSchema = z.object({
 
 export type RenameStallInput = z.input<typeof renameStallSchema>;
 
-export const toggleStallClosedSchema = z.object({
+export const setStallStatusSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  stallId: z.string().trim().min(1),
+  status: z.enum(MANUALLY_SETTABLE_STALL_STATUSES),
+  reason: z.string().trim().max(200).optional(),
+});
+
+export type SetStallStatusInput = z.input<typeof setStallStatusSchema>;
+
+export const unassignStallSchema = z.object({
   showId: z.uuid(),
   stableId: z.string().trim().min(1),
   stallId: z.string().trim().min(1),
 });
 
-export type ToggleStallClosedInput = z.input<typeof toggleStallClosedSchema>;
+export type UnassignStallInput = z.input<typeof unassignStallSchema>;
+
+export const updateStallNoteSchema = z.object({
+  showId: z.uuid(),
+  stableId: z.string().trim().min(1),
+  stallId: z.string().trim().min(1),
+  note: z.string().trim().max(500).nullable(),
+});
+
+export type UpdateStallNoteInput = z.input<typeof updateStallNoteSchema>;
+
+export const reassignStallSchema = z.object({
+  showId: z.uuid(),
+  fromStableId: z.string().trim().min(1),
+  fromStallId: z.string().trim().min(1),
+  toStableId: z.string().trim().min(1),
+  toStallId: z.string().trim().min(1),
+});
+
+export type ReassignStallInput = z.input<typeof reassignStallSchema>;
+
+export const swapStallsSchema = z.object({
+  showId: z.uuid(),
+  stableAId: z.string().trim().min(1),
+  stallAId: z.string().trim().min(1),
+  stableBId: z.string().trim().min(1),
+  stallBId: z.string().trim().min(1),
+});
+
+export type SwapStallsInput = z.input<typeof swapStallsSchema>;
+
+export const assignGroupToStableSchema = z.object({
+  showId: z.uuid(),
+  trainerKey: z.string().trim().min(1),
+  targetStableId: z.string().trim().min(1),
+  targetStartStallId: z.string().trim().min(1).optional(),
+});
+
+export type AssignGroupToStableInput = z.input<typeof assignGroupToStableSchema>;
 
 export const toggleStableChartStatusSchema = z.object({ showId: z.uuid() });
 
@@ -663,6 +728,13 @@ export const saveShowExpensesSchema = z.object({
 
 export type SaveShowExpensesInput = z.input<typeof saveShowExpensesSchema>;
 
+export const markRingPacketPrintedSchema = z.object({
+  showId: z.uuid(),
+  classIds: z.array(z.uuid()).min(1),
+});
+
+export type MarkRingPacketPrintedInput = z.input<typeof markRingPacketPrintedSchema>;
+
 export const createDocumentUploadUrlSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(1, 'A file name is required').max(300),
@@ -677,6 +749,29 @@ export const registerShowDocumentSchema = z.object({
 });
 
 export type RegisterShowDocumentInput = z.input<typeof registerShowDocumentSchema>;
+
+export const createWaiverDocumentUploadUrlSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+});
+
+export type CreateWaiverDocumentUploadUrlInput = z.input<
+  typeof createWaiverDocumentUploadUrlSchema
+>;
+
+export const registerWaiverDocumentSchema = z.object({
+  showId: z.uuid(),
+  name: z.string().trim().min(1, 'A file name is required').max(300),
+  path: z.string().trim().min(1).max(400),
+});
+
+export type RegisterWaiverDocumentInput = z.input<typeof registerWaiverDocumentSchema>;
+
+export const removeWaiverDocumentSchema = z.object({
+  showId: z.uuid(),
+});
+
+export type RemoveWaiverDocumentInput = z.input<typeof removeWaiverDocumentSchema>;
 
 export const updateScheduleRulesSchema = z.object({
   showId: z.uuid(),
@@ -754,13 +849,50 @@ export const updateEntryNumberSchema = z.object({
 
 export type UpdateEntryNumberInput = z.input<typeof updateEntryNumberSchema>;
 
-export const updateBridleNumberSchema = z.object({
+export const createNumberRangeSchema = z
+  .object({
+    showId: z.uuid(),
+    rangeStart: z.coerce.number().int().min(1).max(999999),
+    rangeEnd: z.coerce.number().int().min(1).max(999999),
+    label: optionalText(60),
+  })
+  .refine((d) => d.rangeEnd >= d.rangeStart, {
+    message: 'The end of the range must be at or after the start.',
+    path: ['rangeEnd'],
+  });
+
+export type CreateNumberRangeInput = z.input<typeof createNumberRangeSchema>;
+
+export const deleteNumberRangeSchema = z.object({
   showId: z.uuid(),
-  showHorseId: z.uuid(),
-  bridleNumber: z.string().trim().min(1).max(20),
+  rangeId: z.uuid(),
 });
 
-export type UpdateBridleNumberInput = z.input<typeof updateBridleNumberSchema>;
+export type DeleteNumberRangeInput = z.input<typeof deleteNumberRangeSchema>;
+
+export const markNumberUnavailableSchema = z.object({
+  showId: z.uuid(),
+  number: z.coerce.number().int().min(1).max(999999),
+  reason: optionalText(200),
+});
+
+export type MarkNumberUnavailableInput = z.input<typeof markNumberUnavailableSchema>;
+
+export const restoreNumberAvailabilitySchema = z.object({
+  showId: z.uuid(),
+  number: z.coerce.number().int().min(1).max(999999),
+});
+
+export type RestoreNumberAvailabilityInput = z.input<typeof restoreNumberAvailabilitySchema>;
+
+export const assignBridleNumberSchema = z.object({
+  showId: z.uuid(),
+  showHorseId: z.uuid(),
+  explicitNumber: z.coerce.number().int().min(1).max(999999).optional(),
+  reason: optionalText(200),
+});
+
+export type AssignBridleNumberInput = z.input<typeof assignBridleNumberSchema>;
 
 export const updateBackNumberSchema = z.object({
   showId: z.uuid(),

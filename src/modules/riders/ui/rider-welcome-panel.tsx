@@ -34,7 +34,7 @@ export function RiderWelcomePanel({ rider, shows }: { rider: RiderRow; shows: Ri
           {shows.map((show) => (
             <Link
               key={show.showId}
-              href={`/rider/shows/${show.showId}`}
+              href={`/rider/shows/${show.showSlug ?? show.showId}`}
               style={{
                 display: 'block',
                 padding: '10px 14px',

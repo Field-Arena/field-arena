@@ -36,11 +36,11 @@ export function ShowPickerCombobox({
     };
   }, [open]);
 
-  function selectShow(showId: string) {
+  function selectShow(show: ShowListItem) {
     setOpen(false);
-    if (showId === currentShow.id) return;
+    if (show.id === currentShow.id) return;
     const params = new URLSearchParams(searchParams.toString());
-    params.set('show', showId);
+    params.set('show', show.slug ?? show.id);
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -97,12 +97,12 @@ export function ShowPickerCombobox({
                     role="option"
                     aria-selected={active}
                     onClick={() => {
-                      selectShow(show.id);
+                      selectShow(show);
                     }}
-                    className={`block w-full truncate px-3 py-2 text-left text-[13.5px] ${
+                    className={`block w-full truncate px-3 py-2 text-left text-[13.5px] transition-colors ${
                       active
                         ? 'text-forest bg-[#EAF4EC] font-semibold'
-                        : 'text-ink-deep hover:bg-[#F5F7F6]'
+                        : 'text-ink-deep hover:bg-[#E9EDEB]'
                     }`}
                   >
                     {show.name}

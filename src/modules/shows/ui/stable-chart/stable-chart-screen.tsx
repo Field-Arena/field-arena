@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
@@ -11,7 +12,12 @@ import { Label } from '@/shared/ui/shadcn/label';
 import { IconPrinter } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { cn } from '@/shared/lib/utils';
-import { splitStallsIntoRows } from '@/modules/shows/utils/split-stalls-into-rows';
+import {
+  parseStallDndId,
+  findStallById,
+  parseGroupDndId,
+  parseStableDropId,
+} from '@/modules/shows/utils/stall-dnd-id';
 import { MAX_STABLES } from '@/modules/shows/constants';
 import { SM_LABEL, SM_INPUT, SM_SELECT } from '@/modules/shows/ui/show-manager/tokens';
 import {
@@ -19,38 +25,95 @@ import {
   useToggleStableChartStatus,
   useAutoAssignStableStalls,
   useApplySavedLocationStables,
+  useReassignStall,
+  useSwapStalls,
+  useAssignGroupToStable,
 } from '@/modules/shows/hooks/use-stable-chart-mutations';
 import { StableConfigRow } from '@/modules/shows/ui/stable-chart/stable-config-row';
-import { StallBox } from '@/modules/shows/ui/stable-chart/stall-box';
+import { StableDropCard } from '@/modules/shows/ui/stable-chart/stable-drop-card';
 import { StableChartPrintView } from '@/modules/shows/ui/stable-chart/stable-chart-print-view';
+import { StablingGroupsSidebar } from '@/modules/shows/ui/stable-chart/stabling-groups-sidebar';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
 
-export function StableChartScreen({ data }: { data: StableChartPageData }) {
-  const { showId, showName, chart, savedLocations } = data;
+export function StableChartScreen({
+  data,
+  publicId,
+}: {
+  data: StableChartPageData;
+  publicId?: string;
+}) {
+  const { showId, showName, chart, savedLocations, groups } = data;
 
   const setCount = useSetStableCount();
   const togglePublish = useToggleStableChartStatus();
   const autoAssign = useAutoAssignStableStalls();
   const applySavedLocation = useApplySavedLocationStables();
+  const reassign = useReassignStall();
+  const swap = useSwapStalls();
 
   const stableCountRef = useRef<HTMLInputElement>(null);
   const savedLocationSelectRef = useRef<HTMLSelectElement>(null);
 
-  const totalStalls = chart.stables.reduce((n, b) => n + b.stalls.length, 0);
-  const occupied = chart.stables.reduce(
-    (n, b) => n + b.stalls.filter((s) => !s.closed && !!s.horseId).length,
-    0,
-  );
-  const closedCount = chart.stables.reduce(
-    (n, b) => n + b.stalls.filter((s) => s.closed).length,
-    0,
-  );
+  const assignGroup = useAssignGroupToStable();
+
+  const [pendingSwap, setPendingSwap] = useState<{
+    from: { stableId: string; stallId: string };
+    to: { stableId: string; stallId: string; horseName: string | null };
+  } | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    const trainerKey = parseGroupDndId(activeId);
+    if (trainerKey) {
+      const targetStableId = parseStableDropId(overId) ?? parseStallDndId(overId)?.stableId;
+      if (targetStableId) {
+        assignGroup.mutate({ showId, trainerKey, targetStableId });
+      }
+      return;
+    }
+
+    const from = parseStallDndId(activeId);
+    const to = parseStallDndId(overId);
+    if (!from || !to) return;
+    const toStall = findStallById(chart.stables, to.stableId, to.stallId);
+    if (!toStall) return;
+
+    if (toStall.status === 'available') {
+      reassign.mutate({
+        showId,
+        fromStableId: from.stableId,
+        fromStallId: from.stallId,
+        toStableId: to.stableId,
+        toStallId: to.stallId,
+      });
+    } else if (toStall.status === 'occupied') {
+      setPendingSwap({ from, to: { ...to, horseName: toStall.horseName } });
+    }
+  }
+
+  const allStalls = chart.stables.flatMap((b) => b.stalls);
+  const totalStalls = allStalls.length;
+  const countOf = (status: (typeof allStalls)[number]['status']) =>
+    allStalls.filter((s) => s.status === status).length;
+  const occupied = countOf('occupied');
+  const availableCount = countOf('available');
+  const closedCount = countOf('unusable');
+  const reservedCount = countOf('reserved');
+  const tackCount = countOf('tack');
+  const holdCount = countOf('hold');
   const published = chart.status === 'published';
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-4 flex flex-wrap items-center gap-2.5 print:hidden">
-        <Link href={`/dashboard/horses?show=${showId}`} className={ghostButtonClass}>
+        <Link href={`/dashboard/horses?show=${publicId ?? showId}`} className={ghostButtonClass}>
           🐴 Back to Horses
         </Link>
         {totalStalls > 0 && (
@@ -88,8 +151,11 @@ export function StableChartScreen({ data }: { data: StableChartPageData }) {
 
         {totalStalls > 0 && (
           <span className="text-[13px] text-[#5A6B63]">
-            {occupied} occupied · {totalStalls - occupied - closedCount} available
-            {closedCount > 0 && ` · ${String(closedCount)} closed`} · {totalStalls} total stalls
+            {occupied} occupied · {availableCount} available
+            {reservedCount > 0 && ` · ${String(reservedCount)} reserved`}
+            {tackCount > 0 && ` · ${String(tackCount)} tack`}
+            {holdCount > 0 && ` · ${String(holdCount)} hold`}
+            {closedCount > 0 && ` · ${String(closedCount)} unusable`} · {totalStalls} total stalls
           </span>
         )}
 
@@ -120,92 +186,117 @@ export function StableChartScreen({ data }: { data: StableChartPageData }) {
         )}
       </div>
 
-      <Card className="mb-[18px] p-[18px_20px_20px] print:hidden">
-        <div className="mb-2.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
-          Stables
-        </div>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <StablingGroupsSidebar groups={groups} />
 
-        {savedLocations.length > 0 && (
-          <div className="mb-2.5 max-w-[340px]">
-            <Label htmlFor="sc-saved-location" className={SM_LABEL}>
-              Add stables from a saved location
-            </Label>
-            <select
-              id="sc-saved-location"
-              ref={savedLocationSelectRef}
-              defaultValue=""
-              disabled={applySavedLocation.isPending}
-              className={SM_SELECT}
-              onChange={(event) => {
-                const venueId = event.target.value;
-                if (savedLocationSelectRef.current) savedLocationSelectRef.current.value = '';
-                if (venueId) applySavedLocation.mutate({ showId, venueId });
-              }}
-            >
-              <option value="">— choose a saved location —</option>
-              {savedLocations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name} ({loc.stableCount} stable{loc.stableCount === 1 ? '' : 's'})
-                </option>
-              ))}
-            </select>
+        <Card className="mb-[18px] p-[18px_20px_20px] print:hidden">
+          <div className="mb-2.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
+            Stables
           </div>
-        )}
 
-        <div className="mb-3.5 w-[160px]">
-          <Label htmlFor="sc-stable-count" className={SM_LABEL}>
-            Number of stables
-          </Label>
-          <Input
-            id="sc-stable-count"
-            ref={stableCountRef}
-            type="number"
-            min={0}
-            max={MAX_STABLES}
-            defaultValue={chart.stables.length}
-            className={cn('h-auto', SM_INPUT)}
-            onBlur={(event) => {
-              const count = Math.max(
-                0,
-                Math.min(MAX_STABLES, parseInt(event.target.value, 10) || 0),
-              );
-              if (count !== chart.stables.length) setCount.mutate({ showId, count });
-            }}
-          />
-        </div>
+          {savedLocations.length > 0 && (
+            <div className="mb-2.5 max-w-[340px]">
+              <Label htmlFor="sc-saved-location" className={SM_LABEL}>
+                Add stables from a saved location
+              </Label>
+              <select
+                id="sc-saved-location"
+                ref={savedLocationSelectRef}
+                defaultValue=""
+                disabled={applySavedLocation.isPending}
+                className={SM_SELECT}
+                onChange={(event) => {
+                  const venueId = event.target.value;
+                  if (savedLocationSelectRef.current) savedLocationSelectRef.current.value = '';
+                  if (venueId) applySavedLocation.mutate({ showId, venueId });
+                }}
+              >
+                <option value="">— choose a saved location —</option>
+                {savedLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.stableCount} stable{loc.stableCount === 1 ? '' : 's'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        {chart.stables.map((stable) => (
-          <StableConfigRow key={stable.id} showId={showId} stable={stable} />
-        ))}
+          <div className="mb-3.5 w-[160px]">
+            <Label htmlFor="sc-stable-count" className={SM_LABEL}>
+              Number of stables
+            </Label>
+            <Input
+              id="sc-stable-count"
+              ref={stableCountRef}
+              type="number"
+              min={0}
+              max={MAX_STABLES}
+              defaultValue={chart.stables.length}
+              className={cn('h-auto', SM_INPUT)}
+              onBlur={(event) => {
+                const count = Math.max(
+                  0,
+                  Math.min(MAX_STABLES, parseInt(event.target.value, 10) || 0),
+                );
+                if (count !== chart.stables.length) setCount.mutate({ showId, count });
+              }}
+            />
+          </div>
 
-        {chart.stables.length === 0 && (
-          <p className="mt-2.5 text-[13px] text-[#7A8781] italic">
-            Set &ldquo;Number of stables&rdquo; above to get started.
-          </p>
-        )}
-      </Card>
+          {chart.stables.map((stable) => (
+            <StableConfigRow key={stable.id} showId={showId} stable={stable} />
+          ))}
 
-      {totalStalls > 0 &&
-        chart.stables.map((stable) => {
-          if (stable.stalls.length === 0) return null;
-          const rows = splitStallsIntoRows(stable.stalls, stable.rowCount);
-          return (
-            <Card key={stable.id} className="mb-4 p-[18px_20px_20px] print:hidden">
-              <div className="mb-3 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
-                {stable.name} — {stable.stalls.length} stalls
-              </div>
-              {rows.map((rowStalls, i) => (
-                <div key={`${stable.id}-row-${String(i)}`} className="mb-2 flex flex-wrap gap-2">
-                  {rowStalls.map((stall) => (
-                    <StallBox key={stall.id} showId={showId} stableId={stable.id} stall={stall} />
-                  ))}
-                </div>
-              ))}
-            </Card>
-          );
-        })}
+          {chart.stables.length === 0 && (
+            <p className="mt-2.5 text-[13px] text-[#7A8781] italic">
+              Set &ldquo;Number of stables&rdquo; above to get started.
+            </p>
+          )}
+        </Card>
+
+        {totalStalls > 0 &&
+          chart.stables.map((stable) => {
+            if (stable.stalls.length === 0) return null;
+            return (
+              <StableDropCard
+                key={stable.id}
+                showId={showId}
+                stable={stable}
+                allStables={chart.stables}
+              />
+            );
+          })}
+      </DndContext>
 
       <StableChartPrintView showName={showName} chart={chart} />
+
+      <ConfirmDialog
+        open={pendingSwap !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingSwap(null);
+        }}
+        title="Swap horses?"
+        description={`That stall is occupied by ${pendingSwap?.to.horseName ?? 'a horse'}. Swap the two horses' stalls?`}
+        confirmLabel={swap.isPending ? 'Swapping…' : 'Swap'}
+        pending={swap.isPending}
+        onConfirm={() => {
+          if (!pendingSwap) return;
+          swap.mutate(
+            {
+              showId,
+              stableAId: pendingSwap.from.stableId,
+              stallAId: pendingSwap.from.stallId,
+              stableBId: pendingSwap.to.stableId,
+              stallBId: pendingSwap.to.stallId,
+            },
+            {
+              onSuccess: () => {
+                setPendingSwap(null);
+              },
+            },
+          );
+        }}
+      />
     </div>
   );
 }

@@ -25,7 +25,10 @@ export function FilingCabinetShell({
       shows={shows}
       currentShow={currentShow}
     >
-      <FilingCabinetTabs activeKey={activeKey} showId={currentShow?.id ?? null} />
+      <FilingCabinetTabs
+        activeKey={activeKey}
+        showId={currentShow ? (currentShow.slug ?? currentShow.id) : null}
+      />
 
       {currentShow ? children : <EmptyPanel title="No shows yet" note="The filing cabinet is configured per show." />}
     </WorkspacePage>

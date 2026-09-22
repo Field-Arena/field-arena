@@ -203,6 +203,33 @@ export const HORSE_STAT_TINTS = {
 export const MAX_STABLES = 40;
 export const MAX_STALLS_PER_STABLE = 300;
 
+// 'occupied' is always system-derived from a horse assignment — never a
+// direct target of the manual stall-status mutation.
+export const STALL_STATUSES = [
+  'available',
+  'occupied',
+  'reserved',
+  'unusable',
+  'tack',
+  'hold',
+] as const;
+export const MANUALLY_SETTABLE_STALL_STATUSES = [
+  'available',
+  'reserved',
+  'unusable',
+  'tack',
+  'hold',
+] as const;
+
+export const STALL_STATUS_LABELS: Record<(typeof STALL_STATUSES)[number], string> = {
+  available: 'Available',
+  occupied: 'Occupied',
+  reserved: 'Reserved',
+  unusable: 'Unusable',
+  tack: 'Tack Stall',
+  hold: 'Hold',
+};
+
 export const DEFAULT_SHOW_EXPENSES = [
   'Venue / facility rental',
   'Judges',
@@ -386,14 +413,30 @@ export const RING_SIZE_LABEL: Record<string, string> = {
   small: 'Small (20m × 40m)',
 };
 
+// A class's arena should always reflect the actual size configured for its
+// assigned ring/location (Venue screen) — not a free-typed, disconnected
+// value. Looks up the ring by name and returns its size label, or null when
+// no location is set yet or it doesn't match a configured ring.
+export function arenaLabelForRing(
+  ringName: string | null,
+  rings: { name: string; size: string }[],
+): string | null {
+  if (!ringName) return null;
+  const ring = rings.find((r) => r.name === ringName);
+  if (!ring) return null;
+  return RING_SIZE_LABEL[ring.size] ?? null;
+}
+
 export const SHOW_DETAILS_BODIES = ['FEI', 'USDF', 'USEF'] as const;
 
 // ── Documents filing cabinet ────────────────────────────────────────────
 
 export const DOCUMENTS_PATH = '/dashboard/documents';
+export const PRINT_CENTER_PATH = '/dashboard/documents/print-center';
 
 export const FILING_CABINET_SECTIONS = [
   { key: 'entry-ledger', label: 'Entry Ledger', status: 'active' },
+  { key: 'bridle-numbers', label: 'Bridle Numbers', status: 'active' },
   { key: 'membership-ledger', label: 'Membership Ledger', status: 'active' },
   { key: 'unprocessed', label: 'Unprocessed Documents', status: 'active' },
   { key: 'issues', label: 'Issues / Notes / Requests', status: 'active' },

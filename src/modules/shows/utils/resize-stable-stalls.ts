@@ -19,8 +19,11 @@ export function resizeStableStalls(
             horseId: null,
             horseName: null,
             riderName: null,
+            trainerName: null,
             shavings: 0,
-            closed: false,
+            status: 'available',
+            statusReason: null,
+            note: null,
             isStallion: false,
           },
     );

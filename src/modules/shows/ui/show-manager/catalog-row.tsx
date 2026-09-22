@@ -11,19 +11,39 @@ export function CatalogRow({
   item,
   onRename,
   onRemove,
+  stablingFields,
 }: {
   item: CatalogListItem;
-  onRename: (item: CatalogListItem, name: string, price: number) => void;
+  onRename: (
+    item: CatalogListItem,
+    name: string,
+    price: number,
+    stalls: number,
+    tack: number,
+  ) => void;
   onRemove: (id: string) => void;
+  stablingFields?: boolean;
 }) {
   const [name, setName] = useState(item.name);
   const [price, setPrice] = useState(String(item.price));
+  const [stalls, setStalls] = useState(String(item.stalls ?? 0));
+  const [tack, setTack] = useState(String(item.tack ?? 0));
 
   function commit() {
     const nextName = name.trim();
     const nextPrice = Number(price) || 0;
-    if (!nextName || (nextName === item.name && nextPrice === item.price)) return;
-    onRename(item, nextName, nextPrice);
+    const nextStalls = Number(stalls) || 0;
+    const nextTack = Number(tack) || 0;
+    if (
+      !nextName ||
+      (nextName === item.name &&
+        nextPrice === item.price &&
+        nextStalls === (item.stalls ?? 0) &&
+        nextTack === (item.tack ?? 0))
+    ) {
+      return;
+    }
+    onRename(item, nextName, nextPrice, nextStalls, nextTack);
   }
 
   return (
@@ -48,6 +68,32 @@ export function CatalogRow({
         onBlur={commit}
         aria-label={`${item.name} price`}
       />
+      {stablingFields && (
+        <>
+          <span className="text-[12px] text-[#6E7C76]">stalls</span>
+          <Input
+            className={cn('h-auto', SM_ROW_INPUT, 'w-[64px] flex-none')}
+            inputMode="numeric"
+            value={stalls}
+            onChange={(e) => {
+              setStalls(e.target.value);
+            }}
+            onBlur={commit}
+            aria-label={`${item.name} stalls granted per unit`}
+          />
+          <span className="text-[12px] text-[#6E7C76]">tack</span>
+          <Input
+            className={cn('h-auto', SM_ROW_INPUT, 'w-[64px] flex-none')}
+            inputMode="numeric"
+            value={tack}
+            onChange={(e) => {
+              setTack(e.target.value);
+            }}
+            onBlur={commit}
+            aria-label={`${item.name} tack stalls granted per unit`}
+          />
+        </>
+      )}
       <Button
         type="button"
         variant="ghost"

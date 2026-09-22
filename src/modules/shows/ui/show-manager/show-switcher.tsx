@@ -28,7 +28,7 @@ export function ShowSwitcher({
         aria-label="Select show"
       >
         {shows.map((show) => (
-          <option key={show.id} value={show.id}>
+          <option key={show.id} value={show.slug ?? show.id}>
             {show.name}
             {show.dateLabel ? ` (${show.dateLabel})` : ''}
           </option>

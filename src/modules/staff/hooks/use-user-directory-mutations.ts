@@ -1,10 +1,7 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { readableError } from '@/shared/lib/error-message';
 import { unwrap } from '@/shared/lib/unwrap-action';
+import { useRefreshingMutation } from '@/shared/hooks/use-refreshing-mutation';
 import {
   addStaffUser,
   changeStaffRole,
@@ -30,165 +27,126 @@ import type {
 import type { VerifyHorseDocumentInput } from '@/modules/shows/schemas';
 
 export function useAddStaffUser(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: AddStaffUserInput) => unwrap(await addStaffUser(input)),
-    onSuccess: ({ email }) => {
-      toast.success(`${email} added.`);
-      router.refresh();
-      options?.onSuccess?.();
+  return useRefreshingMutation(
+    async (input: AddStaffUserInput) => unwrap(await addStaffUser(input)),
+    {
+      successMessage: ({ email }) => `${email} added.`,
+      errorFallback: 'Could not add this user',
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not add this user'));
-    },
-  });
+  );
 }
 
 export function useChangeStaffRole() {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: ChangeStaffRoleInput) => unwrap(await changeStaffRole(input)),
-    onSuccess: () => {
-      toast.success('Role updated');
-      router.refresh();
+  return useRefreshingMutation(
+    async (input: ChangeStaffRoleInput) => unwrap(await changeStaffRole(input)),
+    {
+      successMessage: 'Role updated',
+      errorFallback: 'Could not change the role',
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not change the role'));
-    },
-  });
+  );
 }
 
 export function useUpdateStaffPermissions(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: UpdateStaffPermissionsInput) =>
-      unwrap(await updateStaffPermissions(input)),
-    onSuccess: () => {
-      toast.success('Permissions saved');
-      router.refresh();
-      options?.onSuccess?.();
+  return useRefreshingMutation(
+    async (input: UpdateStaffPermissionsInput) => unwrap(await updateStaffPermissions(input)),
+    {
+      successMessage: 'Permissions saved',
+      errorFallback: 'Could not save permissions',
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not save permissions'));
-    },
-  });
+  );
 }
 
 export function useReassignStaffShow() {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: ReassignStaffShowInput) => unwrap(await reassignStaffShow(input)),
-    onSuccess: () => {
-      toast.success('Moved to the new show');
-      router.refresh();
+  return useRefreshingMutation(
+    async (input: ReassignStaffShowInput) => unwrap(await reassignStaffShow(input)),
+    {
+      successMessage: 'Moved to the new show',
+      errorFallback: 'Could not move this person to that show',
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not move this person to that show'));
-    },
-  });
+  );
 }
 
 export function useUpdateStaffDetails(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: UpdateStaffDetailsInput) => unwrap(await updateStaffDetails(input)),
-    onSuccess: () => {
-      toast.success('Details saved');
-      router.refresh();
-      options?.onSuccess?.();
+  return useRefreshingMutation(
+    async (input: UpdateStaffDetailsInput) => unwrap(await updateStaffDetails(input)),
+    {
+      successMessage: 'Details saved',
+      errorFallback: 'Could not save these details',
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not save these details'));
-    },
-  });
+  );
 }
 
 export function useRemoveStaffAssignment(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (staffId: string) => unwrap(await removeStaffAssignment({ staffId })),
-    onSuccess: () => {
-      toast.success('Removed');
-      router.refresh();
-      options?.onSuccess?.();
+  return useRefreshingMutation(
+    async (staffId: string) => unwrap(await removeStaffAssignment({ staffId })),
+    {
+      successMessage: 'Removed',
+      errorFallback: 'Could not remove this person',
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not remove this person'));
-    },
-  });
+  );
 }
 
 export function useUpdateRiderContactInfo(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: UpdateRiderContactInfoInput) =>
-      unwrap(await updateRiderContactInfo(input)),
-    onSuccess: () => {
-      toast.success('Saved');
-      router.refresh();
-      options?.onSuccess?.();
+  return useRefreshingMutation(
+    async (input: UpdateRiderContactInfoInput) => unwrap(await updateRiderContactInfo(input)),
+    {
+      successMessage: 'Saved',
+      errorFallback: "Could not save this rider's details",
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, "Could not save this rider's details"));
-    },
-  });
+  );
 }
 
 export function useVerifyRiderHorseDocument(options?: { onSuccess?: () => void }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: VerifyHorseDocumentInput) =>
-      unwrap(await verifyRiderHorseDocument(input)),
-    onSuccess: () => {
-      toast.success('Saved');
-      router.refresh();
-      options?.onSuccess?.();
+  return useRefreshingMutation(
+    async (input: VerifyHorseDocumentInput) => unwrap(await verifyRiderHorseDocument(input)),
+    {
+      successMessage: 'Saved',
+      errorFallback: 'Could not save this document',
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not save this document'));
-    },
-  });
+  );
 }
 
 export function useAssignRingAnnouncer() {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: AssignRingAnnouncerInput) => unwrap(await assignRingAnnouncer(input)),
-    onSuccess: () => {
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not save that ring assignment'));
-    },
-  });
+  return useRefreshingMutation(
+    async (input: AssignRingAnnouncerInput) => unwrap(await assignRingAnnouncer(input)),
+    { errorFallback: 'Could not save that ring assignment' },
+  );
 }
 
 export function useImportStaffList(options?: {
   onSuccess?: (result: { added: number; skipped: number; failed: number }) => void;
 }) {
-  const router = useRouter();
-
-  return useMutation({
-    mutationFn: async (input: ImportStaffListInput) => unwrap(await importStaffList(input)),
-    onSuccess: (result) => {
-      const parts = [`${String(result.added)} added`];
-      if (result.skipped > 0) parts.push(`${String(result.skipped)} already on this show`);
-      if (result.failed > 0) parts.push(`${String(result.failed)} failed`);
-      toast.success(parts.join(' · '));
-      router.refresh();
-      options?.onSuccess?.(result);
+  return useRefreshingMutation(
+    async (input: ImportStaffListInput) => unwrap(await importStaffList(input)),
+    {
+      successMessage: (result) => {
+        const parts = [`${String(result.added)} added`];
+        if (result.skipped > 0) parts.push(`${String(result.skipped)} already on this show`);
+        if (result.failed > 0) parts.push(`${String(result.failed)} failed`);
+        return parts.join(' · ');
+      },
+      errorFallback: 'Could not import that file',
+      onSuccess: (result) => {
+        options?.onSuccess?.(result);
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not import that file'));
-    },
-  });
+  );
 }

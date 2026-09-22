@@ -28,6 +28,7 @@ import {
   usePublishResults,
   useUnpublishResults,
 } from '@/modules/scoring/hooks/use-scoring-mutations';
+import { useMarkOrderChecked } from '@/modules/scoring/hooks/use-order-check-mutations';
 import { TestSheet, type TestSheetHandle } from '@/modules/scoring/ui/test-sheet';
 import { ScoreTally } from '@/modules/scoring/ui/score-tally';
 import { ErrorOfCoursePanel } from '@/modules/scoring/ui/error-of-course-panel';
@@ -106,6 +107,7 @@ export function ScoringScreen({
   const toggleOpen = useToggleScoringOpen();
   const publish = usePublishResults();
   const unpublish = useUnpublishResults();
+  const markOrderChecked = useMarkOrderChecked();
 
   useEffect(() => {
     if (!lastUndo) return;
@@ -251,6 +253,12 @@ export function ScoringScreen({
           }}
           onPrint={() => {
             window.print();
+          }}
+          mySeat={mySeat}
+          orderChecked={state.classState.orderChecked}
+          isMarkingOrderChecked={markOrderChecked.isPending}
+          onMarkOrderChecked={() => {
+            markOrderChecked.mutate(classId);
           }}
         />
       </div>

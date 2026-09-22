@@ -626,14 +626,31 @@ async function assertCanManageVendors(showId: string): Promise<void> {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+interface PendingBookingForReview {
+  id: string;
+  show_id: string;
+  status: string | null;
+  contact: string | null;
+  contact_name: string | null;
+  name: string;
+}
+
 async function loadPendingBookingForReview(
   admin: ReturnType<typeof createAdminClient>,
   bookingId: string,
   showId: string,
-): Promise<{ id: string; status: string | null }> {
+): Promise<PendingBookingForReview> {
   const { data: booking, error } = await admin
     .from('vendor_bookings')
-    .select('id, show_id, status')
+    .select('id, show_id, status, contact, contact_name, name')
     .eq('id', bookingId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -646,12 +663,59 @@ async function loadPendingBookingForReview(
   return booking;
 }
 
+/* Approval flips a database column and nothing else by default — the
+ * vendor has no way to find out unless they happen to remember the
+ * "claim your account" copy from their original application screen. This
+ * sends that notification, mirroring sendVendorBookingConfirmationEmail's
+ * fire-and-forget pattern in checkout.ts (never throws — a flaky email
+ * must not fail the approval itself). */
+async function sendVendorApprovalEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  booking: PendingBookingForReview,
+): Promise<void> {
+  if (!booking.contact) return;
+
+  const { data: show } = await admin
+    .from('shows')
+    .select('name')
+    .eq('id', booking.show_id)
+    .maybeSingle();
+
+  const claimUrl = `${env.siteUrl}/vendor-apply/account`;
+  const greetingName = booking.contact_name ?? booking.name;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Field & Arena <notifications@field-arena.com>',
+        to: booking.contact,
+        subject: `Your vendor application for ${show?.name ?? 'the show'} was approved`,
+        html:
+          `<p>Hi ${escapeHtml(greetingName)},</p>` +
+          `<p>Good news — your vendor application for <b>${escapeHtml(show?.name ?? 'the show')}</b> has been approved.</p>` +
+          `<p>To sign the booth agreement and pay, claim your vendor account using this same email (${escapeHtml(booking.contact)}):</p>` +
+          `<p><a href="${claimUrl}">${claimUrl}</a></p>`,
+      }),
+    });
+    if (!res.ok) {
+      console.error('[vendors] approval email failed', res.status, await res.text());
+    }
+  } catch (cause) {
+    console.error('[vendors] approval email transport failure', cause);
+  }
+}
+
 export async function approveVendorBooking(input: unknown): Promise<void> {
   const parsed = parseInput(reviewVendorBookingSchema, input);
   await assertCanManageVendors(parsed.showId);
 
   const admin = createAdminClient();
-  await loadPendingBookingForReview(admin, parsed.bookingId, parsed.showId);
+  const booking = await loadPendingBookingForReview(admin, parsed.bookingId, parsed.showId);
 
   const { error } = await admin
     .from('vendor_bookings')
@@ -661,6 +725,8 @@ export async function approveVendorBooking(input: unknown): Promise<void> {
   if (error) throw new Error(error.message);
 
   revalidatePath(ROUTES.users);
+
+  await sendVendorApprovalEmail(admin, booking);
 }
 
 export async function rejectVendorBooking(input: unknown): Promise<void> {

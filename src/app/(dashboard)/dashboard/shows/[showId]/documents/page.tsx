@@ -3,7 +3,7 @@ import { getDocumentsPageData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { DocumentsCard } from '@/modules/shows/ui/show-manager/documents-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
@@ -15,7 +15,8 @@ export default async function ShowDocumentsPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  const data = isUuid(showId) ? await getDocumentsPageData(showId) : null;
+  const id = await resolveShowIdParam(showId);
+  const data = id ? await getDocumentsPageData(id) : null;
 
   if (!data) {
     return (
@@ -33,7 +34,7 @@ export default async function ShowDocumentsPage({
 
   return (
     <ShowManagerShell
-      showId={data.showId}
+      showId={showId}
       showName={data.showName}
       activeTab="Documents"
       orgName={context.orgName}
@@ -42,7 +43,12 @@ export default async function ShowDocumentsPage({
       stage={vitals.stage}
       canViewMoney={context.canViewMoney}
     >
-      <DocumentsCard showId={data.showId} documents={data.documents} classes={data.classes} />
+      <DocumentsCard
+        showId={data.showId}
+        publicId={showId}
+        documents={data.documents}
+        classes={data.classes}
+      />
     </ShowManagerShell>
   );
 }

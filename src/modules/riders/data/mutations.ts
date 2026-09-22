@@ -409,6 +409,21 @@ export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
+  /* Nothing else in the app ever collects a rider's own first/last name —
+   * the waiver's typed signature is the first real name text a rider ever
+   * provides. Backfill it onto their profile the first time they sign,
+   * guarded by .is('first_name', null) so a name once set is never
+   * overwritten by a later, possibly different, waiver signature. */
+  const [firstName, ...rest] = parsed.fullName.trim().split(/\s+/);
+  if (firstName) {
+    const { error: nameError } = await supabase
+      .from('riders')
+      .update({ first_name: firstName, last_name: rest.join(' ') || null })
+      .eq('id', rider.id)
+      .is('first_name', null);
+    if (nameError) throw nameError;
+  }
+
   const { data: existing, error: readError } = await supabase
     .from('waiver_signatures')
     .select('*')
@@ -457,6 +472,12 @@ export async function createCheckoutSession(
     const admin = createAdminClient();
     const priced = await priceCart(admin, rider.id, parsed.showId, parsed.cart, parsed.addOns);
 
+    if (priced.needsStablingDetails && !parsed.stabling) {
+      throw new UserFacingError(
+        'Your cart includes stalls — fill in the stabling details above before checking out.',
+      );
+    }
+
     const { data: order, error: orderError } = await admin
       .from('orders')
       .insert({
@@ -466,6 +487,7 @@ export async function createCheckoutSession(
         status: 'pending',
         items: itemsToJson(priced.items),
         fee_total: priced.feeTotal,
+        stabling_request: parsed.stabling ? (parsed.stabling as unknown as Json) : null,
       })
       .select()
       .single();

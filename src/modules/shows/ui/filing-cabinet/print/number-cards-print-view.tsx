@@ -6,7 +6,7 @@ export function NumberCardsPrintView({ showName, rows }: { showName: string; row
   if (rows.length === 0) return null;
 
   return (
-    <div className="hidden print:block">
+    <div data-print-report className="hidden print:block">
       <div className="grid grid-cols-2 gap-6 p-8">
         {rows.map((row) => (
           <div
@@ -17,7 +17,7 @@ export function NumberCardsPrintView({ showName, rows }: { showName: string; row
             <div className="text-[11px] tracking-widest text-[#666] uppercase">{showName}</div>
             <div className="mt-2 text-[64px] leading-none font-black">{row.entryNumber}</div>
             <div className="mt-1 text-[13px] text-[#555]">Entry number</div>
-            <div className="mt-4 text-[28px] leading-none font-bold">{row.bridleNumber}</div>
+            <div className="mt-4 text-[28px] leading-none font-bold">{row.bridleNumber ?? '—'}</div>
             <div className="text-[12px] text-[#555]">Bridle number</div>
             {row.backNumber && (
               <>

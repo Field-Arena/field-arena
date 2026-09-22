@@ -4,6 +4,7 @@ import { useEntryCartStore } from '@/modules/riders/store';
 import { useCreateCheckoutSession } from '@/modules/riders/hooks/use-checkout-mutations';
 import { buildCheckoutCartPayload } from '@/modules/riders/utils/build-checkout-cart-payload';
 import { computeCartPreview } from '@/modules/riders/utils/compute-cart-preview';
+import { cartNeedsStablingDetails } from '@/modules/riders/utils/cart-needs-stabling-details';
 import type { AddOnWithRemaining, ClassWithCapacity, QualTypeRow } from '@/modules/riders/types';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
@@ -30,7 +31,11 @@ export function CheckoutSummary({
   const qualSelections = useEntryCartStore((state) => state.qualSelections);
   const addOnQuantities = useEntryCartStore((state) => state.addOnQuantities);
   const testChoices = useEntryCartStore((state) => state.testChoices);
+  const stablingDetails = useEntryCartStore((state) => state.stablingDetails);
   const createSession = useCreateCheckoutSession();
+
+  const needsStablingDetails = cartNeedsStablingDetails(addOnQuantities, addOns);
+  const stablingSatisfied = !needsStablingDetails || stablingDetails.trainerName.trim().length > 0;
 
   const classById = new Map(classes.map((cls) => [cls.id, cls]));
   const everyTestChosen = [...selectedClassIds].every((classId) => {
@@ -79,6 +84,15 @@ export function CheckoutSummary({
             Sign this show&apos;s waiver above to continue.
           </p>
         )}
+        {canCheckout &&
+          everyClassAssigned &&
+          everyTestChosen &&
+          waiverSatisfied &&
+          !stablingSatisfied && (
+            <p className="text-destructive text-xs">
+              Fill in the trainer/barn name in Stabling details above to continue.
+            </p>
+          )}
         <Button
           type="button"
           className="w-full"
@@ -87,6 +101,7 @@ export function CheckoutSummary({
             !everyClassAssigned ||
             !everyTestChosen ||
             !waiverSatisfied ||
+            !stablingSatisfied ||
             createSession.isPending
           }
           onClick={() => {
@@ -97,7 +112,20 @@ export function CheckoutSummary({
               addOnQuantities,
               testChoices,
             });
-            createSession.mutate({ showId, cart: payload.cart, addOns: payload.addOns });
+            createSession.mutate({
+              showId,
+              cart: payload.cart,
+              addOns: payload.addOns,
+              ...(needsStablingDetails
+                ? {
+                    stabling: {
+                      trainerName: stablingDetails.trainerName.trim(),
+                      stableWith: stablingDetails.stableWith.trim() || undefined,
+                      notes: stablingDetails.notes.trim() || undefined,
+                    },
+                  }
+                : {}),
+            });
           }}
         >
           {createSession.isPending ? 'Redirecting to checkout…' : 'Proceed to payment'}

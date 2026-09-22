@@ -14,11 +14,12 @@ export function AwardsToolbar({
   discipline,
 }: {
   awards: ShowAwards;
-  shows: { id: string; name: string }[];
+  shows: { id: string; slug: string | null; name: string }[];
   discipline: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const currentPublicId = shows.find((s) => s.id === awards.showId)?.slug ?? awards.showId;
 
   function setParam(key: string, value: string, clearWhen: string) {
     const next = new URLSearchParams(params.toString());
@@ -37,14 +38,14 @@ export function AwardsToolbar({
         <Label className="flex min-w-[200px] flex-col gap-2">
           <Eyebrow>Show</Eyebrow>
           <select
-            value={awards.showId}
+            value={currentPublicId}
             onChange={(e) => {
               router.replace(`?show=${e.target.value}`);
             }}
             className="rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-[9px] text-[13.5px]"
           >
             {shows.map((show) => (
-              <option key={show.id} value={show.id}>
+              <option key={show.id} value={show.slug ?? show.id}>
                 {show.name}
               </option>
             ))}

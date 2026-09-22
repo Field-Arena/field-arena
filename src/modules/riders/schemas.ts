@@ -141,11 +141,20 @@ export const checkoutAddOnLineSchema = z.object({
 
 export type CheckoutAddOnLine = z.infer<typeof checkoutAddOnLineSchema>;
 
+export const checkoutStablingDetailsSchema = z.object({
+  trainerName: z.string().trim().min(1, 'Trainer/barn name is required'),
+  stableWith: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export type CheckoutStablingDetails = z.infer<typeof checkoutStablingDetailsSchema>;
+
 export const createCheckoutSessionSchema = z
   .object({
     showId: z.uuid(),
     cart: z.array(checkoutCartLineSchema),
     addOns: z.array(checkoutAddOnLineSchema),
+    stabling: checkoutStablingDetailsSchema.optional(),
   })
   .refine((value) => value.cart.length > 0 || value.addOns.length > 0, {
     message: 'Your cart is empty.',

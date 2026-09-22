@@ -53,7 +53,7 @@ export default async function StableChartPage({
         newShowSlot={<NewShowButton className="px-[15px] py-2.5 text-[13px]" />}
       />
 
-      <StableChartScreen data={chartData} />
+      <StableChartScreen data={chartData} publicId={context.currentShow.slug ?? context.currentShow.id} />
     </div>
   );
 }

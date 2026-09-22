@@ -3,7 +3,7 @@ import { getShowResults } from '@/modules/shows/data/queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { ResultsPanel } from '@/modules/shows/ui/show-manager/results-panel';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { isUuid } from '@/shared/lib/utils';
+import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 import { createServerClient } from '@/shared/lib/supabase/server';
@@ -16,7 +16,8 @@ export default async function ShowResultsPage({
   params: Promise<{ showId: string }>;
 }) {
   const { showId } = await params;
-  if (!isUuid(showId)) {
+  const id = await resolveShowIdParam(showId);
+  if (!id) {
     return (
       <EmptyPanel
         title="Show not found"
@@ -26,7 +27,7 @@ export default async function ShowResultsPage({
   }
 
   const supabase = await createServerClient();
-  const { data: show } = await supabase.from('shows').select('name').eq('id', showId).maybeSingle();
+  const { data: show } = await supabase.from('shows').select('name').eq('id', id).maybeSingle();
 
   if (!show) {
     return (
@@ -38,9 +39,9 @@ export default async function ShowResultsPage({
   }
 
   const [context, vitals, rows] = await Promise.all([
-    getOrganizerContext(showId),
-    getShowManagerVitals(showId),
-    getShowResults(showId),
+    getOrganizerContext(id),
+    getShowManagerVitals(id),
+    getShowResults(id),
   ]);
 
   /* Mirrors getOrganizerContext's canViewMoney resolution — an Organizer (or
@@ -52,7 +53,7 @@ export default async function ShowResultsPage({
   let canExportRoster = context.profile.platform_role === 'Organizer' || context.impersonating;
   if (!canExportRoster) {
     const { data: allowed } = await supabase.rpc('has_show_permission', {
-      target_show_id: showId,
+      target_show_id: id,
       permission_key: 'canExportRoster',
     });
     canExportRoster = allowed === true;

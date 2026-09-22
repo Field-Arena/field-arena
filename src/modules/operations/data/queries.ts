@@ -11,6 +11,7 @@ import { withSharedRank } from '@/modules/operations/utils/with-shared-rank';
 
 export interface OperationsShow {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
 }
@@ -31,12 +32,12 @@ export async function listMyShows(): Promise<OperationsShow[]> {
   const showIds = [...new Set(staffRows.map((s) => s.show_id))];
   const { data: shows, error: showError } = await supabase
     .from('shows')
-    .select('id, name, date_label')
+    .select('id, slug, name, date_label')
     .in('id', showIds)
     .order('start_date', { ascending: false });
   if (showError) throw showError;
 
-  return shows.map((s) => ({ id: s.id, name: s.name, dateLabel: s.date_label }));
+  return shows.map((s) => ({ id: s.id, slug: s.slug, name: s.name, dateLabel: s.date_label }));
 }
 
 export async function getMyPermissions(showId: string): Promise<Record<PermissionKey, boolean>> {

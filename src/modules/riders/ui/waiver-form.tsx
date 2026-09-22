@@ -14,10 +14,14 @@ export function WaiverForm({
   showId,
   waiverText,
   existingSignature,
+  waiverDocumentUrl,
+  waiverDocumentName,
 }: {
   showId: string;
   waiverText: string;
   existingSignature: WaiverSignatureRow | null;
+  waiverDocumentUrl?: string | null;
+  waiverDocumentName?: string | null;
 }) {
   const textRef = useRef<HTMLDivElement>(null);
   const [scrolledToBottom, setScrolledToBottom] = useState(!!existingSignature);
@@ -51,6 +55,16 @@ export function WaiverForm({
         <CardTitle>Release of liability, waiver of claims, and assumption of risk</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {waiverDocumentUrl && waiverDocumentName && (
+          <a
+            href={waiverDocumentUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-forest inline-block text-xs font-semibold underline underline-offset-2"
+          >
+            📄 View full document: {waiverDocumentName}
+          </a>
+        )}
         <div
           ref={textRef}
           onScroll={checkScrolled}

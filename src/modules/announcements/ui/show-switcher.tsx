@@ -27,13 +27,13 @@ export function ShowSwitcher({
         <form method="get" className="contents">
           <select
             name="show"
-            defaultValue={currentShow.id}
+            defaultValue={currentShow.slug ?? currentShow.id}
             className="dash-select"
             style={{ maxWidth: 380 }}
             aria-label="Select show"
           >
             {shows.map((show) => (
-              <option key={show.id} value={show.id}>
+              <option key={show.id} value={show.slug ?? show.id}>
                 {show.name}
                 {show.status === 'today' ? ' — today' : ''}
                 {show.status === 'completed' ? ' — completed' : ''}

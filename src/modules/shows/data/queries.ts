@@ -3,9 +3,12 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
+import { awardUnitsFor, type AwardClassInput } from '@/modules/shows/awards-engine';
+import { ribbonFor, type RibbonColor } from '@/modules/shows/constants';
 
 export interface ShowListItem {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -41,7 +44,9 @@ export async function listShowsForOrg(orgId: string): Promise<ShowListItem[]> {
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, end_date, status, published, venue_name, venue_id')
+    .select(
+      'id, slug, name, date_label, start_date, end_date, status, published, venue_name, venue_id',
+    )
     .eq('org_id', orgId)
     .order('start_date', { ascending: false });
   if (error) throw error;
@@ -60,6 +65,7 @@ export async function listShowsForOrg(orgId: string): Promise<ShowListItem[]> {
 
   return data.map((show) => ({
     id: show.id,
+    slug: show.slug,
     name: show.name,
     dateLabel: show.date_label,
     startDate: show.start_date,
@@ -202,6 +208,7 @@ export async function getShowManagerVitals(showId: string): Promise<ShowManagerV
 
 export interface RunShowData {
   showId: string;
+  showSlug: string | null;
   showName: string;
   stage: string;
   published: boolean;
@@ -217,7 +224,9 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
   const showResult = await supabase
     .from('shows')
-    .select('id, name, published, published_at, runner_state, waiver_text, waiver_approved_text')
+    .select(
+      'id, slug, name, published, published_at, runner_state, waiver_text, waiver_approved_text',
+    )
     .eq('id', showId)
     .maybeSingle();
   if (showResult.error) throw showResult.error;
@@ -235,6 +244,7 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
   return {
     showId: show.id,
+    showSlug: show.slug,
     showName: show.name,
     stage,
     published: show.published ?? false,
@@ -252,6 +262,7 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
 
 export interface IncompleteShowSummary {
   id: string;
+  slug: string | null;
   name: string;
   dateLabel: string | null;
   startDate: string | null;
@@ -263,7 +274,7 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, venue_name')
+    .select('id, slug, name, date_label, start_date, venue_name')
     .eq('org_id', orgId)
     .eq('published', false)
     .order('start_date', { ascending: true, nullsFirst: false });
@@ -271,6 +282,7 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
 
   return data.map((s) => ({
     id: s.id,
+    slug: s.slug,
     name: s.name,
     dateLabel: s.date_label,
     startDate: s.start_date,
@@ -289,7 +301,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, venue_name, published, runner_state')
+    .select('id, slug, name, date_label, start_date, venue_name, published, runner_state')
     .eq('org_id', orgId)
     .order('start_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
@@ -320,6 +332,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 
     return {
       id: s.id,
+      slug: s.slug,
       name: s.name,
       dateLabel: s.date_label,
       startDate: s.start_date,
@@ -502,6 +515,8 @@ function ticketCloseAt(value: string | null): number | null {
 }
 
 export interface ShowResultRow {
+  unitLabel: string;
+  pooled: boolean;
   classId: string;
   className: string;
   division: string | null;
@@ -512,6 +527,10 @@ export interface ShowResultRow {
   testName: string | null;
   pct: number | null;
   rank: number | null;
+  ribbonPlace: string | null;
+  ribbonName: string | null;
+  ribbonBg: string | null;
+  ribbonFg: string | null;
 }
 
 function extractResultTestName(override: unknown): string | null {
@@ -568,13 +587,19 @@ function rankByTest(
  * each class — this is the source for the organizer-facing CSV export
  * (Show Manager → Results). Unscored entries (no final_pct yet) are still
  * listed with pct/rank null, so the export doubles as a full-roster sheet,
- * not just a winners list. */
+ * not just a winners list.
+ *
+ * Classes sharing an award_scope of 'division'/'group' (the same pooling
+ * the Awards screen already uses, via awardUnitsFor) are ranked together
+ * as one combined placing here too — previously this ranked strictly per
+ * class, so a class configured to share a championship with others still
+ * showed separate, wrong placings/ribbons on this screen. */
 export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
   const supabase = await createServerClient();
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
-    .select('id, label, division')
+    .select('id, label, division, group_name, award_scope, ribbon_places, ribbon_colors')
     .eq('show_id', showId)
     .order('label');
   if (classError) throw classError;
@@ -583,10 +608,28 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
   const classIds = classes.map((c) => c.id);
   const { data: entries, error: entryError } = await supabase
     .from('class_entries')
-    .select('id, class_id, num, rider, horse, final_pct, collective_total, test_override')
+    .select('id, class_id, num, rider, rider_id, horse, final_pct, collective_total, test_override')
     .in('class_id', classIds)
     .order('ride_order');
   if (entryError) throw entryError;
+
+  // entry.rider is a denormalized text snapshot that can be blank for a real
+  // account (nothing captures a rider's own first/last name at signup —
+  // only the waiver's typed signature does, and only from here on). Resolve
+  // through the real riders row first, falling back to the text/email chain
+  // used elsewhere in this codebase, rather than showing a blank name.
+  const riderIds = [...new Set(entries.map((e) => e.rider_id).filter((id): id is string => !!id))];
+  const { data: riderRows, error: ridersError } = riderIds.length
+    ? await supabase.from('riders').select('id, first_name, last_name, email').in('id', riderIds)
+    : { data: [], error: null };
+  if (ridersError) throw ridersError;
+  const riderById = new Map(riderRows.map((r) => [r.id, r]));
+
+  function resolveRiderName(e: { rider: string | null; rider_id: string | null }): string {
+    const riderRow = e.rider_id ? riderById.get(e.rider_id) : undefined;
+    const fromAccount = riderRow ? [riderRow.first_name, riderRow.last_name].filter(Boolean).join(' ') : '';
+    return [fromAccount, e.rider, riderRow?.email].find((v) => v?.trim()) ?? '—';
+  }
 
   const entriesByClass = new Map<string, typeof entries>();
   for (const e of entries) {
@@ -595,13 +638,30 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
     entriesByClass.set(e.class_id, list);
   }
 
+  const classById = new Map(classes.map((c) => [c.id, c]));
+
+  const awardInputs: AwardClassInput[] = classes.map((c) => ({
+    id: c.id,
+    label: c.label,
+    awardScope: c.award_scope,
+    division: c.division,
+    groupName: c.group_name,
+    ribbonPlaces: c.ribbon_places ?? 6,
+    ribbonColors: c.ribbon_colors as RibbonColor[] | null,
+    entries: [],
+  }));
+  const units = awardUnitsFor(awardInputs);
+
   const rows: ShowResultRow[] = [];
-  for (const cls of classes) {
-    const classEntries = entriesByClass.get(cls.id) ?? [];
-    const parsed = classEntries.map((e) => ({
+  for (const unit of units) {
+    const unitEntries = unit.classes.flatMap((cls) =>
+      (entriesByClass.get(cls.id) ?? []).map((e) => ({ ...e, classId: cls.id })),
+    );
+    const parsed = unitEntries.map((e) => ({
       entryId: e.id,
+      classId: e.classId,
       num: e.num,
-      rider: e.rider ?? '—',
+      rider: resolveRiderName(e),
       horse: e.horse ?? '—',
       testName: extractResultTestName(e.test_override),
       pct: parseResultPct(e.final_pct),
@@ -609,17 +669,27 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
     }));
     const ranks = rankByTest(parsed);
     for (const e of parsed) {
+      const cls = classById.get(e.classId);
+      const rank = ranks.get(e.entryId) ?? null;
+      const earnsRibbon = rank !== null && rank <= unit.ribbonPlaces;
+      const ribbon = earnsRibbon ? ribbonFor(rank - 1, unit.ribbonColors) : null;
       rows.push({
-        classId: cls.id,
-        className: cls.label,
-        division: cls.division,
+        unitLabel: unit.label,
+        pooled: unit.pooled,
+        classId: e.classId,
+        className: cls?.label ?? unit.label,
+        division: cls?.division ?? null,
         entryId: e.entryId,
         num: e.num,
         rider: e.rider,
         horse: e.horse,
         testName: e.testName,
         pct: e.pct,
-        rank: ranks.get(e.entryId) ?? null,
+        rank,
+        ribbonPlace: ribbon?.place ?? null,
+        ribbonName: ribbon?.name ?? null,
+        ribbonBg: ribbon?.bg ?? null,
+        ribbonFg: ribbon?.fg ?? null,
       });
     }
   }

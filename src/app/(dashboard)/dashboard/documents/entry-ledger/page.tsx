@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getEntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
+import { listAvailableBridleNumbers } from '@/modules/shows/data/bridle-number-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { EntryLedgerScreen } from '@/modules/shows/ui/filing-cabinet/entry-ledger-screen';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
@@ -15,7 +16,12 @@ export default async function EntryLedgerPage({
   const { show: requestedShowId } = await searchParams;
   const context = await getOrganizerContext(requestedShowId);
 
-  const data = context.currentShow ? await getEntryLedgerPageData(context.currentShow.id) : null;
+  const [data, availableBridleNumbers] = context.currentShow
+    ? await Promise.all([
+        getEntryLedgerPageData(context.currentShow.id),
+        listAvailableBridleNumbers(context.currentShow.id),
+      ])
+    : [null, []];
 
   return (
     <FilingCabinetShell
@@ -25,7 +31,11 @@ export default async function EntryLedgerPage({
       currentShow={context.currentShow}
     >
       {data ? (
-        <EntryLedgerScreen data={data} />
+        <EntryLedgerScreen
+          data={data}
+          publicId={context.currentShow?.slug ?? context.currentShow?.id}
+          availableBridleNumbers={availableBridleNumbers}
+        />
       ) : (
         <EmptyPanel title="Show not found" note="This show may have been removed." />
       )}

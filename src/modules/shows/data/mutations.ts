@@ -31,6 +31,7 @@ import {
   createTocClassSchema,
   addQualTypePresetSchema,
   updateCatalogItemSchema,
+  updateAddOnSchema,
   createVendorItemSchema,
   updateVendorItemSchema,
   createQualTypeSchema,
@@ -48,6 +49,9 @@ import {
   reorderRideSchema,
   createDocumentUploadUrlSchema,
   registerShowDocumentSchema,
+  createWaiverDocumentUploadUrlSchema,
+  registerWaiverDocumentSchema,
+  removeWaiverDocumentSchema,
 } from '@/modules/shows/schemas';
 import {
   VENDOR_SPACE_TEMPLATE,
@@ -55,8 +59,54 @@ import {
   SHOWS_PATH,
   SCHEDULE_PATH,
   SHOW_DOCS_BUCKET,
+  arenaLabelForRing,
 } from '@/modules/shows/constants';
 import { formatDateShort } from '@/shared/lib/format/date';
+import { slugify } from '@/modules/shows/utils/slugify';
+
+type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
+
+// Auto-generated at creation, never regenerated on rename (a show keeps
+// its URL once created — don't break a link an organizer already shared).
+// Collisions are rare (duplicate show names aren't common) but shows.name
+// has no uniqueness constraint at all, so this guards against it rather
+// than assuming it away.
+async function generateUniqueShowSlug(supabase: SupabaseClient, name: string): Promise<string> {
+  const base = slugify(name);
+  let candidate = base;
+  for (let suffix = 2; suffix < 50; suffix++) {
+    const { data, error } = await supabase
+      .from('shows')
+      .select('id')
+      .eq('slug', candidate)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return candidate;
+    candidate = `${base}-${String(suffix)}`;
+  }
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+// A class's arena is never typed in directly — it always mirrors the size
+// configured for whichever ring/location it's assigned to (Venue screen),
+// so every screen that reads class.arena (rider schedule, tickets,
+// operations' ring display) shows real, meaningful info instead of
+// whatever an organizer happened to type once.
+async function resolveArenaForLocation(
+  supabase: SupabaseClient,
+  showId: string,
+  location: string | null,
+): Promise<string | null> {
+  if (!location) return null;
+  const { data, error } = await supabase
+    .from('shows')
+    .select('locations')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const rings = (data?.locations ?? []) as unknown as { name: string; size: string }[];
+  return arenaLabelForRing(location, rings);
+}
 
 async function resolveOrgId(): Promise<string> {
   const profile = await getStaffProfile();
@@ -72,7 +122,7 @@ async function resolveOrgId(): Promise<string> {
   );
 }
 
-export async function createShow(input: unknown): Promise<{ id: string }> {
+export async function createShow(input: unknown): Promise<{ id: string; slug: string }> {
   const parsed = parseInput(createShowSchema, input);
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
@@ -84,10 +134,13 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
       ? formatDateShort(parsed.startDate)
       : `${formatDateShort(parsed.startDate)} – ${formatDateShort(parsed.endDate)}`);
 
+  const slug = await generateUniqueShowSlug(supabase, parsed.name);
+
   const { error } = await supabase.from('shows').insert({
     id,
     org_id: orgId,
     name: parsed.name,
+    slug,
     venue_name: parsed.venueName ?? null,
     start_date: parsed.startDate,
     end_date: parsed.endDate,
@@ -106,18 +159,20 @@ export async function createShow(input: unknown): Promise<{ id: string }> {
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
-  return { id };
+  return { id, slug };
 }
 
-export async function createDraftShow(): Promise<{ id: string }> {
+export async function createDraftShow(): Promise<{ id: string; slug: string }> {
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
   const id = crypto.randomUUID();
+  const slug = await generateUniqueShowSlug(supabase, 'New Show');
 
   const { error } = await supabase.from('shows').insert({
     id,
     org_id: orgId,
     name: 'New Show',
+    slug,
     published: false,
     status: 'yellow',
   });
@@ -126,7 +181,7 @@ export async function createDraftShow(): Promise<{ id: string }> {
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
-  return { id };
+  return { id, slug };
 }
 
 export async function createClass(input: unknown): Promise<void> {
@@ -576,6 +631,128 @@ export async function approveWaiver(showId: string, waiverText: string): Promise
   revalidatePath(`/dashboard/shows/${showId}`);
 }
 
+export async function createWaiverDocumentUploadUrl(
+  input: unknown,
+): Promise<{ path: string; token: string }> {
+  const parsed = parseInput(createWaiverDocumentUploadUrlSchema, input);
+  const supabase = await createServerClient();
+
+  const safeName = parsed.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${parsed.showId}/waiver-${crypto.randomUUID()}-${safeName}`;
+
+  const { data, error } = await supabase.storage.from(SHOW_DOCS_BUCKET).createSignedUploadUrl(path);
+  if (error) throw new Error(error.message);
+
+  return { path: data.path, token: data.token };
+}
+
+/* pdf-parse/mammoth are dynamically imported here rather than at module
+ * top-level. This file is a 'use server' actions module imported by hooks
+ * across most of the organizer dashboard (stables, schedule, catalog,
+ * setup, ...), so a static import bundled pdfjs-dist's module-eval-time
+ * canvas/DOMMatrix polyfilling into a shared server chunk loaded on nearly
+ * every request — including ones with nothing to do with waivers — and it
+ * crashed outright in the Vercel serverless runtime, which doesn't have
+ * @napi-rs/canvas's native binary available. Loading it lazily, only when a
+ * waiver document is actually being uploaded, keeps that fragile code out
+ * of every other route's module graph entirely. */
+async function extractPdfText(bytes: ArrayBuffer): Promise<string | null> {
+  const { PDFParse } = await import('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(bytes) });
+  try {
+    const result = await parser.getText();
+    return result.text.trim();
+  } finally {
+    await parser.destroy();
+  }
+}
+
+async function extractDocxText(bytes: ArrayBuffer): Promise<string | null> {
+  const { extractRawText } = await import('mammoth');
+  const result = await extractRawText({ buffer: Buffer.from(bytes) });
+  return result.value.trim();
+}
+
+/* PDF, Word (.docx), and plain text only — an image would need OCR, out of
+ * scope. A parse failure (encrypted/corrupt PDF, a scanned document with no
+ * text layer, an unsupported extension) degrades to no extracted text
+ * rather than failing the upload — the file still attaches and the
+ * organizer can type the waiver text themselves. */
+async function extractDocumentText(bytes: ArrayBuffer, name: string): Promise<string | null> {
+  const lower = name.toLowerCase();
+  try {
+    let text: string | null = null;
+    if (lower.endsWith('.pdf')) text = await extractPdfText(bytes);
+    else if (lower.endsWith('.docx')) text = await extractDocxText(bytes);
+    else if (lower.endsWith('.txt')) text = new TextDecoder().decode(bytes).trim();
+
+    return text && text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function registerWaiverDocument(
+  input: unknown,
+): Promise<{ extractedText: string | null }> {
+  const parsed = parseInput(registerWaiverDocumentSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: existing } = await supabase
+    .from('shows')
+    .select('waiver_document_path')
+    .eq('id', parsed.showId)
+    .single();
+
+  const { data: downloaded, error: downloadError } = await supabase.storage
+    .from(SHOW_DOCS_BUCKET)
+    .download(parsed.path);
+  const extractedText = downloadError
+    ? null
+    : await extractDocumentText(await downloaded.arrayBuffer(), parsed.name);
+
+  const { error } = await supabase
+    .from('shows')
+    .update({
+      waiver_document_path: parsed.path,
+      waiver_document_name: parsed.name,
+      ...(extractedText !== null ? { waiver_text: extractedText } : {}),
+    })
+    .eq('id', parsed.showId);
+  if (error) throw new Error(error.message);
+
+  if (existing?.waiver_document_path) {
+    await supabase.storage.from(SHOW_DOCS_BUCKET).remove([existing.waiver_document_path]);
+  }
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}`);
+  return { extractedText };
+}
+
+export async function removeWaiverDocument(input: unknown): Promise<void> {
+  const parsed = parseInput(removeWaiverDocumentSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from('shows')
+    .select('waiver_document_path')
+    .eq('id', parsed.showId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const { error } = await supabase
+    .from('shows')
+    .update({ waiver_document_path: null, waiver_document_name: null })
+    .eq('id', parsed.showId);
+  if (error) throw new Error(error.message);
+
+  if (existing.waiver_document_path) {
+    await supabase.storage.from(SHOW_DOCS_BUCKET).remove([existing.waiver_document_path]);
+  }
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}`);
+}
+
 export async function updateTicketWindow(input: unknown): Promise<void> {
   const parsed = parseInput(updateTicketWindowSchema, input);
   const supabase = await createServerClient();
@@ -604,13 +781,17 @@ export async function addCatalogGroup(input: unknown): Promise<{ added: number }
       ? `${parsed.group} — ${test} — ${parsed.division}`
       : `${parsed.group} — ${test}`;
 
+  const location = parsed.location || null;
+  const arena = await resolveArenaForLocation(supabase, parsed.showId, location);
+
   const rows = parsed.tests.map((test) => ({
     show_id: parsed.showId,
     label: label(test),
     event: parsed.category,
     group_name: parsed.group,
     division,
-    location: parsed.location || null,
+    location,
+    arena,
     fee: parsed.fee,
 
     award_scope: 'group' as const,
@@ -648,9 +829,12 @@ export async function updateGroupLocation(input: unknown): Promise<void> {
   const parsed = parseInput(updateGroupLocationSchema, input);
   const supabase = await createServerClient();
 
+  const location = parsed.location || null;
+  const arena = await resolveArenaForLocation(supabase, parsed.showId, location);
+
   const { error } = await supabase
     .from('classes')
-    .update({ location: parsed.location || null })
+    .update({ location, arena })
     .eq('show_id', parsed.showId)
     .eq('division', parsed.group);
   if (error) throw new Error(error.message);
@@ -731,12 +915,17 @@ export async function addQualTypePreset(input: unknown): Promise<void> {
 }
 
 export async function updateAddOn(input: unknown): Promise<void> {
-  const parsed = parseInput(updateCatalogItemSchema, input);
+  const parsed = parseInput(updateAddOnSchema, input);
   const supabase = await createServerClient();
 
   const { data, error } = await supabase
     .from('add_ons')
-    .update({ name: parsed.name, price: parsed.price })
+    .update({
+      name: parsed.name,
+      price: parsed.price,
+      stalls: parsed.stalls,
+      tack: parsed.tack,
+    })
     .eq('id', parsed.id)
     .select('show_id')
     .single();
@@ -976,7 +1165,12 @@ export async function updateClassReview(input: unknown): Promise<void> {
   const supabase = await createServerClient();
 
   const patch = {
-    ...(parsed.arena !== undefined ? { arena: parsed.arena } : {}),
+    ...(parsed.location !== undefined
+      ? {
+          location: parsed.location,
+          arena: await resolveArenaForLocation(supabase, parsed.showId, parsed.location),
+        }
+      : {}),
     ...(parsed.judgesCount !== undefined ? { judges_count: parsed.judgesCount } : {}),
     ...(parsed.fee !== undefined ? { fee: parsed.fee } : {}),
     ...(parsed.sponsor !== undefined ? { sponsor: parsed.sponsor } : {}),
@@ -1162,7 +1356,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
 
   const { data: template, error: templateError } = await supabase
     .from('test_templates')
-    .select('name, movements, collectives, sections')
+    .select('name, movements, collectives, sections, version_year')
     .eq('id', parsed.templateId)
     .single();
   if (templateError) throw new Error(templateError.message);
@@ -1171,6 +1365,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
     {
       class_id: parsed.classId,
       name: template.name,
+      edition: template.version_year,
       movements: template.movements,
       collectives: template.collectives,
       sections: template.sections,
@@ -1279,7 +1474,7 @@ export async function setClassDuration(input: unknown): Promise<void> {
 
   const { error } = await supabase
     .from('classes')
-    .update({ min_per_ride: parsed.minutes })
+    .update({ min_per_ride: parsed.minutes, schedule_updated_at: new Date().toISOString() })
     .eq('id', parsed.classId);
   if (error) throw new Error(error.message);
 
@@ -1306,7 +1501,7 @@ export async function moveClassToRingDay(input: unknown): Promise<void> {
 
   const { error } = await supabase
     .from('classes')
-    .update({ location: parsed.ring, date })
+    .update({ location: parsed.ring, date, schedule_updated_at: new Date().toISOString() })
     .eq('id', parsed.classId);
   if (error) throw new Error(error.message);
 
@@ -1319,7 +1514,7 @@ export async function scratchEntry(input: unknown): Promise<void> {
 
   const { error } = await supabase
     .from('class_entries')
-    .update({ status: 'scratched' })
+    .update({ status: 'scratched', updated_at: new Date().toISOString() })
     .eq('id', parsed.entryId);
   if (error) throw new Error(error.message);
 
@@ -1341,17 +1536,18 @@ export async function reorderRide(input: unknown): Promise<void> {
   const target = Math.max(0, Math.min(parsed.toIndex, ids.length));
   ids.splice(target, 0, parsed.entryId);
 
+  const now = new Date().toISOString();
   for (const [index, id] of ids.entries()) {
     const { error } = await supabase
       .from('class_entries')
-      .update({ ride_order: 10_000 + index })
+      .update({ ride_order: 10_000 + index, updated_at: now })
       .eq('id', id);
     if (error) throw new Error(error.message);
   }
   for (const [index, id] of ids.entries()) {
     const { error } = await supabase
       .from('class_entries')
-      .update({ ride_order: index + 1 })
+      .update({ ride_order: index + 1, updated_at: now })
       .eq('id', id);
     if (error) throw new Error(error.message);
   }
