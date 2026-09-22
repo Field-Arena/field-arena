@@ -436,6 +436,7 @@ export const PRINT_CENTER_PATH = '/dashboard/documents/print-center';
 
 export const FILING_CABINET_SECTIONS = [
   { key: 'entry-ledger', label: 'Entry Ledger', status: 'active' },
+  { key: 'bridle-numbers', label: 'Bridle Numbers', status: 'active' },
   { key: 'membership-ledger', label: 'Membership Ledger', status: 'active' },
   { key: 'unprocessed', label: 'Unprocessed Documents', status: 'active' },
   { key: 'issues', label: 'Issues / Notes / Requests', status: 'active' },

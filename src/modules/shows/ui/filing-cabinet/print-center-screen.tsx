@@ -11,9 +11,11 @@ import { EntryLedgerPrintView } from '@/modules/shows/ui/filing-cabinet/print/en
 import { NumberCardsPrintView } from '@/modules/shows/ui/filing-cabinet/print/number-cards-print-view';
 import { TestPrintView } from '@/modules/shows/ui/filing-cabinet/print/test-print-view';
 import { RingPacketPrintView } from '@/modules/shows/ui/filing-cabinet/print/ring-packet-print-view';
+import { BackNumberOfficeListPrintView } from '@/modules/shows/ui/filing-cabinet/print/back-number-office-list-print-view';
+import { BackNumberCardsPanel } from '@/modules/shows/ui/filing-cabinet/back-number-cards-panel';
 import { useMarkRingPacketPrinted } from '@/modules/shows/hooks/use-print-center-mutations';
 
-type PrintJob = 'ledger' | 'numberCards' | 'testCopies' | 'ringPacket';
+type PrintJob = 'ledger' | 'numberCards' | 'testCopies' | 'ringPacket' | 'officeNumberList';
 
 export function PrintCenterScreen({
   data,
@@ -24,7 +26,8 @@ export function PrintCenterScreen({
   testPrintData: TestPrintPageData | null;
   ringPacketData: RingPacketPageData | null;
 }) {
-  const { showName, rows } = data;
+  const { showId, showName, rows } = data;
+  const backNumberRows = useMemo(() => rows.filter((r) => r.backNumber !== null), [rows]);
   const [job, setJob] = useState<PrintJob | null>(null);
   const [dayFilter, setDayFilter] = useState('');
   const [ringFilter, setRingFilter] = useState('');
@@ -233,11 +236,29 @@ export function PrintCenterScreen({
         </Card>
       )}
 
+      {backNumberRows.length > 0 && (
+        <Card className="mt-4 p-[18px_20px_20px] print:hidden">
+          <h2 className="mb-3 text-[14px] font-bold">Rider back numbers</h2>
+          <BackNumberCardsPanel showId={showId} rows={backNumberRows} />
+          <GhostButton
+            onClick={() => {
+              runPrint('officeNumberList');
+            }}
+          >
+            <PrinterIcon className="size-4" aria-hidden />
+            Print office list ({backNumberRows.length})
+          </GhostButton>
+        </Card>
+      )}
+
       {job === 'ledger' && <EntryLedgerPrintView showName={showName} rows={rows} />}
       {job === 'numberCards' && <NumberCardsPrintView showName={showName} rows={rows} />}
       {job === 'testCopies' && <TestPrintView showName={showName} rows={filteredTestRows} />}
       {job === 'ringPacket' && (
         <RingPacketPrintView showName={showName} classes={filteredPacketClasses} />
+      )}
+      {job === 'officeNumberList' && (
+        <BackNumberOfficeListPrintView showName={showName} rows={backNumberRows} />
       )}
     </div>
   );

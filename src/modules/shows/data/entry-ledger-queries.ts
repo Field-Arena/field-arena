@@ -33,7 +33,7 @@ export interface EntryLedgerRow {
   showEntryId: string;
   showHorseId: string;
   entryNumber: string;
-  bridleNumber: string;
+  bridleNumber: string | null;
   backNumber: string | null;
   riderName: string;
   riderId: string | null;
@@ -193,7 +193,7 @@ export async function getEntryLedgerPageData(showId: string): Promise<EntryLedge
       showEntryId: entry.id,
       showHorseId: entry.show_horse_id,
       entryNumber: entry.entry_number,
-      bridleNumber: showHorse?.bridle_number ?? '—',
+      bridleNumber: showHorse?.bridle_number ?? null,
       backNumber: entry.back_number,
       riderName: entry.rider_name,
       riderId: entry.rider_id,

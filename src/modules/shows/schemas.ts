@@ -849,13 +849,50 @@ export const updateEntryNumberSchema = z.object({
 
 export type UpdateEntryNumberInput = z.input<typeof updateEntryNumberSchema>;
 
-export const updateBridleNumberSchema = z.object({
+export const createNumberRangeSchema = z
+  .object({
+    showId: z.uuid(),
+    rangeStart: z.coerce.number().int().min(1).max(999999),
+    rangeEnd: z.coerce.number().int().min(1).max(999999),
+    label: optionalText(60),
+  })
+  .refine((d) => d.rangeEnd >= d.rangeStart, {
+    message: 'The end of the range must be at or after the start.',
+    path: ['rangeEnd'],
+  });
+
+export type CreateNumberRangeInput = z.input<typeof createNumberRangeSchema>;
+
+export const deleteNumberRangeSchema = z.object({
   showId: z.uuid(),
-  showHorseId: z.uuid(),
-  bridleNumber: z.string().trim().min(1).max(20),
+  rangeId: z.uuid(),
 });
 
-export type UpdateBridleNumberInput = z.input<typeof updateBridleNumberSchema>;
+export type DeleteNumberRangeInput = z.input<typeof deleteNumberRangeSchema>;
+
+export const markNumberUnavailableSchema = z.object({
+  showId: z.uuid(),
+  number: z.coerce.number().int().min(1).max(999999),
+  reason: optionalText(200),
+});
+
+export type MarkNumberUnavailableInput = z.input<typeof markNumberUnavailableSchema>;
+
+export const restoreNumberAvailabilitySchema = z.object({
+  showId: z.uuid(),
+  number: z.coerce.number().int().min(1).max(999999),
+});
+
+export type RestoreNumberAvailabilityInput = z.input<typeof restoreNumberAvailabilitySchema>;
+
+export const assignBridleNumberSchema = z.object({
+  showId: z.uuid(),
+  showHorseId: z.uuid(),
+  explicitNumber: z.coerce.number().int().min(1).max(999999).optional(),
+  reason: optionalText(200),
+});
+
+export type AssignBridleNumberInput = z.input<typeof assignBridleNumberSchema>;
 
 export const updateBackNumberSchema = z.object({
   showId: z.uuid(),

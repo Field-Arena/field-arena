@@ -56,7 +56,7 @@ export function EntryDetailDialog({
               Entry #{row.entryNumber} — {row.riderName}
             </DialogTitle>
             <DialogDescription>
-              Bridle #{row.bridleNumber}
+              Bridle #{row.bridleNumber ?? '—'}
               {row.backNumber ? ` · Back #${row.backNumber}` : ''} · {row.horseName}
             </DialogDescription>
           </DialogHeader>
