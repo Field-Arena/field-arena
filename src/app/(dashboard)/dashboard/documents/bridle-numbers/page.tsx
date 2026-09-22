@@ -1,14 +1,16 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getEntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
-import { listAvailableBridleNumbers } from '@/modules/shows/data/bridle-number-queries';
+import {
+  getBridleNumberPoolStatus,
+  listAvailableBridleNumbers,
+} from '@/modules/shows/data/bridle-number-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
-import { EntryLedgerScreen } from '@/modules/shows/ui/filing-cabinet/entry-ledger-screen';
+import { BridleNumbersScreen } from '@/modules/shows/ui/filing-cabinet/bridle-numbers-screen';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
-export const metadata: Metadata = { title: 'Entry Ledger — Field & Arena' };
+export const metadata: Metadata = { title: 'Bridle Numbers — Field & Arena' };
 
-export default async function EntryLedgerPage({
+export default async function BridleNumbersPage({
   searchParams,
 }: {
   searchParams: Promise<{ show?: string }>;
@@ -18,24 +20,20 @@ export default async function EntryLedgerPage({
 
   const [data, availableBridleNumbers] = context.currentShow
     ? await Promise.all([
-        getEntryLedgerPageData(context.currentShow.id),
+        getBridleNumberPoolStatus(context.currentShow.id),
         listAvailableBridleNumbers(context.currentShow.id),
       ])
     : [null, []];
 
   return (
     <FilingCabinetShell
-      activeKey="entry-ledger"
+      activeKey="bridle-numbers"
       orgName={context.orgName}
       shows={context.shows}
       currentShow={context.currentShow}
     >
       {data ? (
-        <EntryLedgerScreen
-          data={data}
-          publicId={context.currentShow?.slug ?? context.currentShow?.id}
-          availableBridleNumbers={availableBridleNumbers}
-        />
+        <BridleNumbersScreen data={data} availableBridleNumbers={availableBridleNumbers} />
       ) : (
         <EmptyPanel title="Show not found" note="This show may have been removed." />
       )}

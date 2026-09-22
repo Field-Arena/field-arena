@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       add_ons: {
@@ -96,6 +121,61 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      bridle_number_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_number: string | null
+          old_number: string | null
+          reason: string | null
+          show_horse_id: string
+          show_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_number?: string | null
+          old_number?: string | null
+          reason?: string | null
+          show_horse_id: string
+          show_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_number?: string | null
+          old_number?: string | null
+          reason?: string | null
+          show_horse_id?: string
+          show_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridle_number_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridle_number_changes_show_horse_id_fkey"
+            columns: ["show_horse_id"]
+            isOneToOne: false
+            referencedRelation: "show_horses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bridle_number_changes_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       catalog_documents: {
         Row: {
@@ -1549,6 +1629,61 @@ export type Database = {
         }
         Relationships: []
       }
+      show_bridle_numbers: {
+        Row: {
+          created_at: string
+          id: string
+          number: number
+          show_horse_id: string | null
+          show_id: string
+          source_range_id: string | null
+          status: string
+          unavailable_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          number: number
+          show_horse_id?: string | null
+          show_id: string
+          source_range_id?: string | null
+          status?: string
+          unavailable_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          number?: number
+          show_horse_id?: string | null
+          show_id?: string
+          source_range_id?: string | null
+          status?: string
+          unavailable_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_bridle_numbers_show_horse_id_fkey"
+            columns: ["show_horse_id"]
+            isOneToOne: false
+            referencedRelation: "show_horses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_bridle_numbers_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_bridle_numbers_source_range_id_fkey"
+            columns: ["source_range_id"]
+            isOneToOne: false
+            referencedRelation: "show_number_ranges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       show_entries: {
         Row: {
           back_number: string | null
@@ -1625,7 +1760,7 @@ export type Database = {
       }
       show_horses: {
         Row: {
-          bridle_number: string
+          bridle_number: string | null
           created_at: string
           horse_id: string | null
           horse_name: string
@@ -1633,7 +1768,7 @@ export type Database = {
           show_id: string
         }
         Insert: {
-          bridle_number: string
+          bridle_number?: string | null
           created_at?: string
           horse_id?: string | null
           horse_name: string
@@ -1641,7 +1776,7 @@ export type Database = {
           show_id: string
         }
         Update: {
-          bridle_number?: string
+          bridle_number?: string | null
           created_at?: string
           horse_id?: string | null
           horse_name?: string
@@ -1658,6 +1793,51 @@ export type Database = {
           },
           {
             foreignKeyName: "show_horses_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      show_number_ranges: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          range_end: number
+          range_start: number
+          show_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          range_end: number
+          range_start: number
+          show_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          range_end?: number
+          range_start?: number
+          show_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_number_ranges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "show_number_ranges_show_id_fkey"
             columns: ["show_id"]
             isOneToOne: false
             referencedRelation: "shows"
@@ -2351,6 +2531,15 @@ export type Database = {
     }
     Functions: {
       abandon_stale_orders: { Args: never; Returns: undefined }
+      assign_bridle_number: {
+        Args: {
+          p_explicit_number?: number
+          p_reason?: string
+          p_show_horse_id: string
+          p_show_id: string
+        }
+        Returns: string
+      }
       booking_is_pending: {
         Args: { target_booking_id: string }
         Returns: boolean
@@ -2563,6 +2752,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
