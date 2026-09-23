@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { ShowResultRow } from '@/modules/shows/data/queries';
 import { buildResultsCsv } from '@/modules/shows/utils/build-results-csv';
 import { resultsCsvFilename } from '@/modules/shows/utils/results-csv-filename';
@@ -75,16 +76,32 @@ export function ResultsPanel({
           const pooledClasses = pooled
             ? [...new Set(unitRows.map((r) => r.className))].sort((a, b) => a.localeCompare(b))
             : [];
+          const distinctClasses = [
+            ...new Map(unitRows.map((r) => [r.classId, r.className])).entries(),
+          ];
           return (
             <Card key={unitLabel} className="p-[16px_18px]">
-              <h3 className="text-ink-deep mb-1 font-[Newsreader,serif] text-[17px] font-semibold">
-                {unitLabel}
-                {unitRows[0]?.division ? (
-                  <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
-                    ({unitRows[0].division})
-                  </span>
-                ) : null}
-              </h3>
+              <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h3 className="text-ink-deep font-[Newsreader,serif] text-[17px] font-semibold">
+                  {unitLabel}
+                  {unitRows[0]?.division ? (
+                    <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
+                      ({unitRows[0].division})
+                    </span>
+                  ) : null}
+                </h3>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {distinctClasses.map(([classId, className]) => (
+                    <Link
+                      key={classId}
+                      href={`/dashboard/scoring/${classId}`}
+                      className="text-forest text-[12.5px] font-semibold hover:underline"
+                    >
+                      Score{distinctClasses.length > 1 ? ` ${className}` : ''} →
+                    </Link>
+                  ))}
+                </div>
+              </div>
               {pooled && (
                 <p className="mb-2 text-[12px] text-[#7A8781]">
                   Combined placing across: {pooledClasses.join(', ')}
