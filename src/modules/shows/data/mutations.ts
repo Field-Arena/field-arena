@@ -87,6 +87,30 @@ async function generateUniqueShowSlug(supabase: SupabaseClient, name: string): P
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+// generateUniqueShowSlug only checks-then-the-caller-inserts, so two
+// near-simultaneous creates (a double-click on "+ New Show", or two people
+// on the same org) can both see the same candidate slug free and both try to
+// insert it, tripping shows_slug_unique_idx on the loser. Retrying with a
+// fresh random suffix on exactly that conflict closes the race without
+// needing a lock.
+async function insertShowRetryingSlug(
+  supabase: SupabaseClient,
+  name: string,
+  insertWithSlug: (slug: string) => PromiseLike<{ error: { message: string } | null }>,
+): Promise<string> {
+  let slug = await generateUniqueShowSlug(supabase, name);
+  const base = slugify(name);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { error } = await insertWithSlug(slug);
+    if (!error) return slug;
+    if (attempt === 4 || !error.message.includes('shows_slug_unique_idx')) {
+      throw new Error(error.message);
+    }
+    slug = `${base}-${crypto.randomUUID().slice(0, 6)}`;
+  }
+  throw new Error('Could not generate a unique show URL — please try again.');
+}
+
 // A class's arena is never typed in directly — it always mirrors the size
 // configured for whichever ring/location it's assigned to (Venue screen),
 // so every screen that reads class.arena (rider schedule, tickets,
@@ -134,28 +158,26 @@ export async function createShow(input: unknown): Promise<{ id: string; slug: st
       ? formatDateShort(parsed.startDate)
       : `${formatDateShort(parsed.startDate)} – ${formatDateShort(parsed.endDate)}`);
 
-  const slug = await generateUniqueShowSlug(supabase, parsed.name);
+  const slug = await insertShowRetryingSlug(supabase, parsed.name, (slug) =>
+    supabase.from('shows').insert({
+      id,
+      org_id: orgId,
+      name: parsed.name,
+      slug,
+      venue_name: parsed.venueName ?? null,
+      start_date: parsed.startDate,
+      end_date: parsed.endDate,
+      date_label: dateLabel,
+      disciplines: parsed.disciplines,
+      governing_bodies: parsed.governingBodies,
+      show_type: parsed.showType,
+      timezone: parsed.timezone ?? null,
+      starting_rider_number: parsed.startingRiderNumber,
 
-  const { error } = await supabase.from('shows').insert({
-    id,
-    org_id: orgId,
-    name: parsed.name,
-    slug,
-    venue_name: parsed.venueName ?? null,
-    start_date: parsed.startDate,
-    end_date: parsed.endDate,
-    date_label: dateLabel,
-    disciplines: parsed.disciplines,
-    governing_bodies: parsed.governingBodies,
-    show_type: parsed.showType,
-    timezone: parsed.timezone ?? null,
-    starting_rider_number: parsed.startingRiderNumber,
-
-    published: false,
-    status: 'yellow',
-  });
-
-  if (error) throw new Error(error.message);
+      published: false,
+      status: 'yellow',
+    }),
+  );
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
@@ -166,18 +188,17 @@ export async function createDraftShow(): Promise<{ id: string; slug: string }> {
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
   const id = crypto.randomUUID();
-  const slug = await generateUniqueShowSlug(supabase, 'New Show');
 
-  const { error } = await supabase.from('shows').insert({
-    id,
-    org_id: orgId,
-    name: 'New Show',
-    slug,
-    published: false,
-    status: 'yellow',
-  });
-
-  if (error) throw new Error(error.message);
+  const slug = await insertShowRetryingSlug(supabase, 'New Show', (slug) =>
+    supabase.from('shows').insert({
+      id,
+      org_id: orgId,
+      name: 'New Show',
+      slug,
+      published: false,
+      status: 'yellow',
+    }),
+  );
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
