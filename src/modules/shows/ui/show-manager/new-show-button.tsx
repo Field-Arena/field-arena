@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useCreateDraftShow } from '@/modules/shows/hooks/use-show-mutations';
@@ -12,9 +11,8 @@ export function NewShowButton({ className }: { className?: string }) {
 
   return (
     <>
-      <Button
+      <button
         type="button"
-        variant="ghost"
         disabled={isPending}
         onClick={() => {
           setConfirming(true);
@@ -27,7 +25,7 @@ export function NewShowButton({ className }: { className?: string }) {
         )}
       >
         + New Show
-      </Button>
+      </button>
 
       <ConfirmDialog
         open={confirming}
