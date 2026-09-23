@@ -307,12 +307,14 @@ export function TestBuilderCard({
   templates,
   catalog,
   classes,
+  assignedByTemplateId,
   assignedByTemplateName,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
+  assignedByTemplateId: Record<string, string[]>;
   assignedByTemplateName: Record<string, string[]>;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -1049,7 +1051,7 @@ export function TestBuilderCard({
                 .filter((part): part is string => Boolean(part))
                 .join(' · ');
 
-              const assignedTo = assignedByTemplateName[t.name] ?? [];
+              const assignedTo = assignedByTemplateId[t.id] ?? assignedByTemplateName[t.name] ?? [];
 
               return (
                 <div

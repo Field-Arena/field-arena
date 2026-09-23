@@ -1133,10 +1133,12 @@ export interface TestBuilderPageData {
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
-  /** Class labels currently using each template, keyed by template name.
-   * assignTestTemplateToClass copies the template's fields into class_tests
-   * rather than keeping a live foreign key, so name is the only link back —
-   * good enough for this display-only hint (not used to gate anything). */
+  /** Class labels currently using each template, keyed by template id
+   * (via class_tests.test_template_id). Display-only hint, not used to gate
+   * anything. */
+  assignedByTemplateId: Record<string, string[]>;
+  /** Fallback for class_tests rows assigned before test_template_id existed
+   * (name was the only link back then). Keyed by template name. */
   assignedByTemplateName: Record<string, string[]>;
 }
 
@@ -1160,16 +1162,24 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
 
   const classIds = classesRes.data.map((c) => c.id);
   const classTestsRes = classIds.length
-    ? await supabase.from('class_tests').select('class_id, name').in('class_id', classIds)
+    ? await supabase
+        .from('class_tests')
+        .select('class_id, name, test_template_id')
+        .in('class_id', classIds)
     : { data: [], error: null };
   if (classTestsRes.error) throw classTestsRes.error;
 
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
+  const assignedByTemplateId: Record<string, string[]> = {};
   const assignedByTemplateName: Record<string, string[]> = {};
   for (const row of classTestsRes.data) {
     const label = classLabelById.get(row.class_id);
     if (!label) continue;
-    (assignedByTemplateName[row.name] ??= []).push(label);
+    if (row.test_template_id) {
+      (assignedByTemplateId[row.test_template_id] ??= []).push(label);
+    } else {
+      (assignedByTemplateName[row.name] ??= []).push(label);
+    }
   }
 
   return {
@@ -1179,6 +1189,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     templates,
     catalog,
     classes: classesRes.data,
+    assignedByTemplateId,
     assignedByTemplateName,
   };
 }

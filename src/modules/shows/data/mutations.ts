@@ -1364,6 +1364,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
   const { error } = await supabase.from('class_tests').upsert(
     {
       class_id: parsed.classId,
+      test_template_id: parsed.templateId,
       name: template.name,
       edition: template.version_year,
       movements: template.movements,
