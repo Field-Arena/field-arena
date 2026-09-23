@@ -418,7 +418,19 @@ export function TestBuilderCard({
 
   function duplicate(t: TestTemplateRow) {
     const base = draftFromTemplate(t);
-    save.mutate(buildPayload(orgId, { ...base, id: undefined, name: `${t.name} (copy)` }));
+    const existingNames = new Set(templates.map((x) => x.name));
+    let name = `${t.name} (copy)`;
+    let n = 2;
+    // Repeated duplicates of the same test would otherwise all land on the
+    // exact same name, e.g. "Training Level Test 1 (copy)" — and the
+    // "Currently used by" hint below can only disambiguate assignments made
+    // after this point by name for legacy rows, so colliding names still
+    // muddy that display. A numbered suffix keeps every duplicate unique.
+    while (existingNames.has(name)) {
+      name = `${t.name} (copy ${String(n)})`;
+      n += 1;
+    }
+    save.mutate(buildPayload(orgId, { ...base, id: undefined, name }));
   }
 
   function submitDraft() {
