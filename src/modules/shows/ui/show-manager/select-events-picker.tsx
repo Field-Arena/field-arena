@@ -8,7 +8,7 @@ import { CategoryBlock } from '@/modules/shows/ui/show-manager/category-block';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 
 export function SelectEventsPicker({ data }: { data: SelectEventsData }) {
-  const chosen = new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d));
+  const chosen = new Set(data.classes.map((c) => c.groupName).filter((g): g is string => !!g));
 
   return (
     <Card className={SM_CARD_PAD}>

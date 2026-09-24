@@ -634,6 +634,7 @@ export type Database = {
       }
       divisions: {
         Row: {
+          default_fee: number | null
           id: string
           name: string
           position: number | null
@@ -641,6 +642,7 @@ export type Database = {
           subitems: Json | null
         }
         Insert: {
+          default_fee?: number | null
           id?: string
           name: string
           position?: number | null
@@ -648,6 +650,7 @@ export type Database = {
           subitems?: Json | null
         }
         Update: {
+          default_fee?: number | null
           id?: string
           name?: string
           position?: number | null

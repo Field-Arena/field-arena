@@ -9,10 +9,11 @@ import { cn } from '@/shared/lib/utils';
 import {
   useCreateDivision,
   useRenameDivision,
+  useUpdateDivisionDefaultFee,
   useDeleteDivision,
 } from '@/modules/shows/hooks/use-show-mutations';
 import type { DivisionRow } from '@/modules/shows/data/setup-queries';
-import { DIVISION_PRESETS } from '@/modules/shows/constants';
+import { DIVISION_PRESETS, DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -35,11 +36,12 @@ export function ClassDivisionsCard({
 
   const { mutate: create, isPending: creating } = useCreateDivision({
     onSuccess: (id, name) => {
-      setRows((r) => [...r, { id, name, position: r.length, classCount: 0 }]);
+      setRows((r) => [...r, { id, name, position: r.length, classCount: 0, defaultFee: null }]);
       setNewName('');
     },
   });
   const { mutate: rename } = useRenameDivision();
+  const { mutate: updateDefaultFee } = useUpdateDivisionDefaultFee();
   const { mutate: remove } = useDeleteDivision();
 
   useEffect(() => {
@@ -61,6 +63,13 @@ export function ClassDivisionsCard({
   function commitRename(id: string, name: string) {
     setRows((r) => r.map((d) => (d.id === id ? { ...d, name } : d)));
     rename({ divisionId: id, name });
+  }
+
+  function commitDefaultFee(id: string, raw: string) {
+    const defaultFee = raw.trim() === '' ? null : Number(raw);
+    if (defaultFee !== null && !Number.isFinite(defaultFee)) return;
+    setRows((r) => r.map((d) => (d.id === id ? { ...d, defaultFee } : d)));
+    updateDefaultFee({ divisionId: id, defaultFee });
   }
 
   function commitRemove(id: string) {
@@ -86,17 +95,37 @@ export function ClassDivisionsCard({
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Class divisions</h2>
       <p className={SM_NOTE}>
-        The subcategories offered under every test. Rename, remove, or add your own.
+        The subcategories offered under every test. Rename, remove, or add your own. Set a default
+        price per division — new classes under it start at that price instead of the show default.
       </p>
 
+      <div className="mb-1.5 grid grid-cols-[minmax(0,1fr)_110px_auto] items-center gap-3.5 px-0.5">
+        <span />
+        <span className="text-[11px] font-semibold text-[#98A29D]">Default price</span>
+        <span />
+      </div>
       <div className="mb-4 flex flex-col gap-2">
         {rows.map((d) => (
-          <div key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3.5">
+          <div
+            key={d.id}
+            className="grid grid-cols-[minmax(0,1fr)_110px_auto] items-center gap-3.5"
+          >
             <Input
               value={d.name}
               className={cn('h-auto', SM_ROW_INPUT)}
               onChange={(e) => {
                 commitRename(d.id, e.target.value);
+              }}
+            />
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder={`$${String(DEFAULT_CLASS_FEE)}`}
+              value={d.defaultFee ?? ''}
+              className={cn('h-auto', SM_ROW_INPUT)}
+              onChange={(e) => {
+                commitDefaultFee(d.id, e.target.value);
               }}
             />
             <Button

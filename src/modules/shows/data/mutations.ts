@@ -21,12 +21,14 @@ import {
   updateContactSchema,
   updatePrizeListSchema,
   renameDivisionSchema,
+  updateDivisionDefaultFeeSchema,
   updateDocumentRequirementsSchema,
   updateMerchandiseSchema,
   saveWaiverTextSchema,
   updateTicketWindowSchema,
   addCatalogGroupSchema,
   updateGroupLocationSchema,
+  updateGroupDivisionSchema,
   addCustomClassSchema,
   createTocClassSchema,
   addQualTypePresetSchema,
@@ -285,6 +287,28 @@ export async function renameDivision(input: unknown): Promise<void> {
   }
 
   revalidatePath(`/dashboard/shows/${division.show_id}`);
+}
+
+export async function updateDivisionDefaultFee(input: unknown): Promise<void> {
+  const parsed = parseInput(updateDivisionDefaultFeeSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: division, error: readError } = await supabase
+    .from('divisions')
+    .select('show_id')
+    .eq('id', parsed.divisionId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const { error } = await supabase
+    .from('divisions')
+    .update({ default_fee: parsed.defaultFee })
+    .eq('id', parsed.divisionId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/shows/${division.show_id}`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/select-events`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/test-builder`);
 }
 
 export async function deleteDivision(divisionId: string): Promise<void> {
@@ -839,7 +863,7 @@ export async function removeCatalogGroup(input: unknown): Promise<void> {
     .from('classes')
     .delete()
     .eq('show_id', parsed.showId)
-    .eq('division', parsed.group);
+    .eq('group_name', parsed.group);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
@@ -858,11 +882,28 @@ export async function updateGroupLocation(input: unknown): Promise<void> {
     .from('classes')
     .update({ location, arena })
     .eq('show_id', parsed.showId)
-    .eq('division', parsed.group);
+    .eq('group_name', parsed.group);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(SCHEDULE_PATH);
+}
+
+export async function updateGroupDivision(input: unknown): Promise<void> {
+  const parsed = parseInput(updateGroupDivisionSchema, input);
+  const supabase = await createServerClient();
+
+  const division = parsed.division || null;
+
+  const { error } = await supabase
+    .from('classes')
+    .update({ division })
+    .eq('show_id', parsed.showId)
+    .eq('group_name', parsed.group);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
+  revalidatePath(`/dashboard/shows/${parsed.showId}/test-builder`);
 }
 
 export async function addCustomClass(input: unknown): Promise<void> {

@@ -38,9 +38,6 @@ export function CustomClassDialog({
   const [sponsor, setSponsor] = useState('');
 
   const add = useAddCustomClass({ onSuccess: onClose });
-  const divisions = [
-    ...new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d)),
-  ];
 
   return (
     <Dialog
@@ -83,12 +80,14 @@ export function CustomClassDialog({
               value={division}
               onChange={(e) => {
                 setDivision(e.target.value);
+                const picked = data.divisions.find((d) => d.name === e.target.value);
+                if (picked?.defaultFee != null) setFee(String(picked.defaultFee));
               }}
             >
               <option value="">—</option>
-              {divisions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
+              {data.divisions.map((d) => (
+                <option key={d.id} value={d.name}>
+                  {d.name}
                 </option>
               ))}
             </select>

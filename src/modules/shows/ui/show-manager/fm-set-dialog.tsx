@@ -13,12 +13,7 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
-import {
-  CATALOG_DIVISIONS,
-  DEFAULT_CLASS_FEE,
-  FM_SETS,
-  type FmSetName,
-} from '@/modules/shows/constants';
+import { DEFAULT_CLASS_FEE, FM_SETS, type FmSetName } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
 import { useAddCatalogGroup } from '@/modules/shows/hooks/use-select-events-mutations';
 import { SM_GREEN_BTN, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
@@ -37,10 +32,11 @@ export function FmSetDialog({
   onClose: () => void;
 }) {
   const levels = FM_SETS[setName];
+  const divisionNames = data.divisions.map((d) => d.name);
   const allKeys = () =>
     new Set(
       levels.flatMap((lv) =>
-        lv.tests.flatMap((test) => CATALOG_DIVISIONS.map((d) => catalogKey(lv.name, test, d))),
+        lv.tests.flatMap((test) => divisionNames.map((d) => catalogKey(lv.name, test, d))),
       ),
     );
   const [picked, setPicked] = useState<Set<string>>(allKeys);
@@ -65,7 +61,7 @@ export function FmSetDialog({
     setPicked((prev) => {
       const next = new Set(prev);
       for (const test of level.tests) {
-        for (const division of CATALOG_DIVISIONS) {
+        for (const division of divisionNames) {
           const key = catalogKey(level.name, test, division);
           if (checked) next.add(key);
           else next.delete(key);
@@ -77,7 +73,7 @@ export function FmSetDialog({
 
   async function save() {
     const calls = levels.flatMap((level) =>
-      CATALOG_DIVISIONS.map((division) => ({
+      divisionNames.map((division) => ({
         level,
         division,
         tests: level.tests.filter((test) => picked.has(catalogKey(level.name, test, division))),
@@ -91,6 +87,7 @@ export function FmSetDialog({
     setSaving(true);
     try {
       for (const { level, division, tests } of calls) {
+        const fee = data.divisions.find((d) => d.name === division)?.defaultFee ?? DEFAULT_CLASS_FEE;
         await add
           .mutateAsync({
             showId: data.showId,
@@ -98,7 +95,7 @@ export function FmSetDialog({
             group: level.name,
             division,
             tests,
-            fee: DEFAULT_CLASS_FEE,
+            fee,
             location: '',
           })
           .catch(() => undefined);
@@ -128,6 +125,11 @@ export function FmSetDialog({
           <p className="py-4 text-[13.5px] text-[#7A8781]">
             No organization has built an Independent test yet.
           </p>
+        ) : divisionNames.length === 0 ? (
+          <p className="py-4 text-[13.5px] text-[#7A8781]">
+            Set up your Class Divisions on the Setup tab first, then come back here to assign
+            classes to them.
+          </p>
         ) : (
           <>
             <div className="mb-2 flex gap-2">
@@ -156,7 +158,7 @@ export function FmSetDialog({
             <div className="flex flex-col gap-2">
               {levels.map((level) => {
                 const levelKeys = level.tests.flatMap((test) =>
-                  CATALOG_DIVISIONS.map((d) => catalogKey(level.name, test, d)),
+                  divisionNames.map((d) => catalogKey(level.name, test, d)),
                 );
                 const allChecked = levelKeys.every((k) => picked.has(k));
 
@@ -187,7 +189,7 @@ export function FmSetDialog({
                         >
                           <div className="text-ink-deep mb-1 text-[13px] font-semibold">{test}</div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                            {CATALOG_DIVISIONS.map((division) => {
+                            {divisionNames.map((division) => {
                               const key = catalogKey(level.name, test, division);
                               return (
                                 <Label

@@ -11,6 +11,7 @@ import {
   useAddCatalogGroup,
   useRemoveCatalogGroup,
   useUpdateGroupLocation,
+  useUpdateGroupDivision,
 } from '@/modules/shows/hooks/use-select-events-mutations';
 import { SM_SELECT } from '@/modules/shows/ui/show-manager/tokens';
 
@@ -32,19 +33,33 @@ export function GroupRow({
   const [expanded, setExpanded] = useState(false);
 
   const [location, setLocation] = useState(
-    data.classes.find((c) => c.division === group)?.location ?? '',
+    data.classes.find((c) => c.groupName === group)?.location ?? '',
+  );
+  const [division, setDivision] = useState(
+    data.classes.find((c) => c.groupName === group)?.division ?? '',
   );
 
   const add = useAddCatalogGroup();
   const remove = useRemoveCatalogGroup();
   const updateLocation = useUpdateGroupLocation();
+  const updateDivision = useUpdateGroupDivision();
   const pending = add.isPending || remove.isPending;
+
+  const pickedDivisionFee = data.divisions.find((d) => d.name === division)?.defaultFee;
 
   function toggle() {
     if (selected) {
       remove.mutate({ showId: data.showId, group });
     } else {
-      add.mutate({ showId: data.showId, category, group, tests: [...tests], fee, location });
+      add.mutate({
+        showId: data.showId,
+        category,
+        group,
+        division: division || undefined,
+        tests: [...tests],
+        fee: pickedDivisionFee ?? fee,
+        location,
+      });
     }
   }
 
@@ -83,6 +98,24 @@ export function GroupRow({
           <span className="text-ink-deep truncate text-[13.5px] font-semibold">{group}</span>
           {pending && <Loader2Icon className="size-3.5 flex-none animate-spin" aria-hidden />}
         </Label>
+
+        <select
+          value={division}
+          onChange={(e) => {
+            const next = e.target.value;
+            setDivision(next);
+            if (selected) updateDivision.mutate({ showId: data.showId, group, division: next });
+          }}
+          aria-label={`Division for ${group}`}
+          className={cn(SM_SELECT, 'w-auto min-w-[140px] flex-none py-2 text-[13px]')}
+        >
+          <option value="">No division set</option>
+          {data.divisions.map((d) => (
+            <option key={d.id} value={d.name}>
+              {d.name}
+            </option>
+          ))}
+        </select>
 
         <select
           value={location}

@@ -12,6 +12,7 @@ import {
   createClass,
   createDivision,
   renameDivision,
+  updateDivisionDefaultFee,
   deleteDivision,
   createAddOn,
   setShowPublished,
@@ -36,6 +37,7 @@ import type {
   CreateClassInput,
   CreateDivisionInput,
   RenameDivisionInput,
+  UpdateDivisionDefaultFeeInput,
   CreateAddOnInput,
   UpdateShowDetailsInput,
   UpdateShowLocationsInput,
@@ -100,6 +102,18 @@ export function useRenameDivision(options?: { onSuccess?: () => void }) {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not rename the division'));
+    },
+  });
+}
+
+export function useUpdateDivisionDefaultFee(options?: { onSuccess?: () => void }) {
+  return useMutation({
+    mutationFn: (input: UpdateDivisionDefaultFeeInput) => updateDivisionDefaultFee(input),
+    onSuccess: () => {
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not save the default price'));
     },
   });
 }

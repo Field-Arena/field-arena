@@ -156,8 +156,6 @@ export const FM_SETS = {
 
 export type FmSetName = keyof typeof FM_SETS;
 
-export const CATALOG_DIVISIONS = ['Junior Rider', 'Adult Amateur', 'Open'] as const;
-
 // Standard division names organizers reach for most often, offered as
 // one-click presets on the Class Divisions card. Not exhaustive or
 // enforced — the free-text input next to them still adds anything else.

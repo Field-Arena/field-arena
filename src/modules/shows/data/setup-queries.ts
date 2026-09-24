@@ -111,13 +111,18 @@ export interface DivisionRow {
   name: string;
   position: number;
   classCount: number;
+  defaultFee: number | null;
 }
 
 export async function listDivisions(showId: string): Promise<DivisionRow[]> {
   const supabase = await createServerClient();
 
   const [divisions, classes] = await Promise.all([
-    supabase.from('divisions').select('id, name, position').eq('show_id', showId).order('position'),
+    supabase
+      .from('divisions')
+      .select('id, name, position, default_fee')
+      .eq('show_id', showId)
+      .order('position'),
     supabase.from('classes').select('division').eq('show_id', showId),
   ]);
   if (divisions.error) throw divisions.error;
@@ -133,6 +138,7 @@ export async function listDivisions(showId: string): Promise<DivisionRow[]> {
     name: d.name,
     position: d.position ?? 0,
     classCount: counts.get(d.name) ?? 0,
+    defaultFee: d.default_fee,
   }));
 }
 
@@ -676,16 +682,24 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   };
 }
 
+export interface SelectEventsDivisionOption {
+  id: string;
+  name: string;
+  defaultFee: number | null;
+}
+
 export interface SelectEventsData {
   showId: string;
   showName: string;
 
   ringNames: string[];
+  divisions: SelectEventsDivisionOption[];
 
   classes: {
     id: string;
     label: string;
     division: string | null;
+    groupName: string | null;
     fee: number;
     location: string | null;
   }[];
@@ -725,17 +739,23 @@ export async function getTicketWindowData(showId: string): Promise<TicketWindowD
 export async function getSelectEventsData(showId: string): Promise<SelectEventsData | null> {
   const supabase = await createServerClient();
 
-  const [show, classes] = await Promise.all([
+  const [show, classes, divisions] = await Promise.all([
     supabase.from('shows').select('id, name, locations').eq('id', showId).maybeSingle(),
     supabase
       .from('classes')
-      .select('id, label, division, fee, location')
+      .select('id, label, division, group_name, fee, location')
       .eq('show_id', showId)
       .order('label'),
+    supabase
+      .from('divisions')
+      .select('id, name, default_fee')
+      .eq('show_id', showId)
+      .order('position'),
   ]);
   if (show.error) throw show.error;
   if (!show.data) return null;
   if (classes.error) throw classes.error;
+  if (divisions.error) throw divisions.error;
 
   const rings = (show.data.locations ?? []) as unknown as RingRow[];
 
@@ -743,10 +763,12 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
     showId: show.data.id,
     showName: show.data.name,
     ringNames: rings.map((r) => r.name).filter((n): n is string => !!n),
+    divisions: divisions.data.map((d) => ({ id: d.id, name: d.name, defaultFee: d.default_fee })),
     classes: classes.data.map((c) => ({
       id: c.id,
       label: c.label,
       division: c.division,
+      groupName: c.group_name,
       fee: c.fee ?? 0,
       location: c.location,
     })),
@@ -1082,6 +1104,15 @@ export interface TestBuilderClassOption {
   label: string;
 }
 
+export interface SelectedClassOption {
+  id: string;
+  label: string;
+  division: string | null;
+  fee: number;
+  location: string | null;
+  hasTest: boolean;
+}
+
 /* The official test library (scoring_catalog, family='movement') — USEF/USDF
  * published tests an organizer can clone into their own editable library.
  * Distinct from `test_templates` (an org's own custom tests, see above). */
@@ -1158,6 +1189,10 @@ export interface TestBuilderPageData {
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
+  /** Every class on this show with its division/fee/location and whether it
+   * already has a test assigned -- moved here from Select Events so an
+   * organizer can see exactly which classes still need a test typed in. */
+  selectedClasses: SelectedClassOption[];
   /** Classes currently using each template, keyed by template id (via
    * class_tests.test_template_id). Carries classId so a class can be
    * unassigned directly, not just overwritten by assigning a different
@@ -1182,7 +1217,11 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   const [templates, catalog, classesRes] = await Promise.all([
     listTestTemplates(show.data.org_id),
     listTestCatalog(),
-    supabase.from('classes').select('id, label').eq('show_id', showId).order('label'),
+    supabase
+      .from('classes')
+      .select('id, label, division, fee, location')
+      .eq('show_id', showId)
+      .order('label'),
   ]);
   if (classesRes.error) throw classesRes.error;
 
@@ -1195,6 +1234,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     : { data: [], error: null };
   if (classTestsRes.error) throw classTestsRes.error;
 
+  const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
   const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
   const assignedByTemplateName: Record<string, AssignedClassOption[]> = {};
@@ -1215,7 +1255,15 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     orgId: show.data.org_id,
     templates,
     catalog,
-    classes: classesRes.data,
+    classes: classesRes.data.map((c) => ({ id: c.id, label: c.label })),
+    selectedClasses: classesRes.data.map((c) => ({
+      id: c.id,
+      label: c.label,
+      division: c.division,
+      fee: c.fee ?? 0,
+      location: c.location,
+      hasTest: classIdsWithTest.has(c.id),
+    })),
     assignedByTemplateId,
     assignedByTemplateName,
   };

@@ -11,6 +11,7 @@ import {
   createTocClass,
   removeCatalogGroup,
   updateGroupLocation,
+  updateGroupDivision,
   updateTicketWindow,
 } from '@/modules/shows/data/mutations';
 import type {
@@ -19,6 +20,7 @@ import type {
   AddQualTypePresetInput,
   CreateTocClassInput,
   UpdateGroupLocationInput,
+  UpdateGroupDivisionInput,
   UpdateTicketWindowInput,
 } from '@/modules/shows/schemas';
 
@@ -84,6 +86,21 @@ export function useUpdateGroupLocation() {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not save this location'));
+    },
+  });
+}
+
+export function useUpdateGroupDivision() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: UpdateGroupDivisionInput) => updateGroupDivision(input),
+    onSuccess: () => {
+      toast.success('Division saved');
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not save this division'));
     },
   });
 }

@@ -33,9 +33,6 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const create = useCreateTocClass({ onSuccess: onClose });
-  const divisions = [
-    ...new Set(data.classes.map((c) => c.division).filter((d): d is string => !!d)),
-  ];
 
   const options = FM_SETS['+ USEF/USDF'].flatMap((lv) =>
     lv.tests.map((test) => `${lv.name} — ${test}`),
@@ -84,12 +81,14 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
                 value={division}
                 onChange={(e) => {
                   setDivision(e.target.value);
+                  const picked = data.divisions.find((d) => d.name === e.target.value);
+                  if (picked?.defaultFee != null) setFee(String(picked.defaultFee));
                 }}
               >
                 <option value="">—</option>
-                {divisions.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
+                {data.divisions.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name}
                   </option>
                 ))}
               </select>
