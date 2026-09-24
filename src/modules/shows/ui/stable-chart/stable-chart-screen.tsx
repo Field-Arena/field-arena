@@ -33,14 +33,18 @@ import { StableConfigRow } from '@/modules/shows/ui/stable-chart/stable-config-r
 import { StableDropCard } from '@/modules/shows/ui/stable-chart/stable-drop-card';
 import { StableChartPrintView } from '@/modules/shows/ui/stable-chart/stable-chart-print-view';
 import { StablingGroupsSidebar } from '@/modules/shows/ui/stable-chart/stabling-groups-sidebar';
+import { ArrivalsDeparturesPanel } from '@/modules/shows/ui/stable-chart/arrivals-departures-panel';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
+import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departures-queries';
 
 export function StableChartScreen({
   data,
+  arrivals,
   publicId,
 }: {
   data: StableChartPageData;
+  arrivals: ArrivalDepartureRow[];
   publicId?: string;
 }) {
   const { showId, showName, chart, savedLocations, groups } = data;
@@ -267,6 +271,8 @@ export function StableChartScreen({
             );
           })}
       </DndContext>
+
+      <ArrivalsDeparturesPanel rows={arrivals} />
 
       <StableChartPrintView showName={showName} chart={chart} />
 
