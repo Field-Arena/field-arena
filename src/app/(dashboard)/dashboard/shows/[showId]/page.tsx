@@ -42,7 +42,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
   }
 
   const [venues, divisions, context, vitals, staff, classes] = await Promise.all([
-    listSharedVenues(),
+    listSharedVenues(show.orgId),
     listDivisions(show.id),
     getOrganizerContext(show.id),
     getShowManagerVitals(show.id),

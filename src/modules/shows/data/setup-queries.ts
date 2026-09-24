@@ -478,10 +478,32 @@ export interface VenueOption {
 // exclusive to whoever created it (see 20260924120000_shared_venues.sql).
 // Show Setup's "Add stables from a saved location" picker uses this to let
 // an organizer reuse a venue another org already set up.
-export async function listSharedVenues(): Promise<VenueOption[]> {
+/* Venues are shared across every organization (see
+ * 20260924120000_shared_venues.sql), but that must not surface venues that
+ * belong to a soft-deleted org (dangling data with no real owner left to
+ * maintain it) or another org's demo data (Field-Arena's own seed/
+ * walkthrough venues -- never a real, usable venue for an actual client
+ * picking one for their show). The viewer's own org is always included
+ * even if it happens to be a demo org itself (e.g. the internal demo
+ * walkthrough account), so this never hides an organizer's own venues from
+ * them -- it only filters OTHER orgs' demo clutter out of the shared list. */
+export async function listSharedVenues(viewerOrgId: string): Promise<VenueOption[]> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase.from('venues').select('id, name, rings').order('name');
+  const { data: orgs, error: orgsError } = await supabase
+    .from('organizations')
+    .select('id')
+    .is('deleted_at', null)
+    .or(`is_demo.eq.false,id.eq.${viewerOrgId}`);
+  if (orgsError) throw orgsError;
+  const orgIds = orgs.map((o) => o.id);
+  if (orgIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('venues')
+    .select('id, name, rings')
+    .in('org_id', orgIds)
+    .order('name');
   if (error) throw error;
 
   return data.map((v) => ({
