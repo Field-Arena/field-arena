@@ -81,9 +81,11 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
                     defaultValue={f.value}
                     className={cn('h-auto', SM_ROW_INPUT, 'w-[76px] text-right')}
                     onBlur={(e) => {
+                      const next = Number(e.target.value);
+                      if (next === f.value) return;
                       save.mutate({
                         showId: data.showId,
-                        [f.key]: Number(e.target.value),
+                        [f.key]: next,
                       });
                     }}
                   />

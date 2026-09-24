@@ -43,6 +43,12 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
   const { mutate: remove } = useRemoveClass();
 
   function commit(id: string, patch: Partial<(typeof rows)[number]>) {
+    const current = rows.find((r) => r.id === id);
+    if (!current) return;
+    const unchanged = (Object.keys(patch) as (keyof typeof patch)[]).every(
+      (key) => patch[key] === current[key],
+    );
+    if (unchanged) return;
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
     update({ classId: id, showId: data.showId, ...patch });
   }

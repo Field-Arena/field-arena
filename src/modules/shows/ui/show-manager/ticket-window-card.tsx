@@ -43,7 +43,7 @@ export function TicketWindowCard({ data }: { data: TicketWindowData }) {
       value: open,
       onChange: setOpen,
       onSave: () => {
-        save({ ticketOpen: open });
+        if (open !== data.ticketOpen) save({ ticketOpen: open });
       },
     },
     {
@@ -52,7 +52,7 @@ export function TicketWindowCard({ data }: { data: TicketWindowData }) {
       value: closeDate,
       onChange: setCloseDate,
       onSave: () => {
-        save({ ticketCloseDate: closeDate });
+        if (closeDate !== data.ticketCloseDate) save({ ticketCloseDate: closeDate });
       },
     },
   ];
@@ -94,7 +94,7 @@ export function TicketWindowCard({ data }: { data: TicketWindowData }) {
             setCloseTime(e.target.value);
           }}
           onBlur={() => {
-            save({ ticketCloseTime: closeTime });
+            if (closeTime !== data.ticketCloseTime) save({ ticketCloseTime: closeTime });
           }}
         />
       </div>

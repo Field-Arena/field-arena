@@ -1,10 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { UpdateShowDetailsInput } from '@/modules/shows/schemas';
 import type { ShowSetupDetail } from '@/modules/shows/data/setup-queries';
 import { useUpdateShowDetails } from '@/modules/shows/hooks/use-show-mutations';
 import type { SHOW_DETAILS_BODIES } from '@/modules/shows/constants';
+
+function sameBodies(a: readonly string[], b: readonly string[]) {
+  return a.length === b.length && a.every((body) => b.includes(body));
+}
+
+interface ShowDetailsSnapshot {
+  name: string;
+  org: string;
+  showType: ShowSetupDetail['showType'];
+  startDate: string;
+  endDate: string;
+  timezone: string;
+  startingRiderNumber: number;
+  governingBodies: string[];
+}
 
 export function useShowDetailsForm(show: ShowSetupDetail) {
   const [name, setName] = useState(show.name);
@@ -17,6 +32,17 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
   const [startingRiderNumber, setStartingRiderNumber] = useState(show.startingRiderNumber);
   const [governingBodies, setGoverningBodies] = useState<string[]>(show.governingBodies);
 
+  const lastSaved = useRef({
+    name: show.name,
+    org: show.org ?? '',
+    showType: show.showType,
+    startDate: show.startDate ?? '',
+    endDate: show.endDate ?? '',
+    timezone: show.timezone ?? '',
+    startingRiderNumber: show.startingRiderNumber,
+    governingBodies: show.governingBodies,
+  });
+
   const { mutate } = useUpdateShowDetails();
 
   const dateFields: { id: string; label: string; value: string; onChange: (v: string) => void }[] =
@@ -25,8 +51,8 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
       { id: 'sm-end-date', label: 'End date', value: endDate, onChange: setEndDate },
     ];
 
-  function save(overrides: Partial<UpdateShowDetailsInput> = {}) {
-    mutate({
+  function save(overrides: Partial<ShowDetailsSnapshot> = {}) {
+    const payload = {
       showId: show.id,
       name,
       org,
@@ -35,8 +61,24 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
       endDate,
       timezone,
       startingRiderNumber,
-      governingBodies: governingBodies as UpdateShowDetailsInput['governingBodies'],
+      governingBodies,
       ...overrides,
+    };
+    const last = lastSaved.current;
+    const unchanged =
+      payload.name === last.name &&
+      payload.org === last.org &&
+      payload.showType === last.showType &&
+      payload.startDate === last.startDate &&
+      payload.endDate === last.endDate &&
+      payload.timezone === last.timezone &&
+      payload.startingRiderNumber === last.startingRiderNumber &&
+      sameBodies(payload.governingBodies, last.governingBodies);
+    if (unchanged) return;
+    lastSaved.current = payload;
+    mutate({
+      ...payload,
+      governingBodies: payload.governingBodies as UpdateShowDetailsInput['governingBodies'],
     });
   }
 
@@ -45,7 +87,7 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
       ? governingBodies.filter((b) => b !== body)
       : [...governingBodies, body];
     setGoverningBodies(next);
-    save({ governingBodies: next as UpdateShowDetailsInput['governingBodies'] });
+    save({ governingBodies: next });
   }
 
   function toggleOrgEditing() {
