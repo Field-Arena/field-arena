@@ -679,9 +679,6 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
 export interface SelectEventsData {
   showId: string;
   showName: string;
-  ticketOpen: string;
-  ticketCloseDate: string;
-  ticketCloseTime: string;
 
   ringNames: string[];
 
@@ -694,15 +691,42 @@ export interface SelectEventsData {
   }[];
 }
 
+export interface TicketWindowData {
+  showId: string;
+  ticketOpen: string;
+  ticketCloseDate: string;
+  ticketCloseTime: string;
+}
+
+// Lives on Run Show, not Select Events -- scheduling when sales open/close
+// belongs with the manual open/close controls it's read alongside there,
+// not off in a screen about which classes are offered.
+export async function getTicketWindowData(showId: string): Promise<TicketWindowData | null> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('shows')
+    .select('id, ticket_open, ticket_close')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const [closeDate = '', closeTime = ''] = (data.ticket_close ?? '').split(' ');
+
+  return {
+    showId: data.id,
+    ticketOpen: data.ticket_open ?? '',
+    ticketCloseDate: closeDate,
+    ticketCloseTime: closeTime,
+  };
+}
+
 export async function getSelectEventsData(showId: string): Promise<SelectEventsData | null> {
   const supabase = await createServerClient();
 
   const [show, classes] = await Promise.all([
-    supabase
-      .from('shows')
-      .select('id, name, ticket_open, ticket_close, locations')
-      .eq('id', showId)
-      .maybeSingle(),
+    supabase.from('shows').select('id, name, locations').eq('id', showId).maybeSingle(),
     supabase
       .from('classes')
       .select('id, label, division, fee, location')
@@ -713,15 +737,11 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
   if (!show.data) return null;
   if (classes.error) throw classes.error;
 
-  const [closeDate = '', closeTime = ''] = (show.data.ticket_close ?? '').split(' ');
   const rings = (show.data.locations ?? []) as unknown as RingRow[];
 
   return {
     showId: show.data.id,
     showName: show.data.name,
-    ticketOpen: show.data.ticket_open ?? '',
-    ticketCloseDate: closeDate,
-    ticketCloseTime: closeTime,
     ringNames: rings.map((r) => r.name).filter((n): n is string => !!n),
     classes: classes.data.map((c) => ({
       id: c.id,
