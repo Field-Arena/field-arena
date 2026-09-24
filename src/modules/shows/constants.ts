@@ -377,7 +377,8 @@ export const SHOW_MANAGER_SECTIONS = [
     label: 'Run Show',
     path: '/run-show',
     nextLabel: 'Documents',
-    nextNote: 'Next: publish any files riders or staff need — prize lists, maps, forms.',
+    nextNote:
+      'Next: set what documents riders must submit, and publish any files they need — prize lists, maps, forms.',
   },
   {
     label: 'Documents',

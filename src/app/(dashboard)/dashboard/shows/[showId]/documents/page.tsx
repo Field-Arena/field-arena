@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { getDocumentsPageData } from '@/modules/shows/data/setup-queries';
+import { getDocumentsPageData, getDocumentRequirements } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { DocumentsCard } from '@/modules/shows/ui/show-manager/documents-card';
+import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-documents-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
@@ -27,9 +28,10 @@ export default async function ShowDocumentsPage({
     );
   }
 
-  const [context, vitals] = await Promise.all([
+  const [context, vitals, documentRequirements] = await Promise.all([
     getOrganizerContext(data.showId),
     getShowManagerVitals(data.showId),
+    getDocumentRequirements(data.showId),
   ]);
 
   return (
@@ -43,6 +45,9 @@ export default async function ShowDocumentsPage({
       stage={vitals.stage}
       canViewMoney={context.canViewMoney}
     >
+      <div id="required-documents" className="scroll-mt-24">
+        <RequiredDocumentsCard showId={data.showId} documentRequirements={documentRequirements} />
+      </div>
       <DocumentsCard
         showId={data.showId}
         publicId={showId}
