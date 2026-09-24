@@ -604,7 +604,7 @@ export async function saveStablingDates(input: unknown): Promise<OrderRow> {
   const admin = createAdminClient();
   const { data: existing, error: readError } = await admin
     .from('orders')
-    .select('rider_id, status')
+    .select('rider_id, status, show_id')
     .eq('id', parsed.orderId)
     .maybeSingle();
   if (readError) throw readError;
@@ -619,6 +619,35 @@ export async function saveStablingDates(input: unknown): Promise<OrderRow> {
     .select()
     .single();
   if (error) throw error;
+
+  // Riders who didn't buy any stalls never get a stabling_requests row from
+  // finalizeClaimedOrder (it only materializes one when horse/tack stalls
+  // are non-zero), so the organizer's Arrivals & Departures list -- which
+  // reads from stabling_requests, not orders -- would never learn these
+  // dates exist. Back-fill a zero-stall placeholder row here so any rider
+  // who reports dates shows up for the organizer, purchased stalls or not.
+  const { data: hasRequest } = await admin
+    .from('stabling_requests')
+    .select('id')
+    .eq('order_id', parsed.orderId)
+    .maybeSingle();
+  if (!hasRequest) {
+    const { data: profile } = await admin
+      .from('riders')
+      .select('first_name, last_name, email')
+      .eq('id', rider.id)
+      .maybeSingle();
+    const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
+    const trainerName = fullName !== '' ? fullName : (profile?.email ?? 'Not provided');
+    await admin.from('stabling_requests').insert({
+      show_id: existing.show_id,
+      order_id: parsed.orderId,
+      rider_id: rider.id,
+      trainer_name: trainerName,
+      horse_stalls: 0,
+      tack_stalls: 0,
+    });
+  }
 
   revalidatePath(ROUTES.rider);
   return data;
