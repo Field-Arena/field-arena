@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { useVerifyHorseDocument } from '@/modules/shows/hooks/use-horses-mutations';
@@ -15,6 +16,17 @@ export function HorseDocumentLine({
   horseId: string | null;
 }) {
   const verify = useVerifyHorseDocument();
+
+  // doc.verified only flips once router.refresh() finishes re-fetching the
+  // whole page -- a real delay when staff are clicking through many
+  // documents in a row during check-in. Flip instantly, revert on error.
+  const [optimisticVerified, setOptimisticVerified] = useState<boolean | null>(null);
+  const [prevVerified, setPrevVerified] = useState(doc.verified);
+  if (doc.verified !== prevVerified) {
+    setPrevVerified(doc.verified);
+    setOptimisticVerified(null);
+  }
+  const isVerified = optimisticVerified ?? doc.verified;
 
   const colorClass =
     !doc.uploaded || doc.expired
@@ -50,15 +62,15 @@ export function HorseDocumentLine({
         <input
           type="checkbox"
           title="Verified"
-          checked={doc.verified}
+          checked={isVerified}
           disabled={verify.isPending}
           onChange={(e) => {
-            verify.mutate({
-              showId,
-              horseId,
-              requirementId: doc.requirementId,
-              verified: e.target.checked,
-            });
+            const next = e.target.checked;
+            setOptimisticVerified(next);
+            verify.mutate(
+              { showId, horseId, requirementId: doc.requirementId, verified: next },
+              { onError: () => { setOptimisticVerified(null); } },
+            );
           }}
           className="size-[15px] accent-[#1A5B3C]"
         />

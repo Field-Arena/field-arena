@@ -114,7 +114,17 @@ export function StableChartScreen({
   const reservedCount = countOf('reserved');
   const tackCount = countOf('tack');
   const holdCount = countOf('hold');
-  const published = chart.status === 'published';
+  const actualPublished = chart.status === 'published';
+
+  // actualPublished only flips once router.refresh() lands -- flip
+  // instantly on click instead, revert on error.
+  const [optimisticPublished, setOptimisticPublished] = useState<boolean | null>(null);
+  const [prevPublished, setPrevPublished] = useState(actualPublished);
+  if (actualPublished !== prevPublished) {
+    setPrevPublished(actualPublished);
+    setOptimisticPublished(null);
+  }
+  const published = optimisticPublished ?? actualPublished;
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
@@ -171,7 +181,11 @@ export function StableChartScreen({
           disabled={togglePublish.isPending}
           className={cn('h-auto', primaryButtonClass)}
           onClick={() => {
-            togglePublish.mutate({ showId });
+            setOptimisticPublished(!published);
+            togglePublish.mutate(
+              { showId },
+              { onError: () => { setOptimisticPublished(null); } },
+            );
           }}
         >
           {published ? 'Unpublish' : '✓ Approve & Publish'}
