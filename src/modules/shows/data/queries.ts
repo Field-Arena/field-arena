@@ -699,12 +699,20 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
 export async function getShowAttention(showId: string): Promise<AttentionItem[]> {
   const supabase = await createServerClient();
 
-  const { data: show, error } = await supabase
-    .from('shows')
-    .select('id, name, published, ticket_close, runner_state, waiver_text, waiver_approved_text')
-    .eq('id', showId)
-    .maybeSingle();
+  // Neither query depends on the other's result -- both only need showId.
+  const [
+    { data: show, error },
+    { data: classes, error: classesError },
+  ] = await Promise.all([
+    supabase
+      .from('shows')
+      .select('id, name, published, ticket_close, runner_state, waiver_text, waiver_approved_text')
+      .eq('id', showId)
+      .maybeSingle(),
+    supabase.from('classes').select('id').eq('show_id', showId),
+  ]);
   if (error) throw error;
+  if (classesError) throw classesError;
   if (!show) return [];
 
   const setupHref = `/dashboard/shows/${showId}`;
@@ -746,22 +754,14 @@ export async function getShowAttention(showId: string): Promise<AttentionItem[]>
     });
   }
 
-  const { count: classCount } = await supabase
-    .from('classes')
-    .select('id', { count: 'exact', head: true })
-    .eq('show_id', showId);
-
   let entryCount = 0;
-  if ((classCount ?? 0) > 0) {
-    const { data: classes } = await supabase.from('classes').select('id').eq('show_id', showId);
-    const ids = (classes ?? []).map((c) => c.id);
-    if (ids.length > 0) {
-      const { count } = await supabase
-        .from('class_entries')
-        .select('id', { count: 'exact', head: true })
-        .in('class_id', ids);
-      entryCount = count ?? 0;
-    }
+  const classIds = classes.map((c) => c.id);
+  if (classIds.length > 0) {
+    const { count } = await supabase
+      .from('class_entries')
+      .select('id', { count: 'exact', head: true })
+      .in('class_id', classIds);
+    entryCount = count ?? 0;
   }
 
   if (entryCount === 0) {
