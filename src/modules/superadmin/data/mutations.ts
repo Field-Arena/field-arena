@@ -519,7 +519,7 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string; emai
 
   const admin = createAdminClient();
   const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
-    admin.from('users').select('id').eq('email', email).maybeSingle(),
+    admin.from('users').select('id, onboarded_at').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
 
@@ -541,12 +541,24 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string; emai
         .eq('email', email)
         .is('user_id', null);
     }
-    emailSent = await sendStaffInviteNotification({
-      to: email,
-      name,
-      role: parsed.role,
-      showName: show.name,
-    });
+
+    // A users row exists but they never finished setting a password (the
+    // first invite expired/was never opened) — a plain login link is a dead
+    // end for them. Resend a real Supabase invite instead of the login email.
+    if (existingStaffUser && !existingStaffUser.onboarded_at) {
+      const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+        data: { name, firstName, role: parsed.role, showName: show.name },
+        redirectTo: env.siteUrl,
+      });
+      emailSent = !inviteError;
+    } else {
+      emailSent = await sendStaffInviteNotification({
+        to: email,
+        name,
+        role: parsed.role,
+        showName: show.name,
+      });
+    }
   } else {
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: {

@@ -11,9 +11,9 @@ import {
   SM_LABEL,
   SM_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
-import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
+import type { TicketWindowData } from '@/modules/shows/data/setup-queries';
 
-export function TicketWindowCard({ data }: { data: SelectEventsData }) {
+export function TicketWindowCard({ data }: { data: TicketWindowData }) {
   const [open, setOpen] = useState(data.ticketOpen);
   const [closeDate, setCloseDate] = useState(data.ticketCloseDate);
   const [closeTime, setCloseTime] = useState(data.ticketCloseTime);
@@ -43,7 +43,7 @@ export function TicketWindowCard({ data }: { data: SelectEventsData }) {
       value: open,
       onChange: setOpen,
       onSave: () => {
-        save({ ticketOpen: open });
+        if (open !== data.ticketOpen) save({ ticketOpen: open });
       },
     },
     {
@@ -52,7 +52,7 @@ export function TicketWindowCard({ data }: { data: SelectEventsData }) {
       value: closeDate,
       onChange: setCloseDate,
       onSave: () => {
-        save({ ticketCloseDate: closeDate });
+        if (closeDate !== data.ticketCloseDate) save({ ticketCloseDate: closeDate });
       },
     },
   ];
@@ -94,7 +94,7 @@ export function TicketWindowCard({ data }: { data: SelectEventsData }) {
             setCloseTime(e.target.value);
           }}
           onBlur={() => {
-            save({ ticketCloseTime: closeTime });
+            if (closeTime !== data.ticketCloseTime) save({ ticketCloseTime: closeTime });
           }}
         />
       </div>

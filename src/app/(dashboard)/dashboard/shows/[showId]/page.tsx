@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import {
   getShowSetupDetail,
-  listVenuesForOrg,
+  listSharedVenues,
   listDivisions,
   listClasses,
   listStaff,
@@ -14,7 +14,6 @@ import { VenueCard } from '@/modules/shows/ui/show-manager/venue-card';
 import { ContactCard } from '@/modules/shows/ui/show-manager/contact-card';
 import { PrizeListCard } from '@/modules/shows/ui/show-manager/prize-list-card';
 import { ClassDivisionsCard } from '@/modules/shows/ui/show-manager/class-divisions-card';
-import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-documents-card';
 import { MerchandiseCard } from '@/modules/shows/ui/show-manager/merchandise-card';
 import { WaiverCard } from '@/modules/shows/ui/show-manager/waiver-card';
 import { ShareShowLink } from '@/modules/shows/ui/show-manager/share-show-link';
@@ -43,7 +42,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
   }
 
   const [venues, divisions, completeness, context, vitals, staff, classes] = await Promise.all([
-    listVenuesForOrg(show.orgId),
+    listSharedVenues(),
     listDivisions(show.id),
     getShowCompleteness(show.id),
     getOrganizerContext(show.id),
@@ -93,20 +92,12 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
       <div id="class-divisions" className="scroll-mt-24">
         <ClassDivisionsCard showId={show.id} divisions={divisions} />
       </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div id="required-documents" className="scroll-mt-24">
-          <RequiredDocumentsCard
-            showId={show.id}
-            documentRequirements={show.documentRequirements}
-          />
-        </div>
-        <div id="merchandise" className="scroll-mt-24">
-          <MerchandiseCard
-            showId={show.id}
-            merchandiseEnabled={show.merchandiseEnabled}
-            merchItems={show.merchItems}
-          />
-        </div>
+      <div id="merchandise" className="scroll-mt-24">
+        <MerchandiseCard
+          showId={show.id}
+          merchandiseEnabled={show.merchandiseEnabled}
+          merchItems={show.merchItems}
+        />
       </div>
       <div id="waiver" className="scroll-mt-24">
         <WaiverCard

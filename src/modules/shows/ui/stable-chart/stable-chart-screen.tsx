@@ -33,14 +33,20 @@ import { StableConfigRow } from '@/modules/shows/ui/stable-chart/stable-config-r
 import { StableDropCard } from '@/modules/shows/ui/stable-chart/stable-drop-card';
 import { StableChartPrintView } from '@/modules/shows/ui/stable-chart/stable-chart-print-view';
 import { StablingGroupsSidebar } from '@/modules/shows/ui/stable-chart/stabling-groups-sidebar';
+import { ArrivalsDeparturesPanel } from '@/modules/shows/ui/stable-chart/arrivals-departures-panel';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
+import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departures-queries';
 
 export function StableChartScreen({
   data,
+  arrivals,
+  showEndDate,
   publicId,
 }: {
   data: StableChartPageData;
+  arrivals: ArrivalDepartureRow[];
+  showEndDate: string | null;
   publicId?: string;
 }) {
   const { showId, showName, chart, savedLocations, groups } = data;
@@ -184,6 +190,10 @@ export function StableChartScreen({
             {autoAssign.isPending ? 'Assigning…' : 'Auto-assign horses to empty stalls'}
           </Button>
         )}
+      </div>
+
+      <div className="mb-5">
+        <ArrivalsDeparturesPanel rows={arrivals} showEndDate={showEndDate} />
       </div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>

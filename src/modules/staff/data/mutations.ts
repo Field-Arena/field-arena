@@ -109,7 +109,7 @@ async function provisionIfNewAccount(
 ): Promise<void> {
   const admin = createAdminClient();
   const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
-    admin.from('users').select('id').eq('email', email).maybeSingle(),
+    admin.from('users').select('id, onboarded_at').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
   if (existingStaffUser || existingRider) {
@@ -119,6 +119,20 @@ async function provisionIfNewAccount(
         .update({ user_id: existingStaffUser.id })
         .eq('email', email)
         .is('user_id', null);
+
+      // A users row exists but they never finished setting a password (e.g.
+      // the first invite link expired or was never opened) — a plain login
+      // link is a dead end for them. Resend a real Supabase invite instead,
+      // same as resendOrganizerInvite does for organization owners.
+      if (!existingStaffUser.onboarded_at) {
+        const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+          data: { name, firstName: name.trim().split(/\s+/)[0] ?? name, role, showName },
+          redirectTo: env.siteUrl,
+        });
+        if (!inviteError) return;
+        // Fall through to the login-link email if Supabase refuses to
+        // re-issue an invite (e.g. rate-limited) — still better than nothing.
+      }
     }
     await sendStaffInviteNotification({ to: email, name, role, showName }).catch(() => undefined);
     return;

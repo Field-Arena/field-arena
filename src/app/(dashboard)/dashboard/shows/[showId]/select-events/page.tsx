@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { getSelectEventsData } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
-import { TicketWindowCard } from '@/modules/shows/ui/show-manager/ticket-window-card';
 import { SelectEventsPicker } from '@/modules/shows/ui/show-manager/select-events-picker';
-import { SelectedClassesCard } from '@/modules/shows/ui/show-manager/selected-classes-card';
+import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
@@ -45,9 +44,16 @@ export default async function SelectEventsPage({
       stage={vitals.stage}
       canViewMoney={context.canViewMoney}
     >
-      <TicketWindowCard data={data} />
       <SelectEventsPicker data={data} />
-      <SelectedClassesCard data={data} publicId={showId} />
+      <SectionFooter
+        currentTab="Select Events"
+        showId={showId}
+        blockedReason={
+          data.classes.length === 0
+            ? "You haven't selected any events yet — riders won't have anything to register for."
+            : null
+        }
+      />
     </ShowManagerShell>
   );
 }

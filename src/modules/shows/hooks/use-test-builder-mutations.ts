@@ -7,10 +7,12 @@ import {
   saveTestTemplate,
   deleteTestTemplate,
   assignTestTemplateToClass,
+  unassignTestFromClass,
 } from '@/modules/shows/data/mutations';
 import type {
   SaveTestTemplateInput,
   AssignTestTemplateToClassInput,
+  UnassignTestFromClassInput,
 } from '@/modules/shows/schemas';
 import { readableError } from '@/shared/lib/error-message';
 
@@ -50,13 +52,31 @@ export function useDeleteTestTemplate() {
 }
 
 export function useAssignTestToClass() {
+  const router = useRouter();
+
   return useMutation({
     mutationFn: (input: AssignTestTemplateToClassInput) => assignTestTemplateToClass(input),
     onSuccess: () => {
       toast.success('Test assigned to class — scoring is ready for it now');
+      router.refresh();
     },
     onError: (error) => {
       toast.error(message(error, 'Could not assign this test to that class'));
+    },
+  });
+}
+
+export function useUnassignTestFromClass() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: UnassignTestFromClassInput) => unassignTestFromClass(input),
+    onSuccess: () => {
+      toast.success('Test removed from that class');
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not remove this test from that class'));
     },
   });
 }

@@ -111,13 +111,18 @@ export interface DivisionRow {
   name: string;
   position: number;
   classCount: number;
+  defaultFee: number | null;
 }
 
 export async function listDivisions(showId: string): Promise<DivisionRow[]> {
   const supabase = await createServerClient();
 
   const [divisions, classes] = await Promise.all([
-    supabase.from('divisions').select('id, name, position').eq('show_id', showId).order('position'),
+    supabase
+      .from('divisions')
+      .select('id, name, position, default_fee')
+      .eq('show_id', showId)
+      .order('position'),
     supabase.from('classes').select('division').eq('show_id', showId),
   ]);
   if (divisions.error) throw divisions.error;
@@ -133,6 +138,7 @@ export async function listDivisions(showId: string): Promise<DivisionRow[]> {
     name: d.name,
     position: d.position ?? 0,
     classCount: counts.get(d.name) ?? 0,
+    defaultFee: d.default_fee,
   }));
 }
 
@@ -468,14 +474,14 @@ export interface VenueOption {
   rings: RingRow[];
 }
 
-export async function listVenuesForOrg(orgId: string): Promise<VenueOption[]> {
+// Any organization's venue, not just the caller's own -- a venue isn't
+// exclusive to whoever created it (see 20260924120000_shared_venues.sql).
+// Show Setup's "Add stables from a saved location" picker uses this to let
+// an organizer reuse a venue another org already set up.
+export async function listSharedVenues(): Promise<VenueOption[]> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
-    .from('venues')
-    .select('id, name, rings')
-    .eq('org_id', orgId)
-    .order('name');
+  const { data, error } = await supabase.from('venues').select('id, name, rings').order('name');
   if (error) throw error;
 
   return data.map((v) => ({
@@ -676,57 +682,93 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   };
 }
 
+export interface SelectEventsDivisionOption {
+  id: string;
+  name: string;
+  defaultFee: number | null;
+}
+
 export interface SelectEventsData {
   showId: string;
   showName: string;
-  ticketOpen: string;
-  ticketCloseDate: string;
-  ticketCloseTime: string;
 
   ringNames: string[];
+  divisions: SelectEventsDivisionOption[];
 
   classes: {
     id: string;
     label: string;
     division: string | null;
+    groupName: string | null;
     fee: number;
     location: string | null;
   }[];
 }
 
+export interface TicketWindowData {
+  showId: string;
+  ticketOpen: string;
+  ticketCloseDate: string;
+  ticketCloseTime: string;
+}
+
+// Lives on Run Show, not Select Events -- scheduling when sales open/close
+// belongs with the manual open/close controls it's read alongside there,
+// not off in a screen about which classes are offered.
+export async function getTicketWindowData(showId: string): Promise<TicketWindowData | null> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('shows')
+    .select('id, ticket_open, ticket_close')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const [closeDate = '', closeTime = ''] = (data.ticket_close ?? '').split(' ');
+
+  return {
+    showId: data.id,
+    ticketOpen: data.ticket_open ?? '',
+    ticketCloseDate: closeDate,
+    ticketCloseTime: closeTime,
+  };
+}
+
 export async function getSelectEventsData(showId: string): Promise<SelectEventsData | null> {
   const supabase = await createServerClient();
 
-  const [show, classes] = await Promise.all([
-    supabase
-      .from('shows')
-      .select('id, name, ticket_open, ticket_close, locations')
-      .eq('id', showId)
-      .maybeSingle(),
+  const [show, classes, divisions] = await Promise.all([
+    supabase.from('shows').select('id, name, locations').eq('id', showId).maybeSingle(),
     supabase
       .from('classes')
-      .select('id, label, division, fee, location')
+      .select('id, label, division, group_name, fee, location')
       .eq('show_id', showId)
       .order('label'),
+    supabase
+      .from('divisions')
+      .select('id, name, default_fee')
+      .eq('show_id', showId)
+      .order('position'),
   ]);
   if (show.error) throw show.error;
   if (!show.data) return null;
   if (classes.error) throw classes.error;
+  if (divisions.error) throw divisions.error;
 
-  const [closeDate = '', closeTime = ''] = (show.data.ticket_close ?? '').split(' ');
   const rings = (show.data.locations ?? []) as unknown as RingRow[];
 
   return {
     showId: show.data.id,
     showName: show.data.name,
-    ticketOpen: show.data.ticket_open ?? '',
-    ticketCloseDate: closeDate,
-    ticketCloseTime: closeTime,
     ringNames: rings.map((r) => r.name).filter((n): n is string => !!n),
+    divisions: divisions.data.map((d) => ({ id: d.id, name: d.name, defaultFee: d.default_fee })),
     classes: classes.data.map((c) => ({
       id: c.id,
       label: c.label,
       division: c.division,
+      groupName: c.group_name,
       fee: c.fee ?? 0,
       location: c.location,
     })),
@@ -1062,6 +1104,15 @@ export interface TestBuilderClassOption {
   label: string;
 }
 
+export interface SelectedClassOption {
+  id: string;
+  label: string;
+  division: string | null;
+  fee: number;
+  location: string | null;
+  hasTest: boolean;
+}
+
 /* The official test library (scoring_catalog, family='movement') — USEF/USDF
  * published tests an organizer can clone into their own editable library.
  * Distinct from `test_templates` (an org's own custom tests, see above). */
@@ -1126,6 +1177,11 @@ export async function listTestCatalog(): Promise<TestCatalogEntry[]> {
   });
 }
 
+export interface AssignedClassOption {
+  classId: string;
+  label: string;
+}
+
 export interface TestBuilderPageData {
   showId: string;
   showName: string;
@@ -1133,11 +1189,18 @@ export interface TestBuilderPageData {
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
-  /** Class labels currently using each template, keyed by template name.
-   * assignTestTemplateToClass copies the template's fields into class_tests
-   * rather than keeping a live foreign key, so name is the only link back —
-   * good enough for this display-only hint (not used to gate anything). */
-  assignedByTemplateName: Record<string, string[]>;
+  /** Every class on this show with its division/fee/location and whether it
+   * already has a test assigned -- moved here from Select Events so an
+   * organizer can see exactly which classes still need a test typed in. */
+  selectedClasses: SelectedClassOption[];
+  /** Classes currently using each template, keyed by template id (via
+   * class_tests.test_template_id). Carries classId so a class can be
+   * unassigned directly, not just overwritten by assigning a different
+   * test. */
+  assignedByTemplateId: Record<string, AssignedClassOption[]>;
+  /** Fallback for class_tests rows assigned before test_template_id existed
+   * (name was the only link back then). Keyed by template name. */
+  assignedByTemplateName: Record<string, AssignedClassOption[]>;
 }
 
 export async function getTestBuilderPageData(showId: string): Promise<TestBuilderPageData | null> {
@@ -1154,22 +1217,36 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   const [templates, catalog, classesRes] = await Promise.all([
     listTestTemplates(show.data.org_id),
     listTestCatalog(),
-    supabase.from('classes').select('id, label').eq('show_id', showId).order('label'),
+    supabase
+      .from('classes')
+      .select('id, label, division, fee, location')
+      .eq('show_id', showId)
+      .order('label'),
   ]);
   if (classesRes.error) throw classesRes.error;
 
   const classIds = classesRes.data.map((c) => c.id);
   const classTestsRes = classIds.length
-    ? await supabase.from('class_tests').select('class_id, name').in('class_id', classIds)
+    ? await supabase
+        .from('class_tests')
+        .select('class_id, name, test_template_id')
+        .in('class_id', classIds)
     : { data: [], error: null };
   if (classTestsRes.error) throw classTestsRes.error;
 
+  const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
-  const assignedByTemplateName: Record<string, string[]> = {};
+  const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
+  const assignedByTemplateName: Record<string, AssignedClassOption[]> = {};
   for (const row of classTestsRes.data) {
     const label = classLabelById.get(row.class_id);
     if (!label) continue;
-    (assignedByTemplateName[row.name] ??= []).push(label);
+    const option: AssignedClassOption = { classId: row.class_id, label };
+    if (row.test_template_id) {
+      (assignedByTemplateId[row.test_template_id] ??= []).push(option);
+    } else {
+      (assignedByTemplateName[row.name] ??= []).push(option);
+    }
   }
 
   return {
@@ -1178,7 +1255,16 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     orgId: show.data.org_id,
     templates,
     catalog,
-    classes: classesRes.data,
+    classes: classesRes.data.map((c) => ({ id: c.id, label: c.label })),
+    selectedClasses: classesRes.data.map((c) => ({
+      id: c.id,
+      label: c.label,
+      division: c.division,
+      fee: c.fee ?? 0,
+      location: c.location,
+      hasTest: classIdsWithTest.has(c.id),
+    })),
+    assignedByTemplateId,
     assignedByTemplateName,
   };
 }

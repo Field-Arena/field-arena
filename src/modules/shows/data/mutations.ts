@@ -21,12 +21,14 @@ import {
   updateContactSchema,
   updatePrizeListSchema,
   renameDivisionSchema,
+  updateDivisionDefaultFeeSchema,
   updateDocumentRequirementsSchema,
   updateMerchandiseSchema,
   saveWaiverTextSchema,
   updateTicketWindowSchema,
   addCatalogGroupSchema,
   updateGroupLocationSchema,
+  updateGroupDivisionSchema,
   addCustomClassSchema,
   createTocClassSchema,
   addQualTypePresetSchema,
@@ -41,6 +43,7 @@ import {
   updateDocumentEventsSchema,
   saveTestTemplateSchema,
   assignTestTemplateToClassSchema,
+  unassignTestFromClassSchema,
   saveShowExpensesSchema,
   updateScheduleRulesSchema,
   setClassDurationSchema,
@@ -85,6 +88,30 @@ async function generateUniqueShowSlug(supabase: SupabaseClient, name: string): P
     candidate = `${base}-${String(suffix)}`;
   }
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+// generateUniqueShowSlug only checks-then-the-caller-inserts, so two
+// near-simultaneous creates (a double-click on "+ New Show", or two people
+// on the same org) can both see the same candidate slug free and both try to
+// insert it, tripping shows_slug_unique_idx on the loser. Retrying with a
+// fresh random suffix on exactly that conflict closes the race without
+// needing a lock.
+async function insertShowRetryingSlug(
+  supabase: SupabaseClient,
+  name: string,
+  insertWithSlug: (slug: string) => PromiseLike<{ error: { message: string } | null }>,
+): Promise<string> {
+  let slug = await generateUniqueShowSlug(supabase, name);
+  const base = slugify(name);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { error } = await insertWithSlug(slug);
+    if (!error) return slug;
+    if (attempt === 4 || !error.message.includes('shows_slug_unique_idx')) {
+      throw new Error(error.message);
+    }
+    slug = `${base}-${crypto.randomUUID().slice(0, 6)}`;
+  }
+  throw new Error('Could not generate a unique show URL — please try again.');
 }
 
 // A class's arena is never typed in directly — it always mirrors the size
@@ -134,28 +161,26 @@ export async function createShow(input: unknown): Promise<{ id: string; slug: st
       ? formatDateShort(parsed.startDate)
       : `${formatDateShort(parsed.startDate)} – ${formatDateShort(parsed.endDate)}`);
 
-  const slug = await generateUniqueShowSlug(supabase, parsed.name);
+  const slug = await insertShowRetryingSlug(supabase, parsed.name, (slug) =>
+    supabase.from('shows').insert({
+      id,
+      org_id: orgId,
+      name: parsed.name,
+      slug,
+      venue_name: parsed.venueName ?? null,
+      start_date: parsed.startDate,
+      end_date: parsed.endDate,
+      date_label: dateLabel,
+      disciplines: parsed.disciplines,
+      governing_bodies: parsed.governingBodies,
+      show_type: parsed.showType,
+      timezone: parsed.timezone ?? null,
+      starting_rider_number: parsed.startingRiderNumber,
 
-  const { error } = await supabase.from('shows').insert({
-    id,
-    org_id: orgId,
-    name: parsed.name,
-    slug,
-    venue_name: parsed.venueName ?? null,
-    start_date: parsed.startDate,
-    end_date: parsed.endDate,
-    date_label: dateLabel,
-    disciplines: parsed.disciplines,
-    governing_bodies: parsed.governingBodies,
-    show_type: parsed.showType,
-    timezone: parsed.timezone ?? null,
-    starting_rider_number: parsed.startingRiderNumber,
-
-    published: false,
-    status: 'yellow',
-  });
-
-  if (error) throw new Error(error.message);
+      published: false,
+      status: 'yellow',
+    }),
+  );
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
@@ -166,18 +191,17 @@ export async function createDraftShow(): Promise<{ id: string; slug: string }> {
   const orgId = await resolveOrgId();
   const supabase = await createServerClient();
   const id = crypto.randomUUID();
-  const slug = await generateUniqueShowSlug(supabase, 'New Show');
 
-  const { error } = await supabase.from('shows').insert({
-    id,
-    org_id: orgId,
-    name: 'New Show',
-    slug,
-    published: false,
-    status: 'yellow',
-  });
-
-  if (error) throw new Error(error.message);
+  const slug = await insertShowRetryingSlug(supabase, 'New Show', (slug) =>
+    supabase.from('shows').insert({
+      id,
+      org_id: orgId,
+      name: 'New Show',
+      slug,
+      published: false,
+      status: 'yellow',
+    }),
+  );
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
@@ -263,6 +287,28 @@ export async function renameDivision(input: unknown): Promise<void> {
   }
 
   revalidatePath(`/dashboard/shows/${division.show_id}`);
+}
+
+export async function updateDivisionDefaultFee(input: unknown): Promise<void> {
+  const parsed = parseInput(updateDivisionDefaultFeeSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: division, error: readError } = await supabase
+    .from('divisions')
+    .select('show_id')
+    .eq('id', parsed.divisionId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const { error } = await supabase
+    .from('divisions')
+    .update({ default_fee: parsed.defaultFee })
+    .eq('id', parsed.divisionId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/shows/${division.show_id}`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/select-events`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/test-builder`);
 }
 
 export async function deleteDivision(divisionId: string): Promise<void> {
@@ -817,7 +863,7 @@ export async function removeCatalogGroup(input: unknown): Promise<void> {
     .from('classes')
     .delete()
     .eq('show_id', parsed.showId)
-    .eq('division', parsed.group);
+    .eq('group_name', parsed.group);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
@@ -836,11 +882,28 @@ export async function updateGroupLocation(input: unknown): Promise<void> {
     .from('classes')
     .update({ location, arena })
     .eq('show_id', parsed.showId)
-    .eq('division', parsed.group);
+    .eq('group_name', parsed.group);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(SCHEDULE_PATH);
+}
+
+export async function updateGroupDivision(input: unknown): Promise<void> {
+  const parsed = parseInput(updateGroupDivisionSchema, input);
+  const supabase = await createServerClient();
+
+  const division = parsed.division || null;
+
+  const { error } = await supabase
+    .from('classes')
+    .update({ division })
+    .eq('show_id', parsed.showId)
+    .eq('group_name', parsed.group);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
+  revalidatePath(`/dashboard/shows/${parsed.showId}/test-builder`);
 }
 
 export async function addCustomClass(input: unknown): Promise<void> {
@@ -1332,6 +1395,14 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
       .select('id')
       .single();
     if (error) throw new Error(error.message);
+    // A template is reusable across every show in the org, so the page that
+    // needs a fresh list isn't knowable from here by a single showId --
+    // revalidate the whole dynamic route instead of one instance of it.
+    // Without this, the save/delete succeeds in the database but the list
+    // and "tests offered" count silently keep showing stale, pre-change
+    // data after a refresh (this was reported as tests "disappearing" --
+    // they never actually left the database, the page just never re-fetched).
+    revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
     return { id: data.id };
   }
 
@@ -1341,6 +1412,7 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
     .select('id')
     .single();
   if (error) throw new Error(error.message);
+  revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
   return { id: data.id };
 }
 
@@ -1348,6 +1420,7 @@ export async function deleteTestTemplate(id: string): Promise<void> {
   const supabase = await createServerClient();
   const { error } = await supabase.from('test_templates').delete().eq('id', id);
   if (error) throw new Error(error.message);
+  revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
 }
 
 export async function assignTestTemplateToClass(input: unknown): Promise<void> {
@@ -1364,6 +1437,7 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
   const { error } = await supabase.from('class_tests').upsert(
     {
       class_id: parsed.classId,
+      test_template_id: parsed.templateId,
       name: template.name,
       edition: template.version_year,
       movements: template.movements,
@@ -1372,6 +1446,27 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
     },
     { onConflict: 'class_id' },
   );
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+
+  const { data: cls } = await supabase
+    .from('classes')
+    .select('show_id')
+    .eq('id', parsed.classId)
+    .maybeSingle();
+  if (cls?.show_id) revalidatePath(`/dashboard/shows/${cls.show_id}/test-builder`);
+}
+
+// The only way to change which test a class uses was to assign a
+// different one over it -- fine if you know which test you meant, but
+// there was no way to just detach a wrong one and leave the class
+// unassigned again.
+export async function unassignTestFromClass(input: unknown): Promise<void> {
+  const parsed = parseInput(unassignTestFromClassSchema, input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.from('class_tests').delete().eq('class_id', parsed.classId);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);

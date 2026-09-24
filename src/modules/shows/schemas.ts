@@ -241,6 +241,13 @@ export const renameDivisionSchema = z.object({
 
 export type RenameDivisionInput = z.input<typeof renameDivisionSchema>;
 
+export const updateDivisionDefaultFeeSchema = z.object({
+  divisionId: z.uuid(),
+  defaultFee: z.coerce.number().min(0).max(100000).nullable(),
+});
+
+export type UpdateDivisionDefaultFeeInput = z.input<typeof updateDivisionDefaultFeeSchema>;
+
 const documentRequirementSchema = z.object({
   id: z.string(),
   label: z.string().trim().min(1).max(160),
@@ -349,6 +356,19 @@ export const updateGroupLocationSchema = z.object({
 });
 
 export type UpdateGroupLocationInput = z.input<typeof updateGroupLocationSchema>;
+
+export const updateGroupDivisionSchema = z.object({
+  showId: z.uuid(),
+  group: z.string().trim().min(1).max(120),
+  division: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform((v) => v ?? ''),
+});
+
+export type UpdateGroupDivisionInput = z.input<typeof updateGroupDivisionSchema>;
 
 export const addCustomClassSchema = z.object({
   showId: z.uuid(),
@@ -577,6 +597,12 @@ export const assignTestTemplateToClassSchema = z.object({
 });
 
 export type AssignTestTemplateToClassInput = z.input<typeof assignTestTemplateToClassSchema>;
+
+export const unassignTestFromClassSchema = z.object({
+  classId: z.uuid(),
+});
+
+export type UnassignTestFromClassInput = z.input<typeof unassignTestFromClassSchema>;
 
 export const addManualHorseSchema = z.object({
   showId: z.uuid(),

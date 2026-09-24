@@ -1,10 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import type { UpdateSchedulePrefsInput } from '@/modules/shows/schemas';
+import { useRef, useState } from 'react';
 import type { SchedulePrefs, ClassRow } from '@/modules/shows/data/setup-queries';
 import { useUpdateSchedulePrefs, useReorderClasses } from '@/modules/shows/hooks/use-show-mutations';
 import { showDayDates } from '@/modules/shows/utils/show-day-dates';
+
+function sameList(a: readonly string[], b: readonly string[]) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+interface SchedulePrefsSnapshot {
+  perMin: number;
+  buffer: number;
+  upper: number;
+  end: string;
+  order: SchedulePrefs['order'];
+  warmup: SchedulePrefs['warmup'];
+  lunch: boolean;
+  extraBreaks: number;
+  extraBreakMin: number;
+  dayStartTimes: string[];
+  dayEndTimes: string[];
+}
 
 export function useSchedulePreferencesForm({
   showId,
@@ -39,6 +56,20 @@ export function useSchedulePreferencesForm({
     effDays.map((_, i) => dayStartTimes[i] ?? '08:00'),
   );
   const [dayEnds, setDayEnds] = useState<string[]>(effDays.map((_, i) => dayEndTimes[i] ?? ''));
+
+  const lastSaved = useRef({
+    perMin: prefs.perMin,
+    buffer: prefs.buffer,
+    upper: prefs.upper,
+    end: prefs.end,
+    order: prefs.order,
+    warmup: prefs.warmup,
+    lunch: prefs.lunch,
+    extraBreaks: prefs.extraBreaks,
+    extraBreakMin: prefs.extraBreakMin,
+    dayStartTimes: [...dayStarts],
+    dayEndTimes: [...dayEnds],
+  });
 
   const { mutate } = useUpdateSchedulePrefs();
   const { mutate: reorder } = useReorderClasses();
@@ -98,8 +129,8 @@ export function useSchedulePreferencesForm({
     },
   ];
 
-  function save(overrides: Partial<UpdateSchedulePrefsInput> = {}) {
-    mutate({
+  function save(overrides: Partial<SchedulePrefsSnapshot> = {}) {
+    const payload = {
       showId,
       perMin,
       buffer,
@@ -113,7 +144,27 @@ export function useSchedulePreferencesForm({
       dayStartTimes: dayStarts,
       dayEndTimes: dayEnds,
       ...overrides,
-    });
+    };
+    const last = lastSaved.current;
+    const unchanged =
+      payload.perMin === last.perMin &&
+      payload.buffer === last.buffer &&
+      payload.upper === last.upper &&
+      payload.end === last.end &&
+      payload.order === last.order &&
+      payload.warmup === last.warmup &&
+      payload.lunch === last.lunch &&
+      payload.extraBreaks === last.extraBreaks &&
+      payload.extraBreakMin === last.extraBreakMin &&
+      sameList(payload.dayStartTimes, last.dayStartTimes) &&
+      sameList(payload.dayEndTimes, last.dayEndTimes);
+    if (unchanged) return;
+    lastSaved.current = {
+      ...payload,
+      dayStartTimes: [...payload.dayStartTimes],
+      dayEndTimes: [...payload.dayEndTimes],
+    };
+    mutate(payload);
   }
 
   function setDayStart(index: number, value: string) {

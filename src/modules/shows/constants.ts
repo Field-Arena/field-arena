@@ -156,7 +156,24 @@ export const FM_SETS = {
 
 export type FmSetName = keyof typeof FM_SETS;
 
-export const CATALOG_DIVISIONS = ['Junior Rider', 'Adult Amateur', 'Open'] as const;
+// Standard division names organizers reach for most often, offered as
+// one-click presets on the Class Divisions card. Not exhaustive or
+// enforced — the free-text input next to them still adds anything else.
+export const DIVISION_PRESETS = [
+  'Open',
+  'Adult Amateur (AA)',
+  'Junior/Young Rider (Jr/YR)',
+  'Non-Professional',
+  'Opportunity',
+  'Maiden',
+  'Novice',
+  'Limit',
+  'Qualifying (Q)',
+  'Non-Qualifying (NQ)',
+  'Vintage',
+  'Para',
+  'Masters',
+] as const;
 
 export const EVENT_SOURCE_BUTTONS = [
   '+ FEI',
@@ -358,7 +375,8 @@ export const SHOW_MANAGER_SECTIONS = [
     label: 'Run Show',
     path: '/run-show',
     nextLabel: 'Documents',
-    nextNote: 'Next: publish any files riders or staff need — prize lists, maps, forms.',
+    nextNote:
+      'Next: set what documents riders must submit, and publish any files they need — prize lists, maps, forms.',
   },
   {
     label: 'Documents',

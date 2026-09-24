@@ -21,8 +21,11 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
 
   function commit() {
     const nextName = name.trim();
+    const nextPrice = Number(price) || 0;
+    const originalQty = space.qty === null ? '' : String(space.qty);
     if (!nextName) return;
-    update.mutate({ id: space.id, name: nextName, price: Number(price) || 0, qty });
+    if (nextName === space.name && nextPrice === space.price && qty === originalQty) return;
+    update.mutate({ id: space.id, name: nextName, price: nextPrice, qty });
   }
 
   return (

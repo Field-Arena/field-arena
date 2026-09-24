@@ -81,9 +81,16 @@ below is **TODO — no findings either way**, listed in the risk order I'd take:
 | Entries / Results / Awards / Qualifying report | `renderResults`, `renderDivBoardFor`, `renderQualReportView` | **TODO** |
 | Setup cards (Divisions, Add-ons, Qual types, Merch, Docs, Waiver, Vendor spaces, Ticket window, Branding) | `renderSm*` family | **TODO** |
 | Schedule engine / Ring config / Master schedule / Focus / Events / Review | `renderScheduleNavView`, `buildMasterSchedule` | **TODO** |
-| Members / Users / Documents / Venues / Stabling | `renderMemberDb`, `renderUserDirectory`, `renderLocations` | **TODO** |
+| Members / Users / Documents | `renderMemberDb`, `renderUserDirectory` | **TODO** |
+| **Stabling — organizer had no cross-rider arrival/departure list** | `renderLocations` | **DONE** — caught by client, not this audit. No organizer screen aggregated riders' checkout-reported arrival/departure dates. Added a sortable Arrivals & Departures table to Stable Chart (`arrivals-departures-queries.ts`) |
+| **Venues — private to the creating org, couldn't be shared across organizations** | `renderLocations` | **DONE** — caught by client, not this audit. `venues_select` RLS relaxed so any org can browse/reuse any venue; writes stay owner-only (`20260924120000_shared_venues.sql`) |
 | ShowRunner / live scoring ops | `renderShowRunner`, `sr*` family | **TODO** |
 | KPIs / Next-steps checklist / Division board | `renderKpis`, `dashboardNextSteps` | **TODO** — no name matches found in new app; **not confirmed missing** |
+
+> ⚠️ Both Stabling and Venues items above were caught by the client in a live
+> demo, not by this audit reaching section 3 yet. The rest of this section is
+> still genuinely un-audited — treat every remaining `TODO` row as "unknown,"
+> not "probably fine."
 
 ---
 

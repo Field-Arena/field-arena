@@ -461,6 +461,7 @@ export type Database = {
           movements: Json | null
           name: string
           sections: Json | null
+          test_template_id: string | null
         }
         Insert: {
           class_id: string
@@ -470,6 +471,7 @@ export type Database = {
           movements?: Json | null
           name: string
           sections?: Json | null
+          test_template_id?: string | null
         }
         Update: {
           class_id?: string
@@ -479,6 +481,7 @@ export type Database = {
           movements?: Json | null
           name?: string
           sections?: Json | null
+          test_template_id?: string | null
         }
         Relationships: [
           {
@@ -486,6 +489,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: true
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_tests_test_template_id_fkey"
+            columns: ["test_template_id"]
+            isOneToOne: false
+            referencedRelation: "test_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -624,6 +634,7 @@ export type Database = {
       }
       divisions: {
         Row: {
+          default_fee: number | null
           id: string
           name: string
           position: number | null
@@ -631,6 +642,7 @@ export type Database = {
           subitems: Json | null
         }
         Insert: {
+          default_fee?: number | null
           id?: string
           name: string
           position?: number | null
@@ -638,6 +650,7 @@ export type Database = {
           subitems?: Json | null
         }
         Update: {
+          default_fee?: number | null
           id?: string
           name?: string
           position?: number | null

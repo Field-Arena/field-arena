@@ -22,7 +22,7 @@ export function MissingSectionsDialog({
     Venue: `${base}#venue`,
     'Class Divisions': `${base}#class-divisions`,
     'Select Events': `${base}/select-events`,
-    'Required Documents': `${base}#required-documents`,
+    'Required Documents': `${base}/documents#required-documents`,
     'Merchandise Sales': `${base}#merchandise`,
     Staffing: `/dashboard/users`,
     'Waiver of Liability': `${base}#waiver`,

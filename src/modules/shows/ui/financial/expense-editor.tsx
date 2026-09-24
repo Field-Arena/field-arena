@@ -14,9 +14,18 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
   const save = useSaveShowExpenses();
 
   const nextId = useRef(0);
+  const lastSaved = useRef(expenses);
 
   function commit(next: ShowExpense[]) {
     setRows(next);
+    const unchanged =
+      next.length === lastSaved.current.length &&
+      next.every((r, i) => {
+        const prev = lastSaved.current[i];
+        return prev?.id === r.id && prev.label === r.label && prev.amount === r.amount;
+      });
+    if (unchanged) return;
+    lastSaved.current = next;
     save.mutate({ showId, expenses: next });
   }
 

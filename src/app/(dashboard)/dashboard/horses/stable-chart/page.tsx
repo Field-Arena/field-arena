@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getStableChartPageData } from '@/modules/shows/data/stable-chart-queries';
+import { listArrivalsDepartures } from '@/modules/shows/data/arrivals-departures-queries';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { WorkspaceHeader } from '@/shared/ui/organizer/workspace-header';
@@ -28,10 +29,11 @@ export default async function StableChartPage({
   }
 
   const supabase = await createServerClient();
-  const [{ stats, stage }, showRow, chartData] = await Promise.all([
+  const [{ stats, stage }, showRow, chartData, arrivals] = await Promise.all([
     getShowManagerVitals(context.currentShow.id),
     supabase.from('shows').select('locations').eq('id', context.currentShow.id).single(),
     getStableChartPageData(context.currentShow.id),
+    listArrivalsDepartures(context.currentShow.id),
   ]);
 
   if (!chartData) notFound();
@@ -53,7 +55,12 @@ export default async function StableChartPage({
         newShowSlot={<NewShowButton className="px-[15px] py-2.5 text-[13px]" />}
       />
 
-      <StableChartScreen data={chartData} publicId={context.currentShow.slug ?? context.currentShow.id} />
+      <StableChartScreen
+        data={chartData}
+        arrivals={arrivals}
+        showEndDate={context.currentShow.endDate}
+        publicId={context.currentShow.slug ?? context.currentShow.id}
+      />
     </div>
   );
 }
