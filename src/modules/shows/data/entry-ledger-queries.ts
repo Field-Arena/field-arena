@@ -81,52 +81,72 @@ export async function getEntryLedgerPageData(showId: string): Promise<EntryLedge
   if (showError) throw showError;
   if (!show) return null;
 
-  const [{ data: entries, error: entriesError }, horsesData] = await Promise.all([
+  const [
+    { data: entries, error: entriesError },
+    horsesData,
+    { data: openIssues, error: issuesError },
+  ] = await Promise.all([
     supabase
       .from('show_entries')
       .select('id, entry_number, back_number, status, rider_id, rider_name, show_horse_id')
       .eq('show_id', showId),
     getHorsesPageData(showId),
+    // Filters only on show_id/status -- no dependency on entries, so it runs
+    // alongside them instead of waiting for the whole chain below.
+    supabase
+      .from('entry_issues')
+      .select('id, show_entry_id, kind, message, detail, status')
+      .eq('show_id', showId)
+      .eq('status', 'open'),
   ]);
   if (entriesError) throw entriesError;
+  if (issuesError) throw issuesError;
 
   if (entries.length === 0) return { showId: show.id, showName: show.name, rows: [] };
 
   const showHorseIds = [...new Set(entries.map((e) => e.show_horse_id))];
-  const { data: showHorses, error: horsesError } = await supabase
-    .from('show_horses')
-    .select('id, horse_id, horse_name, bridle_number')
-    .in('id', showHorseIds);
+  const showEntryIds = entries.map((e) => e.id);
+
+  // show_horses and class_entries both depend only on `entries`, not on each
+  // other -- fetch together instead of one after the other.
+  const [
+    { data: showHorses, error: horsesError },
+    { data: classEntries, error: classEntriesError },
+  ] = await Promise.all([
+    supabase
+      .from('show_horses')
+      .select('id, horse_id, horse_name, bridle_number')
+      .in('id', showHorseIds),
+    supabase
+      .from('class_entries')
+      .select('id, class_id, order_id, show_entry_id')
+      .in('show_entry_id', showEntryIds),
+  ]);
   if (horsesError) throw horsesError;
+  if (classEntriesError) throw classEntriesError;
   const showHorseById = new Map(showHorses.map((h) => [h.id, h]));
 
-  const showEntryIds = entries.map((e) => e.id);
-  const { data: classEntries, error: classEntriesError } = await supabase
-    .from('class_entries')
-    .select('id, class_id, order_id, show_entry_id')
-    .in('show_entry_id', showEntryIds);
-  if (classEntriesError) throw classEntriesError;
-
   const classIds = [...new Set(classEntries.map((c) => c.class_id))];
-  const { data: classes, error: classesError } = classIds.length
-    ? await supabase.from('classes').select('id, label, display_name, fee').in('id', classIds)
-    : { data: [], error: null };
-  if (classesError) throw classesError;
-  const classById = new Map(classes.map((c) => [c.id, c]));
-
   const orderIds = [...new Set(classEntries.map((c) => c.order_id).filter((id): id is string => !!id))];
-  const { data: orders, error: ordersError } = orderIds.length
-    ? await supabase.from('orders').select('id, status, items').in('id', orderIds)
-    : { data: [], error: null };
+
+  // classes and orders both depend only on `classEntries`, not on each
+  // other -- fetch together instead of one after the other.
+  const [
+    { data: classes, error: classesError },
+    { data: orders, error: ordersError },
+  ] = await Promise.all([
+    classIds.length
+      ? supabase.from('classes').select('id, label, display_name, fee').in('id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+    orderIds.length
+      ? supabase.from('orders').select('id, status, items').in('id', orderIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (classesError) throw classesError;
   if (ordersError) throw ordersError;
+  const classById = new Map(classes.map((c) => [c.id, c]));
   const orderById = new Map(orders.map((o) => [o.id, o]));
 
-  const { data: openIssues, error: issuesError } = await supabase
-    .from('entry_issues')
-    .select('id, show_entry_id, kind, message, detail, status')
-    .eq('show_id', showId)
-    .eq('status', 'open');
-  if (issuesError) throw issuesError;
   const openIssueCountByEntry = new Map<string, number>();
   const issuesByEntry = new Map<string, EntryDetailIssue[]>();
   for (const row of openIssues) {

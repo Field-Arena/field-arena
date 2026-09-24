@@ -449,12 +449,26 @@ export async function getRiderScorecard(entryId: string): Promise<RiderScorecard
   const user = await getCachedRiderUser();
   if (!user) return null;
 
-  const { data: entry, error: entryError } = await supabase
-    .from('class_entries')
-    .select('id, class_id, rider_id, num, rider, horse, final_pct, test_override')
-    .eq('id', entryId)
-    .maybeSingle();
+  // scores depends only on entryId, same as entry itself -- fetch both
+  // together instead of waiting for the whole entry -> class -> show chain.
+  const [
+    { data: entry, error: entryError },
+    { data: scores, error: scoresError },
+  ] = await Promise.all([
+    supabase
+      .from('class_entries')
+      .select('id, class_id, rider_id, num, rider, horse, final_pct, test_override')
+      .eq('id', entryId)
+      .maybeSingle(),
+    supabase
+      .from('scores')
+      .select(
+        'seat_id, movements, collectives, errors, remarks, final_remarks, submitted, signed_by, signed_at',
+      )
+      .eq('entry_id', entryId),
+  ]);
   if (entryError) throw entryError;
+  if (scoresError) throw scoresError;
   if (entry?.rider_id !== user.id) return null;
 
   const { data: cls, error: classError } = await supabase
@@ -471,14 +485,6 @@ export async function getRiderScorecard(entryId: string): Promise<RiderScorecard
     .eq('id', cls.show_id)
     .maybeSingle();
   if (showError) throw showError;
-
-  const { data: scores, error: scoresError } = await supabase
-    .from('scores')
-    .select(
-      'seat_id, movements, collectives, errors, remarks, final_remarks, submitted, signed_by, signed_at',
-    )
-    .eq('entry_id', entryId);
-  if (scoresError) throw scoresError;
 
   const submittedScores = new Map(scores.filter((s) => s.submitted).map((s) => [s.seat_id, s]));
 

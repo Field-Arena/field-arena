@@ -4,7 +4,7 @@ import {
   listIncompleteShowsForOrg,
   type IncompleteShowSummary,
 } from '@/modules/shows/data/queries';
-import { getShowCompleteness } from '@/modules/shows/data/setup-queries';
+import { getShowsCompleteness } from '@/modules/shows/data/setup-queries';
 import {
   IncompleteShowsScreen,
   type IncompleteShowRow,
@@ -23,12 +23,11 @@ export default async function IncompleteShowsPage() {
   }
 
   const shows: IncompleteShowSummary[] = await listIncompleteShowsForOrg(context.orgId);
-  const rows: IncompleteShowRow[] = await Promise.all(
-    shows.map(async (show) => ({
-      show,
-      completeness: await getShowCompleteness(show.id),
-    })),
-  );
+  const completenessByShow = await getShowsCompleteness(shows.map((s) => s.id));
+  const rows: IncompleteShowRow[] = shows.map((show) => ({
+    show,
+    completeness: completenessByShow.get(show.id) ?? { sections: [], complete: false },
+  }));
 
   return <IncompleteShowsScreen orgName={context.orgName} rows={rows} />;
 }

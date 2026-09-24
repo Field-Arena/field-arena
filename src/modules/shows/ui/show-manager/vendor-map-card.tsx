@@ -55,12 +55,20 @@ export function VendorMapCard({ data }: { data: RiderEntriesData }) {
           ref={inputRef}
           type="file"
           accept="image/*,application/pdf"
-          className="file:text-forest hover:file:border-gold h-auto w-auto min-w-0 cursor-pointer rounded-none border-0 bg-transparent px-0 py-0 text-[12.5px] text-[#6E7C76] file:mr-3 file:cursor-pointer file:rounded-[9px] file:border file:border-[#D9E1DD] file:bg-white file:px-3.5 file:py-2 file:text-[12.5px] file:font-semibold"
+          className="hidden"
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
           }}
           aria-label="Vendor space map file"
         />
+        <Button
+          type="button"
+          variant="outline"
+          className={cn('h-auto', SM_GHOST_BTN)}
+          onClick={() => inputRef.current?.click()}
+        >
+          {file ? file.name : 'Choose file'}
+        </Button>
         <Button
           type="button"
           variant="ghost"

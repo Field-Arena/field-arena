@@ -33,6 +33,27 @@ export function DocumentsCard({
   const remove = useRemoveShowDocument();
   const assign = useUpdateDocumentEvents();
 
+  // doc.eventIds only reflects a checkbox click once router.refresh() lands
+  // -- flip instantly instead. `baseline` records what eventIds looked like
+  // right before the optimistic change, so once fresh props move past that
+  // baseline we know the refresh landed and can drop the override.
+  const [pendingEventIds, setPendingEventIds] = useState<Record<string, string[]>>({});
+  const [baseline, setBaseline] = useState<Record<string, string[]>>({});
+  const sameIds = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((id) => b.includes(id));
+  const without = (record: Record<string, string[]>, ids: string[]) =>
+    Object.fromEntries(Object.entries(record).filter(([key]) => !ids.includes(key)));
+  const settled = documents
+    .filter((doc) => {
+      const base = baseline[doc.id];
+      return base && !sameIds(base, doc.eventIds);
+    })
+    .map((doc) => doc.id);
+  if (settled.length > 0) {
+    setPendingEventIds((prev) => without(prev, settled));
+    setBaseline((prev) => without(prev, settled));
+  }
+
   function handleFiles(files: FileList) {
     for (const file of Array.from(files)) {
       upload.mutate({ showId, file });
@@ -40,10 +61,21 @@ export function DocumentsCard({
   }
 
   function toggleEvent(doc: ShowDocumentRow, classId: string) {
-    const next = doc.eventIds.includes(classId)
-      ? doc.eventIds.filter((id) => id !== classId)
-      : [...doc.eventIds, classId];
-    assign.mutate({ id: doc.id, showId, eventIds: next });
+    const current = pendingEventIds[doc.id] ?? doc.eventIds;
+    const next = current.includes(classId)
+      ? current.filter((id) => id !== classId)
+      : [...current, classId];
+    setBaseline((prev) => ({ ...prev, [doc.id]: prev[doc.id] ?? doc.eventIds }));
+    setPendingEventIds((prev) => ({ ...prev, [doc.id]: next }));
+    assign.mutate(
+      { id: doc.id, showId, eventIds: next },
+      {
+        onError: () => {
+          setPendingEventIds((prev) => without(prev, [doc.id]));
+          setBaseline((prev) => without(prev, [doc.id]));
+        },
+      },
+    );
   }
 
   return (
@@ -84,6 +116,7 @@ export function DocumentsCard({
           <div className="flex flex-col gap-2.5">
             {documents.map((doc) => {
               const open = openDocId === doc.id;
+              const effectiveEventIds = pendingEventIds[doc.id] ?? doc.eventIds;
               return (
                 <div key={doc.id} className="rounded-[10px] border border-[#E9EDEB]">
                   <div className="flex flex-wrap items-center gap-3.5 px-4 py-3">
@@ -111,8 +144,8 @@ export function DocumentsCard({
                       }}
                       className="hover:text-forest h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                     >
-                      {doc.eventIds.length > 0
-                        ? `Attached to ${String(doc.eventIds.length)} ${doc.eventIds.length === 1 ? 'class' : 'classes'}`
+                      {effectiveEventIds.length > 0
+                        ? `Attached to ${String(effectiveEventIds.length)} ${effectiveEventIds.length === 1 ? 'class' : 'classes'}`
                         : 'Attach to classes'}
                     </Button>
                     <Button
@@ -141,7 +174,7 @@ export function DocumentsCard({
                             >
                               <input
                                 type="checkbox"
-                                checked={doc.eventIds.includes(c.id)}
+                                checked={effectiveEventIds.includes(c.id)}
                                 className="size-3.5 accent-[#1A5B3C]"
                                 onChange={() => {
                                   toggleEvent(doc, c.id);

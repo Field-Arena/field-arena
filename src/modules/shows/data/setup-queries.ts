@@ -478,10 +478,32 @@ export interface VenueOption {
 // exclusive to whoever created it (see 20260924120000_shared_venues.sql).
 // Show Setup's "Add stables from a saved location" picker uses this to let
 // an organizer reuse a venue another org already set up.
-export async function listSharedVenues(): Promise<VenueOption[]> {
+/* Venues are shared across every organization (see
+ * 20260924120000_shared_venues.sql), but that must not surface venues that
+ * belong to a soft-deleted org (dangling data with no real owner left to
+ * maintain it) or another org's demo data (Field-Arena's own seed/
+ * walkthrough venues -- never a real, usable venue for an actual client
+ * picking one for their show). The viewer's own org is always included
+ * even if it happens to be a demo org itself (e.g. the internal demo
+ * walkthrough account), so this never hides an organizer's own venues from
+ * them -- it only filters OTHER orgs' demo clutter out of the shared list. */
+export async function listSharedVenues(viewerOrgId: string): Promise<VenueOption[]> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase.from('venues').select('id, name, rings').order('name');
+  const { data: orgs, error: orgsError } = await supabase
+    .from('organizations')
+    .select('id')
+    .is('deleted_at', null)
+    .or(`is_demo.eq.false,id.eq.${viewerOrgId}`);
+  if (orgsError) throw orgsError;
+  const orgIds = orgs.map((o) => o.id);
+  if (orgIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('venues')
+    .select('id, name, rings')
+    .in('org_id', orgIds)
+    .order('name');
   if (error) throw error;
 
   return data.map((v) => ({
@@ -503,72 +525,65 @@ export interface ShowCompleteness {
   complete: boolean;
 }
 
-export async function getShowCompleteness(showId: string): Promise<ShowCompleteness> {
-  const supabase = await createServerClient();
+interface ShowCompletenessInput {
+  name: string | null;
+  org: string;
+  startDate: string | null;
+  endDate: string | null;
+  timezone: string | null;
+  showType: string;
+  governingBodies: string[];
+  locationsCount: number;
+  divisionsCount: number;
+  classesCount: number;
+  documentRequirementsCount: number;
+  staffCount: number;
+  merchEnabled: boolean;
+  merchItemsCount: number;
+  waiverApproved: boolean;
+}
 
-  const [show, divisions, classes, docs, staff, catalog] = await Promise.all([
-    supabase
-      .from('shows')
-      .select(
-        'name, start_date, end_date, timezone, locations, waiver_text, waiver_approved_text, show_details, show_type, governing_bodies',
-      )
-      .eq('id', showId)
-      .single(),
-    listDivisions(showId),
-    listClasses(showId),
-    getDocumentRequirements(showId),
-    listStaff(showId),
-    getSalesCatalog(showId),
-  ]);
-  if (show.error) throw show.error;
-
-  const locations = (show.data.locations ?? []) as unknown as RingRow[];
-  const waiverApproved =
-    !!show.data.waiver_approved_text && show.data.waiver_approved_text === show.data.waiver_text;
-
-  const org = ((show.data.show_details ?? {}) as { org?: string }).org ?? '';
-  const governingBodies = (show.data.governing_bodies ?? []) as unknown as string[];
-
-  const governingBodiesOk = show.data.show_type !== 'rated' || governingBodies.length > 0;
+function computeShowCompleteness(input: ShowCompletenessInput): ShowCompleteness {
+  const governingBodiesOk = input.showType !== 'rated' || input.governingBodies.length > 0;
 
   const sections: CompletenessSection[] = [
     {
       name: 'Show Details',
       items: [
-        { label: 'Show name', ok: !!show.data.name },
-        { label: 'Organization / club name', ok: !!org },
-        { label: 'Start date', ok: !!show.data.start_date },
-        { label: 'End date', ok: !!show.data.end_date },
-        { label: 'Time zone', ok: !!show.data.timezone },
+        { label: 'Show name', ok: !!input.name },
+        { label: 'Organization / club name', ok: !!input.org },
+        { label: 'Start date', ok: !!input.startDate },
+        { label: 'End date', ok: !!input.endDate },
+        { label: 'Time zone', ok: !!input.timezone },
         { label: 'Governing bodies', ok: governingBodiesOk },
       ],
       ok:
-        !!show.data.name &&
-        !!org &&
-        !!show.data.start_date &&
-        !!show.data.end_date &&
-        !!show.data.timezone &&
+        !!input.name &&
+        !!input.org &&
+        !!input.startDate &&
+        !!input.endDate &&
+        !!input.timezone &&
         governingBodiesOk,
     },
     {
       name: 'Venue',
-      items: [{ label: 'At least one ring/arena', ok: locations.length > 0 }],
-      ok: locations.length > 0,
+      items: [{ label: 'At least one ring/arena', ok: input.locationsCount > 0 }],
+      ok: input.locationsCount > 0,
     },
     {
       name: 'Class Divisions',
-      items: [{ label: 'At least one division', ok: divisions.length > 0 }],
-      ok: divisions.length > 0,
+      items: [{ label: 'At least one division', ok: input.divisionsCount > 0 }],
+      ok: input.divisionsCount > 0,
     },
     {
       name: 'Select Events',
-      items: [{ label: 'At least one class open for entry', ok: classes.length > 0 }],
-      ok: classes.length > 0,
+      items: [{ label: 'At least one class open for entry', ok: input.classesCount > 0 }],
+      ok: input.classesCount > 0,
     },
     {
       name: 'Required Documents',
-      items: [{ label: 'At least one requirement listed', ok: docs.length > 0 }],
-      ok: docs.length > 0,
+      items: [{ label: 'At least one requirement listed', ok: input.documentRequirementsCount > 0 }],
+      ok: input.documentRequirementsCount > 0,
     },
     {
       /* "No merchandise sales" is itself a complete, deliberate answer — this
@@ -579,27 +594,150 @@ export async function getShowCompleteness(showId: string): Promise<ShowCompleten
       name: 'Merchandise Sales',
       items: [
         {
-          label: catalog.merchEnabled
-            ? 'At least one item added'
-            : 'Marked as no merchandise sales',
-          ok: !catalog.merchEnabled || catalog.merchItems.length > 0,
+          label: input.merchEnabled ? 'At least one item added' : 'Marked as no merchandise sales',
+          ok: !input.merchEnabled || input.merchItemsCount > 0,
         },
       ],
-      ok: !catalog.merchEnabled || catalog.merchItems.length > 0,
+      ok: !input.merchEnabled || input.merchItemsCount > 0,
     },
     {
       name: 'Staffing',
-      items: [{ label: 'At least one staff member assigned', ok: staff.length > 0 }],
-      ok: staff.length > 0,
+      items: [{ label: 'At least one staff member assigned', ok: input.staffCount > 0 }],
+      ok: input.staffCount > 0,
     },
     {
       name: 'Waiver of Liability',
-      items: [{ label: 'Approved, matching the current text', ok: waiverApproved }],
-      ok: waiverApproved,
+      items: [{ label: 'Approved, matching the current text', ok: input.waiverApproved }],
+      ok: input.waiverApproved,
     },
   ];
 
   return { sections, complete: sections.every((s) => s.ok) };
+}
+
+/* Computes completeness for every show already loaded on the page, from
+ * data the page already fetched — zero extra queries. Use this instead of
+ * getShowCompleteness whenever divisions/classes/staff/show detail are
+ * already in hand (e.g. the show manager's own Setup page). */
+export function completenessFromLoadedShow(input: {
+  show: Pick<
+    ShowSetupDetail,
+    | 'name'
+    | 'org'
+    | 'startDate'
+    | 'endDate'
+    | 'timezone'
+    | 'showType'
+    | 'governingBodies'
+    | 'locations'
+    | 'documentRequirements'
+    | 'merchandiseEnabled'
+    | 'merchItems'
+    | 'waiverText'
+    | 'waiverApprovedText'
+  >;
+  divisions: DivisionRow[];
+  classes: ClassRow[];
+  staff: StaffRow[];
+}): ShowCompleteness {
+  const { show, divisions, classes, staff } = input;
+  return computeShowCompleteness({
+    name: show.name,
+    org: show.org ?? '',
+    startDate: show.startDate,
+    endDate: show.endDate,
+    timezone: show.timezone,
+    showType: show.showType,
+    governingBodies: show.governingBodies,
+    locationsCount: show.locations.length,
+    divisionsCount: divisions.length,
+    classesCount: classes.length,
+    documentRequirementsCount: show.documentRequirements.length,
+    staffCount: staff.length,
+    merchEnabled: show.merchandiseEnabled,
+    merchItemsCount: show.merchItems.length,
+    waiverApproved: !!show.waiverApprovedText && show.waiverApprovedText === show.waiverText,
+  });
+}
+
+/* Batched completeness for a list of shows -- e.g. the show picker and the
+ * incomplete-shows screen, both of which used to call getShowCompleteness
+ * once per show (6 queries each), turning a page with N shows into 6N+
+ * queries. This runs exactly 4 queries total regardless of how many shows
+ * are passed in. */
+export async function getShowsCompleteness(
+  showIds: string[],
+): Promise<Map<string, ShowCompleteness>> {
+  const result = new Map<string, ShowCompleteness>();
+  if (showIds.length === 0) return result;
+
+  const supabase = await createServerClient();
+
+  const [shows, divisions, classes, staff] = await Promise.all([
+    supabase
+      .from('shows')
+      .select(
+        'id, name, start_date, end_date, timezone, locations, waiver_text, waiver_approved_text, show_details, show_type, governing_bodies, document_requirements, merchandise_enabled, merch_items',
+      )
+      .in('id', showIds),
+    supabase.from('divisions').select('show_id').in('show_id', showIds),
+    supabase.from('classes').select('show_id').in('show_id', showIds),
+    supabase.from('staff_assignments').select('show_id').in('show_id', showIds),
+  ]);
+  if (shows.error) throw shows.error;
+  if (divisions.error) throw divisions.error;
+  if (classes.error) throw classes.error;
+  if (staff.error) throw staff.error;
+
+  const countByShow = (rows: { show_id: string }[]) => {
+    const counts = new Map<string, number>();
+    for (const row of rows) counts.set(row.show_id, (counts.get(row.show_id) ?? 0) + 1);
+    return counts;
+  };
+  const divisionCounts = countByShow(divisions.data);
+  const classCounts = countByShow(classes.data);
+  const staffCounts = countByShow(staff.data);
+
+  for (const show of shows.data) {
+    const locations = (show.locations ?? []) as unknown as RingRow[];
+    const org = ((show.show_details ?? {}) as { org?: string }).org ?? '';
+    const governingBodies = (show.governing_bodies ?? []) as unknown as string[];
+    const documentRequirements = (show.document_requirements ??
+      []) as unknown as DocumentRequirement[];
+    const merchItems = (show.merch_items ?? []) as unknown as MerchItem[];
+    const waiverApproved =
+      !!show.waiver_approved_text && show.waiver_approved_text === show.waiver_text;
+
+    result.set(
+      show.id,
+      computeShowCompleteness({
+        name: show.name,
+        org,
+        startDate: show.start_date,
+        endDate: show.end_date,
+        timezone: show.timezone,
+        showType: show.show_type ?? 'schooling',
+        governingBodies,
+        locationsCount: locations.length,
+        divisionsCount: divisionCounts.get(show.id) ?? 0,
+        classesCount: classCounts.get(show.id) ?? 0,
+        documentRequirementsCount: documentRequirements.length,
+        staffCount: staffCounts.get(show.id) ?? 0,
+        merchEnabled: show.merchandise_enabled ?? false,
+        merchItemsCount: merchItems.length,
+        waiverApproved,
+      }),
+    );
+  }
+
+  return result;
+}
+
+export async function getShowCompleteness(showId: string): Promise<ShowCompleteness> {
+  const map = await getShowsCompleteness([showId]);
+  const completeness = map.get(showId);
+  if (!completeness) throw new Error('Show not found.');
+  return completeness;
 }
 
 export interface ShowBilling {

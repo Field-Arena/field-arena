@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/shared/lib/utils';
 import { Card } from '@/shared/ui/organizer/card';
@@ -334,31 +334,38 @@ export function TestBuilderCard({
   const assignToClass = useAssignTestToClass();
   const unassignFromClass = useUnassignTestFromClass();
 
-  const catalogLevels = [...new Set(catalog.map((c) => c.level).filter((l): l is string => !!l))].sort(
-    (a, b) => a.localeCompare(b),
+  const catalogLevels = useMemo(
+    () =>
+      [...new Set(catalog.map((c) => c.level).filter((l): l is string => !!l))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [catalog],
   );
 
   const trimmedCatalogQuery = catalogQuery.trim().toLowerCase();
   const catalogBrowsingActive = trimmedCatalogQuery !== '' || catalogLevel !== '';
-  const filteredCatalog = catalogBrowsingActive
-    ? catalog.filter(
-        (c) =>
-          (catalogLevel === '' || c.level === catalogLevel) &&
-          (trimmedCatalogQuery === '' ||
-            c.title.toLowerCase().includes(trimmedCatalogQuery) ||
-            (c.level ?? '').toLowerCase().includes(trimmedCatalogQuery)),
-      )
-    : [];
 
   // Grouped by level so a long catalog reads as an organized list instead
   // of one flat pile of buttons — a level heading per group, sorted the
-  // same way the level quick-filters are.
-  const catalogByLevel: Record<string, TestCatalogEntry[]> = {};
-  for (const c of filteredCatalog) {
-    const key = c.level ?? 'Other';
-    (catalogByLevel[key] ??= []).push(c);
-  }
-  const catalogGroups = Object.entries(catalogByLevel).sort((a, b) => a[0].localeCompare(b[0]));
+  // same way the level quick-filters are. Memoized because `catalog` can be
+  // large and this recomputed on every render, including every keystroke in
+  // the (unrelated) test-draft form below.
+  const catalogGroups = useMemo(() => {
+    if (!catalogBrowsingActive) return [];
+    const filteredCatalog = catalog.filter(
+      (c) =>
+        (catalogLevel === '' || c.level === catalogLevel) &&
+        (trimmedCatalogQuery === '' ||
+          c.title.toLowerCase().includes(trimmedCatalogQuery) ||
+          (c.level ?? '').toLowerCase().includes(trimmedCatalogQuery)),
+    );
+    const catalogByLevel: Record<string, TestCatalogEntry[]> = {};
+    for (const c of filteredCatalog) {
+      const key = c.level ?? 'Other';
+      (catalogByLevel[key] ??= []).push(c);
+    }
+    return Object.entries(catalogByLevel).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [catalog, catalogBrowsingActive, catalogLevel, trimmedCatalogQuery]);
 
   function openNew() {
     setDraft({
@@ -1085,7 +1092,7 @@ export function TestBuilderCard({
 
         {catalogBrowsingActive && (
           <div className="mb-4 flex flex-col gap-3">
-            {filteredCatalog.length === 0 ? (
+            {catalogGroups.length === 0 ? (
               <p className="text-[13px] text-[#98A29D] italic">
                 {catalogQuery ? (
                   <>No official test matches &ldquo;{catalogQuery}&rdquo;.</>

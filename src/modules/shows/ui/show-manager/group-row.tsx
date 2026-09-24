@@ -39,6 +39,19 @@ export function GroupRow({
     data.classes.find((c) => c.groupName === group)?.division ?? '',
   );
 
+  // `selected` only flips once the server round-trip finishes and the page
+  // revalidates -- that's a full mutation + refetch, visibly a second or
+  // more. This override flips the checkbox instantly on click and clears
+  // itself once the real prop catches up (or reverts it on error), so the
+  // click feels instant instead of waiting on the network.
+  const [optimisticSelected, setOptimisticSelected] = useState<boolean | null>(null);
+  const [prevSelected, setPrevSelected] = useState(selected);
+  if (selected !== prevSelected) {
+    setPrevSelected(selected);
+    setOptimisticSelected(null);
+  }
+  const isSelected = optimisticSelected ?? selected;
+
   const add = useAddCatalogGroup();
   const remove = useRemoveCatalogGroup();
   const updateLocation = useUpdateGroupLocation();
@@ -48,18 +61,25 @@ export function GroupRow({
   const pickedDivisionFee = data.divisions.find((d) => d.name === division)?.defaultFee;
 
   function toggle() {
-    if (selected) {
-      remove.mutate({ showId: data.showId, group });
+    setOptimisticSelected(!isSelected);
+    if (isSelected) {
+      remove.mutate(
+        { showId: data.showId, group },
+        { onError: () => { setOptimisticSelected(null); } },
+      );
     } else {
-      add.mutate({
-        showId: data.showId,
-        category,
-        group,
-        division: division || undefined,
-        tests: [...tests],
-        fee: pickedDivisionFee ?? fee,
-        location,
-      });
+      add.mutate(
+        {
+          showId: data.showId,
+          category,
+          group,
+          division: division || undefined,
+          tests: [...tests],
+          fee: pickedDivisionFee ?? fee,
+          location,
+        },
+        { onError: () => { setOptimisticSelected(null); } },
+      );
     }
   }
 
@@ -67,7 +87,7 @@ export function GroupRow({
     <div
       className={cn(
         'rounded-[10px] border bg-white transition-colors',
-        selected ? 'border-[#BEDDCB] bg-[#F6FBF8]' : 'border-[#EDF0EE]',
+        isSelected ? 'border-[#BEDDCB] bg-[#F6FBF8]' : 'border-[#EDF0EE]',
       )}
     >
       <div className="flex items-center gap-3 px-3.5 py-2.5">
@@ -90,7 +110,7 @@ export function GroupRow({
         <Label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
-            checked={selected}
+            checked={isSelected}
             disabled={pending}
             onChange={toggle}
             className="size-4 flex-none accent-[#1A5B3C]"
@@ -104,7 +124,7 @@ export function GroupRow({
           onChange={(e) => {
             const next = e.target.value;
             setDivision(next);
-            if (selected) updateDivision.mutate({ showId: data.showId, group, division: next });
+            if (isSelected) updateDivision.mutate({ showId: data.showId, group, division: next });
           }}
           aria-label={`Division for ${group}`}
           className={cn(SM_SELECT, 'w-auto min-w-[140px] flex-none py-2 text-[13px]')}
@@ -122,7 +142,7 @@ export function GroupRow({
           onChange={(e) => {
             const next = e.target.value;
             setLocation(next);
-            if (selected) updateLocation.mutate({ showId: data.showId, group, location: next });
+            if (isSelected) updateLocation.mutate({ showId: data.showId, group, location: next });
           }}
           aria-label={`Location for ${group}`}
           className={cn(SM_SELECT, 'w-auto min-w-[150px] flex-none py-2 text-[13px]')}
