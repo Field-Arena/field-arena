@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import {
   getShowSetupDetail,
-  listVenuesForOrg,
+  listSharedVenues,
   listDivisions,
   listClasses,
   listStaff,
@@ -43,7 +43,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
   }
 
   const [venues, divisions, completeness, context, vitals, staff, classes] = await Promise.all([
-    listVenuesForOrg(show.orgId),
+    listSharedVenues(),
     listDivisions(show.id),
     getShowCompleteness(show.id),
     getOrganizerContext(show.id),

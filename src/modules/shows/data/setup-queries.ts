@@ -468,14 +468,14 @@ export interface VenueOption {
   rings: RingRow[];
 }
 
-export async function listVenuesForOrg(orgId: string): Promise<VenueOption[]> {
+// Any organization's venue, not just the caller's own -- a venue isn't
+// exclusive to whoever created it (see 20260924120000_shared_venues.sql).
+// Show Setup's "Add stables from a saved location" picker uses this to let
+// an organizer reuse a venue another org already set up.
+export async function listSharedVenues(): Promise<VenueOption[]> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
-    .from('venues')
-    .select('id, name, rings')
-    .eq('org_id', orgId)
-    .order('name');
+  const { data, error } = await supabase.from('venues').select('id, name, rings').order('name');
   if (error) throw error;
 
   return data.map((v) => ({

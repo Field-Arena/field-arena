@@ -156,10 +156,11 @@ export async function getStableChartPageData(showId: string): Promise<StableChar
   if (!showResult.data || !horsesData) return null;
   const show = showResult.data;
 
+  // Any organization's venue, not just this show's own -- see
+  // 20260924120000_shared_venues.sql.
   const { data: venues, error: venuesError } = await supabase
     .from('venues')
     .select('id, name, stables')
-    .eq('org_id', show.org_id)
     .order('name');
   if (venuesError) throw venuesError;
 

@@ -607,14 +607,11 @@ export async function applySavedLocationStables(input: unknown): Promise<void> {
   if (!profile.org_id) throw new Error('Your account is not the owner of an organization.');
 
   const supabase = await createServerClient();
+  // Any organization's venue, not just the caller's own -- see
+  // 20260924120000_shared_venues.sql.
   const [chart, venueResult] = await Promise.all([
     readChart(supabase, parsed.showId),
-    supabase
-      .from('venues')
-      .select('id, name, stables')
-      .eq('id', parsed.venueId)
-      .eq('org_id', profile.org_id)
-      .maybeSingle(),
+    supabase.from('venues').select('id, name, stables').eq('id', parsed.venueId).maybeSingle(),
   ]);
   if (venueResult.error) throw new Error(venueResult.error.message);
   const venue = venueResult.data;
