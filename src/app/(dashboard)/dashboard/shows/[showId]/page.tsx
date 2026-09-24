@@ -5,7 +5,7 @@ import {
   listDivisions,
   listClasses,
   listStaff,
-  getShowCompleteness,
+  completenessFromLoadedShow,
 } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { ReadinessMeter } from '@/modules/shows/ui/show-manager/readiness-meter';
@@ -41,16 +41,16 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
     );
   }
 
-  const [venues, divisions, completeness, context, vitals, staff, classes] = await Promise.all([
+  const [venues, divisions, context, vitals, staff, classes] = await Promise.all([
     listSharedVenues(),
     listDivisions(show.id),
-    getShowCompleteness(show.id),
     getOrganizerContext(show.id),
     getShowManagerVitals(show.id),
     listStaff(show.id),
     listClasses(show.id),
   ]);
 
+  const completeness = completenessFromLoadedShow({ show, divisions, classes, staff });
   const nextIncompleteSection = completeness.sections.find((s) => !s.ok) ?? null;
 
   return (

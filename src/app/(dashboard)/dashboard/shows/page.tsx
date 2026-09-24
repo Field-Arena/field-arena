@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { listShowsForPicker } from '@/modules/shows/data/queries';
-import { getShowCompleteness } from '@/modules/shows/data/setup-queries';
+import { getShowsCompleteness } from '@/modules/shows/data/setup-queries';
 import {
   ShowPickerScreen,
   type ShowPickerRow,
@@ -20,12 +20,11 @@ export default async function ShowManagerPage() {
   }
 
   const shows = await listShowsForPicker(context.orgId);
-  const rows: ShowPickerRow[] = await Promise.all(
-    shows.map(async (show) => ({
-      show,
-      completeness: await getShowCompleteness(show.id),
-    })),
-  );
+  const completenessByShow = await getShowsCompleteness(shows.map((s) => s.id));
+  const rows: ShowPickerRow[] = shows.map((show) => ({
+    show,
+    completeness: completenessByShow.get(show.id) ?? { sections: [], complete: false },
+  }));
 
   return <ShowPickerScreen orgName={context.orgName} rows={rows} />;
 }

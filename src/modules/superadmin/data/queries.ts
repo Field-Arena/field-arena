@@ -86,18 +86,14 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
     organizerAccounts.data.filter((row) => row.onboarded_at).map((row) => row.org_id),
   );
 
-  const { data: shows, error: showsError } = await supabase.from('shows').select('id, org_id');
-  if (showsError) throw showsError;
-
-  const { data: classRows, error: classError } = await supabase
-    .from('classes')
-    .select('id, show_id');
-  if (classError) throw classError;
-
-  const { data: entries, error: entriesError } = await supabase
-    .from('class_entries')
-    .select('id, class_id, rider');
-  if (entriesError) throw entriesError;
+  // One aggregated row per org (GROUP BY in SQL) instead of pulling every
+  // shows/classes/class_entries row on the whole platform into JS and
+  // joining them in memory -- see organization_entry_summaries().
+  const { data: summaries, error: summariesError } = await supabase.rpc(
+    'organization_entry_summaries',
+  );
+  if (summariesError) throw summariesError;
+  const summaryByOrg = new Map(summaries.map((s) => [s.org_id, s]));
 
   const { data: additionalOwnerRows, error: ownersError } = await supabase
     .from('organization_owners')
@@ -116,43 +112,10 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
     additionalOwnersByOrg.set(row.org_id, list);
   }
 
-  const showsByOrg = new Map<string, string[]>();
-  for (const show of shows) {
-    const list = showsByOrg.get(show.org_id) ?? [];
-    list.push(show.id);
-    showsByOrg.set(show.org_id, list);
-  }
-
-  const showByClass = new Map<string, string>();
-  for (const row of classRows) {
-    showByClass.set(row.id, row.show_id);
-  }
-
-  const showToOrg = new Map<string, string>();
-  for (const [orgId, showIds] of showsByOrg) {
-    for (const showId of showIds) showToOrg.set(showId, orgId);
-  }
-
-  const entriesByShow = new Map<string, number>();
-
-  const ridersByOrg = new Map<string, Set<string>>();
-
-  for (const entry of entries) {
-    const showId = showByClass.get(entry.class_id);
-    if (!showId) continue;
-    entriesByShow.set(showId, (entriesByShow.get(showId) ?? 0) + 1);
-
-    const orgId = showToOrg.get(showId);
-    if (orgId && entry.rider) {
-      const set = ridersByOrg.get(orgId) ?? new Set<string>();
-      set.add(entry.rider);
-      ridersByOrg.set(orgId, set);
-    }
-  }
-
   return orgs.map((org) => {
-    const orgShows = showsByOrg.get(org.id) ?? [];
-    const entryCount = orgShows.reduce((sum, id) => sum + (entriesByShow.get(id) ?? 0), 0);
+    const summary = summaryByOrg.get(org.id);
+    const showCount = summary?.show_count ?? 0;
+    const entryCount = summary?.entry_count ?? 0;
     return {
       id: org.id,
       name: org.name,
@@ -164,19 +127,19 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       isDemo: org.is_demo,
       deletedAt: org.deleted_at,
       feeModel: org.fee_model,
-      showCount: orgShows.length,
+      showCount,
       // Legacy's "Riders" column was the sum of each show's entry count, and
       // its revenue estimate multiplied that same number by avgEntryValue.
       // Keep both derived from `entryCount` so the column and the money next
       // to it agree; distinct people are carried separately as riderCount.
       entryCount,
-      riderCount: ridersByOrg.get(org.id)?.size ?? 0,
+      riderCount: summary?.rider_count ?? 0,
       revenueEstimate: entryCount * (org.avg_entry_value ?? 0),
       onboarded: signedInOrgs.has(org.id)
         ? true
         : accountOrgs.has(org.id)
           ? false
-          : orgShows.length > 0,
+          : showCount > 0,
       additionalOwners: additionalOwnersByOrg.get(org.id) ?? [],
     };
   });
@@ -274,17 +237,6 @@ export async function listCatalogDocuments(): Promise<CatalogDocument[]> {
       };
     }),
   );
-}
-
-export async function listPlatformUsers() {
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, name, email, platform_role, org_id, country, created_at')
-    .order('platform_role')
-    .order('name');
-  if (error) throw error;
-  return data;
 }
 
 export async function listPlatformAccounts(): Promise<PlatformAccount[]> {

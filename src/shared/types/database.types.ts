@@ -2609,6 +2609,15 @@ export type Database = {
         Returns: undefined
       }
       org_is_public: { Args: { target_org_id: string }; Returns: boolean }
+      organization_entry_summaries: {
+        Args: never
+        Returns: {
+          entry_count: number
+          org_id: string
+          rider_count: number
+          show_count: number
+        }[]
+      }
       rename_division: {
         Args: { division_id: string; new_name: string }
         Returns: undefined
