@@ -12,6 +12,7 @@ import {
   useDeleteDivision,
 } from '@/modules/shows/hooks/use-show-mutations';
 import type { DivisionRow } from '@/modules/shows/data/setup-queries';
+import { DIVISION_PRESETS } from '@/modules/shows/constants';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -19,6 +20,10 @@ import {
   SM_ROW_INPUT,
   SM_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
+
+const PRESET_PILL =
+  'h-auto rounded-full border border-[#D9E1DD] bg-white px-[13px] py-1.5 text-[12.5px] font-semibold ' +
+  'text-[#16261F] transition-colors hover:border-[#16261F] hover:bg-white disabled:opacity-60';
 
 export function ClassDivisionsCard({
   showId,
@@ -55,6 +60,9 @@ export function ClassDivisionsCard({
     create({ showId, name });
   }
 
+  const existingNames = new Set(rows.map((d) => d.name));
+  const presetOptions = DIVISION_PRESETS.filter((name) => !existingNames.has(name));
+
   return (
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Class divisions</h2>
@@ -85,6 +93,28 @@ export function ClassDivisionsCard({
           </div>
         ))}
       </div>
+
+      {presetOptions.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-[11.5px] font-semibold text-[#98A29D]">Quick add:</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {presetOptions.map((name) => (
+              <Button
+                key={name}
+                type="button"
+                variant="ghost"
+                className={PRESET_PILL}
+                disabled={creating}
+                onClick={() => {
+                  create({ showId, name });
+                }}
+              >
+                + {name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <Input
