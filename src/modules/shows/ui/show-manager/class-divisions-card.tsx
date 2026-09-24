@@ -19,11 +19,8 @@ import {
   SM_NOTE,
   SM_ROW_INPUT,
   SM_INPUT,
+  SM_SELECT,
 } from '@/modules/shows/ui/show-manager/tokens';
-
-const PRESET_PILL =
-  'h-auto rounded-full border border-[#D9E1DD] bg-white px-[13px] py-1.5 text-[12.5px] font-semibold ' +
-  'text-[#16261F] transition-colors hover:border-[#16261F] hover:bg-white disabled:opacity-60';
 
 export function ClassDivisionsCard({
   showId,
@@ -97,22 +94,22 @@ export function ClassDivisionsCard({
       {presetOptions.length > 0 && (
         <div className="mb-4">
           <p className="mb-1.5 text-[11.5px] font-semibold text-[#98A29D]">Quick add:</p>
-          <div className="flex flex-wrap items-center gap-2">
+          <select
+            value=""
+            disabled={creating}
+            className={cn('w-full max-w-xs', SM_SELECT)}
+            onChange={(e) => {
+              const name = e.target.value;
+              if (name) create({ showId, name });
+            }}
+          >
+            <option value="">Choose a standard division…</option>
             {presetOptions.map((name) => (
-              <Button
-                key={name}
-                type="button"
-                variant="ghost"
-                className={PRESET_PILL}
-                disabled={creating}
-                onClick={() => {
-                  create({ showId, name });
-                }}
-              >
-                + {name}
-              </Button>
+              <option key={name} value={name}>
+                {name}
+              </option>
             ))}
-          </div>
+          </select>
         </div>
       )}
 
