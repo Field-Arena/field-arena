@@ -1353,6 +1353,14 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
       .select('id')
       .single();
     if (error) throw new Error(error.message);
+    // A template is reusable across every show in the org, so the page that
+    // needs a fresh list isn't knowable from here by a single showId --
+    // revalidate the whole dynamic route instead of one instance of it.
+    // Without this, the save/delete succeeds in the database but the list
+    // and "tests offered" count silently keep showing stale, pre-change
+    // data after a refresh (this was reported as tests "disappearing" --
+    // they never actually left the database, the page just never re-fetched).
+    revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
     return { id: data.id };
   }
 
@@ -1362,6 +1370,7 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
     .select('id')
     .single();
   if (error) throw new Error(error.message);
+  revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
   return { id: data.id };
 }
 
@@ -1369,6 +1378,7 @@ export async function deleteTestTemplate(id: string): Promise<void> {
   const supabase = await createServerClient();
   const { error } = await supabase.from('test_templates').delete().eq('id', id);
   if (error) throw new Error(error.message);
+  revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
 }
 
 export async function assignTestTemplateToClass(input: unknown): Promise<void> {
