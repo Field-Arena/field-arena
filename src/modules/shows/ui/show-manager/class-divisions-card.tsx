@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -19,7 +19,6 @@ import {
   SM_NOTE,
   SM_ROW_INPUT,
   SM_INPUT,
-  SM_SELECT,
 } from '@/modules/shows/ui/show-manager/tokens';
 
 export function ClassDivisionsCard({
@@ -31,6 +30,8 @@ export function ClassDivisionsCard({
 }) {
   const [rows, setRows] = useState(divisions);
   const [newName, setNewName] = useState('');
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const { mutate: create, isPending: creating } = useCreateDivision({
     onSuccess: (id, name) => {
@@ -40,6 +41,22 @@ export function ClassDivisionsCard({
   });
   const { mutate: rename } = useRenameDivision();
   const { mutate: remove } = useDeleteDivision();
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   function commitRename(id: string, name: string) {
     setRows((r) => r.map((d) => (d.id === id ? { ...d, name } : d)));
@@ -51,14 +68,19 @@ export function ClassDivisionsCard({
     remove(id);
   }
 
-  function add() {
-    const name = newName.trim();
-    if (!name || rows.some((d) => d.name === name)) return;
-    create({ showId, name });
+  function addName(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || rows.some((d) => d.name === trimmed)) return;
+    create({ showId, name: trimmed });
+    setOpen(false);
   }
 
   const existingNames = new Set(rows.map((d) => d.name));
   const presetOptions = DIVISION_PRESETS.filter((name) => !existingNames.has(name));
+  const trimmedQuery = newName.trim().toLowerCase();
+  const suggestions = trimmedQuery
+    ? presetOptions.filter((name) => name.toLowerCase().includes(trimmedQuery))
+    : presetOptions;
 
   return (
     <Card className={SM_CARD_PAD}>
@@ -91,47 +113,56 @@ export function ClassDivisionsCard({
         ))}
       </div>
 
-      {presetOptions.length > 0 && (
-        <div className="mb-4">
-          <p className="mb-1.5 text-[11.5px] font-semibold text-[#98A29D]">Quick add:</p>
-          <select
-            value=""
-            disabled={creating}
-            className={cn('w-full max-w-xs', SM_SELECT)}
-            onChange={(e) => {
-              const name = e.target.value;
-              if (name) create({ showId, name });
+      <div ref={rootRef} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="relative">
+          <Input
+            value={newName}
+            placeholder="Choose a standard division, or type your own…"
+            className={cn('h-auto', SM_INPUT)}
+            onFocus={() => {
+              setOpen(true);
             }}
-          >
-            <option value="">Choose a standard division…</option>
-            {presetOptions.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+            onChange={(e) => {
+              setNewName(e.target.value);
+              setOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addName(newName);
+              }
+            }}
+          />
+          {open && suggestions.length > 0 && (
+            <ul
+              role="listbox"
+              aria-label="Standard divisions"
+              className="absolute top-full left-0 z-30 mt-1 max-h-[240px] w-full overflow-y-auto rounded-[10px] border border-[#D9E1DD] bg-white py-1 shadow-lg"
+            >
+              {suggestions.map((name) => (
+                <li key={name}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={false}
+                    onClick={() => {
+                      addName(name);
+                    }}
+                    className="text-ink-deep block w-full truncate px-3 py-2 text-left text-[13.5px] transition-colors hover:bg-[#E9EDEB]"
+                  >
+                    {name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
-
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <Input
-          value={newName}
-          placeholder="e.g. Vintage, Para, Masters"
-          className={cn('h-auto', SM_INPUT)}
-          onChange={(e) => {
-            setNewName(e.target.value);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              add();
-            }
-          }}
-        />
         <PrimaryButton
           className="rounded-[9px] whitespace-nowrap"
           disabled={creating || !newName.trim()}
-          onClick={add}
+          onClick={() => {
+            addName(newName);
+          }}
         >
           + Add division
         </PrimaryButton>
