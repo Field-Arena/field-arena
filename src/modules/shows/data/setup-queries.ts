@@ -1126,6 +1126,11 @@ export async function listTestCatalog(): Promise<TestCatalogEntry[]> {
   });
 }
 
+export interface AssignedClassOption {
+  classId: string;
+  label: string;
+}
+
 export interface TestBuilderPageData {
   showId: string;
   showName: string;
@@ -1133,13 +1138,14 @@ export interface TestBuilderPageData {
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
-  /** Class labels currently using each template, keyed by template id
-   * (via class_tests.test_template_id). Display-only hint, not used to gate
-   * anything. */
-  assignedByTemplateId: Record<string, string[]>;
+  /** Classes currently using each template, keyed by template id (via
+   * class_tests.test_template_id). Carries classId so a class can be
+   * unassigned directly, not just overwritten by assigning a different
+   * test. */
+  assignedByTemplateId: Record<string, AssignedClassOption[]>;
   /** Fallback for class_tests rows assigned before test_template_id existed
    * (name was the only link back then). Keyed by template name. */
-  assignedByTemplateName: Record<string, string[]>;
+  assignedByTemplateName: Record<string, AssignedClassOption[]>;
 }
 
 export async function getTestBuilderPageData(showId: string): Promise<TestBuilderPageData | null> {
@@ -1170,15 +1176,16 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (classTestsRes.error) throw classTestsRes.error;
 
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
-  const assignedByTemplateId: Record<string, string[]> = {};
-  const assignedByTemplateName: Record<string, string[]> = {};
+  const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
+  const assignedByTemplateName: Record<string, AssignedClassOption[]> = {};
   for (const row of classTestsRes.data) {
     const label = classLabelById.get(row.class_id);
     if (!label) continue;
+    const option: AssignedClassOption = { classId: row.class_id, label };
     if (row.test_template_id) {
-      (assignedByTemplateId[row.test_template_id] ??= []).push(label);
+      (assignedByTemplateId[row.test_template_id] ??= []).push(option);
     } else {
-      (assignedByTemplateName[row.name] ??= []).push(label);
+      (assignedByTemplateName[row.name] ??= []).push(option);
     }
   }
 

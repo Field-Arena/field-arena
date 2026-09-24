@@ -578,6 +578,12 @@ export const assignTestTemplateToClassSchema = z.object({
 
 export type AssignTestTemplateToClassInput = z.input<typeof assignTestTemplateToClassSchema>;
 
+export const unassignTestFromClassSchema = z.object({
+  classId: z.uuid(),
+});
+
+export type UnassignTestFromClassInput = z.input<typeof unassignTestFromClassSchema>;
+
 export const addManualHorseSchema = z.object({
   showId: z.uuid(),
   riderName: z.string().trim().min(1, 'A rider name is required').max(160),

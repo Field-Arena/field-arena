@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/shared/lib/utils';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -11,6 +12,7 @@ import {
   useSaveTestTemplate,
   useDeleteTestTemplate,
   useAssignTestToClass,
+  useUnassignTestFromClass,
 } from '@/modules/shows/hooks/use-test-builder-mutations';
 import { saveTestTemplateSchema } from '@/modules/shows/schemas';
 import type { SaveTestTemplateInput } from '@/modules/shows/schemas';
@@ -18,6 +20,7 @@ import type {
   TestTemplateRow,
   TestCatalogEntry,
   TestBuilderClassOption,
+  AssignedClassOption,
 } from '@/modules/shows/data/setup-queries';
 import {
   SM_CARD_PAD,
@@ -314,13 +317,14 @@ export function TestBuilderCard({
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
-  assignedByTemplateId: Record<string, string[]>;
-  assignedByTemplateName: Record<string, string[]>;
+  assignedByTemplateId: Record<string, AssignedClassOption[]>;
+  assignedByTemplateName: Record<string, AssignedClassOption[]>;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openInstr, setOpenInstr] = useState<Record<string, boolean>>({});
   const [pickedClass, setPickedClass] = useState<Record<string, string>>({});
   const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogLevel, setCatalogLevel] = useState('');
   const save = useSaveTestTemplate({
     onSuccess: () => {
       setDraft(null);
@@ -328,15 +332,33 @@ export function TestBuilderCard({
   });
   const del = useDeleteTestTemplate();
   const assignToClass = useAssignTestToClass();
+  const unassignFromClass = useUnassignTestFromClass();
+
+  const catalogLevels = [...new Set(catalog.map((c) => c.level).filter((l): l is string => !!l))].sort(
+    (a, b) => a.localeCompare(b),
+  );
 
   const trimmedCatalogQuery = catalogQuery.trim().toLowerCase();
-  const filteredCatalog = trimmedCatalogQuery
+  const catalogBrowsingActive = trimmedCatalogQuery !== '' || catalogLevel !== '';
+  const filteredCatalog = catalogBrowsingActive
     ? catalog.filter(
         (c) =>
-          c.title.toLowerCase().includes(trimmedCatalogQuery) ||
-          (c.level ?? '').toLowerCase().includes(trimmedCatalogQuery),
+          (catalogLevel === '' || c.level === catalogLevel) &&
+          (trimmedCatalogQuery === '' ||
+            c.title.toLowerCase().includes(trimmedCatalogQuery) ||
+            (c.level ?? '').toLowerCase().includes(trimmedCatalogQuery)),
       )
     : [];
+
+  // Grouped by level so a long catalog reads as an organized list instead
+  // of one flat pile of buttons — a level heading per group, sorted the
+  // same way the level quick-filters are.
+  const catalogByLevel: Record<string, TestCatalogEntry[]> = {};
+  for (const c of filteredCatalog) {
+    const key = c.level ?? 'Other';
+    (catalogByLevel[key] ??= []).push(c);
+  }
+  const catalogGroups = Object.entries(catalogByLevel).sort((a, b) => a[0].localeCompare(b[0]));
 
   function openNew() {
     setDraft({
@@ -1006,10 +1028,24 @@ export function TestBuilderCard({
     <>
       <Card className={SM_CARD_PAD}>
         <h2 className={SM_SECTION_HEAD}>Test Builder</h2>
-        <p className={SM_NOTE}>
-          Your organization&apos;s own score sheets — sections, scored items, penalties and scoring
-          rules you author once and reuse across shows.
-        </p>
+        <p className={`${SM_NOTE} font-semibold`}>Type your test below.</p>
+        <ol className={`${SM_NOTE} mb-4 list-decimal space-y-1 pl-5`}>
+          <li>
+            Click <strong>+ New Test</strong> to start blank, or find one in the official catalog
+            below to clone instead of typing it from scratch.
+          </li>
+          <li>Fill in the name, level, and discipline, then add each scored item as its own row.</li>
+          <li>
+            Click <strong>Save test</strong> — it&apos;s added to your library below, ready to
+            reuse on any show.
+          </li>
+          <li>
+            Pick a class from the dropdown next to a saved test and click <strong>Assign</strong>{' '}
+            to put it to use. Assigned the wrong one? Click the <strong>×</strong> next to the
+            class name under &ldquo;Currently used by&rdquo; to remove it, then assign the right
+            test instead.
+          </li>
+        </ol>
 
         <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
           <PrimaryButton onClick={openNew}>+ New Test</PrimaryButton>
@@ -1023,23 +1059,59 @@ export function TestBuilderCard({
           />
         </div>
 
-        {trimmedCatalogQuery && (
-          <div className="mb-4 flex flex-wrap gap-2.5">
+        {catalogLevels.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11.5px] font-semibold text-[#98A29D]">Browse by level:</span>
+            {catalogLevels.map((level) => (
+              <Button
+                key={level}
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setCatalogLevel((prev) => (prev === level ? '' : level));
+                }}
+                className={cn(
+                  'h-auto rounded-full border px-2.5 py-1 text-[12px] font-semibold hover:bg-transparent',
+                  catalogLevel === level
+                    ? 'border-[#1A5B3C] text-forest'
+                    : 'border-[#E9EDEB] text-[#5A6B63] hover:border-[#C9A227]',
+                )}
+              >
+                {level}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {catalogBrowsingActive && (
+          <div className="mb-4 flex flex-col gap-3">
             {filteredCatalog.length === 0 ? (
               <p className="text-[13px] text-[#98A29D] italic">
-                No official test matches &ldquo;{catalogQuery}&rdquo;.
+                {catalogQuery ? (
+                  <>No official test matches &ldquo;{catalogQuery}&rdquo;.</>
+                ) : (
+                  <>No official tests in that level.</>
+                )}
               </p>
             ) : (
-              filteredCatalog.slice(0, 20).map((c) => (
-                <GhostButton
-                  key={c.id}
-                  onClick={() => {
-                    openCatalog(c.id);
-                  }}
-                >
-                  Clone &ldquo;{c.title}
-                  {c.level ? ` — ${c.level}` : ''}&rdquo;
-                </GhostButton>
+              catalogGroups.map(([level, entries]) => (
+                <div key={level}>
+                  <div className="mb-1.5 text-[11px] font-bold tracking-[.08em] text-[#6E7C76] uppercase">
+                    {level} ({entries.length})
+                  </div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {entries.slice(0, 20).map((c) => (
+                      <GhostButton
+                        key={c.id}
+                        onClick={() => {
+                          openCatalog(c.id);
+                        }}
+                      >
+                        Clone &ldquo;{c.title}&rdquo;
+                      </GhostButton>
+                    ))}
+                  </div>
+                </div>
               ))
             )}
           </div>
@@ -1076,8 +1148,30 @@ export function TestBuilderCard({
                     </span>
                     <span className="text-[12px] text-[#98A29D]">{meta}</span>
                     {assignedTo.length > 0 && (
-                      <span className="text-forest mt-0.5 block text-[12px] font-semibold">
-                        Currently used by: {assignedTo.join(', ')}
+                      <span className="text-forest mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-semibold">
+                        Currently used by:
+                        {assignedTo.map((a) => (
+                          <span
+                            key={a.classId}
+                            className="inline-flex items-center gap-1 rounded-full bg-[#EAF3EC] px-2 py-0.5"
+                          >
+                            {a.label}
+                            <button
+                              type="button"
+                              title={`Remove this test from ${a.label}`}
+                              disabled={
+                                unassignFromClass.isPending &&
+                                unassignFromClass.variables.classId === a.classId
+                              }
+                              onClick={() => {
+                                unassignFromClass.mutate({ classId: a.classId });
+                              }}
+                              className="hover:text-status-danger text-forest font-bold disabled:opacity-50"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
                       </span>
                     )}
                   </span>

@@ -41,6 +41,7 @@ import {
   updateDocumentEventsSchema,
   saveTestTemplateSchema,
   assignTestTemplateToClassSchema,
+  unassignTestFromClassSchema,
   saveShowExpensesSchema,
   updateScheduleRulesSchema,
   setClassDurationSchema,
@@ -1404,6 +1405,27 @@ export async function assignTestTemplateToClass(input: unknown): Promise<void> {
     },
     { onConflict: 'class_id' },
   );
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+
+  const { data: cls } = await supabase
+    .from('classes')
+    .select('show_id')
+    .eq('id', parsed.classId)
+    .maybeSingle();
+  if (cls?.show_id) revalidatePath(`/dashboard/shows/${cls.show_id}/test-builder`);
+}
+
+// The only way to change which test a class uses was to assign a
+// different one over it -- fine if you know which test you meant, but
+// there was no way to just detach a wrong one and leave the class
+// unassigned again.
+export async function unassignTestFromClass(input: unknown): Promise<void> {
+  const parsed = parseInput(unassignTestFromClassSchema, input);
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.from('class_tests').delete().eq('class_id', parsed.classId);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
