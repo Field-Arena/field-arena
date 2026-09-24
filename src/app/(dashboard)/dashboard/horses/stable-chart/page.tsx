@@ -58,6 +58,7 @@ export default async function StableChartPage({
       <StableChartScreen
         data={chartData}
         arrivals={arrivals}
+        showEndDate={context.currentShow.endDate}
         publicId={context.currentShow.slug ?? context.currentShow.id}
       />
     </div>

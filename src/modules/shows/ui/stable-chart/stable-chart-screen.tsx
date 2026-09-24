@@ -41,10 +41,12 @@ import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departur
 export function StableChartScreen({
   data,
   arrivals,
+  showEndDate,
   publicId,
 }: {
   data: StableChartPageData;
   arrivals: ArrivalDepartureRow[];
+  showEndDate: string | null;
   publicId?: string;
 }) {
   const { showId, showName, chart, savedLocations, groups } = data;
@@ -190,6 +192,10 @@ export function StableChartScreen({
         )}
       </div>
 
+      <div className="mb-5">
+        <ArrivalsDeparturesPanel rows={arrivals} showEndDate={showEndDate} />
+      </div>
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <StablingGroupsSidebar groups={groups} />
 
@@ -271,8 +277,6 @@ export function StableChartScreen({
             );
           })}
       </DndContext>
-
-      <ArrivalsDeparturesPanel rows={arrivals} />
 
       <StableChartPrintView showName={showName} chart={chart} />
 

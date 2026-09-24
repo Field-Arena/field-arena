@@ -13,13 +13,23 @@ function sortValue(row: ArrivalDepartureRow, key: SortKey): string {
   return row.departureDate ?? '9999-99-99';
 }
 
-export function ArrivalsDeparturesPanel({ rows }: { rows: ArrivalDepartureRow[] }) {
+export function ArrivalsDeparturesPanel({
+  rows,
+  showEndDate,
+}: {
+  rows: ArrivalDepartureRow[];
+  showEndDate: string | null;
+}) {
   const [sortKey, setSortKey] = useState<SortKey>('arrival');
 
   const sorted = useMemo(
     () => [...rows].sort((a, b) => sortValue(a, sortKey).localeCompare(sortValue(b, sortKey))),
     [rows, sortKey],
   );
+
+  const isLate = (row: ArrivalDepartureRow) =>
+    !!showEndDate && !!row.departureDate && row.departureDate > showEndDate;
+  const lateCount = rows.filter(isLate).length;
 
   const headers: { key: SortKey; label: string }[] = [
     { key: 'rider', label: 'Rider / Trainer' },
@@ -34,6 +44,8 @@ export function ArrivalsDeparturesPanel({ rows }: { rows: ArrivalDepartureRow[] 
       </h3>
       <p className="mb-3 text-[12.5px] text-[#7A8781]">
         What riders reported at checkout — sort to spot late arrivals or early departures.
+        {lateCount > 0 &&
+          ` ${String(lateCount)} ${lateCount === 1 ? 'departure is' : 'departures are'} after the show ends.`}
       </p>
 
       {rows.length === 0 ? (
@@ -80,7 +92,13 @@ export function ArrivalsDeparturesPanel({ rows }: { rows: ArrivalDepartureRow[] 
                   </td>
                   <td className="p-2 whitespace-nowrap">
                     {row.departureDate ? (
-                      formatDateShort(row.departureDate)
+                      isLate(row) ? (
+                        <span className="font-semibold text-[#B4432F]" title="After the show ends">
+                          ⚠ {formatDateShort(row.departureDate)}
+                        </span>
+                      ) : (
+                        formatDateShort(row.departureDate)
+                      )
                     ) : (
                       <span className="text-[#B4432F]">Not set</span>
                     )}
