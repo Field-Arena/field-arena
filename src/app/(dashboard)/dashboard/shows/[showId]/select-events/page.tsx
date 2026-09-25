@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
 import { getSelectEventsData } from '@/modules/shows/data/setup-queries';
-import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { SelectEventsPicker } from '@/modules/shows/ui/show-manager/select-events-picker';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
-import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Select Events — Field & Arena' };
 
@@ -28,22 +25,8 @@ export default async function SelectEventsPage({
     );
   }
 
-  const [context, vitals] = await Promise.all([
-    getOrganizerContext(data.showId),
-    getShowManagerVitals(data.showId),
-  ]);
-
   return (
-    <ShowManagerShell
-      showId={showId}
-      showName={data.showName}
-      activeTab="Select Events"
-      orgName={context.orgName}
-      shows={context.shows}
-      stats={vitals.stats}
-      stage={vitals.stage}
-      canViewMoney={context.canViewMoney}
-    >
+    <>
       <SelectEventsPicker data={data} />
       <SectionFooter
         currentTab="Select Events"
@@ -54,6 +37,6 @@ export default async function SelectEventsPage({
             : null
         }
       />
-    </ShowManagerShell>
+    </>
   );
 }

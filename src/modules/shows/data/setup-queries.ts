@@ -41,6 +41,26 @@ import {
   SETTLED_BOOKING_STATUS,
 } from '@/shared/lib/sales-math';
 
+export interface ShowManagerHeader {
+  id: string;
+  name: string;
+}
+
+/* Just enough to render the Show Manager shell's title/tab-strip from the
+ * layout -- name only, not the full show record any individual tab needs.
+ * Kept separate from each tab's own (much larger) data fetch so the shell
+ * doesn't force every tab to pull in data only some of them use. */
+export async function getShowManagerHeader(showId: string): Promise<ShowManagerHeader | null> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('shows')
+    .select('id, name')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export interface ClassRow {
   id: string;
   label: string;

@@ -1,10 +1,13 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ScreenTitle, ScreenLede, Eyebrow, Card } from '@/shared/ui/organizer/card';
 import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
 import { fa } from '@/shared/lib/organizer-theme';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
 import type { ShowStats, ShowListItem } from '@/modules/shows/data/queries';
-import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/constants';
+import { SHOW_MANAGER_SECTIONS } from '@/modules/shows/constants';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 import { ShowSwitcher } from '@/modules/shows/ui/show-manager/show-switcher';
 
@@ -13,7 +16,6 @@ const SM_TABS = SHOW_MANAGER_SECTIONS;
 export function ShowManagerShell({
   showId,
   showName,
-  activeTab = 'Setup',
   orgName,
   shows,
   stats,
@@ -24,7 +26,6 @@ export function ShowManagerShell({
   showId: string;
   showName: string;
 
-  activeTab?: ShowManagerTab;
   orgName: string;
   shows: ShowListItem[];
   stats: ShowStats;
@@ -32,8 +33,12 @@ export function ShowManagerShell({
   canViewMoney: boolean;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const currentTab =
+    SM_TABS.find((t) => pathname === `/dashboard/shows/${showId}${t.path}`) ?? SM_TABS[0];
+  const activeTab = currentTab.label;
+  const tabPath = currentTab.path;
   const currentIndex = SHOW_STAGES.findIndex((s) => s.key === stage);
-  const tabPath = SM_TABS.find((t) => t.label === activeTab)?.path ?? '';
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
