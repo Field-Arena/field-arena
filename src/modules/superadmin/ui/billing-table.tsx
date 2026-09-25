@@ -89,6 +89,7 @@ export function BillingTable({ rows }: { rows: OrganizationBilling[] }) {
                 <div role="cell">
                   <Link
                     href={`/dashboard/superadmin/billing/${row.id}`}
+                    prefetch={false}
                     className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
                   >
                     View billing

@@ -41,6 +41,7 @@ export function TabStrip({
           <Link
             key={tab.key}
             href={tab.href}
+            prefetch={false}
             aria-current={isActive ? 'page' : undefined}
             className={
               isActive

@@ -95,6 +95,7 @@ export function ResultsPanel({
                     <Link
                       key={classId}
                       href={`/dashboard/scoring/${classId}`}
+                      prefetch={false}
                       className="text-forest text-[12.5px] font-semibold hover:underline"
                     >
                       Score{distinctClasses.length > 1 ? ` ${className}` : ''} →
