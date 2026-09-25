@@ -165,6 +165,7 @@ export function OrganizerShell({
               <Tip key={role} text={target.title} className="grid place-items-center">
                 <Link
                   href={target.href}
+                  prefetch={false}
                   className={cn('dash-rail-btn', active && 'active')}
                   aria-label={target.title}
                   aria-current={active ? 'page' : undefined}
@@ -225,6 +226,7 @@ export function OrganizerShell({
             <Tip key={role} text={label} className="grid place-items-center">
               <Link
                 href={target.href}
+                prefetch={false}
                 className={cn('dash-rail-btn', active && 'active')}
                 aria-label={label}
                 aria-current={active ? 'page' : undefined}
@@ -301,7 +303,11 @@ export function OrganizerShell({
             const active = item.key === activeNavItem?.key;
             return (
               <Tip key={item.key} text={item.tip} className="block w-full">
-                <Link href={item.href} className={cn('dash-nav-item', active && 'active')}>
+                <Link
+                  href={item.href}
+                  prefetch={false}
+                  className={cn('dash-nav-item', active && 'active')}
+                >
                   <NavIcon name={item.icon} />
                   <span>{item.label}</span>
                 </Link>
