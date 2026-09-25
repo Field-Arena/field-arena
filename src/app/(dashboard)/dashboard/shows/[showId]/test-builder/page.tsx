@@ -30,7 +30,6 @@ export default async function TestBuilderPage({ params }: { params: Promise<{ sh
         catalog={data.catalog}
         classes={data.classes}
         assignedByTemplateId={data.assignedByTemplateId}
-        assignedByTemplateName={data.assignedByTemplateName}
       />
     </>
   );

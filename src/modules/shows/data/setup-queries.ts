@@ -1354,11 +1354,12 @@ export interface TestBuilderPageData {
   /** Classes currently using each template, keyed by template id (via
    * class_tests.test_template_id). Carries classId so a class can be
    * unassigned directly, not just overwritten by assigning a different
-   * test. */
+   * test. A class_tests row with no test_template_id (pre-dates the
+   * column, or was never resolvable during backfill) simply isn't listed
+   * under any template here -- matching it by name instead was tried and
+   * removed: multiple templates can share a name, and it attached a class
+   * to every one of them at once instead of the one actually in use. */
   assignedByTemplateId: Record<string, AssignedClassOption[]>;
-  /** Fallback for class_tests rows assigned before test_template_id existed
-   * (name was the only link back then). Keyed by template name. */
-  assignedByTemplateName: Record<string, AssignedClassOption[]>;
 }
 
 export async function getTestBuilderPageData(showId: string): Promise<TestBuilderPageData | null> {
@@ -1395,16 +1396,12 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
   const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
-  const assignedByTemplateName: Record<string, AssignedClassOption[]> = {};
   for (const row of classTestsRes.data) {
+    if (!row.test_template_id) continue;
     const label = classLabelById.get(row.class_id);
     if (!label) continue;
     const option: AssignedClassOption = { classId: row.class_id, label };
-    if (row.test_template_id) {
-      (assignedByTemplateId[row.test_template_id] ??= []).push(option);
-    } else {
-      (assignedByTemplateName[row.name] ??= []).push(option);
-    }
+    (assignedByTemplateId[row.test_template_id] ??= []).push(option);
   }
 
   return {
@@ -1423,7 +1420,6 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
       hasTest: classIdsWithTest.has(c.id),
     })),
     assignedByTemplateId,
-    assignedByTemplateName,
   };
 }
 
