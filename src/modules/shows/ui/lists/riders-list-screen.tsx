@@ -52,7 +52,7 @@ export function RidersListScreen({
           <ScreenLede className="mb-0">Everyone registered for {data.showName}.</ScreenLede>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard" className="inline-flex">
+          <Link href="/dashboard" prefetch={false} className="inline-flex">
             <GhostButton>← Dashboard</GhostButton>
           </Link>
           <GhostButton

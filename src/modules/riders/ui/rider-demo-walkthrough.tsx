@@ -170,6 +170,7 @@ export function RiderDemoWalkthrough({
         <div className="flex items-center border-b border-[#E9EDEB] bg-white px-5 py-2.5">
           <Link
             href={SUPERADMIN_CONSOLE_ROUTE}
+            prefetch={false}
             className="text-forest hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
           >
             ← Back to console

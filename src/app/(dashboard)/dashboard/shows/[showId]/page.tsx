@@ -7,7 +7,6 @@ import {
   listStaff,
   completenessFromLoadedShow,
 } from '@/modules/shows/data/setup-queries';
-import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { ReadinessMeter } from '@/modules/shows/ui/show-manager/readiness-meter';
 import { ShowDetailsCard } from '@/modules/shows/ui/show-manager/show-details-card';
 import { VenueCard } from '@/modules/shows/ui/show-manager/venue-card';
@@ -21,8 +20,6 @@ import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 import { env } from '@/shared/lib/env';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
-import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
 import { ROUTES } from '@/shared/constants/routes';
 
 export const metadata: Metadata = { title: 'Show Manager — Field & Arena' };
@@ -41,11 +38,9 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
     );
   }
 
-  const [venues, divisions, context, vitals, staff, classes] = await Promise.all([
+  const [venues, divisions, staff, classes] = await Promise.all([
     listSharedVenues(show.orgId),
     listDivisions(show.id),
-    getOrganizerContext(show.id),
-    getShowManagerVitals(show.id),
     listStaff(show.id),
     listClasses(show.id),
   ]);
@@ -54,15 +49,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
   const nextIncompleteSection = completeness.sections.find((s) => !s.ok) ?? null;
 
   return (
-    <ShowManagerShell
-      showId={show.id}
-      showName={show.name}
-      orgName={context.orgName}
-      shows={context.shows}
-      stats={vitals.stats}
-      stage={vitals.stage}
-      canViewMoney={context.canViewMoney}
-    >
+    <>
       <ReadinessMeter completeness={completeness} />
       <ShareShowLink
         url={`${env.siteUrl}/show/${show.slug ?? show.id}`}
@@ -117,6 +104,6 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
             : null
         }
       />
-    </ShowManagerShell>
+    </>
   );
 }

@@ -200,7 +200,11 @@ export function RiderAuthForm({ returnTo }: { returnTo?: string } = {}) {
           <div className="mt-5">
             <AuthAlert tone="error">
               An account already exists for this email.{' '}
-              <Link href={ROUTES.login} className="font-bold underline underline-offset-2">
+              <Link
+                href={ROUTES.login}
+                prefetch={false}
+                className="font-bold underline underline-offset-2"
+              >
                 Sign in instead
               </Link>
               .

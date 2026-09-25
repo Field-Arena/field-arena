@@ -129,7 +129,11 @@ export function StableChartScreen({
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-4 flex flex-wrap items-center gap-2.5 print:hidden">
-        <Link href={`/dashboard/horses?show=${publicId ?? showId}`} className={ghostButtonClass}>
+        <Link
+          href={`/dashboard/horses?show=${publicId ?? showId}`}
+          prefetch={false}
+          className={ghostButtonClass}
+        >
           🐴 Back to Horses
         </Link>
         {totalStalls > 0 && (

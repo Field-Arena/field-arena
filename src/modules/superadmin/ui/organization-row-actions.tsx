@@ -128,7 +128,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
 
         <DropdownMenuContent align="end" className="border-line-mint w-52 rounded-xl p-1.5">
           <DropdownMenuItem asChild>
-            <Link href={`/dashboard/superadmin/organizations/${org.id}`}>
+            <Link href={`/dashboard/superadmin/organizations/${org.id}`} prefetch={false}>
               <CalendarDaysIcon className="text-fa-muted size-[15px]" aria-hidden />
               View shows
             </Link>
@@ -156,7 +156,10 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
           {pending && (
             <>
               <DropdownMenuItem asChild>
-                <Link href={`/dashboard/superadmin/organizations/${org.id}/onboarding`}>
+                <Link
+                  href={`/dashboard/superadmin/organizations/${org.id}/onboarding`}
+                  prefetch={false}
+                >
                   <ClipboardListIcon className="text-fa-muted size-[15px]" aria-hidden />
                   Onboarding profile
                 </Link>

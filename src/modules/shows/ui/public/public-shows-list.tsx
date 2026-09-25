@@ -30,6 +30,7 @@ export function PublicShowsList({ shows }: { shows: PublicShowListItem[] }) {
               <Link
                 key={show.id}
                 href={`/show/${show.slug ?? show.id}`}
+                prefetch={false}
                 className="border-line bg-paper hover:border-forest/40 flex items-center gap-4 rounded-[14px] border px-5 py-4 transition-colors"
               >
                 {show.logoUrl ? (

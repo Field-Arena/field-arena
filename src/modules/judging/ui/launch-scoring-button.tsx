@@ -15,6 +15,7 @@ export function LaunchScoringButton({ active, classId }: { active: boolean; clas
   return (
     <Link
       href={`/dashboard/scoring/${classId}`}
+      prefetch={false}
       className="hover:bg-gold flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#F5F7F6] transition-colors hover:text-[#0D2C23]"
     >
       Launch Scoring →

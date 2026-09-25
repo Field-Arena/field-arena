@@ -12,7 +12,7 @@ export function SuperAdminPreviewNotice({ showName = null }: { showName?: string
       <div className="mb-6 rounded-[10px] border border-[#C6DECD] bg-[#EAF4EE] px-4 py-3 text-[13px] text-[#1F4A34]">
         <strong className="font-semibold">Previewing {showName} as SuperAdmin.</strong> Everything
         below is this show&rsquo;s real panel and entries, exactly as its judges and scribes see it.{' '}
-        <Link href="/dashboard/superadmin" className="underline underline-offset-2">
+        <Link href="/dashboard/superadmin" prefetch={false} className="underline underline-offset-2">
           Back to the console
         </Link>
         .
@@ -24,7 +24,7 @@ export function SuperAdminPreviewNotice({ showName = null }: { showName?: string
     <div className="mb-6 rounded-[10px] border border-[#EAD9A0] bg-[#FBF0D8] px-4 py-3 text-[13px] text-[#5A4413]">
       <strong className="font-semibold">Previewing this workspace as SuperAdmin.</strong> The
       assignments and panel below are example data, not a real account. Pick a show from an{' '}
-      <Link href="/dashboard/superadmin" className="underline underline-offset-2">
+      <Link href="/dashboard/superadmin" prefetch={false} className="underline underline-offset-2">
         organizer&rsquo;s show list
       </Link>{' '}
       to preview it against real entries instead.

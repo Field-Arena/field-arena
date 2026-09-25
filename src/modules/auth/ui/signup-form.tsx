@@ -199,7 +199,11 @@ export function SignUpForm() {
           <div className="mt-5">
             <AuthAlert tone="error">
               An account already exists for this email.{' '}
-              <Link href={ROUTES.login} className="font-bold underline underline-offset-2">
+              <Link
+                href={ROUTES.login}
+                prefetch={false}
+                className="font-bold underline underline-offset-2"
+              >
                 Sign in instead
               </Link>
               .
@@ -223,6 +227,7 @@ export function SignUpForm() {
           By continuing you agree to the{' '}
           <Link
             href="/terms-of-service"
+            prefetch={false}
             className="border-gold text-forest hover:border-forest border-b font-semibold transition-colors"
           >
             Terms of Service
@@ -230,6 +235,7 @@ export function SignUpForm() {
           and{' '}
           <Link
             href="/privacy-policy"
+            prefetch={false}
             className="border-gold text-forest hover:border-forest border-b font-semibold transition-colors"
           >
             Privacy Policy

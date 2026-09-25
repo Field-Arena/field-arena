@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import { getRunShowData } from '@/modules/shows/data/queries';
 import { getTicketWindowData } from '@/modules/shows/data/setup-queries';
-import { getOrganizerContext } from '@/modules/staff/data/context';
-import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { RunShowCard } from '@/modules/shows/ui/show-manager/run-show-card';
 import { TicketWindowCard } from '@/modules/shows/ui/show-manager/ticket-window-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
@@ -13,9 +11,8 @@ export const metadata: Metadata = { title: 'Run Show — Field & Arena' };
 export default async function RunShowPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const id = await resolveShowIdParam(showId);
-  const [data, context, ticketWindow] = await Promise.all([
+  const [data, ticketWindow] = await Promise.all([
     id ? getRunShowData(id) : Promise.resolve(null),
-    getOrganizerContext(showId),
     id ? getTicketWindowData(id) : Promise.resolve(null),
   ]);
 
@@ -29,18 +26,9 @@ export default async function RunShowPage({ params }: { params: Promise<{ showId
   }
 
   return (
-    <ShowManagerShell
-      showId={showId}
-      showName={data.showName}
-      activeTab="Run Show"
-      orgName={context.orgName}
-      shows={context.shows}
-      stats={data.stats}
-      stage={data.stage}
-      canViewMoney={context.canViewMoney}
-    >
+    <>
       {ticketWindow && <TicketWindowCard data={ticketWindow} />}
       <RunShowCard data={data} />
-    </ShowManagerShell>
+    </>
   );
 }

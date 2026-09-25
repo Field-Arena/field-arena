@@ -47,6 +47,7 @@ export function CheckoutConfirmation({
 
         <Link
           href={`/rider/shows/${showId}`}
+          prefetch={false}
           className="text-forest text-sm font-semibold underline underline-offset-2"
         >
           Back to the show page

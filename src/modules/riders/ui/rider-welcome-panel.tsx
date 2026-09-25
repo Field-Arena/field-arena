@@ -35,6 +35,7 @@ export function RiderWelcomePanel({ rider, shows }: { rider: RiderRow; shows: Ri
             <Link
               key={show.showId}
               href={`/rider/shows/${show.showSlug ?? show.showId}`}
+              prefetch={false}
               style={{
                 display: 'block',
                 padding: '10px 14px',

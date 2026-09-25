@@ -14,7 +14,7 @@ export function AuthAside() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[300px] bg-[repeating-linear-gradient(90deg,rgba(255,255,255,.045)_0_1px,transparent_1px_88px)]"
       />
 
-      <Link href="/" className="text-paper relative flex items-center gap-[11px]">
+      <Link href="/" prefetch={false} className="text-paper relative flex items-center gap-[11px]">
         <span className="bg-gold text-forest grid size-[34px] place-items-center rounded-lg font-[family-name:var(--font-nr)] text-[15px] font-semibold tracking-[-.02em]">
           F&amp;A
         </span>

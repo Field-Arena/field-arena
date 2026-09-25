@@ -206,6 +206,7 @@ export function VenueCard({
           </p>
           <Link
             href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}`}
+            prefetch={false}
             className={primaryButtonClass + ' rounded-[9px]'}
           >
             <IconBarn size={15} />

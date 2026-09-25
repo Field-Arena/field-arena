@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
 import { getTestBuilderPageData } from '@/modules/shows/data/setup-queries';
-import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { TestBuilderCard } from '@/modules/shows/ui/show-manager/test-builder-card';
 import { SelectedClassesCard } from '@/modules/shows/ui/show-manager/selected-classes-card';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
-import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
 
 export const metadata: Metadata = { title: 'Test Builder — Field & Arena' };
 
@@ -24,22 +21,8 @@ export default async function TestBuilderPage({ params }: { params: Promise<{ sh
     );
   }
 
-  const [context, vitals] = await Promise.all([
-    getOrganizerContext(data.showId),
-    getShowManagerVitals(data.showId),
-  ]);
-
   return (
-    <ShowManagerShell
-      showId={showId}
-      showName={data.showName}
-      activeTab="Test Builder"
-      orgName={context.orgName}
-      shows={context.shows}
-      stats={vitals.stats}
-      stage={vitals.stage}
-      canViewMoney={context.canViewMoney}
-    >
+    <>
       <SelectedClassesCard classes={data.selectedClasses} />
       <TestBuilderCard
         orgId={data.orgId}
@@ -49,6 +32,6 @@ export default async function TestBuilderPage({ params }: { params: Promise<{ sh
         assignedByTemplateId={data.assignedByTemplateId}
         assignedByTemplateName={data.assignedByTemplateName}
       />
-    </ShowManagerShell>
+    </>
   );
 }

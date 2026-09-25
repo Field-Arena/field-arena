@@ -109,6 +109,7 @@ export function SuperAdminShell({
                   <Link
                     key={item.key}
                     href={item.href}
+                    prefetch={false}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'relative flex items-center gap-[11px] rounded-lg py-2.5 pr-2.5 pl-3 text-[13.5px] font-semibold transition-colors',
@@ -149,6 +150,7 @@ export function SuperAdminShell({
                       <Link
                         key={item.key}
                         href={item.href}
+                        prefetch={false}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
                           'relative flex items-center gap-[11px] rounded-lg py-2.5 pr-2.5 pl-3 text-[13.5px] font-semibold transition-colors',
@@ -185,6 +187,7 @@ export function SuperAdminShell({
                   <Tip key={tool.key} text={tool.reason}>
                     <Link
                       href={tool.href}
+                      prefetch={false}
                       aria-current={active ? 'page' : undefined}
                       className={cn(
                         'relative flex items-center gap-[11px] rounded-lg py-2.5 pr-2.5 pl-3 text-[13.5px] font-semibold transition-colors',

@@ -25,7 +25,7 @@ export function AwardsScreen({
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-4 print:hidden">
-        <Link href="/dashboard" className="mb-[18px] inline-flex">
+        <Link href="/dashboard" prefetch={false} className="mb-[18px] inline-flex">
           <GhostButton>
             <svg
               width="14"

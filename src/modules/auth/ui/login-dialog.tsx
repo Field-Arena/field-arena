@@ -57,6 +57,7 @@ export function LoginDialog() {
           <span className="text-fa-muted text-[13.5px]">New to Field &amp; Arena?</span>
           <Link
             href={ROUTES.signup}
+            prefetch={false}
             onClick={() => {
               setOpen(false);
             }}

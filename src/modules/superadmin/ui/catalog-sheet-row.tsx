@@ -84,6 +84,7 @@ export function CatalogSheetRow({
       <div className="flex justify-end">
         <Link
           href={`/dashboard/superadmin/catalog/${sheet.id}`}
+          prefetch={false}
           className="hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-bold text-[#16261F] transition-colors"
         >
           Open

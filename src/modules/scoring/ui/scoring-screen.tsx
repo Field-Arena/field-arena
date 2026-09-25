@@ -548,6 +548,7 @@ function ScreenShell({ state, children }: { state: ClassScoringState; children: 
           </StatusPill>
           <Link
             href="/dashboard/judging"
+            prefetch={false}
             className="hover:text-gold text-[13px] font-semibold text-[#5A6B63]"
           >
             ← Back to assignments

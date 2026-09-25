@@ -38,6 +38,7 @@ export function OrganizationShowsBoard({ org }: { org: OrganizationShowsDetail }
       <div>
         <Link
           href="/dashboard/superadmin"
+          prefetch={false}
           className="text-fa-muted hover:text-gold mb-4 inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
         >
           <ArrowLeftIcon className="size-4" aria-hidden />
@@ -72,6 +73,7 @@ export function OrganizationShowsBoard({ org }: { org: OrganizationShowsDetail }
         </Button>
         <Link
           href={`/dashboard/superadmin/users?org=${org.id}`}
+          prefetch={false}
           className="border-line-strong text-forest hover:border-gold inline-flex items-center gap-2 rounded-lg border bg-white px-3.5 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
         >
           <UsersIcon className="size-[13px]" aria-hidden />
@@ -80,6 +82,7 @@ export function OrganizationShowsBoard({ org }: { org: OrganizationShowsDetail }
         {!org.onboarded && (
           <Link
             href={`/dashboard/superadmin/organizations/${org.id}/onboarding`}
+            prefetch={false}
             className="border-line-strong text-forest hover:border-gold inline-flex items-center gap-2 rounded-lg border bg-white px-3.5 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
           >
             <ClipboardListIcon className="size-[13px]" aria-hidden />
@@ -166,6 +169,7 @@ export function OrganizationShowsBoard({ org }: { org: OrganizationShowsDetail }
                 <div className="flex items-center justify-end gap-2">
                   <Link
                     href={`/dashboard/superadmin/organizations/${org.id}/shows/${show.id}`}
+                    prefetch={false}
                     className="text-hunter-deep hover:border-gold inline-flex items-center gap-1.5 rounded-lg border border-[#C4D3CB] px-3 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors hover:bg-[#FFFCF2]"
                   >
                     Riders

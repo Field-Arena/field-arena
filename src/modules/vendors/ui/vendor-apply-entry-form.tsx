@@ -44,6 +44,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
           Once approved, come back and{' '}
           <Link
             href="/vendor-apply/account"
+            prefetch={false}
             className="border-gold text-forest hover:border-forest border-b font-semibold transition-colors"
           >
             claim your vendor account

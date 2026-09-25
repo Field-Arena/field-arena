@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import { getShowResults } from '@/modules/shows/data/queries';
-import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
 import { ResultsPanel } from '@/modules/shows/ui/show-manager/results-panel';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
 import { createServerClient } from '@/shared/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Results — Field & Arena' };
@@ -38,11 +36,7 @@ export default async function ShowResultsPage({
     );
   }
 
-  const [context, vitals, rows] = await Promise.all([
-    getOrganizerContext(id),
-    getShowManagerVitals(id),
-    getShowResults(id),
-  ]);
+  const [context, rows] = await Promise.all([getOrganizerContext(id), getShowResults(id)]);
 
   /* Mirrors getOrganizerContext's canViewMoney resolution — an Organizer (or
    * an impersonating SuperAdmin) always has it; anyone else needs the
@@ -59,18 +53,5 @@ export default async function ShowResultsPage({
     canExportRoster = allowed === true;
   }
 
-  return (
-    <ShowManagerShell
-      showId={showId}
-      showName={show.name}
-      activeTab="Results"
-      orgName={context.orgName}
-      shows={context.shows}
-      stats={vitals.stats}
-      stage={vitals.stage}
-      canViewMoney={context.canViewMoney}
-    >
-      <ResultsPanel showName={show.name} rows={rows} canExportRoster={canExportRoster} />
-    </ShowManagerShell>
-  );
+  return <ResultsPanel showName={show.name} rows={rows} canExportRoster={canExportRoster} />;
 }

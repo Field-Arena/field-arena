@@ -240,6 +240,7 @@ export function FunnelBoard({
                 <div className="flex justify-end">
                   <Link
                     href={`/dashboard/superadmin/sales/${lead.id}`}
+                    prefetch={false}
                     className="text-hunter-deep hover:border-gold inline-flex items-center gap-1.5 rounded-lg border border-[#C4D3CB] px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
                   >
                     Open

@@ -67,6 +67,7 @@ export function MissingSectionsDialog({
               <Link
                 key={sec.name}
                 href={hrefFor(sec.name)}
+                prefetch={false}
                 onClick={onClose}
                 className="flex items-center gap-[11px] rounded-md px-2 py-[9px] text-left transition-colors hover:bg-[#F4F7F5]"
               >

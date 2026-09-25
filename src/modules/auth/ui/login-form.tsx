@@ -312,6 +312,7 @@ export function LoginForm({
             <span className="text-fa-muted text-[13.5px]">New to Field &amp; Arena?</span>
             <Link
               href={ROUTES.signup}
+              prefetch={false}
               className="text-forest hover:text-gold inline-flex items-center gap-2 text-[13.5px] font-bold transition-all duration-150 ease-out hover:gap-3"
             >
               Create an account
