@@ -76,6 +76,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
             No classes scheduled yet — pick some in{' '}
             <Link
               href={`/dashboard/shows/${id}/select-events`}
+              prefetch={false}
               className="text-forest font-semibold underline underline-offset-2"
             >
               Select Events

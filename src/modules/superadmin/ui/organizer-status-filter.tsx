@@ -41,6 +41,7 @@ export function OrganizerStatusFilter({
             key={tab.key}
             href={query ? `/dashboard/superadmin?${query}` : '/dashboard/superadmin'}
             scroll={false}
+            prefetch={false}
             className={cn(
               'inline-flex h-8 items-center rounded-full px-3.5 text-[12.5px] font-semibold transition-colors',
               active === tab.key

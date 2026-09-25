@@ -20,6 +20,7 @@ export function LeadDetail({ lead }: { lead: LeadRow }) {
         </div>
         <Link
           href="/dashboard/superadmin/sales"
+          prefetch={false}
           className="text-hunter-deep hover:border-gold inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors"
         >
           <ArrowLeftIcon className="size-[14px]" aria-hidden />

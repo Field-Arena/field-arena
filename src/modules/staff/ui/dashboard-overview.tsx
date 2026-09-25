@@ -118,6 +118,7 @@ export function DashboardOverview({
           <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
           <Link
             href={`/dashboard/awards?show=${currentShow.slug ?? currentShow.id}`}
+            prefetch={false}
             className={cn(ghostButtonClass, 'ml-auto')}
           >
             <DashIcon name="trophy" size={14} /> Awards
@@ -167,7 +168,11 @@ export function DashboardOverview({
             {incompleteCount} show{incompleteCount === 1 ? '' : 's'} still{' '}
             {incompleteCount === 1 ? 'needs' : 'need'} setup before they can open entries.
           </span>
-          <Link href="/dashboard/shows/incomplete" className={cn(ghostButtonClass, 'ml-auto')}>
+          <Link
+            href="/dashboard/shows/incomplete"
+            prefetch={false}
+            className={cn(ghostButtonClass, 'ml-auto')}
+          >
             View incomplete shows →
           </Link>
         </Card>
@@ -220,6 +225,7 @@ export function DashboardOverview({
           </span>
           <Link
             href={`/dashboard/shows/${currentShow.slug ?? currentShow.id}`}
+            prefetch={false}
             className={cn(primaryButtonClass, 'ml-auto')}
           >
             Open Show Manager

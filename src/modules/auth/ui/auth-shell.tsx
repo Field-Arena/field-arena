@@ -33,6 +33,7 @@ export function AuthShell({
             ) : (
               <Link
                 href={alternate.href}
+                prefetch={false}
                 className="text-fa-muted hover:text-gold text-[13px] font-semibold transition-colors"
               >
                 {alternate.label}

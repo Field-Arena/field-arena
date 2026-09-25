@@ -31,7 +31,7 @@ export function EntriesListScreen({
           </ScreenLede>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard" className="inline-flex">
+          <Link href="/dashboard" prefetch={false} className="inline-flex">
             <GhostButton>← Dashboard</GhostButton>
           </Link>
           {data.entries.length > 0 && (

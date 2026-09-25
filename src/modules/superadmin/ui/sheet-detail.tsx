@@ -142,6 +142,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
     <div className="mx-auto max-w-[1000px] space-y-5">
       <Link
         href="/dashboard/superadmin/catalog"
+        prefetch={false}
         className="text-hunter-deep hover:text-gold inline-flex items-center gap-2 text-[13px] font-bold transition-colors"
       >
         <ArrowLeftIcon className="size-[14px]" aria-hidden />
@@ -230,6 +231,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
         )}
         <Link
           href="/dashboard/superadmin/catalog"
+          prefetch={false}
           className="text-hunter-deep hover:border-gold rounded-[9px] border border-[#C4D3CB] bg-white px-[18px] py-3 text-[13.5px] font-semibold transition-colors"
         >
           Cancel

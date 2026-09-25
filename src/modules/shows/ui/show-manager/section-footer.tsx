@@ -26,7 +26,7 @@ export function SectionFooter({
           That&apos;s every Show Manager section for this show — jump back to any tab above, or head
           to your dashboard.
         </p>
-        <Link href="/dashboard" className={cn(ghostButtonClass, 'ml-auto')}>
+        <Link href="/dashboard" prefetch={false} className={cn(ghostButtonClass, 'ml-auto')}>
           Back to Dashboard
         </Link>
       </div>

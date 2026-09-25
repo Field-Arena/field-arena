@@ -115,6 +115,7 @@ export function HorsesScreen({
         <div className="flex flex-none items-center gap-2.5">
           <Link
             href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}`}
+            prefetch={false}
             className={ghostButtonClass}
           >
             🏠 Stable Chart

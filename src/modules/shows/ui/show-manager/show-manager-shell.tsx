@@ -46,6 +46,7 @@ export function ShowManagerShell({
           <Link
             key={tab.label}
             href={`/dashboard/shows/${showId}${tab.path}`}
+            prefetch={false}
             aria-current={tab.label === activeTab ? 'page' : undefined}
             className={
               tab.label === activeTab

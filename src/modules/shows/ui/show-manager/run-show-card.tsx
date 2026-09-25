@@ -77,7 +77,11 @@ export function RunShowCard({ data }: { data: RunShowData }) {
             </PrimaryButton>
           )}
 
-          <Link href={`/dashboard/announcing?show=${publicId}`} className={ghostButtonClass}>
+          <Link
+            href={`/dashboard/announcing?show=${publicId}`}
+            prefetch={false}
+            className={ghostButtonClass}
+          >
             Announcer view
           </Link>
 
@@ -124,6 +128,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
                 href={`/rider/shows/${publicId}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                prefetch={false}
                 className={ghostButtonClass}
               >
                 Preview ticket page ↗

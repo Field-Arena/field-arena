@@ -101,6 +101,7 @@ export function EntryLedgerScreen({
         </div>
         <Link
           href={`/dashboard/documents/print-center?show=${linkId}`}
+          prefetch={false}
           className="inline-flex"
         >
           <GhostButton>
@@ -225,6 +226,7 @@ export function EntryLedgerScreen({
                     {row.openIssueCount > 0 ? (
                       <Link
                         href={`/dashboard/documents/issues?show=${linkId}`}
+                        prefetch={false}
                         className="text-status-danger font-bold underline"
                       >
                         {row.openIssueCount}

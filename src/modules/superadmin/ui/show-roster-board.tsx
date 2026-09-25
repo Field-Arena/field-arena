@@ -48,6 +48,7 @@ export function ShowRosterBoard({
       <div>
         <Link
           href={`/dashboard/superadmin/organizations/${orgId}`}
+          prefetch={false}
           className="text-fa-muted hover:text-gold mb-4 inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
         >
           <ArrowLeftIcon className="size-4" aria-hidden />
@@ -77,6 +78,7 @@ export function ShowRosterBoard({
           href={`/show/${showId}`}
           target="_blank"
           rel="noreferrer"
+          prefetch={false}
           className="text-hunter-deep hover:border-gold inline-flex items-center gap-2 rounded-lg border border-[#C4D3CB] bg-white px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
         >
           Experience as a rider

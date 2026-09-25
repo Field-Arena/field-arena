@@ -27,6 +27,7 @@ export function PublicShowPage({ data }: { data: PublicShowPageData }) {
         <div className="mx-auto max-w-[880px] px-5 pt-6">
           <Link
             href={ROUTES.browseShows}
+            prefetch={false}
             className="text-[12.5px] font-medium text-[#9FB4A7] hover:text-white"
           >
             ← All shows
