@@ -257,35 +257,49 @@ export async function listRiderHorses(): Promise<HorseWithDocumentUrls[]> {
     .order('created_at', { ascending: true });
   if (error) throw error;
 
-  return Promise.all(
-    horses.map(async (horse) => {
-      const uploads = (horse.document_uploads ?? []) as unknown as HorseDocumentUpload[];
+  // Batch every horse's document paths into one storage call instead of one
+  // createSignedUrl() round-trip per document -- a rider with several
+  // horses, each with a few uploaded docs, was firing that many separate
+  // signing requests just to load their own horse list.
+  const allPaths = [
+    ...new Set(
+      horses.flatMap((horse) =>
+        ((horse.document_uploads ?? []) as unknown as HorseDocumentUpload[])
+          .map((u) => u.path)
+          .filter((p): p is string => !!p),
+      ),
+    ),
+  ];
+  const signedUrlByPath = new Map<string, string>();
+  if (allPaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from(HORSE_DOCUMENTS_BUCKET)
+      .createSignedUrls(allPaths, HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS);
+    for (const s of signedUrls ?? []) {
+      if (s.path && s.signedUrl) signedUrlByPath.set(s.path, s.signedUrl);
+    }
+  }
 
-      const documentUploads: HorseDocumentUploadWithUrl[] = await Promise.all(
-        uploads.map(async (upload) => {
-          if (!upload.path) return { ...upload, url: null };
-          const { data: signed, error: signError } = await supabase.storage
-            .from(HORSE_DOCUMENTS_BUCKET)
-            .createSignedUrl(upload.path, HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS);
-          if (signError) return { ...upload, url: null };
-          return { ...upload, url: signed.signedUrl };
-        }),
-      );
-      return {
-        id: horse.id,
-        rider_id: horse.rider_id,
-        name: horse.name,
-        stable: horse.stable,
-        trainer: horse.trainer,
-        trainer_phone: horse.trainer_phone,
-        height: horse.height,
-        farrier: horse.farrier,
-        is_stallion: horse.is_stallion,
-        created_at: horse.created_at,
-        documentUploads,
-      };
-    }),
-  );
+  return horses.map((horse) => {
+    const uploads = (horse.document_uploads ?? []) as unknown as HorseDocumentUpload[];
+    const documentUploads: HorseDocumentUploadWithUrl[] = uploads.map((upload) => ({
+      ...upload,
+      url: upload.path ? (signedUrlByPath.get(upload.path) ?? null) : null,
+    }));
+    return {
+      id: horse.id,
+      rider_id: horse.rider_id,
+      name: horse.name,
+      stable: horse.stable,
+      trainer: horse.trainer,
+      trainer_phone: horse.trainer_phone,
+      height: horse.height,
+      farrier: horse.farrier,
+      is_stallion: horse.is_stallion,
+      created_at: horse.created_at,
+      documentUploads,
+    };
+  });
 }
 
 export async function getWaiverSignature(showId: string): Promise<WaiverSignatureRow | null> {

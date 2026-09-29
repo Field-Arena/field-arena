@@ -402,16 +402,23 @@ export async function listShowDocuments(showId: string): Promise<ShowDocument[]>
     .order('name');
   if (error) throw error;
 
-  return Promise.all(
-    data.map(async (d) => {
-      let url = d.url;
-      if (!url && d.path) {
-        const { data: signed } = await supabase.storage
-          .from('documents')
-          .createSignedUrl(d.path, 3600);
-        url = signed?.signedUrl ?? null;
-      }
-      return { id: d.id, name: d.name, url };
-    }),
-  );
+  // Most rows already carry a stored url; only legacy rows without one need
+  // signing. Batch those into a single storage call instead of one
+  // createSignedUrl() round-trip per document.
+  const pathsNeedingUrl = [...new Set(data.filter((d) => !d.url && d.path).map((d) => d.path))];
+  const signedUrlByPath = new Map<string, string>();
+  if (pathsNeedingUrl.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from('documents')
+      .createSignedUrls(pathsNeedingUrl, 3600);
+    for (const s of signedUrls ?? []) {
+      if (s.path && s.signedUrl) signedUrlByPath.set(s.path, s.signedUrl);
+    }
+  }
+
+  return data.map((d) => ({
+    id: d.id,
+    name: d.name,
+    url: d.url ?? (d.path ? (signedUrlByPath.get(d.path) ?? null) : null),
+  }));
 }
