@@ -25,7 +25,7 @@ export async function getStableAssignmentGroups(showId: string): Promise<StableA
   const supabase = await createServerClient();
 
   const [horsesData, requestsResult, showResult] = await Promise.all([
-    getHorsesPageData(showId),
+    getHorsesPageData(showId, { includeUrls: false }),
     supabase
       .from('stabling_requests')
       .select('trainer_name, horse_stalls, tack_stalls, stable_with')

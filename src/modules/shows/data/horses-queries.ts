@@ -91,7 +91,11 @@ export interface HorsesPageData {
   rows: HorseRow[];
 }
 
-export async function getHorsesPageData(showId: string): Promise<HorsesPageData | null> {
+export async function getHorsesPageData(
+  showId: string,
+  options?: { includeUrls?: boolean },
+): Promise<HorsesPageData | null> {
+  const includeUrls = options?.includeUrls ?? true;
   const supabase = await createServerClient();
 
   const [showResult, requirements] = await Promise.all([
@@ -207,44 +211,61 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
     for (const r of riders) emailByRiderId.set(r.id, r.email);
   }
 
-  async function resolveDocuments(uploads: RawUpload[]): Promise<HorseDocumentStatus[]> {
-    return Promise.all(
-      docReqs.map(async (req): Promise<HorseDocumentStatus> => {
-        const up = uploads.find((u) => u.requirementId === req.id);
-        const uploaded = !!up;
-        const expired =
-          uploaded &&
-          !!req.requiresExpiration &&
-          !!up.expirationDate &&
-          up.expirationDate < todayStr;
-        const status = uploaded ? resolveReviewStatus(up) : 'pending';
-        const needsApproval = uploaded && !!req.requiresApproval && status === 'pending';
+  // Batch every horse's uploaded-document signed URL into ONE storage call
+  // instead of one round-trip per horse per document -- a show with 100
+  // horses and 3 uploaded docs each was firing ~300 separate signing
+  // requests instead of 1. Skipped entirely when the caller only needs
+  // completeness status (e.g. the entry ledger, which never renders a
+  // document link) -- includeUrls: false avoids the storage round-trip
+  // altogether rather than just batching it.
+  const signedUrlByPath = new Map<string, string>();
+  if (includeUrls) {
+    const allPaths = [
+      ...new Set(
+        [...uploadsByHorseId.values()].flatMap((uploads) =>
+          uploads.map((u) => u.path).filter((p): p is string => !!p),
+        ),
+      ),
+    ];
+    if (allPaths.length > 0) {
+      const { data: signedUrls } = await supabase.storage
+        .from('horse-documents')
+        .createSignedUrls(allPaths, 3600);
+      for (const s of signedUrls ?? []) {
+        if (s.path && s.signedUrl) signedUrlByPath.set(s.path, s.signedUrl);
+      }
+    }
+  }
 
-        let url: string | null = null;
-        if (uploaded && up.path) {
-          const { data: signed } = await supabase.storage
-            .from('horse-documents')
-            .createSignedUrl(up.path, 3600);
-          url = signed?.signedUrl ?? null;
-        }
+  function resolveDocuments(uploads: RawUpload[]): HorseDocumentStatus[] {
+    return docReqs.map((req): HorseDocumentStatus => {
+      const up = uploads.find((u) => u.requirementId === req.id);
+      const uploaded = !!up;
+      const expired =
+        uploaded &&
+        !!req.requiresExpiration &&
+        !!up.expirationDate &&
+        up.expirationDate < todayStr;
+      const status = uploaded ? resolveReviewStatus(up) : 'pending';
+      const needsApproval = uploaded && !!req.requiresApproval && status === 'pending';
+      const url = uploaded && up.path ? (signedUrlByPath.get(up.path) ?? null) : null;
 
-        return {
-          requirementId: req.id,
-          label: req.label,
-          uploaded,
-          url,
-          expirationDate: up?.expirationDate ?? null,
-          requiresExpiration: !!req.requiresExpiration,
-          requiresApproval: !!req.requiresApproval,
-          verified: status === 'approved',
-          expired,
-          needsApproval,
-          status,
-          rejectionReason: up?.rejectionReason ?? null,
-          rejectionNote: up?.rejectionNote ?? null,
-        };
-      }),
-    );
+      return {
+        requirementId: req.id,
+        label: req.label,
+        uploaded,
+        url,
+        expirationDate: up?.expirationDate ?? null,
+        requiresExpiration: !!req.requiresExpiration,
+        requiresApproval: !!req.requiresApproval,
+        verified: status === 'approved',
+        expired,
+        needsApproval,
+        status,
+        rejectionReason: up?.rejectionReason ?? null,
+        rejectionNote: up?.rejectionNote ?? null,
+      };
+    });
   }
 
   function summarize(documents: HorseDocumentStatus[]) {
@@ -264,10 +285,10 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
 
   const manualHorses = (show.manual_horses ?? []) as unknown as ManualHorseEntry[];
 
-  const rows: HorseRow[] = await Promise.all([
-    ...[...byHorse.values()].map(async (group): Promise<HorseRow> => {
+  const rows: HorseRow[] = [
+    ...[...byHorse.values()].map((group): HorseRow => {
       const uploads = group.horseId ? (uploadsByHorseId.get(group.horseId) ?? []) : [];
-      const documents = await resolveDocuments(uploads);
+      const documents = resolveDocuments(uploads);
       const { complete, missingLabels, needsVerification, cogginsExpired } = summarize(documents);
       const riderId = group.horseId
         ? (riderIdByHorseId.get(group.horseId) ?? group.riderId)
@@ -297,8 +318,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         riders,
       };
     }),
-    ...manualHorses.map(async (mh): Promise<HorseRow> => {
-      const documents = await resolveDocuments([]);
+    ...manualHorses.map((mh): HorseRow => {
+      const documents = resolveDocuments([]);
       const { complete, missingLabels, needsVerification, cogginsExpired } = summarize(documents);
 
       return {
@@ -322,7 +343,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         riders: mh.riderName ? [mh.riderName] : [],
       };
     }),
-  ]);
+  ];
 
   rows.sort((a, b) => a.horseName.localeCompare(b.horseName));
 

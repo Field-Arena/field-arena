@@ -106,7 +106,7 @@ export async function getIssuesPageData(
         .from('show_entries')
         .select('id, entry_number, rider_name, show_horse_id')
         .eq('show_id', showId),
-      getHorsesPageData(showId),
+      getHorsesPageData(showId, { includeUrls: false }),
       supabase.from('entry_membership_checks').select('show_entry_id, flags').eq('show_id', showId),
     ]);
   if (entriesError) throw entriesError;

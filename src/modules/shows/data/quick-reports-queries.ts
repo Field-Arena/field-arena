@@ -24,7 +24,7 @@ export interface QuickReportsPageData {
 
 export async function getQuickReportsPageData(showId: string): Promise<QuickReportsPageData | null> {
   const [horses, testPrint, ribbons, ledger, membership] = await Promise.all([
-    getHorsesPageData(showId),
+    getHorsesPageData(showId, { includeUrls: false }),
     getTestPrintCounts(showId),
     getRibbonCountReport(showId),
     getEntryLedgerPageData(showId),

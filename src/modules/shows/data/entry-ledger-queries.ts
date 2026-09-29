@@ -90,7 +90,9 @@ export async function getEntryLedgerPageData(showId: string): Promise<EntryLedge
       .from('show_entries')
       .select('id, entry_number, back_number, status, rider_id, rider_name, show_horse_id')
       .eq('show_id', showId),
-    getHorsesPageData(showId),
+    // Only complete/missingLabels are read from this below -- never a
+    // document's url -- so skip the signed-URL storage round-trip entirely.
+    getHorsesPageData(showId, { includeUrls: false }),
     // Filters only on show_id/status -- no dependency on entries, so it runs
     // alongside them instead of waiting for the whole chain below.
     supabase

@@ -391,7 +391,7 @@ export async function autoAssignStableStalls(input: unknown): Promise<void> {
 
   const [chart, horsesData, groups] = await Promise.all([
     readChart(supabase, parsed.showId),
-    getHorsesPageData(parsed.showId),
+    getHorsesPageData(parsed.showId, { includeUrls: false }),
     getStableAssignmentGroups(parsed.showId),
   ]);
   if (!horsesData) throw new Error('Show not found.');
@@ -519,7 +519,7 @@ export async function assignGroupToStable(input: unknown): Promise<void> {
 
   const [chart, horsesData, groups] = await Promise.all([
     readChart(supabase, parsed.showId),
-    getHorsesPageData(parsed.showId),
+    getHorsesPageData(parsed.showId, { includeUrls: false }),
     getStableAssignmentGroups(parsed.showId),
   ]);
   if (!horsesData) throw new Error('Show not found.');

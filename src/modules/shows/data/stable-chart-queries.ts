@@ -149,7 +149,7 @@ export async function getStableChartPageData(showId: string): Promise<StableChar
 
   const [showResult, horsesData, groups] = await Promise.all([
     supabase.from('shows').select('id, name, org_id, stable_chart').eq('id', showId).maybeSingle(),
-    getHorsesPageData(showId),
+    getHorsesPageData(showId, { includeUrls: false }),
     getStableAssignmentGroups(showId),
   ]);
   if (showResult.error) throw showResult.error;
