@@ -3,6 +3,14 @@ import { ArticleShell } from '@/modules/marketing/ui/article-shell';
 import { GuideBreadcrumb } from '@/modules/marketing/content/guides/guide-breadcrumb';
 import { DemoLink } from '@/modules/marketing/content/guides/demo-link';
 import { CtaBand } from '@/modules/marketing/content/guides/cta-band';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export function EquestrianEventManagementSoftware(): ReactElement {
   return (
@@ -122,36 +130,36 @@ export function EquestrianEventManagementSoftware(): ReactElement {
           Generic event platforms are designed for attendees. Equestrian event software is designed
           for competition operations.
         </p>
-        <table className="compare">
-          <thead>
-            <tr>
-              <th>Generic Event Software</th>
-              <th>Field-Arena</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Attendee registration</td>
-              <td>Horse and rider entries</td>
-            </tr>
-            <tr>
-              <td>Basic schedules</td>
-              <td>Competition scheduling</td>
-            </tr>
-            <tr>
-              <td>Ticket management</td>
-              <td>Class management</td>
-            </tr>
-            <tr>
-              <td>General reporting</td>
-              <td>Competition results</td>
-            </tr>
-            <tr>
-              <td>Limited customization</td>
-              <td>Built for equestrian workflows</td>
-            </tr>
-          </tbody>
-        </table>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Generic Event Software</TableHead>
+              <TableHead>Field-Arena</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>Attendee registration</TableCell>
+              <TableCell>Horse and rider entries</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Basic schedules</TableCell>
+              <TableCell>Competition scheduling</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Ticket management</TableCell>
+              <TableCell>Class management</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>General reporting</TableCell>
+              <TableCell>Competition results</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Limited customization</TableCell>
+              <TableCell>Built for equestrian workflows</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
         <p>Your event deserves technology designed for your industry.</p>
 
         <div className="callout">

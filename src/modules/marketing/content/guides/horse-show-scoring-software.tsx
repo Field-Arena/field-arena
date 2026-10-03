@@ -3,6 +3,14 @@ import { ArticleShell } from '@/modules/marketing/ui/article-shell';
 import { GuideBreadcrumb } from '@/modules/marketing/content/guides/guide-breadcrumb';
 import { DemoLink } from '@/modules/marketing/content/guides/demo-link';
 import { CtaBand } from '@/modules/marketing/content/guides/cta-band';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export function HorseShowScoringSoftware(): ReactElement {
   return (
@@ -107,36 +115,36 @@ export function HorseShowScoringSoftware(): ReactElement {
 
         <hr />
         <h2>Horse Show Scoring Software vs. Manual Score Sheets</h2>
-        <table className="compare">
-          <thead>
-            <tr>
-              <th>Manual Scoring</th>
-              <th>Digital Scoring Software</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Paper score sheets</td>
-              <td>Centralized digital records</td>
-            </tr>
-            <tr>
-              <td>Manual calculations</td>
-              <td>Automated calculations</td>
-            </tr>
-            <tr>
-              <td>Slower results</td>
-              <td>Faster publishing</td>
-            </tr>
-            <tr>
-              <td>Higher chance of errors</td>
-              <td>Improved accuracy</td>
-            </tr>
-            <tr>
-              <td>Difficult collaboration</td>
-              <td>Team access</td>
-            </tr>
-          </tbody>
-        </table>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Manual Scoring</TableHead>
+              <TableHead>Digital Scoring Software</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>Paper score sheets</TableCell>
+              <TableCell>Centralized digital records</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Manual calculations</TableCell>
+              <TableCell>Automated calculations</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Slower results</TableCell>
+              <TableCell>Faster publishing</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Higher chance of errors</TableCell>
+              <TableCell>Improved accuracy</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Difficult collaboration</TableCell>
+              <TableCell>Team access</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
         <p>As competitions grow, digital scoring becomes increasingly valuable.</p>
 
         <hr />

@@ -1,6 +1,14 @@
 import type { ReactElement } from 'react';
 import { ArticleShell } from '@/modules/marketing/ui/article-shell';
 import { LegalBreadcrumb } from '@/modules/marketing/content/legal/legal-breadcrumb';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/shadcn/table';
 
 export function PrivacyPolicyContent(): ReactElement {
   return (
@@ -27,50 +35,52 @@ export function PrivacyPolicyContent(): ReactElement {
         </p>
 
         <h2>1. Information we collect</h2>
-        <table className="compare">
-          <tbody>
-            <tr>
-              <th>Category</th>
-              <th>Examples</th>
-            </tr>
-            <tr>
-              <td>Account information</td>
-              <td>Name, email, phone, password (stored hashed, never in plain text)</td>
-            </tr>
-            <tr>
-              <td>Organization data</td>
-              <td>Show details, divisions/classes, staff assignments, member records</td>
-            </tr>
-            <tr>
-              <td>{`Entry & competitor data`}</td>
-              <td>Rider/horse information, entries, stall requests, scratches</td>
-            </tr>
-            <tr>
-              <td>Documents</td>
-              <td>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead>Examples</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>Account information</TableCell>
+              <TableCell>Name, email, phone, password (stored hashed, never in plain text)</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Organization data</TableCell>
+              <TableCell>Show details, divisions/classes, staff assignments, member records</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>{`Entry & competitor data`}</TableCell>
+              <TableCell>Rider/horse information, entries, stall requests, scratches</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Documents</TableCell>
+              <TableCell>
                 Coggins/vaccination records and other uploaded files, stored in access-controlled
                 storage
-              </td>
-            </tr>
-            <tr>
-              <td>Scoring data</td>
-              <td>Judge and scribe marks, results</td>
-            </tr>
-            <tr>
-              <td>Payment data</td>
-              <td>
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Scoring data</TableCell>
+              <TableCell>Judge and scribe marks, results</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Payment data</TableCell>
+              <TableCell>
                 Processed directly by our payment processor (Stripe); we do not store full card
                 numbers
-              </td>
-            </tr>
-            <tr>
-              <td>Usage data</td>
-              <td>
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Usage data</TableCell>
+              <TableCell>
                 Log data such as IP address and access times, used for security and rate limiting
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
 
         <h2>2. How we use information</h2>
         <ul>
