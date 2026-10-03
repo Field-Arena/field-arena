@@ -3,7 +3,6 @@ import { parseMemberCsvLine } from '@/modules/organizations/utils/parse-member-c
 
 export interface ParsedMemberCsvColumn {
   field: keyof CreateMemberInput | null;
-
   header: string;
   index: number;
 }

@@ -336,7 +336,6 @@ export async function addMembersToShow(
       if (email) vendorEmails.add(email);
       vendorRows.push({
         show_id: parsed.showId,
-
         name: member.name || 'Vendor',
         contact: member.email,
         phone: member.phone,
@@ -354,7 +353,6 @@ export async function addMembersToShow(
       name: member.name || 'Staff',
       first_name: member.first_name,
       last_name: member.last_name,
-
       role: !member.role || member.role === 'Member' ? 'ShowStaff' : member.role,
       email: member.email,
       phone: member.phone,
@@ -427,7 +425,6 @@ export async function startStripeConnect(): Promise<{ url: string }> {
   const link = await stripe.accountLinks.create({
     account: accountId,
     type: 'account_onboarding',
-
     return_url: `${env.siteUrl}/dashboard/billing?connect=done`,
     refresh_url: `${env.siteUrl}/dashboard/billing?connect=refresh`,
   });

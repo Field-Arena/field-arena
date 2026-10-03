@@ -27,6 +27,5 @@ export interface VenueListItem {
   region: string | null;
   rings: VenueRing[];
   stables: VenueStable[];
-
   showCount: number;
 }
