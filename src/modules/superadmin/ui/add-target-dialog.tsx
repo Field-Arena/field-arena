@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRightIcon, Loader2Icon, PlusIcon, XIcon } from 'lucide-react';
@@ -18,6 +18,22 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { createLeadSchema, type CreateLeadInput } from '@/modules/superadmin/schemas';
 import { useCreateLead } from '@/modules/superadmin/hooks/use-lead-mutations';
+import { withSanitizer } from '@/shared/lib/format/input-sanitize';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
+import { sanitizeIntegerInput } from '@/shared/lib/format/number-input';
+
+interface FieldConfig {
+  id: string;
+  name: keyof CreateLeadInput;
+  label: string;
+  placeholder: string;
+  inputProps?: ComponentProps<'input'>;
+  sanitize?: (value: string) => string;
+}
+
+const sanitizeShowsPerYear = (value: string) => sanitizeIntegerInput(value, { maxDigits: 6 });
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-[#D0D5DD] bg-white px-3.5 py-2.5 text-[14px] text-[#101828] ' +
@@ -29,6 +45,7 @@ export function AddTargetDialog() {
 
   const form = useForm<CreateLeadInput>({
     resolver: zodResolver(createLeadSchema),
+    mode: 'onTouched',
     defaultValues: {
       orgName: '',
       contactName: '',
@@ -48,40 +65,48 @@ export function AddTargetDialog() {
 
   const { errors } = form.formState;
 
-  const TOP_FIELDS: { id: string; name: 'orgName'; label: string; placeholder: string }[] = [
+  const TOP_FIELDS: FieldConfig[] = [
     {
       id: 'at-org',
       name: 'orgName',
       label: 'Organization name',
       placeholder: 'Peachtree Dressage Association',
+      inputProps: { maxLength: 200 },
     },
   ];
-  const GRID_FIELDS: {
-    id: string;
-    name: 'contactName' | 'email' | 'phone' | 'website';
-    label: string;
-    placeholder: string;
-    type?: string;
-  }[] = [
-    { id: 'at-contact', name: 'contactName', label: 'Contact name', placeholder: 'Jane Whitfield' },
+  const GRID_FIELDS: FieldConfig[] = [
+    {
+      id: 'at-contact',
+      name: 'contactName',
+      label: 'Contact name',
+      placeholder: 'Jane Whitfield',
+      inputProps: { maxLength: 200 },
+    },
     {
       id: 'at-email',
       name: 'email',
       label: 'Email',
-      type: 'email',
+      inputProps: { ...EMAIL_INPUT_PROPS, maxLength: 200 },
       placeholder: 'jane@example.com',
     },
-    { id: 'at-phone', name: 'phone', label: 'Phone', placeholder: '(404) 555-0134' },
-    { id: 'at-website', name: 'website', label: 'Website', placeholder: 'example.com' },
+    {
+      id: 'at-phone',
+      name: 'phone',
+      label: 'Phone',
+      placeholder: '(404) 555-0134',
+      inputProps: PHONE_INPUT_PROPS,
+      sanitize: sanitizePhoneInput,
+    },
+    {
+      id: 'at-website',
+      name: 'website',
+      label: 'Website',
+      placeholder: 'example.com',
+      inputProps: URL_INPUT_PROPS,
+    },
   ];
 
-  function renderField(f: {
-    id: string;
-    name: keyof CreateLeadInput;
-    label: string;
-    placeholder: string;
-    type?: string;
-  }) {
+  function renderField(f: FieldConfig) {
     const error = errors[f.name];
     return (
       <div key={f.id}>
@@ -90,11 +115,13 @@ export function AddTargetDialog() {
         </Label>
         <Input
           id={f.id}
-          type={f.type}
+          {...f.inputProps}
           placeholder={f.placeholder}
           aria-invalid={!!error}
           className={FIELD}
-          {...form.register(f.name)}
+          {...(f.sanitize
+            ? withSanitizer(form.register(f.name), f.sanitize)
+            : form.register(f.name))}
         />
         {error && (
           <p role="alert" className="text-status-danger mt-1.5 text-[12.5px]">
@@ -168,10 +195,11 @@ export function AddTargetDialog() {
               </Label>
               <Input
                 id="at-shows"
+                inputMode="numeric"
                 placeholder="6"
                 aria-invalid={!!errors.showsPerYear}
                 className={FIELD}
-                {...form.register('showsPerYear')}
+                {...withSanitizer(form.register('showsPerYear'), sanitizeShowsPerYear)}
               />
               {errors.showsPerYear ? (
                 <p role="alert" className="text-status-danger mt-1.5 text-[12.5px]">

@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { UpdateShowDetailsInput } from '@/modules/shows/schemas';
+import { updateShowDetailsSchema, type UpdateShowDetailsInput } from '@/modules/shows/schemas';
+import { schemaFieldErrors } from '@/modules/shows/utils/schema-field-error';
 import type { ShowSetupDetail } from '@/modules/shows/types';
 import { useUpdateShowDetails } from '@/modules/shows/hooks/use-show-mutations';
 import type { SHOW_DETAILS_BODIES } from '@/modules/shows/constants';
@@ -45,11 +46,42 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
 
   const { mutate } = useUpdateShowDetails();
 
-  const dateFields: { id: string; label: string; value: string; onChange: (v: string) => void }[] =
-    [
-      { id: 'sm-start', label: 'Start date', value: startDate, onChange: setStartDate },
-      { id: 'sm-end-date', label: 'End date', value: endDate, onChange: setEndDate },
-    ];
+  const errors = schemaFieldErrors(updateShowDetailsSchema, {
+    showId: show.id,
+    name,
+    org,
+    showType,
+    startDate,
+    endDate,
+    timezone,
+    startingRiderNumber,
+    governingBodies,
+  });
+
+  const dateFields: {
+    id: string;
+    label: string;
+    value: string;
+    min?: string;
+    error?: string;
+    onChange: (v: string) => void;
+  }[] = [
+    {
+      id: 'sm-start',
+      label: 'Start date',
+      value: startDate,
+      error: errors.startDate,
+      onChange: setStartDate,
+    },
+    {
+      id: 'sm-end-date',
+      label: 'End date',
+      value: endDate,
+      min: startDate || undefined,
+      error: errors.endDate,
+      onChange: setEndDate,
+    },
+  ];
 
   function save(overrides: Partial<ShowDetailsSnapshot> = {}) {
     const payload = {
@@ -75,6 +107,9 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
       payload.startingRiderNumber === last.startingRiderNumber &&
       sameBodies(payload.governingBodies, last.governingBodies);
     if (unchanged) return;
+    // Don't fire a save the server action would reject — the card shows the
+    // reason inline under the offending field instead.
+    if (!updateShowDetailsSchema.safeParse(payload).success) return;
     lastSaved.current = payload;
     mutate({
       ...payload,
@@ -111,6 +146,7 @@ export function useShowDetailsForm(show: ShowSetupDetail) {
     governingBodies,
     toggleBody,
     dateFields,
+    errors,
     save,
   };
 }

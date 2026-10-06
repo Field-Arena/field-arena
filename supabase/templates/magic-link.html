@@ -1,154 +1,80 @@
+<!doctype html>
 <!--
-  One-time sign-in code, offered on the sign-in panel beside the password reset.
+  One-time sign-in code, offered on the sign-in panel beside the password reset
+  ("Email me a one-time code instead"). Code-only, no link.
 
-  Code-first for the same reason as confirmation.html: the app calls
-  verifyOtp({ type: 'email' }) and shows six boxes, so a link-only email — which
-  is Supabase's stock magic-link template — would leave the visitor with nothing
-  to type. No link sits beside the code either: Supabase builds that link around
-  token_hash while /auth/callback exchanges a code, so it would land on a route
-  that cannot finish it, and a link that fails is worse than none.
+  The app calls signInWithOtp, then verifySignInCode, which calls verifyOtp
+  with type email against the six digits the person types. That server action
+  also applies "remember me" and signs out anyone whose account is not
+  provisioned. A link would bypass both: the stock link lands on
+  /auth/callback (PKCE code, same browser only), and a token-hash link to
+  /auth/confirm would sign in without the provisioning check. So the email
+  carries only the code the sign-in screen is waiting for.
 
-  Nothing outside the token placeholder may use Go template syntax — every such
-  placeholder is substituted, including inside comments, which would bury a live
-  one-time credential in the message source.
+  Nothing outside the token placeholder may use Go template syntax.
 
-  Table layout and inline styles throughout: email clients strip style blocks and
-  implement neither flex nor grid.
+  Same layout as every app-sent email (src/shared/lib/email-layout.ts). This
+  file is that helper's output with Go placeholders in place of the values, so
+  if the helper's markup changes, regenerate or edit these to match.
+
+  Table layout and inline styles throughout: email clients strip style blocks
+  and implement neither flex nor grid.
+
+  Never write a Go placeholder inside a comment: Supabase substitutes every
+  one, including in comments, which would leak values into the message source.
 -->
-<table
-  width="100%"
-  cellpadding="0"
-  cellspacing="0"
-  role="presentation"
-  style="background: #fbfaf7; margin: 0; padding: 32px 0"
->
-  <tr>
-    <td align="center">
-      <table
-        width="440"
-        cellpadding="0"
-        cellspacing="0"
-        role="presentation"
-        style="
-          width: 440px;
-          max-width: 100%;
-          background: #ffffff;
-          border: 1px solid #e2e8e4;
-          border-radius: 14px;
-          overflow: hidden;
-        "
-      >
-        <tr>
-          <td style="background: #0d2c23; padding: 22px 32px">
-            <span
-              style="
-                font-family: Georgia, 'Times New Roman', serif;
-                font-size: 18px;
-                font-weight: 500;
-                color: #fbfaf7;
-              "
-            >
-              Field &amp; Arena
-            </span>
-          </td>
-        </tr>
-
-        <tr>
-          <td style="padding: 32px 32px 8px">
-            <p
-              style="
-                margin: 0 0 12px;
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 10.5px;
-                font-weight: bold;
-                letter-spacing: 1.6px;
-                text-transform: uppercase;
-                color: #c9a227;
-              "
-            >
-              Sign in
-            </p>
-            <h1
-              style="
-                margin: 0 0 10px;
-                font-family: Georgia, 'Times New Roman', serif;
-                font-size: 28px;
-                font-weight: 500;
-                color: #0d2c23;
-              "
-            >
-              Your one-time code
-            </h1>
-            <p
-              style="
-                margin: 0;
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 14.5px;
-                line-height: 1.6;
-                color: #5a6b63;
-              "
-            >
-              Enter this code on the sign-in screen to get into your account without a password.
-            </p>
-          </td>
-        </tr>
-
-        <tr>
-          <td style="padding: 24px 32px 8px">
-            <table
-              width="100%"
-              cellpadding="0"
-              cellspacing="0"
-              role="presentation"
-              style="background: #edf5f1; border: 1px solid #dce6e0; border-radius: 10px"
-            >
-              <tr>
-                <td align="center" style="padding: 22px 16px">
-                  <span
-                    style="
-                      font-family: Georgia, 'Times New Roman', serif;
-                      font-size: 34px;
-                      font-weight: 500;
-                      letter-spacing: 10px;
-                      color: #0d2c23;
-                    "
-                  >
-                    {{ .Token }}
-                  </span>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <tr>
-          <td style="padding: 8px 32px 32px">
-            <p
-              style="
-                margin: 0 0 6px;
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 12.5px;
-                line-height: 1.6;
-                color: #7a8781;
-              "
-            >
-              The code expires in one hour and can only be used once.
-            </p>
-            <p
-              style="
-                margin: 0;
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 12.5px;
-                line-height: 1.6;
-                color: #7a8781;
-              "
-            >
-              If you did not ask to sign in, you can ignore this email — your password still works
-              and nothing has changed.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>Your one-time code</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: #f5f7f8">
+    <span style="display: none; max-height: 0; max-width: 0; overflow: hidden; opacity: 0; mso-hide: all; font-size: 1px; line-height: 1px; color: #f5f7f8">Your one-time Field &amp; Arena sign-in code is inside.</span>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background: #f5f7f8; margin: 0; padding: 32px 12px">
+      <tr>
+        <td align="center">
+          <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 560px; background: #ffffff; border: 1px solid #e7eaee; border-radius: 14px; overflow: hidden">
+            <tr>
+              <td style="background: #0c4a31; padding: 20px 32px"><span style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; font-weight: 600; letter-spacing: 0.2px; color: #ffffff">Field &amp; Arena</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 32px 32px 24px">
+                <p style="margin: 0 0 10px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: #146a47">Sign in</p>
+                <h1 style="margin: 0 0 16px; font-family: Georgia, 'Times New Roman', serif; font-size: 26px; line-height: 1.25; font-weight: 600; color: #101828">Your one-time code</h1>
+                <p style="margin: 0 0 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">Enter this code on the sign-in screen to get into your account without a password.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px">
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background: #eaf5ef; border: 1px solid #cfe5d8; border-radius: 10px">
+                  <tr>
+                    <td align="center" style="padding: 22px 16px; font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 600; letter-spacing: 10px; color: #0c4a31">{{ .Token }}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px">
+                <p style="margin: 0 0 14px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">The code expires in one hour and can only be used once.</p>
+                <p style="margin: 0 0 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">If you did not ask to sign in, you can ignore this email — your password still works and nothing has changed.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 8px"></td>
+            </tr>
+          </table>
+          <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 560px">
+            <tr>
+              <td style="padding: 20px 32px 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #8a94a3">
+                <p style="margin: 0 0 4px; font-weight: 600">Field &amp; Arena &middot; Equestrian show management</p>
+                <p style="margin: 0">You received this email because someone asked to sign in to Field &amp; Arena with this address.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

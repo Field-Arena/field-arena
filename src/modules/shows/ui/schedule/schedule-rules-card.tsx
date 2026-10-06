@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import type { MasterScheduleData } from '@/modules/shows/types';
 import { useUpdateScheduleRules } from '@/modules/shows/hooks/use-schedule-mutations';
 import { SM_CARD_PAD, SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/tokens';
@@ -78,11 +79,23 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
                     type="number"
                     min={0}
                     max={240}
+                    step={1}
+                    onKeyDown={blockNonIntegerKeys}
                     defaultValue={f.value}
                     className={cn('h-auto', SM_ROW_INPUT, 'w-[76px] text-right')}
                     onBlur={(e) => {
                       const next = Number(e.target.value);
                       if (next === f.value) return;
+                      // Outside 0–240 whole minutes: put the saved value back.
+                      if (
+                        e.target.value.trim() === '' ||
+                        !Number.isInteger(next) ||
+                        next < 0 ||
+                        next > 240
+                      ) {
+                        e.target.value = String(f.value);
+                        return;
+                      }
                       save.mutate({
                         showId: data.showId,
                         [f.key]: next,

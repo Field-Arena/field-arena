@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
+import { sanitizeDecimalInput, sanitizeIntegerInput } from '@/shared/lib/format/number-input';
 import {
   useUpdateVendorItem,
   useDeleteVendorItem,
@@ -33,6 +34,7 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
       <Input
         className={cn('h-auto', SM_ROW_INPUT, 'min-w-[200px] flex-1')}
         value={name}
+        maxLength={160}
         onChange={(e) => {
           setName(e.target.value);
         }}
@@ -46,7 +48,7 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
         inputMode="numeric"
         value={qty}
         onChange={(e) => {
-          setQty(e.target.value);
+          setQty(sanitizeIntegerInput(e.target.value, { maxDigits: 6 }));
         }}
         onBlur={commit}
         aria-label={`${space.name} quantity`}
@@ -54,10 +56,10 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
       <span className="text-[13px] text-[#8A94A3]">$</span>
       <Input
         className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
-        inputMode="numeric"
+        inputMode="decimal"
         value={price}
         onChange={(e) => {
-          setPrice(e.target.value);
+          setPrice(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
         }}
         onBlur={commit}
         aria-label={`${space.name} price`}

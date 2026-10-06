@@ -124,6 +124,7 @@ export function WaiverCard({
 
       <Textarea
         value={text}
+        maxLength={20000}
         rows={8}
         spellCheck={false}
         className="w-full resize-y rounded-[6px] border border-[#D0D5DD] bg-white px-3.5 py-3 font-sans text-[13px] leading-[1.6] text-[#101828] outline-none focus-visible:border-[#9FD3BA]"

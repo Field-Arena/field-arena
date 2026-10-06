@@ -30,7 +30,9 @@ export interface OrganizationSummary {
   entryCount: number;
   riderCount: number;
 
-  revenueEstimate: number;
+  /** Money actually collected: paid rider orders + paid vendor bookings,
+   * including extra charges, minus refunds (same rule as Event Sales). */
+  revenueCollected: number;
 
   onboarded: boolean;
 

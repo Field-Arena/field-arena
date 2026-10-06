@@ -6,6 +6,7 @@ import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import {
   useCreateDivision,
   useRenameDivision,
@@ -175,6 +176,7 @@ export function ClassDivisionsCard({
           >
             <Input
               value={d.name}
+              maxLength={120}
               className={cn('h-auto', SM_ROW_INPUT)}
               onChange={(e) => {
                 editName(d.id, e.target.value);
@@ -186,7 +188,9 @@ export function ClassDivisionsCard({
             <Input
               type="number"
               min={0}
+              max={100000}
               step="0.01"
+              onKeyDown={blockNonDecimalKeys}
               placeholder={`$${String(DEFAULT_CLASS_FEE)}`}
               value={d.defaultFee ?? ''}
               className={cn('h-auto', SM_ROW_INPUT)}
@@ -215,6 +219,7 @@ export function ClassDivisionsCard({
         <div className="relative">
           <Input
             value={newName}
+            maxLength={120}
             placeholder="Choose a standard division, or type your own…"
             className={cn('h-auto', SM_INPUT)}
             onFocus={() => {

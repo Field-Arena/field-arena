@@ -15,6 +15,7 @@ import {
   AuthEyebrow,
   AuthSubmit,
 } from '@/shared/ui/auth/auth-primitives';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { loginSchema, type LoginInput } from '@/modules/auth/schemas';
@@ -55,6 +56,7 @@ export function LoginForm({
     resolver: zodResolver(loginSchema),
 
     defaultValues: { email: '', password: '', remember: true },
+    mode: 'onTouched',
   });
 
   const signIn = useSignIn({ onSuccess });
@@ -262,7 +264,7 @@ export function LoginForm({
       >
         <AuthField
           label="Email address"
-          type="email"
+          {...EMAIL_INPUT_PROPS}
           autoComplete="username"
           placeholder="you@yourbarn.com"
           error={errors.email?.message}

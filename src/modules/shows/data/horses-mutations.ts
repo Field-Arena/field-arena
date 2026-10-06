@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
+import { ROUTES } from '@/shared/constants/routes';
 import { parseInput, UserFacingError } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
 import {
@@ -122,27 +125,36 @@ async function sendReminderEmail(params: {
   showName: string;
   missingLabels: string[];
 }): Promise<void> {
-  const list = params.missingLabels.map((label) => `<li>${label}</li>`).join('');
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.resendApiKey}`,
-      'Content-Type': 'application/json',
+  // Horse, rider and show names and the requirement labels are all
+  // user-entered; the shared layout escapes them.
+  const { html, text } = renderEmail({
+    preheader: `${params.horseName} still needs documents before ${params.showName}.`,
+    eyebrow: 'Documents needed',
+    heading: `Missing documents for ${params.horseName}`,
+    greeting: `Hi ${params.riderName},`,
+    paragraphs: [
+      [
+        { strong: params.horseName },
+        ' still needs the following before ',
+        { strong: params.showName },
+        ':',
+      ],
+    ],
+    list: { items: params.missingLabels },
+    link: {
+      label: 'Upload them any time before the show using this link:',
+      url: `${env.siteUrl}${ROUTES.rider}`,
     },
-    body: JSON.stringify({
-      from: 'Field & Arena <notifications@field-arena.com>',
-      to: params.to,
-      subject: `Missing documents for ${params.horseName} — ${params.showName}`,
-      html:
-        `<p>Hi ${params.riderName},</p>` +
-        `<p>${params.horseName} still needs the following before ${params.showName}:</p>` +
-        `<ul>${list}</ul>` +
-        `<p>Log in to your Field &amp; Arena account any time before the show to upload them.</p>`,
-    }),
+    footerNote: `${params.horseName} is entered in ${params.showName} and the show office asked us to remind you.`,
   });
 
-  if (!res.ok) {
+  const sent = await sendEmail({
+    to: params.to,
+    subject: `Missing documents for ${params.horseName} — ${params.showName}`,
+    html,
+    text,
+  });
+  if (!sent) {
     throw new Error("Couldn't send the reminder email. Please try again.");
   }
 }

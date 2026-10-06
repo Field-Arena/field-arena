@@ -12,6 +12,7 @@ import { Label } from '@/shared/ui/shadcn/label';
 import { IconPrinter } from '@/shared/ui/organizer/icons';
 import { fa } from '@/shared/lib/organizer-theme';
 import { cn } from '@/shared/lib/utils';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import {
   parseStallDndId,
   findStallById,
@@ -262,6 +263,8 @@ export function StableChartScreen({
               type="number"
               min={0}
               max={MAX_STABLES}
+              step={1}
+              onKeyDown={blockNonIntegerKeys}
               defaultValue={chart.stables.length}
               className={cn('h-auto', SM_INPUT)}
               onBlur={(event) => {

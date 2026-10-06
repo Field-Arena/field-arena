@@ -26,6 +26,7 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { cn } from '@/shared/lib/utils';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { ADD_USER_ROLES } from '../constants';
 import { addStaffUserSchema, type AddStaffUserInput } from '../schemas';
 import { useAddStaffUser } from '../hooks/use-user-directory-mutations';
@@ -72,6 +73,7 @@ export function AddUserDialog({
   const form = useForm<AddStaffUserInput>({
     resolver: zodResolver(addStaffUserSchema),
     defaultValues: resetDefaults,
+    mode: 'onTouched',
   });
 
   const { mutate, isPending } = useAddStaffUser({
@@ -142,6 +144,7 @@ export function AddUserDialog({
                 <Input
                   id="au-business-name"
                   placeholder="Trailside Tack Co."
+                  maxLength={160}
                   {...form.register('businessName')}
                 />
                 {errors.businessName && (
@@ -154,7 +157,12 @@ export function AddUserDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="au-first-name">First name</Label>
-                  <Input id="au-first-name" placeholder="Jane" {...form.register('firstName')} />
+                  <Input
+                    id="au-first-name"
+                    placeholder="Jane"
+                    maxLength={80}
+                    {...form.register('firstName')}
+                  />
                   {errors.firstName && (
                     <p role="alert" className="text-status-danger text-[13px]">
                       {errors.firstName.message}
@@ -163,7 +171,12 @@ export function AddUserDialog({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="au-last-name">Last name</Label>
-                  <Input id="au-last-name" placeholder="Smith" {...form.register('lastName')} />
+                  <Input
+                    id="au-last-name"
+                    placeholder="Smith"
+                    maxLength={80}
+                    {...form.register('lastName')}
+                  />
                   {errors.lastName && (
                     <p role="alert" className="text-status-danger text-[13px]">
                       {errors.lastName.message}
@@ -178,7 +191,7 @@ export function AddUserDialog({
                 <Label htmlFor="au-email">Email</Label>
                 <Input
                   id="au-email"
-                  type="email"
+                  {...EMAIL_INPUT_PROPS}
                   placeholder="jane@example.com"
                   {...form.register('email')}
                 />

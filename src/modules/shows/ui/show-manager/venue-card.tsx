@@ -15,6 +15,7 @@ import { primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { IconBarn } from '@/shared/ui/organizer/icons';
 import {
   SM_CARD_PAD,
@@ -179,6 +180,7 @@ export function VenueCard({
             type="number"
             min={0}
             max={MAX_RINGS}
+            step={1}
             value={countDraft ?? rings.length}
             className={`h-auto ${SM_INPUT}`}
             onChange={(e) => {
@@ -188,6 +190,7 @@ export function VenueCard({
               setCount(e.target.value);
             }}
             onKeyDown={(e) => {
+              blockNonIntegerKeys(e);
               if (e.key === 'Enter') e.currentTarget.blur();
             }}
           />
@@ -202,6 +205,7 @@ export function VenueCard({
               <span className="text-[13.5px] font-bold text-[#101828]">{i + 1}</span>
               <Input
                 value={ring.name}
+                maxLength={80}
                 className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
                   editName(i, e.target.value);

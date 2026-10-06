@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { sanitizeDecimalInput } from '@/shared/lib/format/number-input';
 import { Input } from '@/shared/ui/shadcn/input';
 import { MARK_DEFAULT, MARK_MAX, MARK_MIN, MARK_STEP } from '@/modules/scoring/constants';
 import { clampMark } from '@/modules/scoring/scoring-engine';
@@ -63,8 +64,9 @@ export function MarkStepper({
           inputMode="decimal"
           value={draft}
           disabled={locked}
+          maxLength={4}
           onChange={(e) => {
-            setDraft(e.target.value);
+            setDraft(sanitizeDecimalInput(e.target.value, { decimals: 1, maxIntegerDigits: 2 }));
           }}
           onBlur={(e) => {
             commit(e.target.value);

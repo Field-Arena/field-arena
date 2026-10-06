@@ -82,6 +82,8 @@ export function VendorAgreementDialog({
               id="va-agree-name"
               required
               placeholder="Jane Smith"
+              autoComplete="name"
+              maxLength={200}
               value={fullName}
               onChange={(e) => {
                 setFullName(e.target.value);

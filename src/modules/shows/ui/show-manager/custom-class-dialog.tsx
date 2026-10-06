@@ -17,6 +17,10 @@ import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/types';
 import { useAddCustomClass } from '@/modules/shows/hooks/use-select-events-mutations';
+import { addCustomClassSchema } from '@/modules/shows/schemas';
+import { schemaFieldErrors } from '@/modules/shows/utils/schema-field-error';
+import { FieldError } from '@/modules/shows/ui/field-error';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import {
   SM_LABEL,
   SM_INPUT,
@@ -38,6 +42,9 @@ export function CustomClassDialog({
   const [sponsor, setSponsor] = useState('');
 
   const add = useAddCustomClass({ onSuccess: onClose });
+  const payload = { showId: data.showId, name, division, fee, sponsor };
+  const errors = schemaFieldErrors(addCustomClassSchema, payload);
+  const invalid = Object.keys(errors).length > 0;
 
   return (
     <Dialog
@@ -63,11 +70,14 @@ export function CustomClassDialog({
               id="cc-name"
               className={cn('h-auto', SM_INPUT)}
               placeholder="e.g. Sponsor Exhibition Class"
+              maxLength={160}
               value={name}
+              aria-invalid={name !== '' && errors.name ? true : undefined}
               onChange={(e) => {
                 setName(e.target.value);
               }}
             />
+            {name !== '' && <FieldError message={errors.name} />}
           </div>
 
           <div>
@@ -101,12 +111,17 @@ export function CustomClassDialog({
               id="cc-fee"
               type="number"
               min={0}
+              max={100000}
+              step="0.01"
+              onKeyDown={blockNonDecimalKeys}
               className={cn('h-auto', SM_INPUT)}
               value={fee}
+              aria-invalid={errors.fee ? true : undefined}
               onChange={(e) => {
                 setFee(e.target.value);
               }}
             />
+            <FieldError message={errors.fee} />
           </div>
 
           <div>
@@ -117,6 +132,7 @@ export function CustomClassDialog({
               id="cc-sponsor"
               className={cn('h-auto', SM_INPUT)}
               placeholder="e.g. Presented by Willowbrook Farm"
+              maxLength={120}
               value={sponsor}
               onChange={(e) => {
                 setSponsor(e.target.value);
@@ -138,9 +154,9 @@ export function CustomClassDialog({
             type="button"
             variant="ghost"
             className={cn('h-auto', SM_GREEN_BTN)}
-            disabled={add.isPending || name.trim().length < 2}
+            disabled={add.isPending || invalid}
             onClick={() => {
-              add.mutate({ showId: data.showId, name, division, fee, sponsor });
+              add.mutate(payload);
             }}
           >
             {add.isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}

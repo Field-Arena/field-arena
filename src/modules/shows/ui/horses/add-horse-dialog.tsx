@@ -56,6 +56,7 @@ export function AddHorseDialog({ showId }: { showId: string }) {
 
   const form = useForm<AddManualHorseInput>({
     resolver: zodResolver(addManualHorseSchema),
+    mode: 'onTouched',
     defaultValues: resetDefaults,
   });
 
@@ -114,6 +115,7 @@ export function AddHorseDialog({ showId }: { showId: string }) {
                 <Input
                   id={field.id}
                   placeholder={field.placeholder}
+                  maxLength={160}
                   {...form.register(field.name)}
                 />
                 {errors[field.name] && (

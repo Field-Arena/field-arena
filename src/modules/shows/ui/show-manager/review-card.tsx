@@ -16,6 +16,7 @@ import {
   TableCaption,
 } from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
+import { blockNonDecimalKeys, blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { calcPlatformFee } from '@/shared/lib/fees';
 import {
@@ -161,6 +162,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       <Input
                         defaultValue={c.sponsor ?? ''}
+                        maxLength={120}
                         placeholder="—"
                         className={cn('h-auto', SM_ROW_INPUT, 'w-[160px]!')}
                         onBlur={(e) => {
@@ -172,12 +174,16 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                       <Input
                         type="number"
                         min={1}
+                        max={9}
                         step={1}
+                        onKeyDown={blockNonIntegerKeys}
                         defaultValue={c.judgesCount}
                         className={cn('h-auto', SM_ROW_INPUT, 'w-[64px]! appearance-none')}
                         onBlur={(e) => {
                           const n = Number.parseInt(e.target.value, 10);
-                          commit(c.id, { judgesCount: Number.isFinite(n) && n > 0 ? n : 1 });
+                          commit(c.id, {
+                            judgesCount: Number.isFinite(n) && n > 0 ? Math.min(n, 9) : 1,
+                          });
                         }}
                       />
                     </TableCell>
@@ -185,7 +191,9 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                       <Input
                         type="number"
                         min={0}
+                        max={100000}
                         step={1}
+                        onKeyDown={blockNonDecimalKeys}
                         defaultValue={c.fee}
                         className={cn(
                           'h-auto',
@@ -194,7 +202,9 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                         )}
                         onBlur={(e) => {
                           const n = Number.parseFloat(e.target.value);
-                          commit(c.id, { fee: Number.isFinite(n) && n >= 0 ? n : 0 });
+                          commit(c.id, {
+                            fee: Number.isFinite(n) && n >= 0 ? Math.min(n, 100000) : 0,
+                          });
                         }}
                       />
                     </TableCell>
@@ -226,12 +236,14 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                 id="entries-per-class"
                 type="number"
                 min={0}
+                max={999}
                 step={1}
+                onKeyDown={blockNonIntegerKeys}
                 value={entriesPerClass}
                 className={cn('h-auto', SM_ROW_INPUT, 'w-[70px]! appearance-none')}
                 onChange={(e) => {
                   const n = Number.parseInt(e.target.value, 10);
-                  setEntriesPerClass(Number.isFinite(n) && n >= 0 ? n : 0);
+                  setEntriesPerClass(Number.isFinite(n) && n >= 0 ? Math.min(n, 999) : 0);
                 }}
               />
               <span className="text-[12px] text-[#8A94A3]">

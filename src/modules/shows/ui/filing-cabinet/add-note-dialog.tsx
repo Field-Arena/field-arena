@@ -126,6 +126,7 @@ export function AddNoteDialog({
             <Label>Detail (optional)</Label>
             <Textarea
               value={detail}
+              maxLength={1000}
               onChange={(e) => {
                 setDetail(e.target.value);
               }}

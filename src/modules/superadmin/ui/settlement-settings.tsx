@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { useUpdateSettlement } from '@/modules/superadmin/hooks/use-settlement-mutations';
+import { sanitizeDecimalInput } from '@/shared/lib/format/number-input';
 
 const FIELD =
   'h-auto w-full rounded-[10px] border-[#E7EAEE] bg-white px-4 py-3 text-[14.5px] text-[#101828] ' +
@@ -68,10 +69,11 @@ export function SettlementSettings({
             id="holdback"
             inputMode="decimal"
             placeholder="None"
+            maxLength={6}
             value={holdback}
             aria-invalid={invalid || undefined}
             onChange={(event) => {
-              setHoldback(event.target.value);
+              setHoldback(sanitizeDecimalInput(event.target.value, { maxIntegerDigits: 3 }));
             }}
             className={FIELD}
           />

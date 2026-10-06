@@ -65,6 +65,7 @@ export function ResolveIssueDialog({ showId, issue }: { showId: string; issue: E
             <Label>Resolution note (optional)</Label>
             <Textarea
               value={note}
+              maxLength={500}
               onChange={(e) => {
                 setNote(e.target.value);
               }}

@@ -327,6 +327,7 @@ function StablingForm({
   const [arrivalDate, setArrivalDate] = useState(order?.arrival_date ?? '');
   const [departureDate, setDepartureDate] = useState(order?.departure_date ?? '');
   const saveStabling = useSaveStablingDates();
+  const datesOutOfOrder = Boolean(arrivalDate && departureDate && departureDate < arrivalDate);
 
   return (
     <div>
@@ -361,11 +362,18 @@ function StablingForm({
           <input
             type="date"
             value={departureDate}
+            min={arrivalDate || undefined}
+            aria-invalid={datesOutOfOrder || undefined}
             style={fieldInputStyle}
             onChange={(event) => {
               setDepartureDate(event.target.value);
             }}
           />
+          {datesOutOfOrder && (
+            <p style={{ fontSize: 12, color: LEGACY_COLOR.red, margin: '4px 0 0' }}>
+              Departure date can&apos;t be before arrival date
+            </p>
+          )}
         </div>
         <AutoField label="Stalls reserved" value={stabling.stalls} />
         <AutoField label="Tack stalls" value={stabling.tack} />
@@ -377,7 +385,9 @@ function StablingForm({
         <button
           type="button"
           style={legacyButtonPrimaryStyle}
-          disabled={!order || saveStabling.isPending || !arrivalDate || !departureDate}
+          disabled={
+            !order || saveStabling.isPending || !arrivalDate || !departureDate || datesOutOfOrder
+          }
           onClick={() => {
             if (!order) return;
             saveStabling.mutate({ orderId: order.id, arrivalDate, departureDate });

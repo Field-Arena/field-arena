@@ -51,6 +51,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
 
   const form = useForm<VenueDetailsInput>({
     resolver: zodResolver(venueDetailsSchema),
+    mode: 'onTouched',
     defaultValues: detailsDefaults(venue),
   });
   const { errors } = form.formState;
@@ -74,7 +75,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
   }
 
   function setRingCount(raw: string) {
-    const count = Math.max(0, Math.min(MAX_RINGS, Number(raw) || 0));
+    const count = Math.max(0, Math.min(MAX_RINGS, Math.trunc(Number(raw)) || 0));
     const next = Array.from(
       { length: count },
       (_, i) => rings[i] ?? { name: `Ring ${String(i + 1)}`, size: 'standard' as const },

@@ -6,6 +6,8 @@ import { dayLabel } from '@/modules/shows/utils/day-label';
 import { Card } from '@/shared/ui/organizer/card';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { blockNonIntegerKeys, sanitizeIntegerInput } from '@/shared/lib/format/number-input';
+import { FieldError } from '@/modules/shows/ui/field-error';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -35,6 +37,7 @@ export function SchedulePreferencesCard({
   const {
     effDays,
     rateFields,
+    errors,
     end,
     setEnd,
     order,
@@ -83,7 +86,10 @@ export function SchedulePreferencesCard({
               type="number"
               min={f.min}
               max={f.max}
+              step={1}
+              onKeyDown={blockNonIntegerKeys}
               value={f.value}
+              aria-invalid={f.error ? true : undefined}
               className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
                 f.onChange(Number(e.target.value));
@@ -92,6 +98,7 @@ export function SchedulePreferencesCard({
                 save();
               }}
             />
+            <FieldError message={f.error} />
           </div>
         ))}
         <div>
@@ -110,6 +117,7 @@ export function SchedulePreferencesCard({
               save();
             }}
           />
+          <FieldError message={errors.end} />
         </div>
       </div>
 
@@ -215,7 +223,7 @@ export function SchedulePreferencesCard({
                 e.target.select();
               }}
               onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '');
+                const digits = sanitizeIntegerInput(e.target.value, { maxDigits: 1 });
                 setExtraBreaks(digits === '' ? 0 : Math.min(6, Number(digits)));
               }}
               onBlur={() => {
@@ -234,7 +242,7 @@ export function SchedulePreferencesCard({
                 e.target.select();
               }}
               onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '');
+                const digits = sanitizeIntegerInput(e.target.value, { maxDigits: 2 });
                 setExtraBreakMin(digits === '' ? 0 : Math.min(30, Number(digits)));
               }}
               onBlur={() => {

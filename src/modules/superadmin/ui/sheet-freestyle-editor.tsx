@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
+import { parseCoefInput } from '@/modules/superadmin/utils/parse-coef-input';
 import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
 import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
@@ -34,6 +35,7 @@ export function SheetFreestyleEditor({
             >
               <Input
                 value={row.name}
+                maxLength={200}
                 placeholder="Element — e.g. Halt / rein back"
                 aria-label={`Technical element ${String(i + 1)} name`}
                 onChange={(e) => {
@@ -48,6 +50,7 @@ export function SheetFreestyleEditor({
               />
               <Input
                 value={row.criteria ?? ''}
+                maxLength={2000}
                 placeholder="Criteria"
                 aria-label={`Technical element ${String(i + 1)} criteria`}
                 onChange={(e) => {
@@ -94,6 +97,7 @@ export function SheetFreestyleEditor({
             >
               <Input
                 value={row.name}
+                maxLength={200}
                 placeholder="Mark — e.g. Harmony"
                 aria-label={`Artistic mark ${String(i + 1)} name`}
                 onChange={(e) => {
@@ -108,6 +112,7 @@ export function SheetFreestyleEditor({
               />
               <Input
                 value={row.criteria ?? ''}
+                maxLength={2000}
                 placeholder="Criteria"
                 aria-label={`Artistic mark ${String(i + 1)} criteria`}
                 onChange={(e) => {
@@ -122,15 +127,14 @@ export function SheetFreestyleEditor({
               />
               <Input
                 value={String(row.coef)}
+                inputMode="decimal"
                 placeholder="Coef"
                 aria-label={`Artistic mark ${String(i + 1)} coefficient`}
                 onChange={(e) => {
-                  const c = Number(e.target.value);
+                  const c = parseCoefInput(e.target.value, 20);
                   setDef((d) => ({
                     ...d,
-                    artistic: d.artistic.map((a, j) =>
-                      j === i ? { ...a, coef: Number.isFinite(c) ? c : 0 } : a,
-                    ),
+                    artistic: d.artistic.map((a, j) => (j === i ? { ...a, coef: c } : a)),
                   }));
                 }}
                 className={`h-auto ${SMALL_INPUT} w-[78px] flex-none`}

@@ -123,6 +123,7 @@ export function BridleNumberAssignDialog({
               <Label>Reason for the change</Label>
               <Input
                 value={reason}
+                maxLength={200}
                 placeholder="e.g. lost tag, damaged"
                 onChange={(e) => {
                   setReason(e.target.value);

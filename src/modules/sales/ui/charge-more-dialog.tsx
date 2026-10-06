@@ -63,6 +63,12 @@ export function ChargeMoreDialog({
             setRequestId(crypto.randomUUID());
           }}
           placeholder="0.00"
+          max={MAX_CHARGE_MORE_AMOUNT}
+          error={
+            amount === '' || valid
+              ? undefined
+              : `Enter an amount between $0.01 and ${formatMoneyExact(MAX_CHARGE_MORE_AMOUNT)}.`
+          }
         />
 
         <DialogFooter>

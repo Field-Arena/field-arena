@@ -9,6 +9,8 @@ import {
   useWorkInEntry,
 } from '@/modules/scoring/hooks/use-scoring-mutations';
 import type { RideEntry } from '@/modules/scoring/types';
+import { BACK_NUMBER_MAX_LENGTH } from '@/modules/scoring/constants';
+import { sanitizeBackNumber } from '@/modules/scoring/utils/sanitize-back-number';
 
 export function HoldingQueuePanel({
   classId,
@@ -105,14 +107,17 @@ export function HoldingQueuePanel({
         >
           <Input
             placeholder="Number"
+            inputMode="numeric"
+            maxLength={BACK_NUMBER_MAX_LENGTH}
             value={num}
             onChange={(e) => {
-              setNum(e.target.value);
+              setNum(sanitizeBackNumber(e.target.value));
             }}
             className="w-24"
           />
           <Input
             placeholder="Rider"
+            maxLength={120}
             value={rider}
             onChange={(e) => {
               setRider(e.target.value);
@@ -121,6 +126,7 @@ export function HoldingQueuePanel({
           />
           <Input
             placeholder="Horse"
+            maxLength={120}
             value={horse}
             onChange={(e) => {
               setHorse(e.target.value);

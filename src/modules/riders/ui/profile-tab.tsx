@@ -11,6 +11,8 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import type { RiderProfileUpdateInput } from '@/modules/riders/schemas';
 import type { RiderRow } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 
 type EditableField = keyof RiderProfileUpdateInput;
 
@@ -74,6 +76,17 @@ function FixedRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+/** Native attributes per editable field (phone keypad + typing guard, length caps). */
+const TEXT_INPUT_PROPS: Partial<
+  Record<EditableField, { maxLength: number; autoComplete?: string }>
+> = {
+  street: { maxLength: RIDER_FIELD_MAX.street, autoComplete: 'street-address' },
+  city: { maxLength: RIDER_FIELD_MAX.city, autoComplete: 'address-level2' },
+  ecFirstName: { maxLength: RIDER_FIELD_MAX.name },
+  ecLastName: { maxLength: RIDER_FIELD_MAX.name },
+  ecRel: { maxLength: RIDER_FIELD_MAX.name },
+};
 
 const RIDER_ROW_VALUE: Record<EditableField, keyof RiderRow> = {
   phone: 'phone',
@@ -141,7 +154,7 @@ function EditableRow({
       <span style={{ color: LEGACY_COLOR.inkSoft }}>{label}</span>
       <input
         autoFocus
-        type={type}
+        {...(type === 'tel' ? PHONE_INPUT_PROPS : { type, ...TEXT_INPUT_PROPS[field] })}
         defaultValue={displayValue}
         disabled={updateProfile.isPending}
         style={inputStyle}
@@ -160,6 +173,11 @@ function EditableRow({
               },
             },
           );
+        }}
+        onChange={(event) => {
+          if (type !== 'tel') return;
+          const next = sanitizePhoneInput(event.target.value);
+          if (next !== event.target.value) event.target.value = next;
         }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') setEditing(false);

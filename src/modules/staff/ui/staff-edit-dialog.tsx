@@ -14,6 +14,8 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Label } from '@/shared/ui/shadcn/label';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import {
   PERMISSION_KEYS,
   PERMISSION_LABELS,
@@ -147,6 +149,7 @@ function StaffEditForm({
           <Input
             id="se-first-name"
             value={firstName}
+            maxLength={80}
             onChange={(e) => {
               setFirstName(e.target.value);
             }}
@@ -157,6 +160,7 @@ function StaffEditForm({
           <Input
             id="se-last-name"
             value={lastName}
+            maxLength={80}
             onChange={(e) => {
               setLastName(e.target.value);
             }}
@@ -168,7 +172,7 @@ function StaffEditForm({
         <Label htmlFor="se-email">Email</Label>
         <Input
           id="se-email"
-          type="email"
+          {...EMAIL_INPUT_PROPS}
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
@@ -180,10 +184,10 @@ function StaffEditForm({
         <Label htmlFor="se-phone">Phone</Label>
         <Input
           id="se-phone"
-          type="tel"
+          {...PHONE_INPUT_PROPS}
           value={phone}
           onChange={(e) => {
-            setPhone(e.target.value);
+            setPhone(sanitizePhoneInput(e.target.value));
           }}
         />
       </div>

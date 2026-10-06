@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { MARK_MAX, MARK_MIN } from '@/modules/scoring/constants';
+import {
+  BACK_NUMBER_MAX_LENGTH,
+  MARK_MAX,
+  MARK_MIN,
+  MARK_STEP,
+  REASON_MAX_LENGTH,
+} from '@/modules/scoring/constants';
 
 const seatRoleSchema = z.enum(['judge', 'scribe']);
 
@@ -9,7 +15,7 @@ export const setMarkSchema = z.object({
   seatId: z.string().min(1),
   seatRole: seatRoleSchema,
   movementNum: z.number().int(),
-  value: z.number().min(MARK_MIN).max(MARK_MAX),
+  value: z.number().min(MARK_MIN).max(MARK_MAX).multipleOf(MARK_STEP),
 });
 export type SetMarkInput = z.infer<typeof setMarkSchema>;
 
@@ -19,7 +25,7 @@ export const setCollectiveSchema = z.object({
   seatId: z.string().min(1),
   seatRole: seatRoleSchema,
   key: z.string().min(1),
-  value: z.number().min(MARK_MIN).max(MARK_MAX),
+  value: z.number().min(MARK_MIN).max(MARK_MAX).multipleOf(MARK_STEP),
 });
 export type SetCollectiveInput = z.infer<typeof setCollectiveSchema>;
 
@@ -61,7 +67,7 @@ export const reopenScoresheetSchema = z.object({
   classId: z.uuid(),
   entryId: z.uuid(),
   seatId: z.string().min(1),
-  reason: z.string().trim().min(1, 'A reason is required'),
+  reason: z.string().trim().min(1, 'A reason is required').max(REASON_MAX_LENGTH),
 });
 export type ReopenScoresheetInput = z.infer<typeof reopenScoresheetSchema>;
 
@@ -133,7 +139,7 @@ export type ScratchRideInput = z.infer<typeof scratchRideSchema>;
 export const disqualifyRideSchema = z.object({
   classId: z.uuid(),
   entryId: z.uuid(),
-  reason: z.string().trim().min(1, 'A reason is required'),
+  reason: z.string().trim().min(1, 'A reason is required').max(REASON_MAX_LENGTH),
 });
 export type DisqualifyRideInput = z.infer<typeof disqualifyRideSchema>;
 
@@ -157,7 +163,12 @@ export type UnfinishRideInput = z.infer<typeof unfinishRideSchema>;
 
 export const addHoldingEntrySchema = z.object({
   classId: z.uuid(),
-  num: z.string().trim().min(1),
+  num: z
+    .string()
+    .trim()
+    .min(1, 'A back number is required')
+    .max(BACK_NUMBER_MAX_LENGTH)
+    .regex(/^[A-Za-z0-9-]+$/, 'Back numbers can only contain letters, digits and dashes'),
   rider: z.string().trim().max(120).optional(),
   horse: z.string().trim().max(120).optional(),
 });

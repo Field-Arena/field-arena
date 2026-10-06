@@ -15,6 +15,7 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { addSuperAdminSchema, type AddSuperAdminInput } from '@/modules/superadmin/schemas';
 import { useAddSuperAdmin } from '@/modules/superadmin/hooks/use-superadmin-user-mutations';
@@ -29,6 +30,7 @@ export function AddSuperAdminDialog() {
 
   const form = useForm<AddSuperAdminInput>({
     resolver: zodResolver(addSuperAdminSchema),
+    mode: 'onTouched',
     defaultValues: { name: '', email: '' },
   });
 
@@ -101,6 +103,7 @@ export function AddSuperAdminDialog() {
               <Input
                 id="asa-name"
                 placeholder="Jordan Reyes"
+                maxLength={120}
                 aria-invalid={!!errors.name}
                 className={FIELD}
                 {...form.register('name')}
@@ -117,7 +120,7 @@ export function AddSuperAdminDialog() {
               </Label>
               <Input
                 id="asa-email"
-                type="email"
+                {...EMAIL_INPUT_PROPS}
                 placeholder="jordan@example.com"
                 aria-invalid={!!errors.email}
                 className={FIELD}

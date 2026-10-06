@@ -13,6 +13,7 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { formatDateShort } from '@/shared/lib/format/date';
 import {
@@ -174,6 +175,7 @@ export function RiderDetailDialog({
                 <Input
                   id="rd-first-name"
                   value={firstName}
+                  maxLength={80}
                   onChange={(e) => {
                     setFirstName(e.target.value);
                   }}
@@ -184,6 +186,7 @@ export function RiderDetailDialog({
                 <Input
                   id="rd-last-name"
                   value={lastName}
+                  maxLength={80}
                   onChange={(e) => {
                     setLastName(e.target.value);
                   }}
@@ -201,10 +204,10 @@ export function RiderDetailDialog({
               <Label htmlFor="rd-phone">Phone</Label>
               <Input
                 id="rd-phone"
-                type="tel"
+                {...PHONE_INPUT_PROPS}
                 value={phone}
                 onChange={(e) => {
-                  setPhone(e.target.value);
+                  setPhone(sanitizePhoneInput(e.target.value));
                 }}
               />
             </div>

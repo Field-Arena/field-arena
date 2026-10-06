@@ -6,6 +6,10 @@ import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useUpdatePrizeList } from '@/modules/shows/hooks/use-show-mutations';
+import { updatePrizeListSchema } from '@/modules/shows/schemas';
+import { schemaFieldError } from '@/modules/shows/utils/schema-field-error';
+import { FieldError } from '@/modules/shows/ui/field-error';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
 import { SM_CARD_PAD, SM_NOTE, SM_LABEL, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 import { SmHead } from './sm-head';
 
@@ -18,6 +22,7 @@ export function PrizeListCard({
 }) {
   const [value, setValue] = useState(prizeListUrl ?? '');
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
   const { mutate } = useUpdatePrizeList();
 
   return (
@@ -32,16 +37,22 @@ export function PrizeListCard({
         <div className="min-w-0">
           <span className={`${SM_LABEL} mb-1.5`}>Prize list URL</span>
           {editing ? (
-            <Input
-              autoFocus
-              type="url"
-              value={value}
-              placeholder="https://…"
-              className={cn('h-auto', SM_INPUT)}
-              onChange={(e) => {
-                setValue(e.target.value);
-              }}
-            />
+            <>
+              <Input
+                autoFocus
+                {...URL_INPUT_PROPS}
+                maxLength={500}
+                value={value}
+                placeholder="https://…"
+                aria-invalid={error ? true : undefined}
+                className={cn('h-auto', SM_INPUT)}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                  setError(undefined);
+                }}
+              />
+              <FieldError message={error} />
+            </>
           ) : (
             <div className="truncate text-[14.5px] text-[#101828]">
               {value || <span className="text-[#8A94A3] italic">Not set</span>}
@@ -51,7 +62,18 @@ export function PrizeListCard({
         <GhostButton
           className="px-3.5 py-2.5 text-[12.5px]"
           onClick={() => {
-            if (editing) mutate({ showId, prizeListUrl: value });
+            if (editing) {
+              const message = schemaFieldError(
+                updatePrizeListSchema,
+                { showId, prizeListUrl: value },
+                'prizeListUrl',
+              );
+              if (message) {
+                setError(message);
+                return;
+              }
+              mutate({ showId, prizeListUrl: value });
+            }
             setEditing((v) => !v);
           }}
         >

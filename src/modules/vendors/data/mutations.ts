@@ -7,6 +7,8 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
 import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/shared/lib/auth/session';
 import { getImpersonatedOrgId } from '@/shared/lib/auth/view-as';
@@ -739,14 +741,6 @@ async function assertCanManageVendors(showId: string): Promise<void> {
   }
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 interface PendingBookingForReview {
   id: string;
   show_id: string;
@@ -796,30 +790,38 @@ async function sendVendorApprovalEmail(
 
   const claimUrl = `${env.siteUrl}/vendor-apply/account`;
   const greetingName = booking.contact_name ?? booking.name;
+  const showName = show?.name ?? 'the show';
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Field & Arena <notifications@field-arena.com>',
-        to: booking.contact,
-        subject: `Your vendor application for ${show?.name ?? 'the show'} was approved`,
-        html:
-          `<p>Hi ${escapeHtml(greetingName)},</p>` +
-          `<p>Good news — your vendor application for <b>${escapeHtml(show?.name ?? 'the show')}</b> has been approved.</p>` +
-          `<p>To sign the booth agreement and pay, claim your vendor account using this same email (${escapeHtml(booking.contact)}):</p>` +
-          `<p><a href="${claimUrl}">${claimUrl}</a></p>`,
-      }),
+    const { html, text } = renderEmail({
+      preheader: `Good news — your vendor application for ${showName} was approved.`,
+      eyebrow: 'Application approved',
+      heading: 'Your vendor application was approved',
+      greeting: `Hi ${greetingName},`,
+      paragraphs: [
+        ['Good news — your vendor application for ', { strong: showName }, ' has been approved.'],
+        [
+          'To sign the booth agreement and pay, claim your vendor account using this same email (',
+          { strong: booking.contact },
+          ').',
+        ],
+      ],
+      details: [
+        { label: 'Show', value: showName },
+        { label: 'Vendor', value: booking.name },
+      ],
+      link: { label: 'Claim your vendor account using this link:', url: claimUrl },
+      footerNote: `you applied to be a vendor at ${showName} on Field & Arena.`,
     });
-    if (!res.ok) {
-      console.error('[vendors] approval email failed', res.status, await res.text());
-    }
+    const sent = await sendEmail({
+      to: booking.contact,
+      subject: `Your vendor application for ${showName} was approved`,
+      html,
+      text,
+    });
+    if (!sent) console.error('[vendors] approval email was not delivered');
   } catch (cause) {
-    console.error('[vendors] approval email transport failure', cause);
+    console.error('[vendors] approval email failed', cause);
   }
 }
 

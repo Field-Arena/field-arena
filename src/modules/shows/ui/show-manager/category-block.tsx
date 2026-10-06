@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import { DEFAULT_CLASS_FEE, groupsFor, type CatalogCategory } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/types';
 import { GroupRow } from '@/modules/shows/ui/show-manager/group-row';
@@ -27,7 +28,9 @@ export function CategoryBlock({
           <Input
             type="number"
             min={0}
+            max={100000}
             step="1"
+            onKeyDown={blockNonDecimalKeys}
             value={fee}
             onChange={(e) => {
               setFee(Number(e.target.value));

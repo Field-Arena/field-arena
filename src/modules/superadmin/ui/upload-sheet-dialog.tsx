@@ -35,6 +35,7 @@ export function UploadSheetDialog() {
 
   const form = useForm<CreateSheetInput>({
     resolver: zodResolver(createSheetSchema),
+    mode: 'onTouched',
     defaultValues: {
       title: '',
       level: '',
@@ -91,6 +92,7 @@ export function UploadSheetDialog() {
               label="Sheet title"
               placeholder="e.g. First Level Test 4"
               error={errors.title}
+              inputProps={{ maxLength: 200 }}
               registration={form.register('title')}
             />
             <FormField
@@ -98,6 +100,7 @@ export function UploadSheetDialog() {
               label="Level"
               placeholder="e.g. First"
               error={errors.level}
+              inputProps={{ maxLength: 120 }}
               registration={form.register('level')}
             />
           </div>
@@ -140,6 +143,7 @@ export function UploadSheetDialog() {
             label="Source file name (optional)"
             placeholder="2023_First_Level_Test_4.pdf"
             error={errors.sourceFile}
+            inputProps={{ maxLength: 300 }}
             registration={form.register('sourceFile')}
           />
 

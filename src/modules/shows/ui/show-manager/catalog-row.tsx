@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
+import { sanitizeDecimalInput, sanitizeIntegerInput } from '@/shared/lib/format/number-input';
 import type { CatalogListItem } from '@/modules/shows/types';
 import { SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 
@@ -51,6 +52,7 @@ export function CatalogRow({
       <Input
         className={cn('h-auto', SM_ROW_INPUT, 'min-w-[220px] flex-1')}
         value={name}
+        maxLength={160}
         onChange={(e) => {
           setName(e.target.value);
         }}
@@ -60,10 +62,10 @@ export function CatalogRow({
       <span className="text-[13px] text-[#8A94A3]">$</span>
       <Input
         className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
-        inputMode="numeric"
+        inputMode="decimal"
         value={price}
         onChange={(e) => {
-          setPrice(e.target.value);
+          setPrice(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
         }}
         onBlur={commit}
         aria-label={`${item.name} price`}
@@ -76,7 +78,7 @@ export function CatalogRow({
             inputMode="numeric"
             value={stalls}
             onChange={(e) => {
-              setStalls(e.target.value);
+              setStalls(sanitizeIntegerInput(e.target.value, { maxDigits: 2 }));
             }}
             onBlur={commit}
             aria-label={`${item.name} stalls granted per unit`}
@@ -87,7 +89,7 @@ export function CatalogRow({
             inputMode="numeric"
             value={tack}
             onChange={(e) => {
-              setTack(e.target.value);
+              setTack(sanitizeIntegerInput(e.target.value, { maxDigits: 2 }));
             }}
             onBlur={commit}
             aria-label={`${item.name} tack stalls granted per unit`}

@@ -3,9 +3,13 @@ import type Stripe from 'stripe';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
+import { formatMoneyExact } from '@/shared/lib/format/currency';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { Json } from '@/shared/types/database.types';
 import {
+  VENDOR_DASHBOARD_PATH,
   PAYABLE_BOOKING_STATUSES,
   REVIEW_BOOKING_STATUS,
   REVIEWABLE_BOOKING_STATUSES,
@@ -28,14 +32,6 @@ function allInFlat8(price: number | null): number {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 export async function priceVendorBooking(
@@ -267,28 +263,45 @@ async function sendVendorBookingConfirmationEmail(
     .eq('id', booking.show_id)
     .maybeSingle();
 
+  const showName = show?.name ?? 'the show';
+
+  // Never throws: the booking is paid either way, and a failed email must not
+  // undo that.
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.resendApiKey}`,
-        'Content-Type': 'application/json',
+    const { html, text } = renderEmail({
+      preheader: `Your booth booking for ${showName} is confirmed.`,
+      eyebrow: 'Booking confirmed',
+      heading: 'Your vendor booking is confirmed',
+      greeting: `Hi ${booking.name || 'there'},`,
+      paragraphs: [['Your booth booking for ', { strong: showName }, ' is confirmed.']],
+      details: [
+        { label: 'Show', value: showName },
+        { label: 'Vendor', value: booking.name },
+      ],
+      lineItems: {
+        items: priced.items.map((item) => ({
+          label: item.label,
+          qty: item.qty,
+          amount: formatMoneyExact(item.amount),
+        })),
+        totalLabel: 'Total charged',
+        total: formatMoneyExact(priced.total),
       },
-      body: JSON.stringify({
-        from: 'Field & Arena <notifications@field-arena.com>',
-        to: booking.contact,
-        subject: 'Your Field & Arena vendor booking is confirmed',
-        html:
-          `<p>Hi ${escapeHtml(booking.name || 'there')},</p>` +
-          `<p>Your booth booking for <b>${escapeHtml(show?.name ?? 'the show')}</b> is confirmed.</p>` +
-          `<p>Total charged: $${priced.total.toFixed(2)}</p>`,
-      }),
+      link: {
+        label: 'View your booking any time using this link:',
+        url: `${env.siteUrl}${VENDOR_DASHBOARD_PATH}`,
+      },
+      footerNote: `you booked vendor space at ${showName} on Field & Arena.`,
     });
-    if (!res.ok) {
-      console.error('[vendors] booking confirmation email failed', res.status, await res.text());
-    }
+    const sent = await sendEmail({
+      to: booking.contact,
+      subject: 'Your Field & Arena vendor booking is confirmed',
+      html,
+      text,
+    });
+    if (!sent) console.error('[vendors] booking confirmation email was not delivered');
   } catch (cause) {
-    console.error('[vendors] booking confirmation email transport failure', cause);
+    console.error('[vendors] booking confirmation email failed', cause);
   }
 }
 

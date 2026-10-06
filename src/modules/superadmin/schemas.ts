@@ -3,6 +3,27 @@ import { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { PERMISSION_KEYS } from '@/shared/constants/permissions';
 import { emailSchema } from '@/shared/schemas/email';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
+import {
+  isValidWebsiteValue,
+  optionalWebsiteSchema,
+  WEBSITE_INVALID_MESSAGE,
+} from '@/shared/schemas/website';
+import { normalizeWebsiteUrl } from '@/shared/lib/format/url-input';
+
+const EMAIL_INVALID_MESSAGE = 'Enter a valid email address';
+
+/** Blank optional text → `undefined`, so it is stored as NULL. */
+function blankToUndefined(value: string | undefined): string | undefined {
+  return value === '' ? undefined : value;
+}
+
+/** Blank, or a well-formed email address (trimmed first). */
+const blankOrEmail = (max = 254) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .pipe(z.union([z.literal(''), z.email(EMAIL_INVALID_MESSAGE)]));
 
 const optionalText = (max: number) =>
   z
@@ -61,9 +82,9 @@ export type RemoveOrganizationOwnerInput = z.input<typeof removeOrganizationOwne
 export const updateOrganizationSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(2, 'Organization name is required').max(160),
-  email: z.union([z.email('Enter a valid email address'), z.literal('')]).optional(),
+  email: blankOrEmail().optional(),
   phone: optionalPhone(60),
-  website: optionalText(200),
+  website: optionalWebsiteSchema(200),
   city: optionalText(120),
   region: optionalText(120),
   country: optionalText(120),
@@ -104,6 +125,12 @@ export const addOrgStaffSchema = z.object({
 
 export type AddOrgStaffInput = z.input<typeof addOrgStaffSchema>;
 
+/* The dialog builds `name` from first + last on submit, so its client-side
+ * resolver checks everything except that derived field. */
+export const addOrgStaffFormSchema = addOrgStaffSchema.omit({ name: true });
+
+export type AddOrgStaffFormInput = z.input<typeof addOrgStaffFormSchema>;
+
 export const changeStaffRoleSchema = z.object({
   staffId: z.uuid(),
   role: z.enum(GRANTABLE_ROLES),
@@ -131,15 +158,6 @@ const LEAD_STATUS_VALUES = [
   'lost',
 ] as const;
 
-const blankToUndef = z
-  .string()
-  .trim()
-  .optional()
-  .transform((v) => {
-    if (v && v.length > 0) return v;
-    return undefined;
-  });
-
 const blankPhoneToUndef = z
   .string()
   .trim()
@@ -150,13 +168,23 @@ const blankPhoneToUndef = z
     return undefined;
   });
 
+export const LEAD_SHOWS_PER_YEAR_MAX = 100000;
+
 export const createLeadSchema = z.object({
   orgName: z.string().trim().min(1, 'An organization name is required').max(200),
-  contactName: blankToUndef,
-  email: blankToUndef,
+  contactName: z.string().trim().max(200).optional().transform(blankToUndefined),
+  email: blankOrEmail(200).optional().transform(blankToUndefined),
   phone: blankPhoneToUndef,
-  website: blankToUndef,
-  showsPerYear: blankToUndef,
+  website: optionalWebsiteSchema(200),
+  showsPerYear: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === '' || (/^\d+$/.test(v) && Number(v) <= LEAD_SHOWS_PER_YEAR_MAX),
+      'Enter a whole number of shows',
+    )
+    .optional()
+    .transform(blankToUndefined),
 });
 
 export type CreateLeadInput = z.input<typeof createLeadSchema>;
@@ -171,17 +199,26 @@ export type ChecklistItem = z.infer<typeof checklistItemSchema>;
 
 export const updateLeadSchema = z.object({
   id: z.uuid(),
-  orgName: z.string().trim().min(1).max(200).optional(),
+  orgName: z.string().trim().min(1, 'An organization name is required').max(200).optional(),
   contactName: z.string().trim().max(200).nullish(),
-  email: z.string().trim().max(200).nullish(),
+  email: blankOrEmail(200).nullish(),
   phone: z.string().trim().max(60).refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).nullish(),
-  website: z.string().trim().max(200).nullish(),
+  website: z
+    .string()
+    .trim()
+    .max(200)
+    .refine(isValidWebsiteValue, WEBSITE_INVALID_MESSAGE)
+    .transform(normalizeWebsiteUrl)
+    .nullish(),
   status: z.enum(LEAD_STATUS_VALUES).optional(),
   notes: z.string().max(8000).nullish(),
-  showsPerYear: z.number().int().min(0).max(100000).nullish(),
+  showsPerYear: z.number().int().min(0).max(LEAD_SHOWS_PER_YEAR_MAX).nullish(),
   costPerEvent: z.number().min(0).max(1_000_000_000).nullish(),
   avgRevenuePerShow: z.number().min(0).max(1_000_000_000).nullish(),
-  onboardingAt: z.string().nullish(),
+  onboardingAt: z
+    .string()
+    .refine((v) => v === '' || !Number.isNaN(Date.parse(v)), 'Enter a valid date and time')
+    .nullish(),
   onboardingChecklist: z.array(checklistItemSchema).optional(),
 });
 
@@ -282,22 +319,22 @@ export type SheetDef = z.infer<typeof sheetDefSchema>;
 export const createSheetSchema = z.object({
   title: z.string().trim().min(1, 'A sheet title is required').max(200),
   source: z.enum(['manual', 'parsed', 'typical']).nullable().optional(),
-  level: blankToUndef,
-  discipline: z.string().trim().optional(),
+  level: z.string().trim().max(120).optional().transform(blankToUndefined),
+  discipline: z.string().trim().max(120).optional(),
   family: z.enum(SHEET_FAMILY_VALUES),
-  governingBody: blankToUndef,
-  sourceFile: blankToUndef,
+  governingBody: z.string().trim().max(120).optional().transform(blankToUndefined),
+  sourceFile: z.string().trim().max(300).optional().transform(blankToUndefined),
 });
 
 export type CreateSheetInput = z.input<typeof createSheetSchema>;
 
 export const updateSheetSchema = z.object({
   id: z.uuid(),
-  title: z.string().trim().min(1).max(200).optional(),
-  level: z.string().trim().nullish(),
-  discipline: z.string().trim().optional(),
+  title: z.string().trim().min(1, 'A sheet title is required').max(200).optional(),
+  level: z.string().trim().max(120).nullish(),
+  discipline: z.string().trim().max(120).optional(),
   family: z.enum(SHEET_FAMILY_VALUES).optional(),
-  governingBody: z.string().trim().nullish(),
+  governingBody: z.string().trim().max(120).nullish(),
   source: z.enum(['manual', 'parsed', 'typical']).nullable().optional(),
   def: sheetDefSchema.optional(),
 });

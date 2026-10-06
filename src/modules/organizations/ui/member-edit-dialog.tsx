@@ -22,6 +22,9 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { MEMBER_TYPES } from '@/modules/organizations/constants';
+import { createMemberSchema } from '@/modules/organizations/schemas';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import type { MemberRow } from '@/modules/organizations/types';
 import {
   useCreateMember,
@@ -53,6 +56,7 @@ export function MemberEditDialog({
   const [notes, setNotes] = useState(member?.notes ?? '');
   const [extra, setExtra] = useState<Record<string, string>>(member?.extraFields ?? {});
   const [nameError, setNameError] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const create = useCreateMember({ onSuccess: onClose });
@@ -84,6 +88,20 @@ export function MemberEditDialog({
       notes,
       extraFields: extra,
     };
+
+    // Same schema the server action parses — surface email / phone problems
+    // inline instead of as a failed save.
+    const check = createMemberSchema.safeParse(values);
+    if (!check.success) {
+      const next: Partial<Record<string, string>> = {};
+      for (const issue of check.error.issues) {
+        const key = String(issue.path[0]);
+        next[key] ??= issue.message;
+      }
+      setFieldErrors(next);
+      return;
+    }
+    setFieldErrors({});
 
     if (member) update.mutate({ ...values, id: member.id });
     else create.mutate(values);
@@ -144,6 +162,7 @@ export function MemberEditDialog({
               </label>
               <Input
                 id="mem-business"
+                maxLength={200}
                 value={businessName}
                 onChange={(e) => {
                   setBusinessName(e.target.value);
@@ -158,6 +177,8 @@ export function MemberEditDialog({
                 </label>
                 <Input
                   id="mem-first"
+                  autoComplete="given-name"
+                  maxLength={120}
                   value={firstName}
                   onChange={(e) => {
                     setFirstName(e.target.value);
@@ -170,6 +191,8 @@ export function MemberEditDialog({
                 </label>
                 <Input
                   id="mem-last"
+                  autoComplete="family-name"
+                  maxLength={120}
                   value={lastName}
                   onChange={(e) => {
                     setLastName(e.target.value);
@@ -186,12 +209,17 @@ export function MemberEditDialog({
               </label>
               <Input
                 id="mem-email"
-                type="email"
+                {...EMAIL_INPUT_PROPS}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                 }}
               />
+              {fieldErrors.email && (
+                <p role="alert" className="mt-1 text-[12.5px] text-[#B42318]">
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="mem-phone" className={LABEL}>
@@ -199,12 +227,17 @@ export function MemberEditDialog({
               </label>
               <Input
                 id="mem-phone"
-                type="tel"
+                {...PHONE_INPUT_PROPS}
                 value={phone}
                 onChange={(e) => {
-                  setPhone(e.target.value);
+                  setPhone(sanitizePhoneInput(e.target.value));
                 }}
               />
+              {fieldErrors.phone && (
+                <p role="alert" className="mt-1 text-[12.5px] text-[#B42318]">
+                  {fieldErrors.phone}
+                </p>
+              )}
             </div>
           </div>
 
@@ -246,6 +279,7 @@ export function MemberEditDialog({
             </label>
             <Input
               id="mem-notes"
+              maxLength={1000}
               value={notes}
               onChange={(e) => {
                 setNotes(e.target.value);
@@ -271,6 +305,7 @@ export function MemberEditDialog({
                       </label>
                       <Input
                         id={`mem-extra-${key}`}
+                        maxLength={500}
                         value={extra[key] ?? ''}
                         onChange={(e) => {
                           setExtra((prev) => ({ ...prev, [key]: e.target.value }));

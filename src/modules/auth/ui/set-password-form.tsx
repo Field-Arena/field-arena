@@ -62,6 +62,7 @@ export function SetPasswordForm({ mode = 'invite' }: { mode?: 'invite' | 'reset'
         <AuthPasswordField
           label="Password"
           autoComplete="new-password"
+          maxLength={72}
           placeholder="At least 8 characters"
           error={errors.password?.message}
           {...form.register('password')}
@@ -72,6 +73,7 @@ export function SetPasswordForm({ mode = 'invite' }: { mode?: 'invite' | 'reset'
           <AuthPasswordField
             label="Confirm password"
             autoComplete="new-password"
+            maxLength={72}
             placeholder="Type it again"
             error={errors.confirmPassword?.message}
             {...form.register('confirmPassword')}

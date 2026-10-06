@@ -98,10 +98,10 @@ export function OrganizationsTable({ organizations }: { organizations: Organizat
                 role="cell"
                 className={cn(
                   'text-right text-lg font-bold tabular-nums',
-                  org.revenueEstimate > 0 ? 'text-[#101828]' : 'text-[#C3CAD3]',
+                  org.revenueCollected > 0 ? 'text-[#101828]' : 'text-[#C3CAD3]',
                 )}
               >
-                {formatMoney(org.revenueEstimate, org.currency, org.locale)}
+                {formatMoney(org.revenueCollected, org.currency, org.locale)}
               </span>
 
               <div role="cell" className="flex items-center justify-end gap-1.5">
@@ -117,7 +117,7 @@ export function OrganizationsTable({ organizations }: { organizations: Organizat
           {organizations.length} {organizations.length === 1 ? 'organizer' : 'organizers'}
         </span>
         <span className="text-[12.5px] text-[#8A94A3]">
-          Revenue is estimated from entered fees — nothing has been collected yet.
+          Revenue is money collected — paid rider entries and vendor bookings, minus refunds.
         </span>
       </div>
     </div>

@@ -4,6 +4,7 @@ import {
   type PermissionKey,
 } from '@/shared/constants/permissions';
 import type { GRANTABLE_ROLES } from '@/shared/constants/roles';
+import { isValidPhoneValue } from '@/shared/schemas/phone';
 import { USER_ROLE_RANK } from './constants';
 
 type GrantableRole = (typeof GRANTABLE_ROLES)[number];
@@ -132,6 +133,26 @@ export function parseStaffCsv(text: string): ParsedStaffCsvRow[] {
     });
   }
   return out;
+}
+
+const CSV_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * First problem in a parsed staff CSV, phrased for the uploader, or null when
+ * every row is importable. Mirrors the server's importStaffListSchema so one
+ * bad cell is caught before the upload instead of failing the whole import.
+ */
+export function findStaffCsvProblem(rows: ParsedStaffCsvRow[]): string | null {
+  if (rows.length > 500) return 'A staff list can have at most 500 rows — split the file.';
+  for (const row of rows) {
+    if (!CSV_EMAIL_PATTERN.test(row.email) || row.email.length > 254)
+      return `"${row.email}" isn't a valid email address.`;
+    if (!isValidPhoneValue(row.phone) || row.phone.length > 40)
+      return `${row.email}: "${row.phone}" isn't a valid phone number.`;
+    if (row.firstName.length > 80 || row.lastName.length > 80)
+      return `${row.email}: names can be at most 80 characters.`;
+  }
+  return null;
 }
 
 function splitCsvLine(line: string): string[] {

@@ -62,6 +62,7 @@ function NumberCell({
   return (
     <Input
       value={draft}
+      maxLength={20}
       disabled={pending}
       className="h-8 w-[84px] text-[13px]"
       onChange={(e) => {

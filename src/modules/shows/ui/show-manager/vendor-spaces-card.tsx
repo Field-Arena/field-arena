@@ -6,6 +6,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
+import { sanitizeDecimalInput, sanitizeIntegerInput } from '@/shared/lib/format/number-input';
 import { useCreateVendorItem } from '@/modules/shows/hooks/use-catalog-mutations';
 import type { RiderEntriesData } from '@/modules/shows/types';
 import {
@@ -70,6 +71,7 @@ export function VendorSpacesCard({
         <Input
           className={cn('h-auto', SM_ROW_INPUT, 'min-w-[200px] flex-1')}
           placeholder="e.g. 10x10 Booth"
+          maxLength={160}
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -83,17 +85,17 @@ export function VendorSpacesCard({
           inputMode="numeric"
           value={qty}
           onChange={(e) => {
-            setQty(e.target.value);
+            setQty(sanitizeIntegerInput(e.target.value, { maxDigits: 6 }));
           }}
           aria-label="New vendor space quantity"
         />
         <span className="text-[13px] text-[#8A94A3]">$</span>
         <Input
           className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
-          inputMode="numeric"
+          inputMode="decimal"
           value={price}
           onChange={(e) => {
-            setPrice(e.target.value);
+            setPrice(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
           }}
           aria-label="New vendor space price"
         />

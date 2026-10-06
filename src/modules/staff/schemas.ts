@@ -109,8 +109,8 @@ export type ImportStaffListInput = z.input<typeof importStaffListSchema>;
 export const updateRiderContactInfoSchema = z.object({
   riderId: z.uuid(),
   showId: z.uuid(), // used only to check the caller's canManageStaff on this show
-  firstName: z.string().trim().max(80),
-  lastName: z.string().trim().max(80),
+  firstName: z.string().trim().min(1, 'First name is required').max(80),
+  lastName: z.string().trim().min(1, 'Last name is required').max(80),
   phone: z
     .string()
     .trim()

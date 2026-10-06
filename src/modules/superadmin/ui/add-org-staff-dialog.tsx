@@ -16,7 +16,8 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
 import { GRANTABLE_ROLES } from '@/shared/constants/roles';
-import { addOrgStaffSchema, type AddOrgStaffInput } from '@/modules/superadmin/schemas';
+import { addOrgStaffFormSchema, type AddOrgStaffFormInput } from '@/modules/superadmin/schemas';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { useAddOrgStaff } from '@/modules/superadmin/hooks/use-org-staff-mutations';
 import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 
@@ -33,13 +34,13 @@ export function AddOrgStaffDialog({
   const [open, setOpen] = useState(false);
   const hasShows = shows.length > 0;
 
-  const form = useForm<AddOrgStaffInput>({
-    resolver: zodResolver(addOrgStaffSchema),
+  const form = useForm<AddOrgStaffFormInput>({
+    resolver: zodResolver(addOrgStaffFormSchema),
+    mode: 'onTouched',
     defaultValues: {
       showId: shows[0]?.id ?? '',
       firstName: '',
       lastName: '',
-      name: '',
       email: '',
       role: 'Show Admin',
     },
@@ -107,6 +108,7 @@ export function AddOrgStaffDialog({
               label="First name"
               placeholder="Jane"
               error={errors.firstName}
+              inputProps={{ maxLength: 80 }}
               registration={form.register('firstName')}
             />
             <FormField
@@ -114,6 +116,7 @@ export function AddOrgStaffDialog({
               label="Last name"
               placeholder="Whitfield"
               error={errors.lastName}
+              inputProps={{ maxLength: 80 }}
               registration={form.register('lastName')}
             />
           </div>
@@ -121,7 +124,7 @@ export function AddOrgStaffDialog({
           <FormField
             id="aos-email"
             label="Email"
-            type="email"
+            inputProps={EMAIL_INPUT_PROPS}
             placeholder="jane@example.com"
             error={errors.email}
             registration={form.register('email')}

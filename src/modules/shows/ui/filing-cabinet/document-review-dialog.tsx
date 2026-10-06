@@ -117,6 +117,7 @@ export function DocumentReviewDialog({
             <Label>Note to the entrant (optional, required for &ldquo;Other&rdquo;)</Label>
             <Textarea
               value={note}
+              maxLength={500}
               onChange={(e) => {
                 setNote(e.target.value);
               }}

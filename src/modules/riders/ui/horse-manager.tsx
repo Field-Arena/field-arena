@@ -8,6 +8,8 @@ import {
 } from '@/modules/riders/hooks/use-horse-mutations';
 import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
 import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -54,6 +56,7 @@ export function HorseManager({
             <Input
               id="new-horse-name"
               placeholder="e.g. Midnight Runner"
+              maxLength={RIDER_FIELD_MAX.horseName}
               value={newHorseName}
               onChange={(event) => {
                 setNewHorseName(event.target.value);
@@ -106,6 +109,7 @@ function HorseCard({
           <Label htmlFor={`stable-${horse.id}`}>Stable name</Label>
           <Input
             id={`stable-${horse.id}`}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.stable ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, stable: event.target.value });
@@ -116,6 +120,7 @@ function HorseCard({
           <Label htmlFor={`trainer-${horse.id}`}>Trainer name</Label>
           <Input
             id={`trainer-${horse.id}`}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.trainer ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, trainer: event.target.value });
@@ -126,7 +131,11 @@ function HorseCard({
           <Label htmlFor={`trainer-phone-${horse.id}`}>Trainer phone</Label>
           <Input
             id={`trainer-phone-${horse.id}`}
-            type="tel"
+            {...PHONE_INPUT_PROPS}
+            onChange={(event) => {
+              const next = sanitizePhoneInput(event.target.value);
+              if (next !== event.target.value) event.target.value = next;
+            }}
             defaultValue={horse.trainer_phone ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, trainerPhone: event.target.value });
@@ -138,6 +147,7 @@ function HorseCard({
           <Input
             id={`height-${horse.id}`}
             placeholder="e.g. 15.2"
+            maxLength={RIDER_FIELD_MAX.horseHeight}
             defaultValue={horse.height ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, height: event.target.value });
@@ -148,6 +158,7 @@ function HorseCard({
           <Label htmlFor={`farrier-${horse.id}`}>Farrier</Label>
           <Input
             id={`farrier-${horse.id}`}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.farrier ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, farrier: event.target.value });

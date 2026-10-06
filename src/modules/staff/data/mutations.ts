@@ -11,6 +11,7 @@ import { assignJudgeToClasses, assignScribeToClasses } from '@/modules/judging';
 import { verifyHorseDocument } from '@/modules/shows';
 import { env } from '@/shared/lib/env';
 import { sendEmail } from '@/shared/lib/email';
+import { buildStaffInviteEmail } from '@/shared/lib/staff-invite-email';
 import { platformRoleForStaff } from '@/shared/lib/staff-platform-role';
 import { ROUTES } from '@/shared/constants/routes';
 import {
@@ -136,35 +137,16 @@ async function showIdForStaff(staffId: string): Promise<string> {
   return data.show_id;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 async function sendStaffInviteNotification(params: {
   to: string;
   name: string;
   role: string;
   showName: string;
 }): Promise<boolean> {
-  const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
-  const link = `${env.siteUrl}${ROUTES.login}`;
-
-  // name / role / showName are all user-supplied (a CSV cell, a show title),
-  // so every one is escaped before it goes into the HTML body.
-  return sendEmail({
-    to: params.to,
-    subject: `You've been added as ${params.role} for ${params.showName}`,
-    html:
-      `<p>Hi ${escapeHtml(firstName)},</p>` +
-      `<p>You've been added as <b>${escapeHtml(params.role)}</b> for ` +
-      `<b>${escapeHtml(params.showName)}</b>. Click below to log in and get set up:</p>` +
-      `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`,
-  });
+  // name / role / showName are all user-supplied (a CSV cell, a show title);
+  // the shared email layout escapes every one before it reaches the HTML.
+  const email = buildStaffInviteEmail({ ...params, loginUrl: `${env.siteUrl}${ROUTES.login}` });
+  return sendEmail({ to: params.to, ...email });
 }
 
 async function linkPendingAssignments(

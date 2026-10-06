@@ -1,5 +1,6 @@
 'use client';
 
+import type { ComponentProps } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CircleAlertIcon, Loader2Icon } from 'lucide-react';
@@ -12,6 +13,10 @@ import {
 } from '@/modules/organizations/schemas';
 import { useCompleteOrgProfile } from '@/modules/organizations/hooks/use-organization-profile';
 import { OnboardingField } from '@/modules/organizations/ui/onboarding-field';
+import { withSanitizer } from '@/shared/lib/format/input-sanitize';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
 
 const DISPLAY = 'font-[family-name:var(--font-nr)]';
 const FIELD =
@@ -24,15 +29,18 @@ interface FieldRow {
   id: string;
   label: string;
   required?: boolean;
-  type?: string;
-  autoComplete?: string;
+  /** Native input attributes (type, inputMode, autoComplete, maxLength). */
+  inputProps?: ComponentProps<'input'>;
   placeholder?: string;
   name: keyof CompleteOrgProfileInput;
+  sanitize?: (value: string) => string;
 }
 
 export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProfileInput> }) {
   const form = useForm<CompleteOrgProfileInput>({
     resolver: zodResolver(completeOrgProfileSchema),
+    // Flag a bad value as soon as the user leaves the field, not only on submit.
+    mode: 'onTouched',
     defaultValues: {
       // Present only when a SuperAdmin is completing this profile on a pending
       // organizer's behalf; a real organizer's own form leaves it undefined.
@@ -57,6 +65,7 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
         label: 'Organization name',
         required: true,
         placeholder: 'Meadowbrook Equestrian Center',
+        inputProps: { autoComplete: 'organization', maxLength: 160 },
         name: 'name',
       },
     ],
@@ -65,30 +74,54 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
         id: 'email',
         label: 'Organization email',
         required: true,
-        type: 'email',
-        autoComplete: 'email',
+        inputProps: EMAIL_INPUT_PROPS,
         placeholder: 'office@yourorg.com',
         name: 'email',
       },
-      { id: 'website', label: 'Website', placeholder: 'www.yourorg.com', name: 'website' },
+      {
+        id: 'website',
+        label: 'Website',
+        inputProps: URL_INPUT_PROPS,
+        placeholder: 'www.yourorg.com',
+        name: 'website',
+      },
     ],
     [
       {
         id: 'phone',
         label: 'Phone',
-        type: 'tel',
-        autoComplete: 'tel',
+        inputProps: PHONE_INPUT_PROPS,
         placeholder: '(555) 555-0100',
         name: 'phone',
+        sanitize: sanitizePhoneInput,
       },
     ],
   ];
   const locationRows: FieldRow[][] = [
     [
-      { id: 'city', label: 'City', placeholder: 'e.g. Asheville', name: 'city' },
-      { id: 'region', label: 'State / Region', placeholder: 'e.g. NC', name: 'region' },
+      {
+        id: 'city',
+        label: 'City',
+        placeholder: 'e.g. Asheville',
+        inputProps: { autoComplete: 'address-level2', maxLength: 120 },
+        name: 'city',
+      },
+      {
+        id: 'region',
+        label: 'State / Region',
+        placeholder: 'e.g. NC',
+        inputProps: { autoComplete: 'address-level1', maxLength: 120 },
+        name: 'region',
+      },
     ],
-    [{ id: 'country', label: 'Country', name: 'country' }],
+    [
+      {
+        id: 'country',
+        label: 'Country',
+        inputProps: { autoComplete: 'country-name', maxLength: 120 },
+        name: 'country',
+      },
+    ],
   ];
 
   function renderRow(row: FieldRow[], withTopMargin: boolean) {
@@ -107,11 +140,12 @@ export function OnboardingForm({ defaults }: { defaults: Partial<CompleteOrgProf
           >
             <Input
               id={f.id}
-              type={f.type}
-              autoComplete={f.autoComplete}
+              {...f.inputProps}
               className={FIELD}
               placeholder={f.placeholder}
-              {...form.register(f.name)}
+              {...(f.sanitize
+                ? withSanitizer(form.register(f.name), f.sanitize)
+                : form.register(f.name))}
             />
           </OnboardingField>
         ))}

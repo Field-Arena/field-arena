@@ -4,8 +4,10 @@ import {
   MAX_RINGS,
   MAX_STABLES,
   MAX_STALLS_PER_STABLE,
+  MAX_STABLE_ROWS,
 } from '@/modules/organizations/constants';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
+import { optionalWebsiteSchema } from '@/shared/schemas/website';
 
 const optionalText = (max: number) =>
   z
@@ -32,8 +34,8 @@ export const completeOrgProfileSchema = z.object({
    * used and nothing changes for a real organizer completing their own setup. */
   orgId: z.uuid().optional(),
   name: z.string().trim().min(2, 'Organization name is required').max(160),
-  email: z.email('Enter a valid email address'),
-  website: optionalText(200),
+  email: z.string().trim().pipe(z.email('Enter a valid email address')),
+  website: optionalWebsiteSchema(200),
   phone: optionalPhone(60),
   city: optionalText(120),
   region: optionalText(120),
@@ -46,7 +48,7 @@ export const addOrgMemberSchema = z.object({
   orgId: z.uuid(),
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
-  email: z.email('Enter a valid email address'),
+  email: z.string().trim().pipe(z.email('Enter a valid email address')),
   phone: optionalPhone(40),
   role: optionalText(60),
   membershipStatus: z.enum(['active', 'inactive']).default('active'),
@@ -69,14 +71,14 @@ const venueStallSchema = z.object({
 
 const venueStableSchema = z.object({
   name: z.string().trim().min(1, 'Stable name is required').max(80),
-  rowCount: z.coerce.number().int().min(1).max(50),
+  rowCount: z.coerce.number().int().min(1).max(MAX_STABLE_ROWS),
   stalls: z.array(venueStallSchema).max(MAX_STALLS_PER_STABLE),
 });
 
 export const venueFormSchema = z.object({
   name: z.string().trim().min(1, 'Venue name is required').max(160),
   address: optionalText(240),
-  website: optionalText(200),
+  website: optionalWebsiteSchema(200),
   phone: optionalPhone(60),
   contact: optionalText(120),
   rings: z.array(ringRowSchema).max(MAX_RINGS).default([]),
@@ -103,7 +105,9 @@ const memberFields = {
 
   name: z.string().trim().min(1, 'A name is required').max(200),
   role: z.enum(MEMBER_TYPES),
-  email: z.union([z.email('Enter a valid email address'), z.literal('')]).optional(),
+  email: z
+    .union([z.string().trim().pipe(z.email('Enter a valid email address')), z.literal('')])
+    .optional(),
   phone: optionalPhone(60),
   membershipStatus: z.enum(['active', 'inactive']),
 

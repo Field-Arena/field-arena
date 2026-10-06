@@ -22,6 +22,7 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { cn } from '@/shared/lib/utils';
+import { REASON_MAX_LENGTH } from '@/modules/scoring/constants';
 
 export function ReasonModal({
   open,
@@ -70,6 +71,7 @@ export function ReasonModal({
             <Textarea
               id="reason-text"
               rows={3}
+              maxLength={REASON_MAX_LENGTH}
               value={reason}
               onChange={(e) => {
                 setReason(e.target.value);

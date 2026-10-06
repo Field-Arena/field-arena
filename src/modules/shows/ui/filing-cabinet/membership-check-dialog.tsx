@@ -33,6 +33,10 @@ import {
 import { MEMBERSHIP_FLAGS, MEMBERSHIP_FLAG_LABELS } from '@/modules/shows/constants';
 import type { MembershipFlag, MembershipLedgerRow } from '@/modules/shows/types';
 import { useUpdateMembershipCheck } from '@/modules/shows/hooks/use-membership-ledger-mutations';
+import { updateMembershipCheckSchema } from '@/modules/shows/schemas';
+import { schemaFieldErrors } from '@/modules/shows/utils/schema-field-error';
+import { sanitizeMembershipNumber } from '@/modules/shows/utils/membership-number';
+import { FieldError } from '@/modules/shows/ui/field-error';
 
 export function MembershipCheckDialog({
   showId,
@@ -56,6 +60,20 @@ export function MembershipCheckDialog({
       setOpen(false);
     },
   });
+
+  const payload = {
+    showId,
+    showEntryId: row.showEntryId,
+    association: association || undefined,
+    riderMembershipNumber: riderNum || undefined,
+    horseRegistrationNumber: horseNum || undefined,
+    ownerMembershipNumber: ownerNum || undefined,
+    membershipStatus,
+    horseRegistrationStatus: horseRegStatus,
+    flags,
+    notes: notes || undefined,
+  };
+  const errors = schemaFieldErrors(updateMembershipCheckSchema, payload);
 
   function toggleFlag(flag: MembershipFlag) {
     setFlags((prev) => (prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag]));
@@ -95,6 +113,7 @@ export function MembershipCheckDialog({
               <Label>Association</Label>
               <Input
                 value={association}
+                maxLength={80}
                 onChange={(e) => {
                   setAssociation(e.target.value);
                 }}
@@ -104,28 +123,37 @@ export function MembershipCheckDialog({
               <Label>Rider membership #</Label>
               <Input
                 value={riderNum}
+                maxLength={60}
+                aria-invalid={errors.riderMembershipNumber ? true : undefined}
                 onChange={(e) => {
-                  setRiderNum(e.target.value);
+                  setRiderNum(sanitizeMembershipNumber(e.target.value));
                 }}
               />
+              <FieldError message={errors.riderMembershipNumber} />
             </div>
             <div className="space-y-1.5">
               <Label>Horse registration #</Label>
               <Input
                 value={horseNum}
+                maxLength={60}
+                aria-invalid={errors.horseRegistrationNumber ? true : undefined}
                 onChange={(e) => {
-                  setHorseNum(e.target.value);
+                  setHorseNum(sanitizeMembershipNumber(e.target.value));
                 }}
               />
+              <FieldError message={errors.horseRegistrationNumber} />
             </div>
             <div className="space-y-1.5">
               <Label>Owner membership #</Label>
               <Input
                 value={ownerNum}
+                maxLength={60}
+                aria-invalid={errors.ownerMembershipNumber ? true : undefined}
                 onChange={(e) => {
-                  setOwnerNum(e.target.value);
+                  setOwnerNum(sanitizeMembershipNumber(e.target.value));
                 }}
               />
+              <FieldError message={errors.ownerMembershipNumber} />
             </div>
             <div className="space-y-1.5">
               <Label>Membership status</Label>
@@ -188,6 +216,7 @@ export function MembershipCheckDialog({
             <Label>Notes</Label>
             <Textarea
               value={notes}
+              maxLength={500}
               onChange={(e) => {
                 setNotes(e.target.value);
               }}
@@ -207,20 +236,9 @@ export function MembershipCheckDialog({
           </GhostButton>
           <GoldButton
             type="button"
-            disabled={isPending}
+            disabled={isPending || Object.keys(errors).length > 0}
             onClick={() => {
-              mutate({
-                showId,
-                showEntryId: row.showEntryId,
-                association: association || undefined,
-                riderMembershipNumber: riderNum || undefined,
-                horseRegistrationNumber: horseNum || undefined,
-                ownerMembershipNumber: ownerNum || undefined,
-                membershipStatus,
-                horseRegistrationStatus: horseRegStatus,
-                flags,
-                notes: notes || undefined,
-              });
+              mutate(payload);
             }}
           >
             {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}

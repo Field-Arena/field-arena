@@ -1,5 +1,6 @@
 'use client';
 
+import type { ComponentProps } from 'react';
 import type { FieldError } from 'react-hook-form';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
@@ -12,6 +13,7 @@ export function FormField({
   placeholder,
   autoComplete,
   registration,
+  inputProps,
 }: {
   id: string;
   label: string;
@@ -20,6 +22,8 @@ export function FormField({
   placeholder?: string;
   autoComplete?: string;
   registration: Record<string, unknown>;
+  /** Extra native attributes (inputMode, maxLength, …) for the input. */
+  inputProps?: Omit<ComponentProps<'input'>, 'id' | 'name' | 'onChange' | 'onBlur' | 'ref'>;
 }) {
   const errorId = `${id}-error`;
 
@@ -31,6 +35,7 @@ export function FormField({
         type={type}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        {...inputProps}
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
         {...registration}

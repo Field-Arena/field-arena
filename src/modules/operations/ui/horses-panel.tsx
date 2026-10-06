@@ -24,6 +24,7 @@ export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {
         className="h-auto"
         style={searchStyle}
         placeholder="Search horses or riders…"
+        maxLength={100}
         value={term}
         onChange={(e) => {
           setTerm(e.target.value);

@@ -11,6 +11,8 @@ export async function sendEmail(params: {
   to: string;
   subject: string;
   html: string;
+  /** Plain-text alternative; renderEmail() returns one alongside the HTML. */
+  text?: string;
 }): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) return false;
   try {
@@ -25,10 +27,18 @@ export async function sendEmail(params: {
         to: params.to,
         subject: params.subject,
         html: params.html,
+        ...(params.text ? { text: params.text } : {}),
       }),
     });
+    if (!res.ok) {
+      console.error(
+        `[email] "${params.subject}" failed (HTTP ${String(res.status)})`,
+        await res.text(),
+      );
+    }
     return res.ok;
-  } catch {
+  } catch (cause) {
+    console.error(`[email] "${params.subject}" transport failure`, cause);
     return false;
   }
 }

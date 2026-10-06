@@ -36,3 +36,16 @@ export const DEFAULT_STARTING_RIDER_NUMBER = 101;
 export const RIDER_NUMBER_PAD_WIDTH = 4;
 
 export const SUPERADMIN_CONSOLE_ROUTE = '/dashboard/superadmin';
+
+/** Input caps shared by the rider forms and their server schemas. */
+export const RIDER_FIELD_MAX = {
+  name: 100,
+  street: 200,
+  city: 100,
+  state: 100,
+  zip: 10,
+  membershipNumber: 12,
+  horseName: 120,
+  horseText: 120,
+  horseHeight: 20,
+} as const;

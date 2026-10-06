@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import { cn } from '@/shared/lib/utils';
 import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
 import {
@@ -135,6 +136,7 @@ export function SheetJudgePreview({
                       max={10}
                       step={0.5}
                       inputMode="decimal"
+                      onKeyDown={blockNonDecimalKeys}
                       aria-label={`Mark for movement ${String(mv.n)}`}
                       value={movementMarks[i] ?? ''}
                       onChange={(e) => {
@@ -172,6 +174,7 @@ export function SheetJudgePreview({
                       max={10}
                       step={0.5}
                       inputMode="decimal"
+                      onKeyDown={blockNonDecimalKeys}
                       aria-label={`Mark for collective ${cm.name || String(i + 1)}`}
                       value={collectiveMarks[i] ?? ''}
                       onChange={(e) => {
@@ -201,8 +204,10 @@ export function SheetJudgePreview({
               id="ss-errors"
               type="number"
               min={0}
+              max={100}
               step={0.5}
               inputMode="decimal"
+              onKeyDown={blockNonDecimalKeys}
               value={errors}
               onChange={(e) => {
                 setErrors(e.target.value);

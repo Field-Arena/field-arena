@@ -350,6 +350,7 @@ function RemarkField({
       value={draft}
       disabled={disabled}
       placeholder="Remark for this movement"
+      maxLength={500}
       onFocus={onFocus}
       onBlur={onBlur}
       onChange={(e) => {
@@ -377,6 +378,7 @@ function FinalRemarksField({
       value={draft}
       disabled={disabled}
       rows={3}
+      maxLength={2000}
       onFocus={onFocus}
       onBlur={onBlur}
       onChange={(e) => {

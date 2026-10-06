@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
+import { parseCoefInput } from '@/modules/superadmin/utils/parse-coef-input';
 import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
 import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
@@ -47,6 +48,7 @@ export function SheetWeightedEditor({
           >
             <Input
               value={row.name}
+              maxLength={200}
               placeholder="Category — e.g. Position and seat"
               aria-label={`Category ${String(i + 1)} name`}
               onChange={(e) => {
@@ -61,6 +63,7 @@ export function SheetWeightedEditor({
             />
             <Input
               value={row.criteria ?? ''}
+              maxLength={2000}
               placeholder="Criteria"
               aria-label={`Category ${String(i + 1)} criteria`}
               onChange={(e) => {
@@ -75,15 +78,14 @@ export function SheetWeightedEditor({
             />
             <Input
               value={String(row.weight)}
+              inputMode="decimal"
               placeholder="Weight"
               aria-label={`Category ${String(i + 1)} weight`}
               onChange={(e) => {
-                const w = Number(e.target.value);
+                const w = parseCoefInput(e.target.value, 100);
                 setDef((d) => ({
                   ...d,
-                  categories: d.categories.map((c, j) =>
-                    j === i ? { ...c, weight: Number.isFinite(w) ? w : 0 } : c,
-                  ),
+                  categories: d.categories.map((c, j) => (j === i ? { ...c, weight: w } : c)),
                 }));
               }}
               className={`h-auto ${SMALL_INPUT} w-[86px] flex-none`}

@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
+import { z } from 'zod';
 import { Button } from '@/shared/ui/shadcn/button';
 import { LEAD_STATUSES } from '@/modules/superadmin/constants';
 import type { LeadRow } from '@/modules/superadmin/types';
 import { useUpdateLead } from '@/modules/superadmin/hooks/use-lead-mutations';
 import { SECTION, H2, GRID, LABEL, INPUT, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
 import { Field } from '@/modules/superadmin/ui/lead-detail-field';
+import { updateLeadSchema, type UpdateLeadInput } from '@/modules/superadmin/schemas';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
+import { sanitizeIntegerInput } from '@/shared/lib/format/number-input';
 
 export function ContactSection({ lead }: { lead: LeadRow }) {
   const [orgName, setOrgName] = useState(lead.org_name);
@@ -18,31 +24,48 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
     lead.shows_per_year != null ? String(lead.shows_per_year) : '',
   );
   const [status, setStatus] = useState(lead.status ?? 'new');
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const update = useUpdateLead({ successMessage: 'Contact saved' });
 
   const fields: {
-    key: string;
+    key: keyof UpdateLeadInput;
     label: string;
     value: string;
     onChange: (v: string) => void;
-    type?: string;
     placeholder?: string;
+    inputProps?: ComponentProps<'input'>;
   }[] = [
-    { key: 'org', label: 'Organization name', value: orgName, onChange: setOrgName },
     {
-      key: 'contact',
+      key: 'orgName',
+      label: 'Organization name',
+      value: orgName,
+      onChange: setOrgName,
+      inputProps: { maxLength: 200 },
+    },
+    {
+      key: 'contactName',
       label: 'Contact name',
       value: contactName,
       onChange: setContactName,
       placeholder: 'Not captured yet',
+      inputProps: { maxLength: 200 },
     },
-    { key: 'email', label: 'Email', value: email, onChange: setEmail, type: 'email' },
+    {
+      key: 'email',
+      label: 'Email',
+      value: email,
+      onChange: setEmail,
+      inputProps: { ...EMAIL_INPUT_PROPS, maxLength: 200 },
+    },
     {
       key: 'phone',
       label: 'Phone',
       value: phone,
-      onChange: setPhone,
+      onChange: (v) => {
+        setPhone(sanitizePhoneInput(v));
+      },
       placeholder: 'Not captured yet',
+      inputProps: PHONE_INPUT_PROPS,
     },
     {
       key: 'website',
@@ -50,13 +73,17 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
       value: website,
       onChange: setWebsite,
       placeholder: 'example.com',
+      inputProps: URL_INPUT_PROPS,
     },
     {
-      key: 'shows',
+      key: 'showsPerYear',
       label: 'Shows per year',
       value: shows,
-      onChange: setShows,
+      onChange: (v) => {
+        setShows(sanitizeIntegerInput(v, { maxDigits: 6 }));
+      },
       placeholder: 'Unknown until the demo',
+      inputProps: { inputMode: 'numeric' },
     },
   ];
 
@@ -70,8 +97,9 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
             label={f.label}
             value={f.value}
             onChange={f.onChange}
-            type={f.type}
             placeholder={f.placeholder}
+            inputProps={f.inputProps}
+            error={errors[f.key]}
           />
         ))}
         <div>
@@ -101,7 +129,7 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
           disabled={update.isPending}
           className={`h-auto hover:bg-transparent ${SAVE}`}
           onClick={() => {
-            update.mutate({
+            const input: UpdateLeadInput = {
               id: lead.id,
               orgName,
               contactName,
@@ -110,7 +138,19 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
               website,
               status: status as (typeof LEAD_STATUSES)[number]['value'],
               showsPerYear: shows.trim() ? Math.max(0, Math.floor(Number(shows) || 0)) : null,
-            });
+            };
+            const result = updateLeadSchema.safeParse(input);
+            if (!result.success) {
+              const fieldErrors = z.flattenError(result.error).fieldErrors;
+              setErrors(
+                Object.fromEntries(
+                  Object.entries(fieldErrors).map(([key, messages]) => [key, messages[0]]),
+                ),
+              );
+              return;
+            }
+            setErrors({});
+            update.mutate(input);
           }}
         >
           {update.isPending ? 'Saving…' : 'Save'}

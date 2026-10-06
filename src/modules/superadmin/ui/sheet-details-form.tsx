@@ -60,14 +60,16 @@ export function SheetDetailsForm({
     value: string;
     onChange: (v: string) => void;
     placeholder?: string;
+    maxLength: number;
   }[] = [
-    { key: 'title', label: 'Title', value: title, onChange: onTitleChange },
+    { key: 'title', label: 'Title', value: title, onChange: onTitleChange, maxLength: 200 },
     {
       key: 'level',
       label: 'Level',
       value: level,
       onChange: onLevelChange,
       placeholder: 'e.g. First',
+      maxLength: 120,
     },
   ];
 
@@ -118,6 +120,7 @@ export function SheetDetailsForm({
             value={f.value}
             onChange={f.onChange}
             placeholder={f.placeholder}
+            inputProps={{ maxLength: f.maxLength }}
           />
         ))}
         <div>

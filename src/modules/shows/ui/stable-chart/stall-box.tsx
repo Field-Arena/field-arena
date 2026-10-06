@@ -61,6 +61,7 @@ function TextAreaDialog({
   label,
   defaultValue,
   placeholder,
+  maxLength,
   pending,
   onSubmit,
 }: {
@@ -71,6 +72,7 @@ function TextAreaDialog({
   label: string;
   defaultValue: string;
   placeholder?: string;
+  maxLength?: number;
   pending: boolean;
   onSubmit: (value: string) => void;
 }) {
@@ -103,6 +105,7 @@ function TextAreaDialog({
               rows={3}
               value={value}
               placeholder={placeholder}
+              maxLength={maxLength}
               disabled={pending}
               onChange={(event) => {
                 setValue(event.target.value);
@@ -498,6 +501,7 @@ export function StallBox({
         title="Rename stall"
         label="Stall name"
         placeholder='e.g. "C4"'
+        maxLength={20}
         defaultValue={stall.label}
         pending={rename.isPending}
         onSubmit={(label) => {
@@ -516,6 +520,7 @@ export function StallBox({
         title={reasonPrompt ? `${STALL_STATUS_LABELS[reasonPrompt]} — reason (optional)` : ''}
         label="Reason"
         placeholder="e.g. Door broken"
+        maxLength={200}
         defaultValue=""
         pending={busy}
         onSubmit={(reason) => {
@@ -545,6 +550,7 @@ export function StallBox({
         title="Stall note"
         label="Note"
         placeholder="e.g. Needs extra shavings"
+        maxLength={500}
         defaultValue={stall.note ?? ''}
         pending={busy}
         onSubmit={(note) => {

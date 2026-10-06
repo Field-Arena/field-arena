@@ -24,3 +24,6 @@ export const REVIEWABLE_BOOKING_STATUSES = ['pending', 'approved', 'rejected'] a
 /* Stripe Checkout session lifetime for booth payments — matches the rider
  * checkout (under the 6h order-abandon window). Stripe's minimum is 30 min. */
 export const VENDOR_CHECKOUT_SESSION_TTL_SECONDS = 60 * 60 * 5;
+
+/** Most of one booth item a single application can request. */
+export const VENDOR_ITEM_QTY_MAX = 999;

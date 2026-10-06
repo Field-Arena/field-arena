@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RIDER_CATEGORIES } from '@/modules/riders/constants';
+import { RIDER_CATEGORIES, RIDER_FIELD_MAX } from '@/modules/riders/constants';
 import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
@@ -34,20 +34,56 @@ export const riderResendCodeSchema = z.object({
 
 export type RiderResendCodeInput = z.infer<typeof riderResendCodeSchema>;
 
+const MEMBERSHIP_NUMBER_PATTERN = /^\d+$/;
+const POSTAL_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 -]*$/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Blank, or digits only (USEF / FEI numbers). */
+function membershipNumberSchema(label: string) {
+  return z
+    .string()
+    .trim()
+    .max(RIDER_FIELD_MAX.membershipNumber, `${label} is too long`)
+    .refine((value) => value === '' || MEMBERSHIP_NUMBER_PATTERN.test(value), {
+      message: `${label} can only contain digits`,
+    });
+}
+
+/** A real calendar date (YYYY-MM-DD) that isn't in the future. */
+function isValidBirthDate(value: string): boolean {
+  if (!ISO_DATE_PATTERN.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return false;
+  return date.getTime() <= Date.now() && date.getUTCFullYear() >= 1900;
+}
+
+const BIRTH_DATE_INVALID_MESSAGE = 'Enter a valid date of birth (not in the future)';
+
 export const riderProfileUpdateSchema = z
   .object({
     phone: z.string().trim().refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).optional(),
-    street: z.string().trim().optional(),
-    city: z.string().trim().optional(),
-    state: z.string().trim().optional(),
-    zip: z.string().trim().optional(),
-    usef: z.string().trim().optional(),
-    fei: z.string().trim().optional(),
+    street: z.string().trim().max(RIDER_FIELD_MAX.street).optional(),
+    city: z.string().trim().max(RIDER_FIELD_MAX.city).optional(),
+    state: z.string().trim().max(RIDER_FIELD_MAX.state).optional(),
+    zip: z
+      .string()
+      .trim()
+      .max(RIDER_FIELD_MAX.zip)
+      .refine((value) => value === '' || POSTAL_CODE_PATTERN.test(value), {
+        message: 'Enter a valid ZIP / postal code',
+      })
+      .optional(),
+    usef: membershipNumberSchema('USEF number').optional(),
+    fei: membershipNumberSchema('FEI number').optional(),
     category: z.enum(RIDER_CATEGORIES).optional(),
-    dob: z.string().trim().optional(),
-    ecFirstName: z.string().trim().optional(),
-    ecLastName: z.string().trim().optional(),
-    ecRel: z.string().trim().optional(),
+    dob: z
+      .string()
+      .trim()
+      .refine((value) => value === '' || isValidBirthDate(value), BIRTH_DATE_INVALID_MESSAGE)
+      .optional(),
+    ecFirstName: z.string().trim().max(RIDER_FIELD_MAX.name).optional(),
+    ecLastName: z.string().trim().max(RIDER_FIELD_MAX.name).optional(),
+    ecRel: z.string().trim().max(RIDER_FIELD_MAX.name).optional(),
     ecPhone: z.string().trim().refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
@@ -57,13 +93,25 @@ export const riderProfileUpdateSchema = z
 export type RiderProfileUpdateInput = z.infer<typeof riderProfileUpdateSchema>;
 
 export const riderDetailsFormSchema = z.object({
-  usef: z.string().trim().optional(),
-  fei: z.string().trim().optional(),
+  usef: membershipNumberSchema('USEF number').optional(),
+  fei: membershipNumberSchema('FEI number').optional(),
   category: z.enum(RIDER_CATEGORIES, { message: 'Choose a rider category' }),
-  dob: z.string().trim().min(1, 'Date of birth is required'),
-  ecFirstName: z.string().trim().min(1, "Emergency contact's first name is required"),
-  ecLastName: z.string().trim().min(1, "Emergency contact's last name is required"),
-  ecRel: z.string().trim().optional(),
+  dob: z
+    .string()
+    .trim()
+    .min(1, 'Date of birth is required')
+    .refine(isValidBirthDate, BIRTH_DATE_INVALID_MESSAGE),
+  ecFirstName: z
+    .string()
+    .trim()
+    .min(1, "Emergency contact's first name is required")
+    .max(RIDER_FIELD_MAX.name),
+  ecLastName: z
+    .string()
+    .trim()
+    .min(1, "Emergency contact's last name is required")
+    .max(RIDER_FIELD_MAX.name),
+  ecRel: z.string().trim().max(RIDER_FIELD_MAX.name).optional(),
   ecPhone: z
     .string()
     .trim()
@@ -74,18 +122,22 @@ export const riderDetailsFormSchema = z.object({
 export type RiderDetailsFormInput = z.infer<typeof riderDetailsFormSchema>;
 
 export const horseCreateSchema = z.object({
-  name: z.string().trim().min(1, "The horse's registered name is required"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "The horse's registered name is required")
+    .max(RIDER_FIELD_MAX.horseName, "The horse's name is too long"),
 });
 
 export type HorseCreateInput = z.infer<typeof horseCreateSchema>;
 
 export const horseUpdateSchema = z.object({
   id: z.uuid(),
-  stable: z.string().trim().optional(),
-  trainer: z.string().trim().optional(),
+  stable: z.string().trim().max(RIDER_FIELD_MAX.horseText).optional(),
+  trainer: z.string().trim().max(RIDER_FIELD_MAX.horseText).optional(),
   trainerPhone: z.string().trim().refine(isValidPhoneValue, PHONE_INVALID_MESSAGE).optional(),
-  height: z.string().trim().optional(),
-  farrier: z.string().trim().optional(),
+  height: z.string().trim().max(RIDER_FIELD_MAX.horseHeight).optional(),
+  farrier: z.string().trim().max(RIDER_FIELD_MAX.horseText).optional(),
   isStallion: z.boolean().optional(),
 });
 
@@ -115,7 +167,7 @@ export type HorseDocumentDeleteInput = z.infer<typeof horseDocumentDeleteSchema>
 
 export const waiverSignSchema = z.object({
   showId: z.uuid(),
-  fullName: z.string().trim().min(1, 'Your typed full legal name is required'),
+  fullName: z.string().trim().min(1, 'Your typed full legal name is required').max(200),
 });
 
 export type WaiverSignInput = z.infer<typeof waiverSignSchema>;
@@ -135,13 +187,13 @@ export type CheckoutCartLine = z.infer<typeof checkoutCartLineSchema>;
 
 export const checkoutAddOnLineSchema = z.object({
   addOnId: z.uuid(),
-  qty: z.number().int().positive(),
+  qty: z.number().int().positive().max(999),
 });
 
 export type CheckoutAddOnLine = z.infer<typeof checkoutAddOnLineSchema>;
 
 export const checkoutStablingDetailsSchema = z.object({
-  trainerName: z.string().trim().min(1, 'Trainer/barn name is required'),
+  trainerName: z.string().trim().min(1, 'Trainer/barn name is required').max(120),
   stableWith: z.string().trim().max(120).optional(),
   notes: z.string().trim().max(500).optional(),
 });

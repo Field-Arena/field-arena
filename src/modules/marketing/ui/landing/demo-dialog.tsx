@@ -15,6 +15,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { DEMO_DISCIPLINES, DEMO_VOLUMES, CALENDLY_URL } from '@/modules/marketing/landing-content';
 import { demoRequestSchema, type DemoRequestInput } from '@/modules/marketing/schemas';
 import { useDemoRequest } from '@/modules/marketing/hooks/use-demo-request';
@@ -37,6 +38,7 @@ export function DemoDialog({
 
   const form = useForm<DemoRequestInput>({
     resolver: zodResolver(demoRequestSchema),
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       email: '',
@@ -137,6 +139,7 @@ export function DemoDialog({
                   <Input
                     id="demo-name"
                     autoComplete="name"
+                    maxLength={120}
                     placeholder="Jane Whitfield"
                     aria-invalid={!!errors.name}
                     className={FIELD}
@@ -150,8 +153,7 @@ export function DemoDialog({
                   </Label>
                   <Input
                     id="demo-email"
-                    type="email"
-                    autoComplete="email"
+                    {...EMAIL_INPUT_PROPS}
                     placeholder="you@yourbarn.com"
                     aria-invalid={!!errors.email}
                     className={FIELD}
@@ -168,6 +170,7 @@ export function DemoDialog({
                 <Input
                   id="demo-org"
                   autoComplete="organization"
+                  maxLength={160}
                   placeholder="Meadowbrook Equestrian Center"
                   aria-invalid={!!errors.organization}
                   className={FIELD}
@@ -214,10 +217,12 @@ export function DemoDialog({
                 <textarea
                   id="demo-notes"
                   rows={3}
+                  maxLength={1000}
                   placeholder="Entries, scoring, scheduling, volunteers, results, finances…"
                   className={cn(FIELD, 'resize-y')}
                   {...form.register('notes')}
                 />
+                <FieldError message={errors.notes?.message} />
               </div>
 
               {/* Honeypot: off-screen and skipped by keyboard and screen readers. */}

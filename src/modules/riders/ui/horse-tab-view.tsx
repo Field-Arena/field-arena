@@ -14,6 +14,8 @@ import {
   legacyCardStyle,
 } from '@/modules/riders/ui/legacy-theme';
 import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 
 const fieldInputStyle: CSSProperties = {
   fontFamily: 'inherit',
@@ -106,6 +108,7 @@ export function HorseTabView({
             <input
               autoFocus
               placeholder="e.g. Midnight Runner"
+              maxLength={RIDER_FIELD_MAX.horseName}
               value={newHorseName}
               style={fieldInputStyle}
               onChange={(event) => {
@@ -196,6 +199,7 @@ function LegacyHorseCard({
             Stable name
           </label>
           <input
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.stable ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -210,6 +214,7 @@ function LegacyHorseCard({
             Trainer name
           </label>
           <input
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.trainer ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -224,7 +229,11 @@ function LegacyHorseCard({
             Trainer phone
           </label>
           <input
-            type="tel"
+            {...PHONE_INPUT_PROPS}
+            onChange={(event) => {
+              const next = sanitizePhoneInput(event.target.value);
+              if (next !== event.target.value) event.target.value = next;
+            }}
             defaultValue={horse.trainer_phone ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -240,6 +249,7 @@ function LegacyHorseCard({
           </label>
           <input
             placeholder="e.g. 15.2"
+            maxLength={RIDER_FIELD_MAX.horseHeight}
             defaultValue={horse.height ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -254,6 +264,7 @@ function LegacyHorseCard({
             Farrier
           </label>
           <input
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.farrier ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {

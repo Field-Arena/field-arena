@@ -76,6 +76,7 @@ export function RequiredDocumentsCard({
             <div key={doc.id} className="flex flex-wrap items-center gap-3.5">
               <Input
                 value={doc.label}
+                maxLength={160}
                 className={cn('h-auto', SM_ROW_INPUT, 'flex-[0_1_210px]')}
                 onChange={(e) => {
                   setRows(rows.map((d) => (d.id === doc.id ? { ...d, label: e.target.value } : d)));
@@ -132,6 +133,7 @@ export function RequiredDocumentsCard({
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <Input
           value={newLabel}
+          maxLength={160}
           placeholder="e.g. Coggins, Vaccination record"
           className={cn('h-auto', SM_INPUT)}
           onChange={(e) => {

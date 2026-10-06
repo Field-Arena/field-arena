@@ -7,11 +7,13 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/shared/lib/auth/session';
 import { env } from '@/shared/lib/env';
 import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
+import { buildStaffInviteEmail } from '@/shared/lib/staff-invite-email';
 import { escapeLikePattern } from '@/shared/lib/escape-like-pattern';
 import { platformRoleForStaff } from '@/shared/lib/staff-platform-role';
 import { ROUTES } from '@/shared/constants/routes';
 import { ROLE_PERMISSION_DEFAULTS, PERMISSION_KEYS } from '@/shared/constants/permissions';
-import { parseInput } from '@/shared/lib/action-result';
+import { parseInput, UserFacingError } from '@/shared/lib/action-result';
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
@@ -59,15 +61,6 @@ import { fail } from '@/modules/superadmin/data/action-result';
  * update rights on their own org row, so an unguarded Server Action would let
  * an Organizer un-suspend or un-delete themselves and rewrite their own
  * fee_model / holdback_percent. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 async function requireSuperAdmin() {
   const profile = await getStaffProfile();
   if (profile?.platform_role !== 'SuperAdmin') {
@@ -163,7 +156,9 @@ export async function createOrganization(input: unknown): Promise<CreateOrganiza
   return { ok: true, id: org.id, name: org.name };
 }
 
-export async function resendOrganizerInvite(input: unknown): Promise<{ email: string }> {
+export async function resendOrganizerInvite(
+  input: unknown,
+): Promise<{ email: string; kind: 'invite' | 'sign-in-link' }> {
   await requireSuperAdmin();
   const { orgId } = parseInput(resendOrganizerInviteSchema, input);
   const admin = createAdminClient();
@@ -193,12 +188,37 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
     throw new Error('This organization’s owner has already finished setting up their account.');
   }
 
+  // An owner who already opened the first invite has a confirmed login but
+  // may never have finished onboarding. Supabase refuses to "invite" an
+  // existing account ("already been registered"), so send them a sign-in
+  // link instead — the set-password screen, then on to onboarding.
+  if (owner) {
+    const { data: authUser } = await admin.auth.admin.getUserById(owner.id);
+    if (authUser.user?.email_confirmed_at) {
+      await sendOwnerSignInLink(admin, { email, name, orgName: org.name });
+      revalidatePath(CONSOLE_PATH, 'layout');
+      return { email, kind: 'sign-in-link' };
+    }
+  }
+
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { name, next: ROUTES.onboarding },
 
     redirectTo: env.siteUrl,
   });
-  if (inviteError) throw new Error(inviteError.message);
+  if (inviteError) {
+    if (/already been registered/i.test(inviteError.message)) {
+      if (!owner) {
+        throw new UserFacingError(
+          `${email} already has a Field & Arena account under another organization. Add them as a co-owner instead.`,
+        );
+      }
+      await sendOwnerSignInLink(admin, { email, name, orgName: org.name });
+      revalidatePath(CONSOLE_PATH, 'layout');
+      return { email, kind: 'sign-in-link' };
+    }
+    throw new Error(inviteError.message);
+  }
 
   if (!owner) {
     const { error: profileError } = await admin.from('users').insert({
@@ -215,7 +235,53 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
   }
 
   revalidatePath(CONSOLE_PATH, 'layout');
-  return { email };
+  return { email, kind: 'invite' };
+}
+
+/* A sign-in link for an owner whose account already exists (so Supabase
+ * won't send another invite). The link is generated here, not by Supabase's
+ * recovery email: a link requested by the service-role client carries no PKCE
+ * code, so the stock email landed on /auth/callback with nothing to exchange
+ * ("That link is incomplete"). /auth/confirm verifies the token hash on any
+ * device and sends a recovery straight to the set-password screen; after
+ * that the invite's `next` (onboarding) takes over. */
+async function sendOwnerSignInLink(
+  admin: ReturnType<typeof createAdminClient>,
+  owner: { email: string; name: string; orgName: string },
+): Promise<void> {
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: 'recovery',
+    email: owner.email,
+  });
+  if (error) throw new Error(error.message);
+
+  const url = `${env.siteUrl}/auth/confirm?token_hash=${encodeURIComponent(
+    data.properties.hashed_token,
+  )}&type=recovery`;
+  const firstName = owner.name.trim().split(/\s+/)[0] ?? owner.name;
+  const { html, text } = renderEmail({
+    preheader: `Finish setting up ${owner.orgName} on Field & Arena.`,
+    eyebrow: 'Finish setting up',
+    heading: 'Finish setting up your account',
+    greeting: `Hi ${firstName},`,
+    paragraphs: [
+      [
+        'You started setting up ',
+        { strong: owner.orgName },
+        ' on Field & Arena. Choose a password using the link below, then finish onboarding.',
+      ],
+    ],
+    link: { label: 'Set your password using this link:', url },
+    closing: ['The link expires in one hour and can only be used once.'],
+    footerNote: `a Field & Arena administrator re-sent your invite for ${owner.orgName}.`,
+  });
+  const sent = await sendEmail({
+    to: owner.email,
+    subject: `Finish setting up ${owner.orgName} on Field & Arena`,
+    html,
+    text,
+  });
+  if (!sent) throw new UserFacingError('The sign-in email could not be sent. Try again shortly.');
 }
 
 /* Client feedback: an Organizer's home org is a single FK, so someone
@@ -471,18 +537,8 @@ async function sendStaffInviteNotification(params: {
   role: string;
   showName: string;
 }): Promise<boolean> {
-  const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
-  const link = `${env.siteUrl}${ROUTES.login}`;
-
-  return sendEmail({
-    to: params.to,
-    subject: `You've been added as ${params.role} for ${params.showName}`,
-    html:
-      `<p>Hi ${escapeHtml(firstName)},</p>` +
-      `<p>You've been added as <b>${escapeHtml(params.role)}</b> for ` +
-      `<b>${escapeHtml(params.showName)}</b>. Click below to log in and get set up:</p>` +
-      `<p><a href="${link}">${link}</a></p>`,
-  });
+  const email = buildStaffInviteEmail({ ...params, loginUrl: `${env.siteUrl}${ROUTES.login}` });
+  return sendEmail({ to: params.to, ...email });
 }
 
 /* Role defaults are written onto the row at creation time rather than left
@@ -769,17 +825,14 @@ export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: b
           done: false,
         }));
 
-  // Legacy sendOnboardingEmail (api/leads.js): the checklist is rendered into
-  // the body as a <ul> and the onboarding slot is spelled out in full. The
-  // send happens BEFORE onboarding_email_sent_at is stamped -- stamping a
-  // "we emailed them" timestamp for an email that never went out is worse
-  // than not stamping at all.
-  const rows = checklist
-    .map((c) => {
-      const label = (c as { label?: unknown }).label;
-      return `<li>${escapeHtml(typeof label === 'string' ? label : '')}</li>`;
-    })
-    .join('');
+  // Legacy sendOnboardingEmail (api/leads.js): the checklist is listed in the
+  // body and the onboarding slot is spelled out in full. The send happens
+  // BEFORE onboarding_email_sent_at is stamped -- stamping a "we emailed
+  // them" timestamp for an email that never went out is worse than not
+  // stamping at all.
+  const checklistLabels = checklist
+    .map((c) => (c as { label?: unknown }).label)
+    .filter((label): label is string => typeof label === 'string' && label.trim() !== '');
   const whenText = lead.onboarding_at
     ? new Date(lead.onboarding_at).toLocaleString('en-US', {
         dateStyle: 'full',
@@ -789,17 +842,30 @@ export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: b
 
   let emailSent = false;
   if (lead.email) {
+    const { html, text } = renderEmail({
+      preheader: 'A short checklist to have ready before your onboarding session.',
+      eyebrow: 'Onboarding',
+      heading: 'Getting ready for your onboarding',
+      greeting: `Hi ${lead.contact_name ?? 'there'},`,
+      paragraphs: [
+        [
+          "We're looking forward to your onboarding on ",
+          { strong: whenText },
+          '. To make the most of that time, please have the following ready beforehand:',
+        ],
+      ],
+      list: { items: checklistLabels },
+      closing: [
+        "If anything on this list isn't ready yet, no problem — just bring what you have and we'll sort out the rest together.",
+        'See you soon!',
+      ],
+      footerNote: 'you have an onboarding session booked with the Field & Arena team.',
+    });
     emailSent = await sendEmail({
       to: lead.email,
       subject: 'Getting ready for your Field & Arena onboarding',
-      html:
-        `<p>Hi ${escapeHtml(lead.contact_name ?? 'there')},</p>` +
-        `<p>We're looking forward to your onboarding on <b>${escapeHtml(whenText)}</b>. ` +
-        `To make the most of that time, please have the following ready beforehand:</p>` +
-        `<ul>${rows}</ul>` +
-        `<p>If anything on this list isn't ready yet, no problem — just bring what you have ` +
-        `and we'll sort out the rest together.</p>` +
-        `<p>See you soon!</p>`,
+      html,
+      text,
     });
   }
 

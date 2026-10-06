@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+  Security notice, sent after the change has already happened. The hosted
+  project currently has this notification switched off; the template is kept
+  so turning it on sends a branded message.
+
+  Same layout as every app-sent email (src/shared/lib/email-layout.ts). This
+  file is that helper's output with Go placeholders in place of the values, so
+  if the helper's markup changes, regenerate or edit these to match.
+
+  Table layout and inline styles throughout: email clients strip style blocks
+  and implement neither flex nor grid.
+
+  Never write a Go placeholder inside a comment: Supabase substitutes every
+  one, including in comments, which would leak values into the message source.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>A verification method was removed</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: #f5f7f8">
+    <span style="display: none; max-height: 0; max-width: 0; overflow: hidden; opacity: 0; mso-hide: all; font-size: 1px; line-height: 1px; color: #f5f7f8">A verification method was removed from your Field &amp; Arena account.</span>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background: #f5f7f8; margin: 0; padding: 32px 12px">
+      <tr>
+        <td align="center">
+          <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 560px; background: #ffffff; border: 1px solid #e7eaee; border-radius: 14px; overflow: hidden">
+            <tr>
+              <td style="background: #0c4a31; padding: 20px 32px"><span style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; font-weight: 600; letter-spacing: 0.2px; color: #ffffff">Field &amp; Arena</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 32px 32px 24px">
+                <p style="margin: 0 0 10px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: #146a47">Security notice</p>
+                <h1 style="margin: 0 0 16px; font-family: Georgia, 'Times New Roman', serif; font-size: 26px; line-height: 1.25; font-weight: 600; color: #101828">A verification method was removed</h1>
+                <p style="margin: 0 0 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">A sign-in verification method was removed from your Field &amp; Arena account.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px">
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border: 1px solid #e7eaee; border-radius: 10px; border-collapse: separate">
+                  <tr>
+                    <td valign="top" style="padding: 10px 16px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #8a94a3; width: 38%">Account</td>
+                    <td valign="top" style="padding: 10px 16px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #101828; font-weight: 600">{{ .Email }}</td>
+                  </tr>
+                  <tr>
+                    <td valign="top" style="padding: 10px 16px; border-top: 1px solid #e7eaee; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #8a94a3; width: 38%">Method</td>
+                    <td valign="top" style="padding: 10px 16px; border-top: 1px solid #e7eaee; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #101828; font-weight: 600">{{ .FactorType }}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px">
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background: #eaf5ef; border: 1px solid #cfe5d8; border-radius: 10px">
+                  <tr>
+                    <td style="padding: 16px 18px">
+                      <p style="margin: 0 0 6px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #475467">If this wasn&#39;t you, sign in and secure your account using this link:</p>
+                      <a href="{{ .SiteURL }}/login" style="font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #146a47; font-weight: 600; text-decoration: underline; word-break: break-all; overflow-wrap: anywhere">{{ .SiteURL }}/login</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px"><p style="margin: 0 0 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">If you didn&#39;t make this change, contact support immediately.</p></td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 8px"></td>
+            </tr>
+          </table>
+          <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 560px">
+            <tr>
+              <td style="padding: 20px 32px 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #8a94a3">
+                <p style="margin: 0 0 4px; font-weight: 600">Field &amp; Arena &middot; Equestrian show management</p>
+                <p style="margin: 0">You received this email because the verification methods on your Field &amp; Arena account changed.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

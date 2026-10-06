@@ -52,6 +52,10 @@ import { FeeModelField } from '@/modules/superadmin/ui/fee-model-field';
 import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 import { useEnterAsOrganizer } from '../hooks/use-session-mutations';
 import type { OrganizationSummary } from '@/modules/superadmin/types';
+import { withSanitizer } from '@/shared/lib/format/input-sanitize';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
 
 export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const [editOpen, setEditOpen] = useState(false);
@@ -73,11 +77,13 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
 
   const ownerForm = useForm<AddOrganizationOwnerInput>({
     resolver: zodResolver(addOrganizationOwnerSchema),
+    mode: 'onTouched',
     defaultValues: { orgId: org.id, email: '' },
   });
 
   const form = useForm<UpdateOrganizationInput>({
     resolver: zodResolver(updateOrganizationSchema),
+    mode: 'onTouched',
     defaultValues: {
       id: org.id,
       name: org.name,
@@ -232,27 +238,30 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               id={`eo-name-${org.id}`}
               label="Organization name"
               error={errors.name}
+              inputProps={{ maxLength: 160 }}
               registration={form.register('name')}
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { name: 'email' as const, label: 'Contact email', type: 'email' },
-                { name: 'phone' as const, label: 'Phone', type: undefined },
-              ].map((f) => (
-                <FormField
-                  key={f.name}
-                  id={`eo-${f.name}-${org.id}`}
-                  label={f.label}
-                  type={f.type}
-                  error={errors[f.name]}
-                  registration={form.register(f.name)}
-                />
-              ))}
+              <FormField
+                id={`eo-email-${org.id}`}
+                label="Contact email"
+                inputProps={EMAIL_INPUT_PROPS}
+                error={errors.email}
+                registration={form.register('email')}
+              />
+              <FormField
+                id={`eo-phone-${org.id}`}
+                label="Phone"
+                inputProps={PHONE_INPUT_PROPS}
+                error={errors.phone}
+                registration={withSanitizer(form.register('phone'), sanitizePhoneInput)}
+              />
             </div>
             <FormField
               id={`eo-website-${org.id}`}
               label="Website"
               placeholder="https://"
+              inputProps={URL_INPUT_PROPS}
               error={errors.website}
               registration={form.register('website')}
             />
@@ -266,6 +275,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                   key={f.name}
                   id={`eo-${f.name}-${org.id}`}
                   label={f.label}
+                  inputProps={{ maxLength: 120 }}
                   error={errors[f.name]}
                   registration={form.register(f.name)}
                 />
@@ -438,7 +448,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
           >
             <div className="flex-1">
               <input
-                type="email"
+                {...EMAIL_INPUT_PROPS}
                 placeholder="organizer@example.com"
                 className="w-full rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
                 {...ownerForm.register('email')}

@@ -26,7 +26,7 @@ export default async function SuperAdminOverviewPage() {
   // the default organizer list.
   const all = everything.filter(isActiveOrganization);
   const { onboarded, pending, totalShows, totalRiders, withShows } = summarizeOrganizations(all);
-  const revenue = all.reduce((sum, org) => sum + org.revenueEstimate, 0);
+  const revenue = all.reduce((sum, org) => sum + org.revenueCollected, 0);
   const recent = mostRecentOrganizations(all, RECENT_COUNT);
 
   return (
@@ -69,9 +69,9 @@ export default async function SuperAdminOverviewPage() {
             iconTone: 'purple',
           },
           {
-            label: 'Revenue (est.)',
+            label: 'Revenue collected',
             value: formatMoney(revenue),
-            note: 'from entered fees — nothing collected yet',
+            note: 'paid entries and vendor bookings, minus refunds',
             icon: DollarSign,
             iconTone: 'green',
           },

@@ -14,7 +14,7 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { IconUpload } from '@/shared/ui/organizer/icons';
-import { parseStaffCsv } from '../utils';
+import { findStaffCsvProblem, parseStaffCsv } from '../utils';
 import { useImportStaffList } from '../hooks/use-user-directory-mutations';
 
 const TEMPLATE_CSV =
@@ -49,6 +49,8 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
       const parsed = parseStaffCsv(text);
       if (parsed.length === 0) {
         setParseError('No rows with an email address were found in that file.');
+      } else {
+        setParseError(findStaffCsvProblem(parsed));
       }
       setRows(parsed);
     });

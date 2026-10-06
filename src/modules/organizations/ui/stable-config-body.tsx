@@ -10,6 +10,8 @@ import {
 } from '@/shared/ui/shadcn/dialog';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
+import { MAX_STALLS_PER_STABLE } from '@/modules/organizations/constants';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { fa } from '@/shared/lib/organizer-theme';
 import { resizeStalls } from '@/modules/organizations/utils/resize-stalls';
 import { VT_LABEL, VT_INPUT } from '@/modules/organizations/ui/venue-tokens';
@@ -27,7 +29,7 @@ export function StableConfigBody({
   const stalls = stable.stalls;
 
   function setCount(raw: string) {
-    const n = Math.max(0, Number(raw) || 0);
+    const n = Math.min(MAX_STALLS_PER_STABLE, Math.max(0, Math.trunc(Number(raw)) || 0));
     onChange({ ...stable, stalls: resizeStalls(stalls, n) });
   }
 
@@ -66,7 +68,10 @@ export function StableConfigBody({
           id="sc-count"
           type="number"
           min={0}
+          max={MAX_STALLS_PER_STABLE}
+          step={1}
           value={stalls.length}
+          onKeyDown={blockNonIntegerKeys}
           className={`h-auto ${VT_INPUT}`}
           onChange={(e) => {
             setCount(e.target.value);
@@ -127,6 +132,7 @@ export function StableConfigBody({
         }}
         title="Rename stall"
         label="Stall name"
+        maxLength={20}
         placeholder='e.g. "C4"'
         defaultValue={renamingStall?.label ?? ''}
         onSubmit={(label) => {

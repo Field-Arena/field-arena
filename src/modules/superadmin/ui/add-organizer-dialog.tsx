@@ -20,6 +20,7 @@ import {
 import { useCreateOrganization } from '@/modules/superadmin/hooks/use-organization-mutations';
 import { INVITE_TTL_DAYS, GOVERNING_BODIES } from '@/modules/superadmin/constants';
 import { Field } from '@/modules/superadmin/ui/add-organizer-field';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 
 type GoverningBody = (typeof GOVERNING_BODIES)[number];
 
@@ -31,6 +32,7 @@ export function AddOrganizerDialog() {
 
   const form = useForm<CreateOrganizationInput>({
     resolver: zodResolver(createOrganizationSchema),
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       contactFirstName: '',
@@ -122,6 +124,7 @@ export function AddOrganizerDialog() {
               id="ao-name"
               label="Organization name"
               placeholder="Peachtree Dressage Association"
+              maxLength={160}
               error={errors.name}
               {...form.register('name')}
             />
@@ -131,28 +134,28 @@ export function AddOrganizerDialog() {
                 {
                   id: 'ao-first',
                   label: 'Contact first name',
-                  type: undefined,
+                  inputProps: { maxLength: 80 },
                   placeholder: 'Jane',
                   name: 'contactFirstName' as const,
                 },
                 {
                   id: 'ao-last',
                   label: 'Contact last name',
-                  type: undefined,
+                  inputProps: { maxLength: 80 },
                   placeholder: 'Whitfield',
                   name: 'contactLastName' as const,
                 },
                 {
                   id: 'ao-title',
                   label: 'Title',
-                  type: undefined,
+                  inputProps: { maxLength: 120 },
                   placeholder: 'Show secretary',
                   name: 'contactTitle' as const,
                 },
                 {
                   id: 'ao-email',
                   label: 'Email — invite goes here',
-                  type: 'email',
+                  inputProps: EMAIL_INPUT_PROPS,
                   placeholder: 'jane@example.com',
                   name: 'contactEmail' as const,
                 },
@@ -161,7 +164,7 @@ export function AddOrganizerDialog() {
                   key={f.id}
                   id={f.id}
                   label={f.label}
-                  type={f.type}
+                  {...f.inputProps}
                   placeholder={f.placeholder}
                   error={errors[f.name]}
                   {...form.register(f.name)}

@@ -404,6 +404,7 @@ export function OrganizerShell({
             ref={searchRef}
             type="text"
             placeholder="Search…"
+            maxLength={100}
             value={query}
             aria-label="Search navigation"
             onChange={(e) => {

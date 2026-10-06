@@ -9,6 +9,8 @@ import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateMerchandise } from '@/modules/shows/hooks/use-show-mutations';
 import type { MerchItem } from '@/modules/shows/types';
+import { updateMerchandiseSchema } from '@/modules/shows/schemas';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import {
   SM_CARD_PAD,
   SM_NOTE,
@@ -43,7 +45,10 @@ export function MerchandiseCard({
   function commit(nextEnabled: boolean, nextItems: MerchItem[]) {
     setEnabled(nextEnabled);
     setItems(nextItems);
-    mutate({ showId, enabled: nextEnabled, items: nextItems });
+    const payload = { showId, enabled: nextEnabled, items: nextItems };
+    // A blank item name is held locally until it's filled in, not sent.
+    if (!updateMerchandiseSchema.safeParse(payload).success) return;
+    mutate(payload);
   }
 
   function add() {
@@ -90,6 +95,8 @@ export function MerchandiseCard({
             >
               <Input
                 value={item.name}
+                maxLength={160}
+                aria-invalid={item.name.trim() ? undefined : true}
                 className={cn('h-auto', SM_ROW_INPUT)}
                 onChange={(e) => {
                   commit(
@@ -102,7 +109,9 @@ export function MerchandiseCard({
                 type="number"
                 min={0}
                 max={MAX_MERCH_PRICE}
+                step="0.01"
                 value={item.price}
+                onKeyDown={blockNonDecimalKeys}
                 className={cn('h-auto', SM_ROW_INPUT)}
                 onChange={(e) => {
                   const next = Number(e.target.value);
@@ -132,6 +141,7 @@ export function MerchandiseCard({
           <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_100px_auto] items-center gap-3">
             <Input
               value={newName}
+              maxLength={160}
               placeholder="Item name"
               className={cn('h-auto', SM_INPUT)}
               onChange={(e) => {
@@ -142,7 +152,9 @@ export function MerchandiseCard({
               type="number"
               min={0}
               max={MAX_MERCH_PRICE}
+              step="0.01"
               value={newPrice}
+              onKeyDown={blockNonDecimalKeys}
               placeholder="Price"
               className={cn('h-auto', SM_INPUT)}
               onChange={(e) => {

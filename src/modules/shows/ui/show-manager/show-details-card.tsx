@@ -16,6 +16,8 @@ import {
 import { useSyncExternalStore } from 'react';
 import { SmHead } from './sm-head';
 import { localTodayIso } from '@/modules/shows/utils/today-iso';
+import { FieldError } from '@/modules/shows/ui/field-error';
+import { sanitizeIntegerInput } from '@/shared/lib/format/number-input';
 
 const noopSubscribe = () => () => undefined;
 
@@ -56,6 +58,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
     governingBodies,
     toggleBody,
     dateFields,
+    errors,
     save,
   } = useShowDetailsForm(show);
 
@@ -76,7 +79,9 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
             <Input
               id="sm-name"
               value={name}
+              maxLength={160}
               placeholder="Name this show"
+              aria-invalid={errors.name ? true : undefined}
               className={SM_INPUT}
               onChange={(e) => {
                 setName(e.target.value);
@@ -85,6 +90,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
                 save();
               }}
             />
+            <FieldError message={errors.name} />
           </div>
 
           <div>
@@ -102,6 +108,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
               <Input
                 autoFocus
                 value={org}
+                maxLength={160}
                 className={SM_INPUT}
                 onChange={(e) => {
                   setOrg(e.target.value);
@@ -144,8 +151,9 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
               <Input
                 id={f.id}
                 type="date"
-                min={todayIso}
+                min={f.min ?? todayIso}
                 value={f.value}
+                aria-invalid={f.error ? true : undefined}
                 className={SM_INPUT}
                 onChange={(e) => {
                   f.onChange(e.target.value);
@@ -154,6 +162,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
                   save();
                 }}
               />
+              <FieldError message={f.error} />
             </div>
           ))}
 
@@ -195,7 +204,7 @@ export function ShowDetailsCard({ show }: { show: ShowSetupDetail }) {
                 e.target.select();
               }}
               onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 5);
+                const digits = sanitizeIntegerInput(e.target.value, { maxDigits: 5 });
                 setStartingRiderNumber(digits === '' ? 0 : Number(digits));
               }}
               onBlur={() => {

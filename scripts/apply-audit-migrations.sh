@@ -23,6 +23,8 @@ FILES=(
   20261002132000_scoring_followups.sql
   20261002133000_admin_followups.sql
   20261005121000_stable_toggle_precondition.sql
+  20261006120000_catalog_usdf_score_type.sql
+  20261006121000_catalog_add_rgd_freestyle.sql
 )
 
 echo "Project: $REF"

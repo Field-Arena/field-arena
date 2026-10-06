@@ -1,6 +1,7 @@
 'use client';
 
 import { Input } from '@/shared/ui/shadcn/input';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { RING_SIZES, MAX_RINGS } from '@/modules/organizations/constants';
 import {
   VT_LABEL,
@@ -33,7 +34,9 @@ export function VenueRingEditor({
           type="number"
           min={0}
           max={MAX_RINGS}
+          step={1}
           value={rings.length}
+          onKeyDown={blockNonIntegerKeys}
           className={`h-auto ${VT_INPUT}`}
           onChange={(e) => {
             onSetCount(e.target.value);
@@ -50,6 +53,7 @@ export function VenueRingEditor({
               <span className="text-[13px] font-bold text-[#101828]">{i + 1}</span>
               <Input
                 value={ring.name}
+                maxLength={80}
                 placeholder="e.g. Ring 1, Warm-up Ring"
                 className={`h-auto ${VT_ROW_INPUT}`}
                 onChange={(e) => {

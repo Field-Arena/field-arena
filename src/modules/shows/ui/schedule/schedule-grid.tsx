@@ -11,6 +11,7 @@ import {
 } from '@/modules/shows/hooks/use-schedule-mutations';
 import { groupDayItemsIntoBlocks } from '@/modules/shows/utils/group-day-items-into-blocks';
 import { levelOf, type ScheduleLevelKey } from '@/modules/shows/utils/schedule-level';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { RideCard } from './ride-card';
 
 /** The prototype's three-column ring board for one day. */
@@ -133,13 +134,20 @@ function RingColumn({
                     type="number"
                     min={1}
                     max={60}
+                    step={1}
+                    onKeyDown={blockNonIntegerKeys}
                     defaultValue={minutes}
                     aria-label={`Minutes per ride for ${block.label}`}
                     title="Minutes per ride"
                     className="h-6 w-11 rounded-md border border-[var(--fa-line)] px-1 text-[11px]"
                     onBlur={(e) => {
                       const next = Number(e.target.value);
-                      if (next === minutes || !next) return;
+                      if (next === minutes) return;
+                      // Outside 1–60 whole minutes: put the saved value back.
+                      if (!Number.isInteger(next) || next < 1 || next > 60) {
+                        e.target.value = String(minutes);
+                        return;
+                      }
                       setDuration.mutate({
                         showId: data.showId,
                         classId: block.cls,

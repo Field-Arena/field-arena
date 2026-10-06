@@ -8,6 +8,7 @@ import {
   useSetTestQualifying,
   useUpdateTestFee,
 } from '@/modules/shows/hooks/use-select-events-mutations';
+import { sanitizeDecimalInput } from '@/shared/lib/format/number-input';
 
 /** Short labels for the division toggles ("Adult Amateur" → "AA"). */
 function divisionShort(name: string): string {
@@ -44,7 +45,7 @@ export function OfferedTestRow({
 
   function commitFee() {
     const next = Number(fee);
-    if (!Number.isFinite(next) || next < 0) {
+    if (fee.trim() === '' || !Number.isFinite(next) || next < 0 || next > 100000) {
       setFee(String(test.fee));
       return;
     }
@@ -101,7 +102,7 @@ export function OfferedTestRow({
               value={fee}
               aria-label={`Price for ${test.test}`}
               onChange={(e) => {
-                setFee(e.target.value.replace(/[^0-9.]/g, ''));
+                setFee(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
               }}
               onBlur={commitFee}
               onKeyDown={(e) => {

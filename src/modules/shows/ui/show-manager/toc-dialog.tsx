@@ -17,6 +17,10 @@ import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE, FM_SETS } from '@/modules/shows/constants';
 import type { SelectEventsData } from '@/modules/shows/types';
 import { useCreateTocClass } from '@/modules/shows/hooks/use-select-events-mutations';
+import { createTocClassSchema } from '@/modules/shows/schemas';
+import { schemaFieldErrors } from '@/modules/shows/utils/schema-field-error';
+import { FieldError } from '@/modules/shows/ui/field-error';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import {
   SM_LABEL,
   SM_INPUT,
@@ -33,6 +37,9 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const create = useCreateTocClass({ onSuccess: onClose });
+  const payload = { showId: data.showId, name, division, fee, testOptions: [...picked] };
+  const errors = schemaFieldErrors(createTocClassSchema, payload);
+  const invalid = Object.keys(errors).length > 0;
 
   const options = FM_SETS['+ USEF/USDF'].flatMap((lv) =>
     lv.tests.map((test) => `${lv.name} — ${test}`),
@@ -63,11 +70,14 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
               id="toc-name"
               className={cn('h-auto', SM_INPUT)}
               placeholder="e.g. TOC — Freestyle Fun Night"
+              maxLength={160}
               value={name}
+              aria-invalid={errors.name ? true : undefined}
               onChange={(e) => {
                 setName(e.target.value);
               }}
             />
+            <FieldError message={errors.name} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -101,12 +111,17 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
                 id="toc-fee"
                 type="number"
                 min={0}
+                max={100000}
+                step="0.01"
+                onKeyDown={blockNonDecimalKeys}
                 className={cn('h-auto', SM_INPUT)}
                 value={fee}
+                aria-invalid={errors.fee ? true : undefined}
                 onChange={(e) => {
                   setFee(e.target.value);
                 }}
               />
+              <FieldError message={errors.fee} />
             </div>
           </div>
 
@@ -167,15 +182,9 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
             type="button"
             variant="ghost"
             className={cn('h-auto', SM_GREEN_BTN)}
-            disabled={create.isPending || picked.size === 0 || name.trim().length < 2}
+            disabled={create.isPending || invalid}
             onClick={() => {
-              create.mutate({
-                showId: data.showId,
-                name,
-                division,
-                fee,
-                testOptions: [...picked],
-              });
+              create.mutate(payload);
             }}
           >
             {create.isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}

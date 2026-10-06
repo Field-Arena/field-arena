@@ -190,7 +190,7 @@ export const QUAL_TYPE_PRESETS = [
 ] as const;
 
 export const CONTACT_FIELDS = [
-  { key: 'website', label: 'Website', type: 'url', placeholder: 'https://…' },
+  { key: 'website', label: 'Website', type: 'text', placeholder: 'https://…' },
   { key: 'phone', label: 'Phone', type: 'tel', placeholder: '(555) 555-0100' },
   { key: 'contactEmail', label: 'Contact email', type: 'email', placeholder: 'info@yourshow.com' },
 ] as const;

@@ -3,6 +3,10 @@ import type Stripe from 'stripe';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { calcPlatformFee, calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
+import { formatMoneyExact } from '@/shared/lib/format/currency';
+import { ROUTES } from '@/shared/constants/routes';
 import { UserFacingError } from '@/shared/lib/action-result';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { Json } from '@/shared/types/database.types';
@@ -45,14 +49,6 @@ function allInFlat8(price: number | null): number {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 /* Two lines for the same add-on (qty 3 + qty 3) would each pass the stock
@@ -752,36 +748,48 @@ async function sendOrderConfirmationEmail(
     .eq('id', order.show_id)
     .maybeSingle();
   const riderName = `${rider.first_name ?? ''} ${rider.last_name ?? ''}`.trim() || rider.email;
-  const rows = result.items
-    .map(
-      (item) => `<li>${escapeHtml(item.label)}${item.qty > 1 ? ` × ${String(item.qty)}` : ''}</li>`,
-    )
-    .join('');
+  const showName = show?.name ?? 'your show';
 
+  // Runs inside finalize's try: anything thrown here would roll a paid order
+  // back, so a rendering or delivery problem is logged and swallowed.
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.resendApiKey}`,
-        'Content-Type': 'application/json',
+    const { html, text } = renderEmail({
+      preheader: `Your entry for ${showName} is confirmed.`,
+      eyebrow: 'Order confirmed',
+      heading: 'Your entry is confirmed',
+      greeting: `Hi ${riderName},`,
+      paragraphs: [
+        ['Your entry for ', { strong: showName }, ' is confirmed. Your receipt is below.'],
+      ],
+      details: [
+        { label: 'Show', value: showName },
+        ...(result.riderNumber ? [{ label: 'Rider number', value: result.riderNumber }] : []),
+      ],
+      lineItems: {
+        items: result.items.map((item) => ({
+          label: item.label,
+          qty: item.qty,
+          amount: formatMoneyExact(item.amount),
+        })),
+        totalLabel: 'Total charged',
+        total: formatMoneyExact(result.total),
       },
-      body: JSON.stringify({
-        from: 'Field & Arena <notifications@field-arena.com>',
-        to: rider.email,
-        subject: 'Your Field & Arena order is confirmed',
-        html:
-          `<p>Hi ${escapeHtml(riderName)},</p>` +
-          `<p>Your entry for <b>${escapeHtml(show?.name ?? 'your show')}</b> is confirmed. ` +
-          `Rider number: <b>${escapeHtml(result.riderNumber ?? '')}</b>.</p>` +
-          `<ul>${rows}</ul>` +
-          `<p>Total charged: $${result.total.toFixed(2)}</p>`,
-      }),
+      link: {
+        label: 'See your entries and upload documents using this link:',
+        url: `${env.siteUrl}${ROUTES.rider}`,
+      },
+      footerNote: `you entered ${showName} on Field & Arena.`,
     });
-    if (!res.ok) {
-      console.error('[riders] order confirmation email failed', res.status, await res.text());
-    }
+
+    const sent = await sendEmail({
+      to: rider.email,
+      subject: 'Your Field & Arena order is confirmed',
+      html,
+      text,
+    });
+    if (!sent) console.error('[riders] order confirmation email was not delivered');
   } catch (cause) {
-    console.error('[riders] order confirmation email transport failure', cause);
+    console.error('[riders] order confirmation email failed', cause);
   }
 }
 

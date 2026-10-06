@@ -7,6 +7,12 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import type { EntryLedgerRow } from '@/modules/shows/types';
 import { downloadBackNumberCards } from '@/modules/shows/utils/download-back-number-cards';
+import {
+  backNumberCardDimsSchema,
+  BACK_NUMBER_CARD_MAX_HEIGHT_IN,
+  BACK_NUMBER_CARD_MAX_WIDTH_IN,
+} from '@/modules/shows/schemas';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 
 export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: EntryLedgerRow[] }) {
   const eligible = useMemo(() => rows.filter((r) => r.backNumber !== null), [rows]);
@@ -53,12 +59,14 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
 
   async function download(ids: string[], label: string) {
     setError(null);
+    const dims = backNumberCardDimsSchema.safeParse({ cardWidthIn, cardHeightIn });
+    if (!dims.success) {
+      setError(dims.error.issues[0]?.message ?? 'Check the card size.');
+      return;
+    }
     setPending(label);
     try {
-      await downloadBackNumberCards(showId, ids, {
-        cardWidthIn: Number(cardWidthIn) || undefined,
-        cardHeightIn: Number(cardHeightIn) || undefined,
-      });
+      await downloadBackNumberCards(showId, ids, dims.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not generate the back number cards.');
     } finally {
@@ -91,6 +99,9 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
           <Input
             type="number"
             step="0.1"
+            min={1}
+            max={BACK_NUMBER_CARD_MAX_WIDTH_IN}
+            onKeyDown={blockNonDecimalKeys}
             value={cardWidthIn}
             onChange={(e) => {
               setCardWidthIn(e.target.value);
@@ -103,6 +114,9 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
           <Input
             type="number"
             step="0.1"
+            min={1}
+            max={BACK_NUMBER_CARD_MAX_HEIGHT_IN}
+            onKeyDown={blockNonDecimalKeys}
             value={cardHeightIn}
             onChange={(e) => {
               setCardHeightIn(e.target.value);

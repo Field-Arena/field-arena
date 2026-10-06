@@ -9,6 +9,7 @@ export function SearchInput({
   containerClassName,
   className,
   autoComplete = 'off',
+  maxLength = 100,
   ...props
 }: SearchInputProps) {
   return (
@@ -34,6 +35,7 @@ export function SearchInput({
       </svg>
       <input
         autoComplete={autoComplete}
+        maxLength={maxLength}
         className={cn(
           'box-border h-[34px] w-full rounded-[9px] border border-[#E7EAEE] bg-white',
           'pr-2.5 pl-8 text-[13px] text-[#101828]',

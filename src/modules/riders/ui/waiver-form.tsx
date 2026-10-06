@@ -79,6 +79,8 @@ export function WaiverForm({
             <Input
               id="waiver-signature"
               value={fullName}
+              maxLength={200}
+              autoComplete="name"
               disabled={signed}
               onChange={(event) => {
                 setFullName(event.target.value);

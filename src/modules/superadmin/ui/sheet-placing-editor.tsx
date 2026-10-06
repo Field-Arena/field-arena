@@ -29,6 +29,7 @@ export function SheetPlacingEditor({
           <textarea
             id="sd-method"
             rows={3}
+            maxLength={2000}
             value={def.method}
             placeholder="How the class is judged and placed"
             onChange={(e) => {
@@ -44,6 +45,7 @@ export function SheetPlacingEditor({
           <textarea
             id="sd-criteria"
             rows={5}
+            maxLength={4000}
             value={def.criteria}
             placeholder="What the judge weighs, in order of importance"
             onChange={(e) => {

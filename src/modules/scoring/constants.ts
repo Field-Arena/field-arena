@@ -25,3 +25,9 @@ export const MAX_WRITE_RETRIES = 3;
 
 export const JUDGING_PATH = '/dashboard/judging';
 export const JUDGING_HISTORY_PATH = '/dashboard/judging/history';
+
+/** Longest back number the holding-queue form accepts. */
+export const BACK_NUMBER_MAX_LENGTH = 10;
+
+/** Longest reason a reopen / disqualify can carry. */
+export const REASON_MAX_LENGTH = 500;

@@ -1,9 +1,11 @@
 'use client';
 
 import { Input } from '@/shared/ui/shadcn/input';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { VT_ROW_INPUT, VT_NOTE, VT_SECTION_LABEL } from '@/modules/organizations/ui/venue-tokens';
 import type { VenueStable } from '@/modules/organizations/types';
+import { MAX_STABLE_ROWS } from '@/modules/organizations/constants';
 
 export function VenueStableList({
   stables,
@@ -43,6 +45,7 @@ export function VenueStableList({
                 <div className="mb-2 flex items-center gap-2">
                   <Input
                     value={stable.name}
+                    maxLength={80}
                     aria-label="Stable name"
                     placeholder="e.g. Stable A, North Barn"
                     className={`h-auto ${VT_ROW_INPUT} flex-1`}
@@ -55,10 +58,16 @@ export function VenueStableList({
                     <Input
                       type="number"
                       min={1}
+                      max={MAX_STABLE_ROWS}
+                      step={1}
                       value={stable.rowCount}
+                      onKeyDown={blockNonIntegerKeys}
                       className="h-auto w-[52px] rounded-lg border border-[#E7EAEE] px-2 py-1.5 text-[12.5px]"
                       onChange={(e) => {
-                        onSetRows(i, parseInt(e.target.value, 10) || 1);
+                        onSetRows(
+                          i,
+                          Math.min(MAX_STABLE_ROWS, Math.max(1, parseInt(e.target.value, 10) || 1)),
+                        );
                       }}
                     />
                   </label>

@@ -4,6 +4,12 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { fetchAllRows } from '@/modules/superadmin/data/fetch-all-rows';
+import {
+  additionalRefundedTotal,
+  netCollected,
+  SETTLED_BOOKING_STATUS,
+  SETTLED_ORDER_STATUS,
+} from '@/shared/lib/sales-math';
 import { findCatalogMatch } from '@/modules/superadmin/utils/find-catalog-match';
 import { resolveStaffPermissions } from '@/modules/superadmin/utils/resolve-staff-permissions';
 import { countEnabledPermissions } from '@/modules/superadmin/utils/count-enabled-permissions';
@@ -81,7 +87,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
     supabase
       .from('organizations')
       .select(
-        'id, name, city, region, currency, locale, suspended, is_demo, deleted_at, fee_model, avg_entry_value, created_at',
+        'id, name, city, region, currency, locale, suspended, is_demo, deleted_at, fee_model, created_at',
       )
       .order('name')
       .order('id')
@@ -112,6 +118,41 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
   );
   if (summariesError) throw summariesError;
   const summaryByOrg = new Map(summaries.map((s) => [s.org_id, s]));
+
+  // Collected revenue per org: paid rider orders and paid vendor bookings,
+  // net of refunds — the same rule Event Sales and Billing use. Paged, since
+  // each select is capped at 1000 rows.
+  const saleColumns =
+    'id, amount_total, refunded_amount, additional_charges_total, additional_charges, shows!inner(org_id)';
+  const [paidOrders, paidBookings] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase
+        .from('orders')
+        .select(saleColumns)
+        .eq('status', SETTLED_ORDER_STATUS)
+        .order('id')
+        .range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase
+        .from('vendor_bookings')
+        .select(saleColumns)
+        .eq('status', SETTLED_BOOKING_STATUS)
+        .order('id')
+        .range(from, to),
+    ),
+  ]);
+  const revenueByOrg = new Map<string, number>();
+  for (const sale of [...paidOrders, ...paidBookings]) {
+    const orgId = sale.shows.org_id;
+    const net = netCollected({
+      amountTotal: sale.amount_total,
+      additionalChargesTotal: sale.additional_charges_total,
+      refundedAmount: sale.refunded_amount,
+      additionalRefundedTotal: additionalRefundedTotal(sale.additional_charges),
+    });
+    revenueByOrg.set(orgId, (revenueByOrg.get(orgId) ?? 0) + net);
+  }
 
   // Paged (1000-row cap). organization_owners has no id column; its
   // (org_id, user_id) primary key gives a stable order.
@@ -159,7 +200,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       // to it agree; distinct people are carried separately as riderCount.
       entryCount,
       riderCount: summary?.rider_count ?? 0,
-      revenueEstimate: entryCount * (org.avg_entry_value ?? 0),
+      revenueCollected: Math.round((revenueByOrg.get(org.id) ?? 0) * 100) / 100,
       onboarded: signedInOrgs.has(org.id) ? true : accountOrgs.has(org.id) ? false : showCount > 0,
       additionalOwners: additionalOwnersByOrg.get(org.id) ?? [],
     };
