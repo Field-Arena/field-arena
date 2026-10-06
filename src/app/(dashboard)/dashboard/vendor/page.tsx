@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { listMyBookings } from '@/modules/vendors/data/queries';
 import { confirmVendorCheckoutSession } from '@/modules/vendors/data/mutations';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
@@ -9,6 +9,7 @@ import { VendorAgreementDialog } from '@/modules/vendors/ui/vendor-agreement-dia
 import { VendorPayButton } from '@/modules/vendors/ui/vendor-pay-button';
 import { VendorCheckoutConfirmation } from '@/modules/vendors/ui/vendor-checkout-confirmation';
 import { previewAmountDue } from '@/modules/vendors/utils/preview-amount-due';
+import { summarizeBookings } from '@/modules/vendors/utils/summarize-bookings';
 
 export const metadata: Metadata = { title: 'My Bookings — Field & Arena' };
 
@@ -42,13 +43,7 @@ export default async function VendorPage({
 
   const bookings = await listMyBookings();
 
-  const paid = bookings.filter((b) => b.status === 'paid').length;
-  const spend = bookings.reduce((sum, b) => sum + (b.amountTotal ?? 0), 0);
-  const stats = [
-    { label: 'Bookings', value: bookings.length },
-    { label: 'Paid', value: paid },
-    { label: 'Total booked', value: formatMoney(spend), revenue: true },
-  ];
+  const stats = summarizeBookings(bookings);
 
   return (
     <>
@@ -113,6 +108,8 @@ export default async function VendorPage({
                     <StatusBadge tone="info">Approved — awaiting payment</StatusBadge>
                   ) : booking.status === 'rejected' ? (
                     <StatusBadge tone="danger">Rejected</StatusBadge>
+                  ) : booking.status === 'review' ? (
+                    <StatusBadge tone="warn">Payment under review</StatusBadge>
                   ) : (
                     <StatusBadge tone="warn">Pending review</StatusBadge>
                   )}
@@ -140,22 +137,26 @@ export default async function VendorPage({
                   )}
 
                   {/* Legacy offered "Pay now" on any unpaid booking, not only
-                    * an approved one (vendor.html:242) — a vendor could pay the
-                    * moment they applied. */}
-                  {booking.status !== 'paid' && booking.status !== 'rejected' && (
-                    <div style={{ marginTop: 8 }}>
-                      {booking.agreementSignedAt ? (
-                        <VendorPayButton
-                          bookingId={booking.id}
-                          amountDue={previewAmountDue(booking.items)}
-                        />
-                      ) : (
-                        <div className="card-meta" style={{ color: 'var(--amber)' }}>
-                          sign the booth agreement above to pay
-                        </div>
-                      )}
-                    </div>
-                  )}
+                   * an approved one (vendor.html:242) — a vendor could pay the
+                   * moment they applied. */}
+                  {/* A booking in 'review' already has a payment the organizer
+                   * is reconciling, so it is never offered for payment again. */}
+                  {booking.status !== 'paid' &&
+                    booking.status !== 'rejected' &&
+                    booking.status !== 'review' && (
+                      <div style={{ marginTop: 8 }}>
+                        {booking.agreementSignedAt ? (
+                          <VendorPayButton
+                            bookingId={booking.id}
+                            amountDue={previewAmountDue(booking.items)}
+                          />
+                        ) : (
+                          <div className="card-meta" style={{ color: 'var(--amber)' }}>
+                            sign the booth agreement above to pay
+                          </div>
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
             ))}

@@ -1,9 +1,10 @@
-import type { AssignmentRow } from '@/modules/judging/data/queries';
+import { resolveTimeZone } from '@/shared/lib/format/time-zone';
+import type { AssignmentRow } from '@/modules/judging/types';
 import { DEMO_TODAY_ASSIGNMENTS, DEMO_UPCOMING_ASSIGNMENTS } from '@/modules/judging/constants';
 
 export function buildDemoAssignments(todayIso: string): AssignmentRow[] {
-  const upcoming = new Date(`${todayIso}T00:00:00`);
-  upcoming.setDate(upcoming.getDate() + 14);
+  const upcoming = new Date(`${todayIso}T00:00:00Z`);
+  upcoming.setUTCDate(upcoming.getUTCDate() + 14);
   const upcomingIso = upcoming.toISOString().slice(0, 10);
 
   const toRow = (
@@ -24,6 +25,8 @@ export function buildDemoAssignments(todayIso: string): AssignmentRow[] {
     showName: d.showName,
     showDate: null,
     classDate,
+    todayIso,
+    timeZone: resolveTimeZone(),
     classTime: d.time,
     ring: d.ring,
     seatId: `demo-seat-${id}`,

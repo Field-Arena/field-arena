@@ -1,6 +1,6 @@
 'use client';
 
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
+import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
 import {
   Table,
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/shared/ui/shadcn/select';
 import { MEMBERSHIP_FLAG_LABELS } from '@/modules/shows/constants';
-import type { MembershipLedgerPageData, MembershipFlag } from '@/modules/shows/data/membership-ledger-queries';
+import type { MembershipFlag, MembershipLedgerPageData } from '@/modules/shows/types';
 import {
   useLinkMembershipRecord,
   useSetMembershipVerificationStatus,
@@ -44,9 +44,9 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
   const setVerification = useSetMembershipVerificationStatus();
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4">
-        <ScreenTitle className="mb-1.5">Membership Ledger</ScreenTitle>
+        <SectionTitle className="mb-1.5">Membership Ledger</SectionTitle>
         <ScreenLede className="mb-0">
           A separate check from paying for {showName} — memberships, registrations, and
           qualification-adjacent identifiers, verified once per entry, not once per class.
@@ -55,7 +55,7 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
 
       {rows.length === 0 ? (
         <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
             No entries yet — rows appear here alongside the Entry Ledger.
           </p>
         </Card>
@@ -85,9 +85,9 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
                   <TableCell>{row.bridleNumber}</TableCell>
                   <TableCell>
                     <div className="font-semibold">{row.riderName}</div>
-                    <div className="text-[12px] text-[#7A8781]">{row.horseName}</div>
+                    <div className="text-[12px] text-[#8A94A3]">{row.horseName}</div>
                     {(row.suggestedUsef ?? row.suggestedFei) && (
-                      <div className="text-[11px] text-[#7A8781]">
+                      <div className="text-[11px] text-[#8A94A3]">
                         On file: {[row.suggestedUsef, row.suggestedFei].filter(Boolean).join(' / ')}
                       </div>
                     )}
@@ -98,7 +98,7 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
                   <TableCell>{row.ownerMembershipNumber ?? '—'}</TableCell>
                   <TableCell className="max-w-[180px]">
                     {row.flags.length === 0 ? (
-                      <span className="text-[#7A8781]">—</span>
+                      <span className="text-[#8A94A3]">—</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {row.flags.map((flag: MembershipFlag) => (

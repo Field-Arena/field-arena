@@ -1,71 +1,47 @@
 import type { Metadata } from 'next';
-import { House, CalendarDays, Users, Bell } from 'lucide-react';
+import Link from 'next/link';
+import { House, CalendarDays, Users, DollarSign, Clock } from 'lucide-react';
 import { listOrganizations } from '@/modules/superadmin/data/queries';
 import { OrganizationsTable } from '@/modules/superadmin/ui/organizations-table';
 import { ConsoleStatBar } from '@/modules/superadmin/ui/console-stat-bar';
-import { OrganizerStatusFilter } from '@/modules/superadmin/ui/organizer-status-filter';
+import { AddOrganizerDialog } from '@/modules/superadmin/ui/add-organizer-dialog';
 import {
   summarizeOrganizations,
   isActiveOrganization,
+  mostRecentOrganizations,
 } from '@/modules/superadmin/utils/summarize-organizations';
-import { ResendAllPendingInvites } from '@/modules/superadmin/ui/resend-all-pending-invites';
-import type { OrganizerStatusKey } from '@/modules/superadmin/ui/organizer-status-filter';
+import { formatMoney } from '@/shared/lib/format/currency';
 
 export const metadata: Metadata = {
-  title: 'Super Admin — Field & Arena',
+  title: 'Overview — SuperAdmin Console',
 };
 
-export default async function SuperAdminOverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; status?: string }>;
-}) {
-  const { q, status } = await searchParams;
+const RECENT_COUNT = 5;
+
+/* The redesign's console landing: the platform at a glance, with the most
+ * recent organizers. The full, filterable list is on Organizers. */
+export default async function SuperAdminOverviewPage() {
   const everything = await listOrganizations();
-
-  // Soft-deleted and demo organizations are out of every default view, exactly
-  // as the legacy console filtered them — they stay reachable via their own
-  // filter tabs so a deleted organizer can still be restored.
+  // Deleted and demo organizations stay out of the overview, as they do out of
+  // the default organizer list.
   const all = everything.filter(isActiveOrganization);
-
-  const query = q?.trim().toLowerCase();
-  const matchesQuery = (org: (typeof everything)[number]) =>
-    !query ||
-    [org.name, org.city, org.region].some((field) => (field ?? '').toLowerCase().includes(query));
-
   const { onboarded, pending, totalShows, totalRiders, withShows } = summarizeOrganizations(all);
-
-  const STATUS_KEYS: OrganizerStatusKey[] = ['all', 'onboard', 'pending', 'deleted', 'demo'];
-  const activeStatus: OrganizerStatusKey =
-    status && (STATUS_KEYS as string[]).includes(status) ? (status as OrganizerStatusKey) : 'all';
-
-  const scoped =
-    activeStatus === 'deleted'
-      ? everything.filter((org) => org.deletedAt !== null)
-      : activeStatus === 'demo'
-        ? everything.filter((org) => org.isDemo)
-        : activeStatus === 'onboard'
-          ? all.filter((org) => org.onboarded)
-          : activeStatus === 'pending'
-            ? all.filter((org) => !org.onboarded)
-            : all;
-
-  const organizations = scoped.filter(matchesQuery);
-  const pendingOrganizers = all.filter((org) => !org.onboarded).length;
+  const revenue = all.reduce((sum, org) => sum + org.revenueEstimate, 0);
+  const recent = mostRecentOrganizations(all, RECENT_COUNT);
 
   return (
-    <div>
-      <div className="mb-[30px] max-w-[640px]">
-        <div className="text-gold mb-3 text-[10.5px] font-bold tracking-[.18em] uppercase">
-          Command center
+    <section>
+      <div className="fa-page-head">
+        <div>
+          <h2>Overview</h2>
+          <p>
+            Everything happening across the platform at a glance — your organizers, their shows, and
+            where each one is in onboarding.
+          </p>
         </div>
-        <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.022em]">
-          Clients — Organizers
-        </h1>
-        <p className="text-fa-muted m-0 text-[14.5px] leading-[1.6]">
-          Your organizers are the platform&rsquo;s clients. Enter any one of them to work exactly as
-          they do &mdash; switch back from the top bar at any time.
-        </p>
+        <div className="fa-head-actions">
+          <AddOrganizerDialog />
+        </div>
       </div>
 
       <ConsoleStatBar
@@ -79,50 +55,55 @@ export default async function SuperAdminOverviewPage({
             iconTone: 'green',
           },
           {
-            label: 'Shows built',
+            label: 'Shows',
             value: totalShows,
             note: `across ${String(withShows)} ${withShows === 1 ? 'organizer' : 'organizers'}`,
             icon: CalendarDays,
             iconTone: 'blue',
           },
           {
-            label: 'Riders entered',
+            label: 'Riders (est.)',
             value: totalRiders,
             note: totalRiders === 0 ? 'no entries open yet' : 'across every open show',
             icon: Users,
             iconTone: 'purple',
           },
           {
-            label: 'Needs attention',
+            label: 'Revenue (est.)',
+            value: formatMoney(revenue),
+            note: 'from entered fees — nothing collected yet',
+            icon: DollarSign,
+            iconTone: 'green',
+          },
+          {
+            label: 'Pending invites',
             value: pending,
-            note: pending === 0 ? 'every invite accepted' : 'invites unopened',
+            note: pending === 0 ? 'every invite accepted' : 'awaiting first sign-in',
             tone: pending === 0 ? undefined : 'warn',
-            icon: Bell,
+            icon: Clock,
             iconTone: 'amber',
           },
         ]}
       />
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <OrganizerStatusFilter
-          active={activeStatus}
-          counts={{
-            all: all.length,
-            onboard: onboarded,
-            pending,
-            deleted: everything.filter((org) => org.deletedAt !== null).length,
-            demo: everything.filter((org) => org.isDemo).length,
-          }}
-          q={q}
-        />
-        <ResendAllPendingInvites pendingCount={pendingOrganizers} />
-        <span className="text-fa-muted-2 text-[12.5px]">
-          Showing {organizations.length} of {all.length} organizers
-          {q && ` matching “${q}”`}
-        </span>
+      <div className="fa-card mt-6">
+        <div className="fa-card-head">
+          <div>
+            <h3>Recent organizers</h3>
+            <div className="fa-sub">
+              {all.length} clients · {onboarded} onboarded · {pending} pending
+            </div>
+          </div>
+          <Link
+            href="/dashboard/superadmin/organizers"
+            prefetch={false}
+            className="fa-act fa-enter no-underline"
+          >
+            View all →
+          </Link>
+        </div>
+        <OrganizationsTable organizations={recent} />
       </div>
-
-      <OrganizationsTable organizations={organizations} />
-    </div>
+    </section>
   );
 }

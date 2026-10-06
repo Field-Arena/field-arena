@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { listMyBookings } from '@/modules/vendors/data/queries';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { VendorDocumentRow } from '@/modules/vendors/ui/vendor-document-row';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };

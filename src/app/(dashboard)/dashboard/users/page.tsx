@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { listAllUsersAcrossShows, getRingCoverageByShow } from '@/modules/staff/data/queries';
+import {
+  listAllUsersAcrossShows,
+  getRingCoverageByShow,
+  isViewerOrgOwner,
+} from '@/modules/staff/data/queries';
 import { listClasses } from '@/modules/shows/data/setup-queries';
 import { UsersDirectory } from '@/modules/staff/ui/users-directory';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import type { ClassOption } from '@/modules/staff/ui/add-user-dialog';
 
 export const metadata: Metadata = { title: 'Users — Field & Arena' };
@@ -27,11 +31,14 @@ export default async function UsersPage({
     );
   }
 
-  const [users, classLists, ringCoverageByShow] = await Promise.all([
+  const [users, classLists, ringCoverageByShow, ownsOrg] = await Promise.all([
     listAllUsersAcrossShows(context.shows),
     Promise.all(context.shows.map((show) => listClasses(show.id))),
     getRingCoverageByShow(context.shows),
+    context.orgId ? isViewerOrgOwner(context.orgId) : false,
   ]);
+  // Previewing as a Show Admin shows the Show Admin's controls.
+  const isOrgOwner = ownsOrg && !context.previewingAsShowAdmin;
 
   const classesByShow: Record<string, ClassOption[]> = {};
   context.shows.forEach((show, i) => {
@@ -48,6 +55,8 @@ export default async function UsersPage({
       initialShowId={context.currentShow.id}
       classesByShow={classesByShow}
       ringCoverageByShow={ringCoverageByShow}
+      isOrgOwner={isOrgOwner}
+      viewerEmail={context.profile.email}
     />
   );
 }

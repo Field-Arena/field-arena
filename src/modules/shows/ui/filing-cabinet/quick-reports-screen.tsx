@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
+import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
 } from '@/shared/ui/shadcn/table';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
-import type { QuickReportsPageData } from '@/modules/shows/data/quick-reports-queries';
+import type { QuickReportsPageData } from '@/modules/shows/types';
 
 type Section = 'horses' | 'documents' | 'tests' | 'ribbons' | 'balances' | 'association';
 
@@ -30,14 +30,14 @@ export function QuickReportsScreen({ data }: { data: QuickReportsPageData }) {
   const [section, setSection] = useState<Section>('horses');
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <ScreenTitle className="mb-1.5">Quick Reports</ScreenTitle>
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
+      <SectionTitle className="mb-1.5">Quick Reports</SectionTitle>
       <ScreenLede className="mb-5">
-        Live snapshots for {data.showName} — pulled straight from the same records used
-        everywhere else, not a separate spreadsheet.
+        Live snapshots for {data.showName} — pulled straight from the same records used everywhere
+        else, not a separate spreadsheet.
       </ScreenLede>
 
-      <div className="mb-[22px] flex flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-[#E9EDEB] bg-[#F4F7F5] p-1">
+      <div className="mb-[22px] flex flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-[#E7EAEE] bg-[#F5F7F8] p-1">
         {SECTIONS.map((s) => (
           <button
             key={s.key}
@@ -48,8 +48,8 @@ export function QuickReportsScreen({ data }: { data: QuickReportsPageData }) {
             className={cn(
               'flex-none rounded-full px-3.5 py-[9px] text-[13.5px] font-medium whitespace-nowrap transition-colors',
               section === s.key
-                ? 'bg-forest font-bold text-white shadow-sm'
-                : 'text-[#6E7C76] hover:bg-white hover:text-[#2B3B33]',
+                ? 'bg-[#146A47] font-bold text-white shadow-sm'
+                : 'text-[#8A94A3] hover:bg-white hover:text-[#101828]',
             )}
           >
             {s.label}
@@ -70,7 +70,7 @@ export function QuickReportsScreen({ data }: { data: QuickReportsPageData }) {
 function Empty({ children }: { children: React.ReactNode }) {
   return (
     <Card className="p-[18px_20px_20px]">
-      <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">{children}</p>
+      <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">{children}</p>
     </Card>
   );
 }
@@ -96,7 +96,9 @@ function HorsesSection({ data }: { data: QuickReportsPageData }) {
           {rows.map((row) => (
             <TableRow key={row.key}>
               <TableCell className="font-semibold">{row.horseName}</TableCell>
-              <TableCell>{row.riders.length > 0 ? row.riders.join(', ') : row.riderLabel}</TableCell>
+              <TableCell>
+                {row.riders.length > 0 ? row.riders.join(', ') : row.riderLabel}
+              </TableCell>
               <TableCell>{row.classesCount}</TableCell>
               <TableCell>{row.height ?? '—'}</TableCell>
               <TableCell>{row.farrier ?? '—'}</TableCell>
@@ -111,9 +113,7 @@ function HorsesSection({ data }: { data: QuickReportsPageData }) {
 
 function DocumentsSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.horses.rows.flatMap((horse) =>
-    horse.documents
-      .filter((doc) => doc.status !== 'approved')
-      .map((doc) => ({ horse, doc })),
+    horse.documents.filter((doc) => doc.status !== 'approved').map((doc) => ({ horse, doc })),
   );
   if (rows.length === 0) return <Empty>Nothing outstanding — every document is processed.</Empty>;
   return (
@@ -133,7 +133,9 @@ function DocumentsSection({ data }: { data: QuickReportsPageData }) {
           {rows.map(({ horse, doc }) => (
             <TableRow key={`${horse.key}-${doc.requirementId}`}>
               <TableCell className="font-semibold">{horse.horseName}</TableCell>
-              <TableCell>{horse.riders.length > 0 ? horse.riders.join(', ') : horse.riderLabel}</TableCell>
+              <TableCell>
+                {horse.riders.length > 0 ? horse.riders.join(', ') : horse.riderLabel}
+              </TableCell>
               <TableCell>{doc.label}</TableCell>
               <TableCell className="capitalize">{doc.status.replace('_', ' ')}</TableCell>
               <TableCell>{doc.rejectionNote ?? doc.rejectionReason ?? '—'}</TableCell>
@@ -218,7 +220,9 @@ function BalancesSection({ data }: { data: QuickReportsPageData }) {
   return (
     <Card className="overflow-x-auto p-0">
       <Table>
-        <TableCaption className="sr-only">Outstanding entrant balances for {data.showName}</TableCaption>
+        <TableCaption className="sr-only">
+          Outstanding entrant balances for {data.showName}
+        </TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead scope="col">Entry #</TableHead>

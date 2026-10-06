@@ -5,7 +5,7 @@ import { DownloadIcon, Loader2Icon } from 'lucide-react';
 import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import type { EntryLedgerRow } from '@/modules/shows/data/entry-ledger-queries';
+import type { EntryLedgerRow } from '@/modules/shows/types';
 import { downloadBackNumberCards } from '@/modules/shows/utils/download-back-number-cards';
 
 export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: EntryLedgerRow[] }) {
@@ -26,7 +26,8 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
     () => eligible.filter((r) => !classFilter || r.classes.includes(classFilter)),
     [eligible, classFilter],
   );
-  const allFilteredSelected = filtered.length > 0 && filtered.every((r) => selected.has(r.showEntryId));
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((r) => selected.has(r.showEntryId));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -75,7 +76,7 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
           onChange={(e) => {
             setClassFilter(e.target.value);
           }}
-          className="rounded-lg border border-[#D9E1DD] px-3 py-2 text-[13px]"
+          className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
           aria-label="Filter by class"
         >
           <option value="">All classes</option>
@@ -111,14 +112,17 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
         </div>
       </div>
 
-      <label className="flex items-center gap-1.5 text-[13px] text-[#5A6B63]">
+      <label className="flex items-center gap-1.5 text-[13px] text-[#475467]">
         <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} />
         Select all ({filtered.length})
       </label>
 
-      <ul className="flex max-h-[220px] flex-col gap-1 overflow-y-auto rounded-lg border border-[#E9EDEB] p-2">
+      <ul className="flex max-h-[220px] flex-col gap-1 overflow-y-auto rounded-lg border border-[#E7EAEE] p-2">
         {filtered.map((r) => (
-          <li key={r.showEntryId} className="flex items-center justify-between gap-2 px-1 py-1 text-[12.5px]">
+          <li
+            key={r.showEntryId}
+            className="flex items-center justify-between gap-2 px-1 py-1 text-[12.5px]"
+          >
             <label className="flex flex-1 items-center gap-2">
               <input
                 type="checkbox"
@@ -128,7 +132,7 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
                 }}
               />
               <span className="font-semibold">{r.riderName}</span>
-              <span className="text-[#7A8781]">
+              <span className="text-[#8A94A3]">
                 {r.horseName} · #{r.backNumber}
               </span>
             </label>
@@ -150,7 +154,7 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
         ))}
       </ul>
 
-      {error && <p className="text-[12.5px] text-[#B4432F]">{error}</p>}
+      {error && <p className="text-[12.5px] text-[#B42318]">{error}</p>}
 
       <GoldButton
         type="button"

@@ -94,7 +94,7 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
           </select>
         </div>
       </div>
-      <div className="mt-[22px] flex flex-wrap items-center gap-3.5 border-t border-[#EEF2EF] pt-5">
+      <div className="mt-[22px] flex flex-wrap items-center gap-3.5 border-t border-[#EEF1F4] pt-5">
         <Button
           type="button"
           variant="ghost"
@@ -115,7 +115,7 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
         >
           {update.isPending ? 'Saving…' : 'Save'}
         </Button>
-        <span className="text-[12.5px] text-[#9AA6A0]">
+        <span className="text-[12.5px] text-[#8A94A3]">
           Changing the status moves this target in the funnel counts.
         </span>
       </div>

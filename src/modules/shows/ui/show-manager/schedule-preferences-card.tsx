@@ -1,6 +1,6 @@
 'use client';
 
-import type { SchedulePrefs, ClassRow } from '@/modules/shows/data/setup-queries';
+import type { ClassRow, SchedulePrefs } from '@/modules/shows/types';
 import { useSchedulePreferencesForm } from '@/modules/shows/hooks/use-schedule-preferences-form';
 import { dayLabel } from '@/modules/shows/utils/day-label';
 import { Card } from '@/shared/ui/organizer/card';
@@ -114,34 +114,34 @@ export function SchedulePreferencesCard({
       </div>
 
       <div className="mt-6">
-        <div className="mb-1.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
+        <div className="mb-1.5 text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
           Per-day start / stop times
         </div>
-        <p className="mb-4 text-[12.5px] leading-[1.5] text-[#6E7C76]">
+        <p className="mb-4 text-[12.5px] leading-[1.5] text-[#8A94A3]">
           Overrides &ldquo;Latest finish&rdquo; above for a specific day — a day with no stop-time
           override still uses that show-wide default.
         </p>
         <div className="flex flex-col gap-2.5">
           {effDays.map((day, i) => (
             <div key={day} className="flex flex-wrap items-center gap-3">
-              <span className="text-forest w-[100px] flex-none text-[13.5px] font-bold">
+              <span className="w-[100px] flex-none text-[13.5px] font-bold text-[#101828]">
                 {day === '__day1__' ? 'Day 1' : dayLabel(day, i)}
               </span>
-              <span className="w-9 flex-none text-[11px] text-[#7C8A84]">Start</span>
+              <span className="w-9 flex-none text-[11px] text-[#8A94A3]">Start</span>
               <Input
                 type="time"
                 value={dayStarts[i] ?? '08:00'}
-                className="text-ink-deep focus-visible:border-gold h-auto w-[130px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] outline-none"
+                className="h-auto w-[130px] rounded-[10px] border border-[#E7EAEE] bg-white px-3 py-2 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]"
                 onChange={(e) => {
                   setDayStart(i, e.target.value);
                 }}
               />
-              <span className="ml-1.5 w-9 flex-none text-[11px] text-[#7C8A84]">Stop</span>
+              <span className="ml-1.5 w-9 flex-none text-[11px] text-[#8A94A3]">Stop</span>
               <Input
                 type="time"
                 value={dayEnds[i] ?? ''}
                 placeholder={end}
-                className="text-ink-deep focus-visible:border-gold h-auto w-[130px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] outline-none"
+                className="h-auto w-[130px] rounded-[10px] border border-[#E7EAEE] bg-white px-3 py-2 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]"
                 onChange={(e) => {
                   setDayEnd(i, e.target.value);
                 }}
@@ -210,7 +210,7 @@ export function SchedulePreferencesCard({
               pattern="[0-9]*"
               value={extraBreaks === 0 ? '' : String(extraBreaks)}
               placeholder="0"
-              className="text-ink-deep focus-visible:border-gold h-auto w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm outline-none"
+              className="h-auto w-[70px] rounded-[10px] border border-[#E7EAEE] bg-white px-3 py-3 text-sm text-[#101828] outline-none focus-visible:border-[#9FD3BA]"
               onFocus={(e) => {
                 e.target.select();
               }}
@@ -222,14 +222,14 @@ export function SchedulePreferencesCard({
                 save();
               }}
             />
-            <span className="text-[12.5px] text-[#7C8A84]">per day, at</span>
+            <span className="text-[12.5px] text-[#8A94A3]">per day, at</span>
             <Input
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
               value={extraBreakMin === 0 ? '' : String(extraBreakMin)}
               placeholder="0"
-              className="text-ink-deep focus-visible:border-gold h-auto w-[70px] rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-3 text-sm outline-none"
+              className="h-auto w-[70px] rounded-[10px] border border-[#E7EAEE] bg-white px-3 py-3 text-sm text-[#101828] outline-none focus-visible:border-[#9FD3BA]"
               onFocus={(e) => {
                 e.target.select();
               }}
@@ -241,19 +241,19 @@ export function SchedulePreferencesCard({
                 save();
               }}
             />
-            <span className="text-[12.5px] text-[#7C8A84]">min each</span>
+            <span className="text-[12.5px] text-[#8A94A3]">min each</span>
           </div>
         </div>
       </div>
 
       {order === 'custom' && (
-        <div className="mt-6 border-t border-[#EEF2F0] pt-5">
+        <div className="mt-6 border-t border-[#EEF1F4] pt-5">
           <span className={SM_LABEL}>Running order</span>
           <p className={SM_NOTE}>
             Arrange classes into the exact order they should run — this order drives the schedule.
           </p>
           {manualOrder.length === 0 ? (
-            <p className="text-[13px] text-[#98A29D] italic">
+            <p className="text-[13px] text-[#8A94A3] italic">
               No classes yet — add classes in Select Events first.
             </p>
           ) : (
@@ -261,15 +261,15 @@ export function SchedulePreferencesCard({
               {manualOrder.map((c, i) => (
                 <li
                   key={c.id}
-                  className="flex items-center gap-3 rounded-[10px] border border-[#E9EDEB] px-3 py-2"
+                  className="flex items-center gap-3 rounded-[10px] border border-[#E7EAEE] px-3 py-2"
                 >
-                  <span className="w-6 text-[12px] font-semibold text-[#98A29D]">
+                  <span className="w-6 text-[12px] font-semibold text-[#8A94A3]">
                     {String(i + 1)}
                   </span>
-                  <span className="text-ink-deep min-w-0 flex-1 truncate text-[13.5px]">
+                  <span className="min-w-0 flex-1 truncate text-[13.5px] text-[#101828]">
                     {c.displayName ?? c.label}
                     {c.division ? (
-                      <span className="text-[12px] text-[#98A29D]"> · {c.division}</span>
+                      <span className="text-[12px] text-[#8A94A3]"> · {c.division}</span>
                     ) : null}
                   </span>
                   <button
@@ -279,7 +279,7 @@ export function SchedulePreferencesCard({
                     onClick={() => {
                       moveClass(i, -1);
                     }}
-                    className="text-forest h-7 w-7 rounded-[8px] border border-[#E9EDEB] text-[13px] font-semibold transition-colors hover:bg-[#F4F7F5] disabled:cursor-not-allowed disabled:text-[#C7D0CB]"
+                    className="h-7 w-7 rounded-[8px] border border-[#E7EAEE] text-[13px] font-semibold text-[#101828] transition-colors hover:bg-[#F5F7F8] disabled:cursor-not-allowed disabled:text-[#C7D0CB]"
                   >
                     ↑
                   </button>
@@ -290,7 +290,7 @@ export function SchedulePreferencesCard({
                     onClick={() => {
                       moveClass(i, 1);
                     }}
-                    className="text-forest h-7 w-7 rounded-[8px] border border-[#E9EDEB] text-[13px] font-semibold transition-colors hover:bg-[#F4F7F5] disabled:cursor-not-allowed disabled:text-[#C7D0CB]"
+                    className="h-7 w-7 rounded-[8px] border border-[#E7EAEE] text-[13px] font-semibold text-[#101828] transition-colors hover:bg-[#F5F7F8] disabled:cursor-not-allowed disabled:text-[#C7D0CB]"
                   >
                     ↓
                   </button>

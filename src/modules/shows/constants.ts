@@ -214,7 +214,7 @@ export const HORSE_STAT_TINTS = {
   cogginsExpired: { bg: '#F7E1E1', fg: '#B23A3A' },
   multiEntry: { bg: '#E3EDFB', fg: '#2E5FA8' },
 
-  stallsOccupied: { bg: '#E4F0E8', fg: '#1A5B3C' },
+  stallsOccupied: { bg: '#EAF5EF', fg: '#146A47' },
 } as const;
 
 export const MAX_STABLES = 40;
@@ -290,19 +290,16 @@ export const PNL_CATEGORY_ORDER = [
 export const BILLING_SECTIONS = [
   {
     kind: 'charges',
-    icon: '💳',
     title: 'Charges',
     sub: 'Payments collected from riders and vendors across every show.',
   },
   {
     kind: 'payouts',
-    icon: '💰',
     title: 'Payouts',
     sub: 'What you actually receive — transfers to you after the platform fee is deducted.',
   },
   {
     kind: 'deposits',
-    icon: '🧾',
     title: 'Deposits',
     sub: 'Money that has actually landed in the Field & Arena bank account.',
   },
@@ -405,8 +402,6 @@ export const SHOWS_PATH = '/dashboard/shows';
 export const SCHEDULE_PATH = '/dashboard/schedule';
 export const HORSES_PATH = '/dashboard/horses';
 export const STABLE_CHART_PATH = '/dashboard/horses/stable-chart';
-
-export const SHOW_DOCS_BUCKET = 'documents';
 
 export const DEFAULT_SCHEDULE_PREFS = {
   perMin: 9,

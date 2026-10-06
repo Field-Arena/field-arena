@@ -3,7 +3,7 @@ import {
   listPlatformAccounts,
   listOrganizerStaffDirectory,
 } from '@/modules/superadmin/data/queries';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { UsersTabs } from '@/modules/superadmin/ui/users-tabs';
 import { SuperAdminsPanel } from '@/modules/superadmin/ui/super-admins-panel';
 import { DirectoryPanel } from '@/modules/superadmin/ui/directory-panel';
@@ -30,13 +30,10 @@ export default async function PlatformUsersPage({
   return (
     <div className="space-y-7">
       <div className="max-w-[640px]">
-        <div className="text-gold mb-3 text-[10.5px] font-bold tracking-[0.18em] uppercase">
-          Access
-        </div>
-        <h1 className="text-hunter-deep mb-2.5 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.022em]">
+        <h1 className="mb-2 font-[family-name:var(--fa-serif)] text-[29px] leading-tight font-semibold tracking-[-.5px] text-[#101828]">
           Users
         </h1>
-        <p className="text-fa-muted text-[14.5px] leading-[1.6]">
+        <p className="text-[14.5px] leading-[1.6] text-[#475467]">
           Every real login on the platform — Super Admin staff, and every organizer&apos;s own team
           across every show they run.
         </p>

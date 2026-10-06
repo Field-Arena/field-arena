@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { PrinterIcon } from 'lucide-react';
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
+import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
 import {
@@ -18,8 +18,11 @@ import {
 import { Input } from '@/shared/ui/shadcn/input';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SHOW_ENTRY_STATUS_LABELS } from '@/modules/shows/constants';
-import type { EntryLedgerPageData, DocumentRollupStatus } from '@/modules/shows/data/entry-ledger-queries';
-import { useUpdateEntryNumber, useUpdateBackNumber } from '@/modules/shows/hooks/use-entry-ledger-mutations';
+import type { DocumentRollupStatus, EntryLedgerPageData } from '@/modules/shows/types';
+import {
+  useUpdateEntryNumber,
+  useUpdateBackNumber,
+} from '@/modules/shows/hooks/use-entry-ledger-mutations';
 import { EntryDetailDialog } from '@/modules/shows/ui/filing-cabinet/entry-detail-dialog';
 import { BridleNumberAssignDialog } from '@/modules/shows/ui/filing-cabinet/bridle-number-assign-dialog';
 import { BackNumberReprintButton } from '@/modules/shows/ui/filing-cabinet/back-number-reprint-button';
@@ -89,14 +92,14 @@ export function EntryLedgerScreen({
   const openRow = rows.find((r) => r.showEntryId === openEntryId) ?? null;
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <ScreenTitle className="mb-1.5">Entry Ledger</ScreenTitle>
+          <SectionTitle className="mb-1.5">Entry Ledger</SectionTitle>
           <ScreenLede className="mb-0">
             Who entered {showName}, what they bought, what they entered, and what still needs
-            attention. Reads the same entries and payments used everywhere else — edits here
-            correct the entry/bridle/back number only.
+            attention. Reads the same entries and payments used everywhere else — edits here correct
+            the entry/bridle/back number only.
           </ScreenLede>
         </div>
         <Link
@@ -113,7 +116,7 @@ export function EntryLedgerScreen({
 
       {rows.length === 0 ? (
         <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
             No entries yet — rows appear here as riders check out, or when entries are added by
             hand.
           </p>
@@ -156,7 +159,11 @@ export function EntryLedgerScreen({
                       value={row.entryNumber}
                       pending={updateEntryNumber.isPending}
                       onSave={(next) => {
-                        updateEntryNumber.mutate({ showId, showEntryId: row.showEntryId, entryNumber: next });
+                        updateEntryNumber.mutate({
+                          showId,
+                          showEntryId: row.showEntryId,
+                          entryNumber: next,
+                        });
                       }}
                     />
                   </TableCell>
@@ -183,7 +190,11 @@ export function EntryLedgerScreen({
                         value={row.backNumber ?? ''}
                         pending={updateBackNumber.isPending}
                         onSave={(next) => {
-                          updateBackNumber.mutate({ showId, showEntryId: row.showEntryId, backNumber: next });
+                          updateBackNumber.mutate({
+                            showId,
+                            showEntryId: row.showEntryId,
+                            backNumber: next,
+                          });
                         }}
                       />
                       {row.backNumber && (
@@ -232,7 +243,7 @@ export function EntryLedgerScreen({
                         {row.openIssueCount}
                       </Link>
                     ) : (
-                      <span className="text-[#7A8781]">0</span>
+                      <span className="text-[#8A94A3]">0</span>
                     )}
                   </TableCell>
                 </TableRow>

@@ -20,10 +20,10 @@ import { ConfirmDeleteDocument } from '@/modules/superadmin/ui/confirm-delete-do
 import { DocumentsUpload } from '@/modules/superadmin/ui/documents-upload';
 
 const HEAD =
-  'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
+  'bg-[#FBFCFD] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[.08em] text-[#8A94A3]';
 const LINK =
-  'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
-const DEL = 'text-[13px] font-bold text-[#B4432F] hover:text-[#8E3627]';
+  'text-[13px] font-semibold text-[#101828] underline underline-offset-[3px] hover:text-[#146A47]';
+const DEL = 'text-[13px] font-bold text-[#B42318] hover:text-[#B42318]';
 
 export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
   const upload = useUploadDocument();
@@ -43,7 +43,7 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
           for (const file of Array.from(files)) void uploadFile('Documents', file.name, file);
         }}
       />
-      <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
+      <div className="overflow-hidden rounded-[14px] border border-[#E7EAEE] bg-white">
         <Table className="min-w-[820px] border-collapse">
           <TableHeader className="[&_tr]:border-0">
             <TableRow className="border-b-0 hover:bg-transparent">
@@ -57,7 +57,7 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={3}
-                  className="text-fa-muted-2 px-5 py-[42px] text-center text-[13.5px] whitespace-normal"
+                  className="px-5 py-[42px] text-center text-[13.5px] whitespace-normal text-[#8A94A3]"
                 >
                   No files uploaded yet.
                 </TableCell>
@@ -66,13 +66,13 @@ export function DocumentsGeneralTab({ docs }: { docs: CatalogDocument[] }) {
               generalDocs.map((d, i) => (
                 <TableRow
                   key={d.id}
-                  className="border-b border-[#EEF2EF] last:border-b-0 hover:bg-transparent"
-                  style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
+                  className="border-b border-[#EEF1F4] last:border-b-0 hover:bg-transparent"
+                  style={{ background: i % 2 ? '#FBFCFD' : '#FFFFFF' }}
                 >
-                  <TableCell className="px-5 py-3.5 text-[14px] whitespace-normal text-[#16261F]">
+                  <TableCell className="px-5 py-3.5 text-[14px] whitespace-normal text-[#101828]">
                     {d.name}
                   </TableCell>
-                  <TableCell className="px-4 py-3.5 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
+                  <TableCell className="px-4 py-3.5 text-[13.5px] whitespace-nowrap text-[#475467]">
                     {formatTimestamp(d.createdAt)}
                   </TableCell>
                   <TableCell className="px-5 py-3">

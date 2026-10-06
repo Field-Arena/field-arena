@@ -1,6 +1,6 @@
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import type { ScheduleRow } from '@/modules/announcements/data/queries';
+import type { ScheduleRow } from '@/modules/announcements/types';
 
 export function ShowScheduleTable({ schedule }: { schedule: ScheduleRow[] }) {
   if (schedule.length === 0) {

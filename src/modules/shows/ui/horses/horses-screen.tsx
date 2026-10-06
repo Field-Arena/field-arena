@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatCard } from '@/shared/ui/organizer/stat-card';
@@ -16,8 +16,7 @@ import {
   IconBarn,
 } from '@/shared/ui/organizer/icons';
 import { HORSE_STAT_TINTS } from '@/modules/shows/constants';
-import type { HorsesPageData, HorseRow } from '@/modules/shows/data/horses-queries';
-import type { StableChartSummary } from '@/modules/shows/data/stable-chart-queries';
+import type { HorseRow, HorsesPageData, StableChartSummary } from '@/modules/shows/types';
 import { AddHorseDialog } from '@/modules/shows/ui/horses/add-horse-dialog';
 import { HorseTableRow } from '@/modules/shows/ui/horses/horse-table-row';
 import {
@@ -103,7 +102,7 @@ export function HorsesScreen({
   );
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <ScreenTitle className="mb-1.5">Horses</ScreenTitle>
@@ -155,7 +154,7 @@ export function HorsesScreen({
       </div>
 
       {multiEntryOnly && (
-        <div className="mb-3 flex items-center gap-2 text-[12.5px] text-[#5A6B63]">
+        <div className="mb-3 flex items-center gap-2 text-[12.5px] text-[#475467]">
           Showing only multi-entry horses (ridden by more than one rider).
           <Button
             type="button"
@@ -172,42 +171,50 @@ export function HorsesScreen({
 
       {rows.length === 0 ? (
         <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
             No horses entered yet — horses appear here as riders enter, when a roster is imported,
             or when you add one by hand.
           </p>
         </Card>
       ) : sortedRows.length === 0 ? (
         <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
             No horse at this show is ridden by more than one rider.
           </p>
         </Card>
       ) : (
         <TableShell minWidth={HORSES_TABLE_MIN_WIDTH}>
           <div
-            className="grid gap-3.5 border-b border-[#EEF2F0] px-5 py-3"
+            className="grid gap-3.5 border-b border-[#EEF1F4] px-5 py-3"
             style={{ gridTemplateColumns: HORSES_TABLE_TEMPLATE, minWidth: HORSES_TABLE_MIN_WIDTH }}
           >
             {SORT_COLUMNS.map(({ col, label }) => (
-              <Button
-                key={col}
-                type="button"
-                variant="ghost"
-                className="hover:text-forest h-auto justify-start px-0 py-0 text-left text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase hover:bg-transparent"
-                onClick={() => {
-                  toggleSort(col);
-                }}
-              >
-                {label}
-                {arrow(col)}
-              </Button>
+              <Fragment key={col}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-auto justify-start px-0 py-0 text-left text-[11px] font-semibold tracking-[.07em] whitespace-nowrap text-[#8A94A3] uppercase hover:bg-transparent hover:text-[#146A47]"
+                  onClick={() => {
+                    toggleSort(col);
+                  }}
+                >
+                  {label}
+                  {arrow(col)}
+                </Button>
+                {col === 'horse' && (
+                  <span className="text-[11px] font-semibold tracking-[.07em] whitespace-nowrap text-[#8A94A3] uppercase">
+                    Owner / Rider
+                  </span>
+                )}
+              </Fragment>
             ))}
-            <span className="text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase">
+            <span className="text-[11px] font-semibold tracking-[.07em] whitespace-nowrap text-[#8A94A3] uppercase">
               Documents
             </span>
-            <span className="text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase" />
-            <span className="text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase" />
+            <span className="text-[11px] font-semibold tracking-[.07em] whitespace-nowrap text-[#8A94A3] uppercase">
+              Status
+            </span>
+            <span className="text-[11px] font-semibold tracking-[.07em] whitespace-nowrap text-[#8A94A3] uppercase" />
           </div>
 
           {sortedRows.map((row) => (

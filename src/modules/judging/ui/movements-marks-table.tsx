@@ -60,14 +60,14 @@ export function MovementsMarksTable({
   const groups = groupBySection(movements);
 
   const movementRow = (m: ScorecardMovement) => (
-    <TableRow key={m.num} className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+    <TableRow key={m.num} className="border-t border-b-0 border-[#E7EAEE] hover:bg-transparent">
       <TableCell className="p-2 whitespace-normal">{m.num}</TableCell>
       <TableCell className="p-2 whitespace-normal">{m.text}</TableCell>
       <TableCell className="p-2 whitespace-normal">{m.coef}</TableCell>
-      <TableCell className="text-ink-deep p-2 text-right font-mono font-semibold whitespace-normal">
+      <TableCell className="p-2 text-right font-semibold whitespace-normal text-[#101828] tabular-nums">
         {marks[String(m.num)] ?? '—'}
       </TableCell>
-      <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
+      <TableCell className="p-2 whitespace-normal text-[#475467]">
         {remarks[String(m.num)] ?? ''}
       </TableCell>
     </TableRow>
@@ -77,7 +77,7 @@ export function MovementsMarksTable({
     <Card className="overflow-x-auto p-[16px_18px]">
       <Table className="min-w-[480px] border-collapse text-[13.5px]">
         <TableHeader className="[&_tr]:border-0">
-          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
+          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#8A94A3] uppercase hover:bg-transparent">
             <TableHead className="h-auto p-2">#</TableHead>
             <TableHead className="h-auto p-2">Movement</TableHead>
             <TableHead className="h-auto p-2">Coef</TableHead>
@@ -89,23 +89,23 @@ export function MovementsMarksTable({
           {groups
             ? groups.map((group) => (
                 <Fragment key={group.section}>
-                  <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                  <TableRow className="border-t border-b-0 border-[#E7EAEE] hover:bg-transparent">
                     <TableCell
                       colSpan={5}
-                      className="p-2 pt-3 text-[11px] font-semibold tracking-[.08em] text-[#7A8781] uppercase"
+                      className="p-2 pt-3 text-[11px] font-semibold tracking-[.08em] text-[#8A94A3] uppercase"
                     >
                       {group.section}
                     </TableCell>
                   </TableRow>
                   {group.items.map(movementRow)}
-                  <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
+                  <TableRow className="border-t border-b-0 border-[#E7EAEE] hover:bg-transparent">
                     <TableCell
                       colSpan={3}
-                      className="p-2 text-right text-[12px] font-semibold text-[#7A8781]"
+                      className="p-2 text-right text-[12px] font-semibold text-[#8A94A3]"
                     >
                       Section subtotal
                     </TableCell>
-                    <TableCell className="p-2 text-right font-mono font-semibold text-[#7A8781]">
+                    <TableCell className="p-2 text-right font-semibold text-[#8A94A3] tabular-nums">
                       {sectionSubtotal(group.items, marks)} / {sectionMax(group.items)}
                     </TableCell>
                     <TableCell className="p-2" />

@@ -1,240 +1,190 @@
 import Link from 'next/link';
-import { cn } from '@/shared/lib/utils';
-import { SHOW_STAGES } from '@/shared/constants/show-stages';
-import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
-
-import { Card, Eyebrow, ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
-import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
-import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
-import { DashIcon } from '@/shared/ui/dash-icon';
-import { fa } from '@/shared/lib/organizer-theme';
+import { NewShowButton } from '@/modules/shows/public';
+import { ShowStatsRow } from './show-stats-row';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { formatRelative } from '@/shared/lib/format/date';
 import type {
+  ActivityItem,
   AttentionItem,
+  DashboardReadiness,
+  DashboardShowRow,
   InventoryRow,
   ShowListItem,
   ShowStats,
-} from '@/modules/shows/data/queries';
-import { AttentionCard } from './attention-card';
+} from '@/modules/shows/types';
+import { AttentionCards } from './attention-card';
+import { DashboardShowsTable } from './dashboard-shows-table';
+import { DashboardReadinessCard } from './dashboard-readiness-card';
+
+const CalendarIcon = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M8 3v3M16 3v3M4 8h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"
+    />
+  </svg>
+);
 
 export function DashboardOverview({
   orgName,
   shows,
+  dashboardShows,
   currentShow,
   stats,
   inventory,
   stage,
+  readiness,
   rings,
   attention = [],
+  activity = [],
   canViewMoney,
 }: {
   orgName: string;
   shows: ShowListItem[];
+  dashboardShows: DashboardShowRow[];
   currentShow: ShowListItem | null;
   stats: ShowStats | null;
   inventory: InventoryRow[];
   stage: string;
+  readiness: DashboardReadiness | null;
   rings: string[];
-
   attention?: AttentionItem[];
+  activity?: ActivityItem[];
   canViewMoney: boolean;
 }) {
-  const currentIndex = SHOW_STAGES.findIndex((s) => s.key === stage);
-
   if (!currentShow || !stats) {
     return (
-      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-        <ScreenTitle>Dashboard</ScreenTitle>
-        <ScreenLede>Everything across your shows, in one place.</ScreenLede>
-        <Card className="p-[18px]">
-          <p className="text-forest text-lg font-semibold">No shows yet</p>
-          <p className="mt-1 text-[13.5px] text-[#5A6B63]">
+      <section>
+        <div className="fa-page-head">
+          <div>
+            <h2>Dashboard</h2>
+            <p>Everything across your shows in one place.</p>
+          </div>
+        </div>
+        <div className="fa-mini-card">
+          <h4>No shows yet</h4>
+          <p>
             {orgName} has no shows on the platform. Create one to see entries, staffing and revenue
             here.
           </p>
-        </Card>
-      </div>
+          <NewShowButton className="mt-4" />
+        </div>
+      </section>
     );
   }
 
   const incompleteCount = shows.filter((s) => !s.published).length;
+  const showRef = currentShow.slug ?? currentShow.id;
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <div className="mb-5">
-        <ScreenTitle className="mb-1.5">Dashboard</ScreenTitle>
-        <p className="text-[13.5px] text-[#5A6B63]">Everything across your shows, in one place.</p>
-      </div>
-
-      <Eyebrow className="mb-2.5 block">Show lifecycle</Eyebrow>
-      <Card className="mb-[18px] flex flex-wrap items-center gap-2.5 p-[14px_18px]">
-        {SHOW_STAGES.map((s, i) => (
-          <span key={s.key} className="contents">
-            <span
-              className={`inline-flex items-center gap-2 text-[13px] whitespace-nowrap ${
-                i === currentIndex ? 'text-forest font-semibold' : 'text-[#5A6B63]'
-              }`}
-            >
-              <span
-                className={`size-2 rounded-full border ${
-                  i <= currentIndex
-                    ? 'border-[#3E8E5A] bg-[#3E8E5A]'
-                    : 'border-[#D9E1DD] bg-transparent'
-                }`}
-              />
-              {s.label}
-            </span>
-            {i < SHOW_STAGES.length - 1 && <span className="h-px min-w-6 flex-1 bg-[#E9EDEB]" />}
-          </span>
-        ))}
-      </Card>
-
-      <AttentionCard items={attention} />
-
-      <Card className="mb-[18px] p-[16px_18px_18px]">
-        <div className="mb-3.5 flex flex-wrap items-center gap-3">
-          <span className="text-forest inline-flex items-center gap-2 text-[13.5px] font-semibold">
-            <span className="size-[7px] rounded-full" style={{ background: fa.green }} />
-            {orgName}
-          </span>
-
-          <form method="get" className="contents">
-            <select
-              name="show"
-              defaultValue={currentShow.slug ?? currentShow.id}
-              className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
-              aria-label="Select show"
-            >
-              {shows.map((show) => (
-                <option key={show.id} value={show.slug ?? show.id}>
-                  {show.name}
-                  {show.dateLabel ? ` (${show.dateLabel})` : ''}
-                </option>
-              ))}
-            </select>
-            <GhostButton type="submit">Switch</GhostButton>
-          </form>
-
-          <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
-          <Link
-            href={`/dashboard/awards?show=${currentShow.slug ?? currentShow.id}`}
-            prefetch={false}
-            className={cn(ghostButtonClass, 'ml-auto')}
-          >
-            <DashIcon name="trophy" size={14} /> Awards
-          </Link>
-        </div>
-
-        <div className="mb-4">
-          <ShowStatsRow
-            stats={stats}
-            canViewMoney={canViewMoney}
-            showId={currentShow.slug ?? currentShow.id}
-          />
-        </div>
-
-        {canViewMoney && stats.entryValue > 0 && stats.settledRevenue === 0 && (
-          <p className="mb-4 text-[12.5px] text-pretty text-[#7C8A84]">
-            The roster is worth {formatMoney(stats.entryValue)} at current class prices, but nothing
-            has been collected — rider checkout is not migrated yet, so this is genuinely unpaid
-            rather than missing.
+    <section>
+      <div className="fa-page-head">
+        <div>
+          <h2>Dashboard</h2>
+          <p>
+            Everything across your shows in one place. Focused show: <b>{currentShow.name}</b>
+            {currentShow.dateLabel && ` · ${currentShow.dateLabel}`}.
           </p>
-        )}
-
-        {rings.length > 0 ? (
-          <div className="flex items-stretch overflow-hidden rounded-[10px] border border-[#E9EDEB]">
-            <span className="bg-forest text-gold px-4 py-2.5 font-mono text-sm font-bold whitespace-nowrap">
-              {rings.length} ring{rings.length === 1 ? '' : 's'}
-            </span>
-            {rings.map((ring) => (
-              <span
-                key={ring}
-                className="text-forest grid flex-1 place-items-center bg-[#F5F7F6] px-2.5 py-2.5 text-[12.5px] font-bold"
-              >
-                {ring}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-[10px] border border-dashed border-[#E9EDEB] px-4 py-3 text-[12.5px] text-[#98A29D]">
-            No rings running for this show.
-          </div>
-        )}
-      </Card>
-
-      {incompleteCount > 0 && (
-        <Card className="mb-[18px] flex flex-wrap items-center gap-4 border-l-[3px] border-l-[#B4432F] p-[16px_18px]">
-          <span className="text-[13.5px] text-[#48574F]">
-            {incompleteCount} show{incompleteCount === 1 ? '' : 's'} still{' '}
-            {incompleteCount === 1 ? 'needs' : 'need'} setup before they can open entries.
-          </span>
-          <Link
-            href="/dashboard/shows/incomplete"
-            prefetch={false}
-            className={cn(ghostButtonClass, 'ml-auto')}
-          >
-            View incomplete shows →
-          </Link>
-        </Card>
-      )}
-
-      <div className="overflow-hidden rounded-[12px] border border-l-[3px] border-[#E9EDEB] border-l-[#1A5B3C]">
-        <div className="p-[16px_18px_14px]">
-          <div className="text-forest mb-[5px] font-[Newsreader,serif] text-[19px] font-semibold">
-            {currentShow.name}
-          </div>
-          <div className="text-[12.5px] text-[#7A8781]">
-            {[currentShow.dateLabel, currentShow.venueName].filter(Boolean).join(' · ')}
-          </div>
         </div>
-
-        <div className="border-t border-[#E9EDEB] px-[18px] py-3.5">
-          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3.5 text-[9.5px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
-            <span>Purchases &amp; inventory</span>
-            <span className="text-right">Qty</span>
-            <span className="text-right">{canViewMoney ? 'Value' : ''}</span>
-          </div>
-          {inventory.map((row) => (
-            <div
-              key={row.name}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3.5 border-t border-[#EFE9DB] py-2.5 text-[13.5px]"
-            >
-              <span className="text-ink-deep font-semibold">{row.name}</span>
-              <span className="text-ink-deep text-right">{row.qty}</span>
-              <span className="text-ink-deep text-right">
-                {canViewMoney && (
-                  <>
-                    {formatMoney(row.revenue)}
-                    {!row.settled && row.revenue > 0 && (
-                      <span className="block text-[11.5px] font-normal text-[#98A29D]">
-                        owed, not collected
-                      </span>
-                    )}
-                  </>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-4 border-t border-[#E9EDEB] bg-[#F5F7F6] px-[18px] py-3.5">
-          <span className="text-[13px] text-[#5A6B63]">
-            {currentShow.published
-              ? 'This show is published and visible to riders.'
-              : 'This show is not published — riders cannot see or enter it yet.'}
-          </span>
+        <div className="fa-head-actions">
+          <NewShowButton />
           <Link
-            href={`/dashboard/shows/${currentShow.slug ?? currentShow.id}`}
+            href={`/dashboard/schedule?show=${showRef}`}
             prefetch={false}
-            className={cn(primaryButtonClass, 'ml-auto')}
+            className="fa-btn fa-btn-primary"
           >
-            Open Show Manager
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M8 5v14l11-7z" />
-            </svg>
+            <CalendarIcon />
+            Open Schedule
           </Link>
         </div>
       </div>
-    </div>
+
+      <AttentionCards items={attention} incompleteCount={incompleteCount} />
+
+      <div className="mb-6">
+        <ShowStatsRow stats={stats} canViewMoney={canViewMoney} showId={showRef} />
+      </div>
+
+      <div className="fa-detail-grid">
+        <DashboardShowsTable shows={dashboardShows} focusedShowId={currentShow.id} />
+
+        <aside>
+          {readiness && (
+            <DashboardReadinessCard
+              showName={currentShow.name}
+              startDate={currentShow.startDate}
+              stage={stage}
+              stats={stats}
+              readiness={readiness}
+            />
+          )}
+
+          <div className="fa-aside-card">
+            <h4>Recent activity</h4>
+            {activity.length === 0 ? (
+              <p className="m-0 text-[13px] text-[var(--fa-ink-3)]">
+                Nothing yet — orders, staff, and schedule changes show up here.
+              </p>
+            ) : (
+              <ul className="fa-act-feed">
+                {activity.map((item) => (
+                  <li key={`${item.at}-${item.title}`}>
+                    <span
+                      className={`fa-act-dot ${item.tone === 'brand' ? '' : `fa-${item.tone}`}`}
+                    />
+                    <div className="fa-act-body">
+                      <b>{item.title}</b>
+                      <span>{formatRelative(item.at)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Not in the redesign's dashboard, kept from the live app: the
+              focused show's rings and sales mix, and the shortcuts to Awards
+              and Show Manager — laid out as one more aside card. */}
+          <div className="fa-aside-card">
+            <h4>Rings &amp; sales</h4>
+            <div className="fa-kv">
+              <span className="fa-k">Rings</span>
+              <span className="fa-v">{rings.length > 0 ? rings.join(', ') : 'None yet'}</span>
+            </div>
+            {inventory.map((row) => (
+              <div key={row.name} className="fa-kv">
+                <span className="fa-k">{row.name}</span>
+                <span className="fa-v">
+                  {row.qty}
+                  {canViewMoney && ` · ${formatMoney(row.revenue)}`}
+                  {canViewMoney && !row.settled && row.revenue > 0 && (
+                    <span className="block text-[11px] font-normal text-[var(--fa-ink-3)]">
+                      owed, not collected
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/shows/${showRef}`}
+                prefetch={false}
+                className="fa-btn fa-btn-ghost fa-btn-sm"
+              >
+                Open Show Manager →
+              </Link>
+              <Link
+                href={`/dashboard/awards?show=${showRef}`}
+                prefetch={false}
+                className="fa-btn fa-btn-ghost fa-btn-sm"
+              >
+                Awards →
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
   );
 }

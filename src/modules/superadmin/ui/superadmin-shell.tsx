@@ -1,24 +1,105 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LogOutIcon } from 'lucide-react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
-import type { StaffProfile } from '@/modules/auth/data/queries';
-import { RoleRail } from '@/shared/ui/role-rail';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSignOut } from '@/modules/auth/public';
+import type { StaffProfile } from '@/shared/types/auth';
 import { NavIcon } from '@/shared/ui/nav-icon';
-import { Tip } from '@/shared/ui/tip';
+import { useDismiss } from '@/shared/hooks/use-dismiss';
 import { cn } from '@/shared/lib/utils';
+import { initials } from '@/shared/lib/format/name';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
-import { ROLE_NAV } from '@/modules/staff/constants';
+import { ROLE_NAV } from '@/shared/constants/role-nav';
 import { SUPERADMIN_SIDEBAR, SUPERADMIN_TOOLS } from '@/modules/superadmin/constants';
 import { OrganizerSearch, type OrganizerOption } from '@/modules/superadmin/ui/organizer-search';
-import { AddOrganizerDialog } from '@/modules/superadmin/ui/add-organizer-dialog';
-import { ConsoleIcon } from '@/modules/superadmin/ui/console-icon';
+import { ViewAsMenu } from '@/modules/superadmin/ui/view-as-menu';
 
-const DISPLAY = 'font-[family-name:var(--font-nr)]';
+const COLLAPSE_KEY = 'fa-sidebar-collapsed';
+const COLLAPSE_EVENT = 'fa-sidebar-collapsed-change';
+
+// Same per-browser collapsed-sidebar preference the organizer shell uses.
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function writeCollapsed(value: boolean) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, value ? '1' : '0');
+  } catch {
+    /* storage blocked — nothing to persist */
+  }
+  window.dispatchEvent(new Event(COLLAPSE_EVENT));
+}
+function subscribeCollapsed(onChange: () => void) {
+  window.addEventListener(COLLAPSE_EVENT, onChange);
+  window.addEventListener('storage', onChange);
+  return () => {
+    window.removeEventListener(COLLAPSE_EVENT, onChange);
+    window.removeEventListener('storage', onChange);
+  };
+}
+
+/* Console icons from the redesign's SuperAdmin sidebar. */
+const S = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.7,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
+const CONSOLE_ICONS: Record<string, ReactNode> = {
+  overview: <path {...S} d="M3 13h8V3H3v10zm10 8h8V3h-8v18zM3 21h8v-6H3v6z" />,
+  organizers: <path {...S} d="M3 21V7l9-4 9 4v14M9 21v-5h6v5" />,
+  catalog: <path {...S} d="M4 5h10v14H4zM14 8h6v11h-6" />,
+  documents: (
+    <path {...S} d="M4 5a2 2 0 012-2h5l2 3h5a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" />
+  ),
+  billing: <path {...S} d="M3 7h18v10H3zM3 11h18" />,
+  users: <path {...S} d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 10a3 3 0 100-6 3 3 0 000 6z" />,
+  preview: (
+    <>
+      <path {...S} d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+      <circle {...S} cx="12" cy="12" r="3" />
+    </>
+  ),
+  funnel: <path {...S} d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />,
+  demo: <path {...S} d="M8 21h8M12 17v4M7 4h10v4a5 5 0 01-10 0V4z" />,
+};
+
+function ConsoleNavIcon({ name }: { name: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden>
+      {CONSOLE_ICONS[name] ?? CONSOLE_ICONS.organizers}
+    </svg>
+  );
+}
+
+const Chevron = ({ d }: { d: string }) => (
+  <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
+
+interface NavLinkItem {
+  key: string;
+  label: string;
+  href: string;
+  icon: string;
+  count?: number;
+  tip?: string;
+  console: boolean;
+}
 
 export function SuperAdminShell({
   children,
@@ -28,17 +109,44 @@ export function SuperAdminShell({
 }: {
   children: ReactNode;
   profile: StaffProfile;
-
   activeRailRole: string;
-
   organizers: OrganizerOption[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
+  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
+  const [query, setQuery] = useState('');
+  const [userMenu, setUserMenu] = useState(false);
+  const closeUserMenu = useCallback(() => {
+    setUserMenu(false);
+  }, []);
+  const userRef = useDismiss<HTMLDivElement>(userMenu, closeUserMenu);
+  const [bellOpen, setBellOpen] = useState(false);
+  const closeBell = useCallback(() => {
+    setBellOpen(false);
+  }, []);
+  const bellRef = useDismiss<HTMLDivElement>(bellOpen, closeBell);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   const isConsoleRoute =
     pathname === '/dashboard/superadmin' || pathname.startsWith('/dashboard/superadmin/');
 
+  // Previewing another role's workspace (via View as) swaps the sidebar for
+  // that role's nav, the way the rail did.
   const previewRole = ROLE_NAV[activeRailRole]
     ? activeRailRole
     : pathname.startsWith('/dashboard/judging')
@@ -52,204 +160,231 @@ export function SuperAdminShell({
             : activeRailRole;
   const previewNav = isConsoleRoute ? undefined : ROLE_NAV[previewRole];
   const previewTitle = ROLE_WORKSPACES[previewRole]?.title ?? 'Workspace';
-  const activePreviewHref =
-    previewNav?.find((item) => item.href === pathname)?.href ??
-    previewNav?.reduce<string | null>((best, item) => {
-      if (!pathname.startsWith(`${item.href}/`)) return best;
-      if (!best || item.href.length > best.length) return item.href;
-      return best;
-    }, null) ??
-    null;
 
-  const initials =
-    profile.name
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join('') || 'FA';
+  const groups: { heading: string; items: NavLinkItem[] }[] = previewNav
+    ? [
+        {
+          heading: previewTitle,
+          items: previewNav.map((item) => ({ ...item, console: false })),
+        },
+      ]
+    : [
+        ...SUPERADMIN_SIDEBAR.map((group) => ({
+          heading: group.heading,
+          items: group.items.map((item) => ({
+            ...item,
+            console: true,
+            count: item.key === 'organizers' ? organizers.length : undefined,
+          })),
+        })),
+        {
+          heading: 'Tools',
+          items: SUPERADMIN_TOOLS.map((tool) => ({ ...tool, tip: tool.reason, console: true })),
+        },
+      ];
+
+  const allItems = groups.flatMap((g) => g.items);
+  const activeItem = allItems.reduce<NavLinkItem | null>((best, item) => {
+    const hit =
+      item.href === '/dashboard/superadmin'
+        ? pathname === item.href
+        : item.href === '/dashboard/superadmin/organizers'
+          ? pathname === item.href || pathname.startsWith('/dashboard/superadmin/organizations')
+          : pathname === item.href || pathname.startsWith(`${item.href}/`);
+    if (!hit) return best;
+    return !best || item.href.length > best.href.length ? item : best;
+  }, null);
+
+  const needle = query.trim().toLowerCase();
+  const visibleGroups = groups
+    .map((g) => ({
+      ...g,
+      items: needle ? g.items.filter((i) => i.label.toLowerCase().includes(needle)) : g.items,
+    }))
+    .filter((g) => g.items.length > 0);
+
+  const crumb = activeItem?.label ?? (previewNav ? previewTitle : 'Console');
 
   return (
-    <div className="bg-paper text-ink-deep grid min-h-dvh font-[family-name:var(--font-ar)] lg:grid-cols-[74px_248px_minmax(0,1fr)]">
-      <div className="hidden lg:block">
-        <RoleRail
-          currentRole={profile.platform_role}
-          activeRole={activeRailRole}
-          variant="console"
-        />
-      </div>
+    <div className="dash fa-app">
+      <aside className={cn('fa-sidebar', collapsed && 'fa-collapsed')}>
+        <Link
+          href="/dashboard/superadmin"
+          prefetch={false}
+          className="fa-ws"
+          title={collapsed ? 'Field & Arena' : undefined}
+        >
+          <div className="fa-ws-logo">F&amp;A</div>
+          <div className="fa-ws-meta">
+            <b>Field &amp; Arena</b>
+            <span>Platform · SuperAdmin</span>
+          </div>
+          <div className="fa-ws-chev">
+            <Chevron d="M8 9l4-4 4 4M8 15l4 4 4-4" />
+          </div>
+        </Link>
 
-      <aside className="bg-forest sticky top-0 hidden h-dvh flex-col px-4 pt-[22px] pb-[18px] lg:flex">
-        <div className="flex items-center gap-[11px] px-2 pb-[22px]">
-          <span
-            className={`bg-gold grid size-8 flex-none place-items-center rounded-lg ${DISPLAY} text-forest text-sm font-semibold tracking-[-.02em]`}
-          >
-            F&amp;A
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span
-              className={`${DISPLAY} text-paper text-[17px] leading-none font-medium tracking-[-.01em]`}
-            >
-              Field &amp; Arena
-            </span>
-            <span className="text-gold text-[9px] font-bold tracking-[.16em] uppercase">
-              {profile.platform_role}
-            </span>
-          </span>
+        <div className="fa-sb-search">
+          <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
+          </svg>
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search…"
+            value={query}
+            aria-label="Search navigation"
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              const first = visibleGroups[0]?.items[0];
+              if (e.key === 'Enter' && first) {
+                router.push(first.href);
+                setQuery('');
+                searchRef.current?.blur();
+              }
+              if (e.key === 'Escape') setQuery('');
+            }}
+          />
+          <kbd>⌘K</kbd>
         </div>
 
-        {previewNav ? (
-          <>
-            <div className="px-2 pb-2.5 text-[9.5px] font-bold tracking-[.16em] text-[rgba(251,250,247,.34)] uppercase">
-              {previewTitle}
-            </div>
-            <nav className="flex flex-col gap-0.5">
-              {previewNav.map((item) => {
-                const active = item.href === activePreviewHref;
+        <nav className="fa-nav" aria-label="SuperAdmin navigation">
+          {visibleGroups.map((group) => (
+            <div key={group.heading}>
+              <div className="fa-nav-label">{group.heading}</div>
+              {group.items.map((item) => {
+                const active = item.key === activeItem?.key && item.href === activeItem.href;
                 return (
                   <Link
                     key={item.key}
                     href={item.href}
                     prefetch={false}
+                    className={cn('fa-nav-item', active && 'fa-active')}
+                    title={collapsed ? item.label : item.tip}
                     aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'relative flex items-center gap-[11px] rounded-lg py-2.5 pr-2.5 pl-3 text-[13.5px] font-semibold transition-colors',
-                      active
-                        ? 'text-paper bg-[#17402F]'
-                        : 'hover:text-paper text-[rgba(251,250,247,.66)] hover:bg-[rgba(255,255,255,.06)]',
-                    )}
                   >
-                    {active && (
-                      <span
-                        aria-hidden
-                        className="bg-gold absolute inset-y-[9px] left-0 w-[3px] rounded-sm"
-                      />
+                    {item.console ? (
+                      <ConsoleNavIcon name={item.icon} />
+                    ) : (
+                      <NavIcon name={item.icon} size={18} />
                     )}
-                    <span className={cn('flex-none', active && 'text-gold')}>
-                      <NavIcon name={item.icon} size={16} />
-                    </span>
-                    {item.label}
+                    <span className="fa-txt">{item.label}</span>
+                    {item.count !== undefined && item.count > 0 && (
+                      <span className="fa-count">{item.count}</span>
+                    )}
                   </Link>
                 );
               })}
-            </nav>
-          </>
-        ) : (
-          <>
-            {SUPERADMIN_SIDEBAR.map((group) => (
-              <div key={group.heading}>
-                <div className="px-2 pb-2.5 text-[9.5px] font-bold tracking-[.16em] text-[rgba(251,250,247,.34)] uppercase">
-                  {group.heading}
-                </div>
-                <nav className="mb-[22px] flex flex-col gap-0.5">
-                  {group.items.map((item) => {
-                    const active =
-                      item.href === '/dashboard/superadmin'
-                        ? pathname === item.href
-                        : pathname.startsWith(item.href);
-                    return (
-                      <Link
-                        key={item.key}
-                        href={item.href}
-                        prefetch={false}
-                        aria-current={active ? 'page' : undefined}
-                        className={cn(
-                          'relative flex items-center gap-[11px] rounded-lg py-2.5 pr-2.5 pl-3 text-[13.5px] font-semibold transition-colors',
-                          active
-                            ? 'text-paper bg-[#17402F]'
-                            : 'hover:text-paper text-[rgba(251,250,247,.66)] hover:bg-[rgba(255,255,255,.06)]',
-                        )}
-                      >
-                        {active && (
-                          <span
-                            aria-hidden
-                            className="bg-gold absolute inset-y-[9px] left-0 w-[3px] rounded-sm"
-                          />
-                        )}
-                        <ConsoleIcon
-                          name={item.icon}
-                          className={cn('size-4 flex-none', active && 'text-gold')}
-                        />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </div>
-            ))}
-
-            <div className="px-2 pb-2.5 text-[9.5px] font-bold tracking-[.16em] text-[rgba(251,250,247,.34)] uppercase">
-              Tools
             </div>
-            <nav className="flex flex-col gap-0.5">
-              {SUPERADMIN_TOOLS.map((tool) => {
-                const active = pathname.startsWith(tool.href);
-                return (
-                  <Tip key={tool.key} text={tool.reason}>
-                    <Link
-                      href={tool.href}
-                      prefetch={false}
-                      aria-current={active ? 'page' : undefined}
-                      className={cn(
-                        'relative flex items-center gap-[11px] rounded-lg py-2.5 pr-2.5 pl-3 text-[13.5px] font-semibold transition-colors',
-                        active
-                          ? 'text-paper bg-[#17402F]'
-                          : 'hover:text-paper text-[rgba(251,250,247,.66)] hover:bg-[rgba(255,255,255,.06)]',
-                      )}
-                    >
-                      {active && (
-                        <span
-                          aria-hidden
-                          className="bg-gold absolute inset-y-[9px] left-0 w-[3px] rounded-sm"
-                        />
-                      )}
-                      <ConsoleIcon
-                        name={tool.icon}
-                        className={cn('size-4 flex-none', active && 'text-gold')}
-                      />
-                      {tool.label}
-                    </Link>
-                  </Tip>
-                );
-              })}
-            </nav>
-          </>
-        )}
+          ))}
+          {visibleGroups.length === 0 && <div className="fa-nav-label">No matches</div>}
+        </nav>
 
-        <div className="mt-auto flex items-center gap-2.5 border-t border-[rgba(255,255,255,.10)] pt-5">
-          <span className="text-gold-light grid size-[30px] flex-none place-items-center rounded-lg border border-[rgba(255,255,255,.12)] bg-[#17402F] text-[11.5px] font-bold">
-            {initials}
-          </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="text-paper truncate text-[12.5px] font-semibold">{profile.name}</span>
-            <span className="text-[11px] text-[rgba(251,250,247,.45)]">Platform owner</span>
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              signOut();
-            }}
-            disabled={isSigningOut}
-            title="Sign out"
-            aria-label="Sign out"
-            className="hover:text-gold-light ml-auto grid size-7 flex-none place-items-center rounded-[7px] p-0 text-[rgba(251,250,247,.5)] transition-colors hover:bg-[rgba(255,255,255,.08)] disabled:opacity-50"
-          >
-            <LogOutIcon className="size-[15px]" aria-hidden />
-          </Button>
+        <div className="fa-sb-foot">
+          {previewNav && (
+            <Link href="/dashboard/superadmin" prefetch={false} className="fa-nav-item">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+              </svg>
+              <span className="fa-txt">Back to console</span>
+            </Link>
+          )}
+          <div className="relative" ref={userRef}>
+            <button
+              type="button"
+              className="fa-user-card w-full border-0 bg-transparent text-left"
+              aria-expanded={userMenu}
+              title={collapsed ? profile.name : undefined}
+              onClick={() => {
+                setUserMenu((v) => !v);
+              }}
+            >
+              <div className="fa-user-av">{initials(profile.name) || 'FA'}</div>
+              <div className="fa-user-meta">
+                <b>{profile.name}</b>
+                <span>SuperAdmin · Owner</span>
+              </div>
+            </button>
+            {userMenu && (
+              <div className="fa-viewas-menu fa-open fa-user-menu">
+                <div className="fa-mhd">Signed in as</div>
+                <div className="fa-mi">{profile.email}</div>
+                <div className="fa-sep" />
+                <button
+                  type="button"
+                  className="fa-mi w-full border-0 bg-transparent text-left"
+                  disabled={isSigningOut}
+                  onClick={() => {
+                    signOut();
+                  }}
+                >
+                  <Chevron d="M15 17l5-5-5-5M20 12H9M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h7" />
+                  {isSigningOut ? 'Signing out…' : 'Sign out'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
-      <main id="top" className="flex min-w-0 flex-col">
-        <header className="border-line bg-paper sticky top-0 z-40 flex min-h-[66px] flex-wrap items-center gap-x-3.5 gap-y-2.5 border-b px-5 py-3 lg:px-8">
-          {isConsoleRoute && <OrganizerSearch organizers={organizers} />}
+      <div className="fa-main">
+        <header className="fa-topbar">
+          <button
+            type="button"
+            className="fa-collapse-btn"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={() => {
+              writeCollapsed(!collapsed);
+            }}
+          >
+            <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="fa-crumbs">
+            <b>{crumb}</b>
+          </div>
+          <div className="fa-topbar-spacer" />
 
-          <div className="ml-auto flex flex-none items-center gap-2.5">
-            <AddOrganizerDialog />
+          {isConsoleRoute && <OrganizerSearch organizers={organizers} />}
+          <ViewAsMenu activeRole={activeRailRole} />
+
+          <div className="relative" ref={bellRef}>
+            <button
+              type="button"
+              className="fa-icon-btn"
+              title="Notifications"
+              aria-label="Notifications"
+              aria-expanded={bellOpen}
+              onClick={() => {
+                setBellOpen((v) => !v);
+              }}
+            >
+              <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1"
+                />
+              </svg>
+            </button>
+            {bellOpen && (
+              <div className="fa-viewas-menu fa-open">
+                <div className="fa-mhd">Notifications</div>
+                <div className="fa-mi">You&apos;re all caught up.</div>
+              </div>
+            )}
           </div>
         </header>
 
-        <div className="max-w-[1440px] px-5 pt-8 pb-14 lg:px-8">{children}</div>
-      </main>
+        <main id="top" className="fa-content">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

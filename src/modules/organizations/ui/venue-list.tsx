@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { MapPin, CheckCircle2 } from 'lucide-react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatCard } from '@/shared/ui/organizer/stat-card';
-import { GhostButton, PrimaryButton, DangerButton } from '@/shared/ui/organizer/buttons';
+import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconBarn } from '@/shared/ui/organizer/icons';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { VENUE_STAT_TINTS } from '@/modules/organizations/constants';
@@ -25,12 +25,13 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
   }
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <ScreenTitle className="mb-1.5">Venues</ScreenTitle>
           <ScreenLede className="mb-0">
-            Reusable locations, built once and picked up by any show.
+            Build a venue once — name, address, contact info, and ring layout — then pick it up on
+            any show instead of rebuilding it.
           </ScreenLede>
         </div>
         <VenueFormDialog
@@ -67,27 +68,27 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
         />
       </div>
 
-      <Card className="p-[18px_20px_20px]">
-        <p className="mb-4 text-[13px] text-[#5A6B63]">
-          Build a venue once &mdash; name, address, contact info, and how many rings/arenas it has
-          &mdash; then pick it up on any show in Setup&rsquo;s Competition Locations card instead of
-          rebuilding it every time.
-        </p>
+      <Card className="overflow-hidden p-0">
+        <div className="fa-card-head">
+          <div>
+            <h3>Your venues</h3>
+            <div className="fa-sub">
+              Reusable across every show — name, contact, rings, and stables
+            </div>
+          </div>
+        </div>
 
         {venues.length === 0 ? (
-          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+          <p className="px-5 py-8 text-center text-[13.5px] text-[#8A94A3]">
             No saved venues yet &mdash; click &ldquo;+ Add new venue&rdquo; to build your first one.
           </p>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div>
             {venues.map((venue) => (
-              <div
-                key={venue.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#EDF0EE] px-4 py-3"
-              >
+              <div key={venue.id} className="fa-venue-row flex-wrap">
                 <div className="min-w-0">
-                  <div className="text-forest truncate font-bold">{venue.name}</div>
-                  <div className="mt-0.5 text-[12.5px] text-[#6E7C76]">
+                  <div className="fa-vr-name truncate">{venue.name}</div>
+                  <div className="fa-vr-sub">
                     {venue.address ?? 'No address on file'} · {venue.rings.length} ring
                     {venue.rings.length === 1 ? '' : 's'} · {venue.stables.length} stable
                     {venue.stables.length === 1 ? '' : 's'}
@@ -95,16 +96,25 @@ export function VenueList({ venues }: { venues: VenueListItem[] }) {
                       ` · ${String(venue.showCount)} show${venue.showCount === 1 ? '' : 's'}`}
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 gap-2">
-                  <VenueFormDialog venue={venue} trigger={<GhostButton>Edit</GhostButton>} />
-                  <DangerButton
+                <div className="fa-row-actions flex-shrink-0">
+                  <VenueFormDialog
+                    venue={venue}
+                    trigger={
+                      <button type="button" className="fa-btn fa-btn-ghost fa-btn-sm">
+                        Edit
+                      </button>
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="fa-act fa-danger"
                     disabled={deleteVenue.isPending}
                     onClick={() => {
                       handleDelete(venue);
                     }}
                   >
                     Delete
-                  </DangerButton>
+                  </button>
                 </div>
               </div>
             ))}

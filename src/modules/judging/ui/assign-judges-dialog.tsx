@@ -8,16 +8,7 @@ import {
   DialogDescription,
 } from '@/shared/ui/shadcn/dialog';
 import { PanelForm } from '@/modules/judging/ui/panel-form';
-
-export interface PanelClass {
-  id: string;
-  label: string;
-  location: string | null;
-}
-export interface PanelStaff {
-  id: string;
-  name: string;
-}
+import type { PanelClass, PanelStaff } from '@/modules/judging/types';
 
 export function AssignJudgesDialog({
   open,
@@ -48,11 +39,11 @@ export function AssignJudgesDialog({
         </DialogHeader>
 
         {classes.length === 0 ? (
-          <p className="py-6 text-center text-[14px] text-[#7A8781]">
+          <p className="py-6 text-center text-[14px] text-[#8A94A3]">
             No classes yet — add some in Select Events first, then assign a panel.
           </p>
         ) : noStaff ? (
-          <p className="py-6 text-center text-[14px] text-[#7A8781]">
+          <p className="py-6 text-center text-[14px] text-[#8A94A3]">
             No judges or scribes on this show yet — add them under Users first.
           </p>
         ) : (

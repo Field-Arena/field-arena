@@ -30,7 +30,7 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { REJECTION_REASONS, REJECTION_REASON_LABELS } from '@/modules/shows/constants';
-import type { HorseDocumentStatus } from '@/modules/shows/data/horses-queries';
+import type { HorseDocumentStatus } from '@/modules/shows/types';
 import { useReviewHorseDocument } from '@/modules/shows/hooks/use-horses-mutations';
 
 export function DocumentReviewDialog({
@@ -66,13 +66,15 @@ export function DocumentReviewDialog({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Unprocessed Documents</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             {doc.label} — {horseName}
           </DialogTitle>
           <DialogDescription>
-            {doc.url ? 'Open the file, then approve, reject, or ask for a replacement.' : 'No file on record.'}
+            {doc.url
+              ? 'Open the file, then approve, reject, or ask for a replacement.'
+              : 'No file on record.'}
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -84,7 +86,7 @@ export function DocumentReviewDialog({
               href={doc.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:border-gold inline-flex w-fit items-center rounded-md border border-[#D9E1DD] px-3 py-1.5 text-[13px] font-semibold text-[#0D2C23] transition-colors"
+              className="inline-flex w-fit items-center rounded-md border border-[#E7EAEE] px-3 py-1.5 text-[13px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1]"
             >
               View document
             </a>
@@ -92,7 +94,12 @@ export function DocumentReviewDialog({
 
           <div className="space-y-1.5">
             <Label>Reason (if rejecting)</Label>
-            <Select value={reason} onValueChange={(v) => { setReason(v as typeof reason); }}>
+            <Select
+              value={reason}
+              onValueChange={(v) => {
+                setReason(v as typeof reason);
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -108,7 +115,13 @@ export function DocumentReviewDialog({
 
           <div className="space-y-1.5">
             <Label>Note to the entrant (optional, required for &ldquo;Other&rdquo;)</Label>
-            <Textarea value={note} onChange={(e) => { setNote(e.target.value); }} rows={3} />
+            <Textarea
+              value={note}
+              onChange={(e) => {
+                setNote(e.target.value);
+              }}
+              rows={3}
+            />
           </div>
         </div>
 
@@ -117,7 +130,12 @@ export function DocumentReviewDialog({
             type="button"
             disabled={isPending}
             onClick={() => {
-              mutate({ showId, horseId, requirementId: doc.requirementId, status: 'replacement_requested' });
+              mutate({
+                showId,
+                horseId,
+                requirementId: doc.requirementId,
+                status: 'replacement_requested',
+              });
             }}
           >
             Request replacement

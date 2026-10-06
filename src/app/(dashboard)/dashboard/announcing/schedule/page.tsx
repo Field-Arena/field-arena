@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
-import { listMyShows, listShowSchedule, pickCurrentShow } from '@/modules/announcements/data/queries';
+import {
+  listMyShows,
+  listShowSchedule,
+  pickCurrentShow,
+} from '@/modules/announcements/data/queries';
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { ShowScheduleTable } from '@/modules/announcements/ui/show-schedule-table';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Schedule — Field & Arena' };
 

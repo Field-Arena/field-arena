@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
-import type { HorseDirectoryRow } from '@/modules/operations/data/queries';
+import type { HorseDirectoryRow } from '@/modules/operations/types';
 import { searchStyle } from '@/modules/operations/ui/directory-styles';
 
 export function HorsesPanel({ horses }: { horses: HorseDirectoryRow[] }) {

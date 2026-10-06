@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { formatDateShort } from '@/shared/lib/format/date';
-import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departures-queries';
+import type { ArrivalDepartureRow } from '@/modules/shows/types';
 
 type SortKey = 'rider' | 'arrival' | 'departure';
 
@@ -39,24 +39,24 @@ export function ArrivalsDeparturesPanel({
 
   return (
     <Card className="p-[16px_18px]">
-      <h3 className="text-ink-deep mb-1 font-[Newsreader,serif] text-[17px] font-semibold">
+      <h3 className="mb-1 text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
         Arrivals &amp; Departures
       </h3>
-      <p className="mb-3 text-[12.5px] text-[#7A8781]">
+      <p className="mb-3 text-[12.5px] text-[#8A94A3]">
         What riders reported at checkout — sort to spot late arrivals or early departures.
         {lateCount > 0 &&
           ` ${String(lateCount)} ${lateCount === 1 ? 'departure is' : 'departures are'} after the show ends.`}
       </p>
 
       {rows.length === 0 ? (
-        <p className="text-[13px] text-[#98A29D] italic">
+        <p className="text-[13px] text-[#8A94A3] italic">
           No stabling requests with logistics reported yet.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-[13.5px]">
             <thead>
-              <tr className="border-b border-[#E9EDEB] text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase">
+              <tr className="border-b border-[#E7EAEE] text-left text-[11px] tracking-[.08em] text-[#8A94A3] uppercase">
                 {headers.map((h) => (
                   <th key={h.key} className="p-2 font-semibold">
                     <button
@@ -65,7 +65,9 @@ export function ArrivalsDeparturesPanel({
                         setSortKey(h.key);
                       }}
                       className={
-                        sortKey === h.key ? 'text-forest' : 'hover:text-forest transition-colors'
+                        sortKey === h.key
+                          ? 'text-[#101828]'
+                          : 'transition-colors hover:text-[#146A47]'
                       }
                     >
                       {h.label} {sortKey === h.key ? '↓' : ''}
@@ -79,32 +81,32 @@ export function ArrivalsDeparturesPanel({
             <tbody>
               {sorted.map((row) => (
                 <tr key={row.riderId} className="border-b border-[#F0F2F1]">
-                  <td className="text-ink-deep p-2">
+                  <td className="p-2 text-[#101828]">
                     {row.riderName}
-                    <span className="ml-1.5 text-[#98A29D]">· {row.trainerName}</span>
+                    <span className="ml-1.5 text-[#8A94A3]">· {row.trainerName}</span>
                   </td>
                   <td className="p-2 whitespace-nowrap">
                     {row.arrivalDate ? (
                       formatDateShort(row.arrivalDate)
                     ) : (
-                      <span className="text-[#B4432F]">Not set</span>
+                      <span className="text-[#B42318]">Not set</span>
                     )}
                   </td>
                   <td className="p-2 whitespace-nowrap">
                     {row.departureDate ? (
                       isLate(row) ? (
-                        <span className="font-semibold text-[#B4432F]" title="After the show ends">
+                        <span className="font-semibold text-[#B42318]" title="After the show ends">
                           ⚠ {formatDateShort(row.departureDate)}
                         </span>
                       ) : (
                         formatDateShort(row.departureDate)
                       )
                     ) : (
-                      <span className="text-[#B4432F]">Not set</span>
+                      <span className="text-[#B42318]">Not set</span>
                     )}
                   </td>
-                  <td className="p-2 text-right text-[#5A6B63]">{row.horseStalls}</td>
-                  <td className="p-2 text-right text-[#5A6B63]">{row.tackStalls}</td>
+                  <td className="p-2 text-right text-[#475467]">{row.horseStalls}</td>
+                  <td className="p-2 text-right text-[#475467]">{row.tackStalls}</td>
                 </tr>
               ))}
             </tbody>

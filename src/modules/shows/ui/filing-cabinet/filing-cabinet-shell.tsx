@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
+import type { ShowListItem } from '@/modules/shows/types';
 import { FilingCabinetTabs } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-tabs';
 import type { FilingCabinetSectionKey } from '@/modules/shows/constants';
 
@@ -30,7 +30,11 @@ export function FilingCabinetShell({
         showId={currentShow ? (currentShow.slug ?? currentShow.id) : null}
       />
 
-      {currentShow ? children : <EmptyPanel title="No shows yet" note="The filing cabinet is configured per show." />}
+      {currentShow ? (
+        children
+      ) : (
+        <EmptyPanel title="No shows yet" note="The filing cabinet is configured per show." />
+      )}
     </WorkspacePage>
   );
 }

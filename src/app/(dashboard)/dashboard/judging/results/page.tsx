@@ -8,8 +8,7 @@ import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
 export const metadata: Metadata = { title: 'Results — Field & Arena' };
 
 export default async function JudgingResultsPage() {
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const assignments = await listMyAssignments(todayIso);
+  const assignments = await listMyAssignments();
   const done = assignments.filter(isAssignmentComplete);
 
   const placingsByClass = await Promise.all(
@@ -19,10 +18,7 @@ export default async function JudgingResultsPage() {
   return (
     <>
       <div className="mb-[22px]">
-        <Link
-          href="/dashboard/judging"
-          className="hover:text-gold mb-2 inline-block text-[13px] font-semibold text-[#5A6B63]"
-        >
+        <Link href="/dashboard/judging" className="fa-backlink !mb-2">
           ← Back to My Assignments
         </Link>
         <ScreenTitle>Results</ScreenTitle>
@@ -30,14 +26,14 @@ export default async function JudgingResultsPage() {
       </div>
 
       {done.length === 0 ? (
-        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
+        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#8A94A3]">
           No completed classes yet.
         </Card>
       ) : (
         <div className="flex flex-col gap-6">
           {placingsByClass.map((cls) => (
             <div key={cls.classId}>
-              <h3 className="text-ink-deep mb-2 font-[Newsreader,serif] text-[17px] font-semibold">
+              <h3 className="mb-2 text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
                 {cls.className}
               </h3>
               <Card className="p-[16px_18px]">

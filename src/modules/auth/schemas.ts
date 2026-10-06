@@ -7,6 +7,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 
   remember: z.boolean().optional(),
+
+  next: z.string().max(2048).optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -24,6 +26,7 @@ export const verifySignInCodeSchema = z.object({
     .trim()
     .regex(/^\d{6}$/, 'Enter all six digits from the email'),
   remember: z.boolean().optional(),
+  next: z.string().max(2048).optional(),
 });
 
 export type VerifySignInCodeInput = z.infer<typeof verifySignInCodeSchema>;

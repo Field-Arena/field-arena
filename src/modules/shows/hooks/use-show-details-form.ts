@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { UpdateShowDetailsInput } from '@/modules/shows/schemas';
-import type { ShowSetupDetail } from '@/modules/shows/data/setup-queries';
+import type { ShowSetupDetail } from '@/modules/shows/types';
 import { useUpdateShowDetails } from '@/modules/shows/hooks/use-show-mutations';
 import type { SHOW_DETAILS_BODIES } from '@/modules/shows/constants';
 

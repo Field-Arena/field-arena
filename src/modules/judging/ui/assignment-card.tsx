@@ -1,16 +1,15 @@
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
-import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { formatDateShort } from '@/shared/lib/format/date';
-import type { AssignmentRow } from '@/modules/judging/data/queries';
+import type { AssignmentRow } from '@/modules/judging/types';
 import { formatClassTime } from '@/modules/judging/utils/format-class-time';
 import { USDF_TEST_SHEETS_URL } from '@/modules/judging/constants';
 import { LaunchScoringButton } from '@/modules/judging/ui/launch-scoring-button';
 
 const WHEN_META = {
-  today: { label: 'Today', bg: '#FBF0D8', fg: '#8A6D14' },
-  upcoming: { label: 'Upcoming', bg: '#E6EFF6', fg: '#37637F' },
-  history: { label: 'Completed', bg: '#DCEFE1', fg: '#2E7D46' },
+  today: { label: 'Today', badge: 'fa-pending' },
+  upcoming: { label: 'Upcoming', badge: 'fa-pass' },
+  history: { label: 'Completed', badge: 'fa-live' },
 } as const;
 
 export function AssignmentCard({
@@ -39,38 +38,41 @@ export function AssignmentCard({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-5 rounded-xl border bg-white p-[18px_20px]',
-        'shadow-[0_1px_2px_rgba(16,40,32,.03)]',
-        variant === 'today' ? 'border-l-gold border-l-4 border-[#E9EDEB]' : 'border-[#E9EDEB]',
+        'fa-card flex flex-wrap items-center gap-4 !overflow-visible border-l-[3px] px-5 py-[18px]',
+        variant === 'today' && !completed
+          ? '!border-l-[var(--fa-brand)]'
+          : variant === 'history' || completed
+            ? '!border-l-[var(--fa-emerald)]'
+            : '!border-l-[#C3CAD3]',
       )}
     >
       <div className="min-w-[260px] flex-1">
-        <div className="text-ink-deep mb-1.5 font-[Newsreader,serif] text-lg font-semibold">
+        <div className="mb-1 text-[16px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
           {dateTime ? `${dateTime} · ` : ''}
           {assignment.classLabel}
         </div>
-        <div className="mb-0.5 text-[13.5px] text-[#5A6B63]">
+        <div className="text-[13px] text-[var(--fa-ink-2)]">
           {assignment.showName}
           {seatLabel ? ` · ${seatLabel}` : ''}
         </div>
-        {assignment.partnerName && (
-          <div className="mb-[7px] text-[13.5px] text-[#5A6B63]">
-            With {assignment.partnerName} ({assignment.partnerRole === 'judge' ? 'Judge' : 'Scribe'}
-            )
-          </div>
-        )}
-        <div className="text-[13.5px] text-[#5A6B63]">
+        <div className="text-[13px] text-[var(--fa-ink-2)]">
+          {assignment.partnerName && (
+            <>
+              With {assignment.partnerName} (
+              {assignment.partnerRole === 'judge' ? 'Judge' : 'Scribe'}) ·{' '}
+            </>
+          )}
           Test sheet:{' '}
           {variant === 'history' ? (
             // The whole history card is wrapped in a <Link>; a nested <a> here
             // is invalid HTML and causes a hydration mismatch.
-            <span className="text-ink-deep font-bold">{assignment.classLabel}</span>
+            <span className="font-medium text-[var(--fa-sky)]">{assignment.classLabel}</span>
           ) : (
             <a
               href={USDF_TEST_SHEETS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ink-deep hover:text-gold font-bold underline decoration-[#B4BFB9]"
+              className="fa-filelink"
             >
               {assignment.classLabel} ↗
             </a>
@@ -78,31 +80,28 @@ export function AssignmentCard({
         </div>
       </div>
 
-      <StatusPill
-        bg="#EAF1EC"
-        border="#EAF1EC"
-        fg="#3F5C4C"
-        className="flex-none text-[11px] tracking-[.1em]"
-      >
-        {assignment.seatRole === 'judge' ? 'JUDGE' : 'SCRIBE'}
-      </StatusPill>
+      <div className="flex flex-none flex-wrap items-center gap-2">
+        <span className="fa-badge fa-stub !tracking-[.04em]">
+          {assignment.seatRole === 'judge' ? 'JUDGE' : 'SCRIBE'}
+        </span>
+        <span className={`fa-badge ${when.badge}`}>
+          <span className="fa-dot" />
+          {when.label}
+        </span>
 
-      <StatusPill bg={when.bg} border={when.bg} fg={when.fg} className="flex-none">
-        {when.label}
-      </StatusPill>
-
-      {variant !== 'history' &&
-        (completed ? (
-          <Link
-            href="/dashboard/judging/results"
-            prefetch={false}
-            className="hover:bg-gold flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#F5F7F6] transition-colors hover:text-[#0D2C23]"
-          >
-            View results →
-          </Link>
-        ) : (
-          <LaunchScoringButton active={variant === 'today'} classId={assignment.classId} />
-        ))}
+        {variant !== 'history' &&
+          (completed ? (
+            <Link
+              href="/dashboard/judging/results"
+              prefetch={false}
+              className="fa-btn fa-btn-ghost"
+            >
+              View results →
+            </Link>
+          ) : (
+            <LaunchScoringButton active={variant === 'today'} classId={assignment.classId} />
+          ))}
+      </div>
     </div>
   );
 }

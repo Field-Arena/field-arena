@@ -37,7 +37,7 @@ export function RideActionsBar({
           type="button"
           disabled={disabled}
           onClick={onDisqualify}
-          className="border-[#E3B8B8] text-[#B23A3A] hover:border-[#B23A3A]"
+          className="!border-[#FBCFC9] !text-[var(--fa-red)] hover:!bg-[var(--fa-red-tint)]"
         >
           Disqualify
         </GhostButton>

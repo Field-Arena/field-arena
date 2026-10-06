@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { RING_SIZES, MAX_RINGS } from '@/modules/shows/schemas';
-import type { RingRow, VenueOption, ClassRow, StaffRow } from '@/modules/shows/data/setup-queries';
+import type { ClassRow, RingRow, StaffRow, VenueOption } from '@/modules/shows/types';
 import {
   useUpdateShowLocations,
   useApplySavedVenue,
 } from '@/modules/shows/hooks/use-show-mutations';
-import { AssignJudgesDialog } from '@/modules/judging/ui/assign-judges-dialog';
+import { AssignJudgesDialog } from '@/modules/judging/public';
 import { Card } from '@/shared/ui/organizer/card';
 import { primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -18,13 +18,13 @@ import { Label } from '@/shared/ui/shadcn/label';
 import { IconBarn } from '@/shared/ui/organizer/icons';
 import {
   SM_CARD_PAD,
-  SM_SECTION_HEAD,
   SM_NOTE,
   SM_LABEL,
   SM_INPUT,
   SM_SELECT,
   SM_ROW_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
+import { SmHead } from './sm-head';
 
 export function VenueCard({
   showId,
@@ -46,6 +46,9 @@ export function VenueCard({
   const [rings, setRings] = useState<RingRow[]>(
     locations.length ? locations : [{ name: 'Ring 1', size: 'standard' }],
   );
+  // Last ring list the server accepted — a failed save rolls back to it.
+  const savedRings = useRef(rings);
+  const [countDraft, setCountDraft] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState(venueId ?? '');
   const [assignRing, setAssignRing] = useState<string | null>(null);
 
@@ -70,10 +73,26 @@ export function VenueCard({
 
   function commit(next: RingRow[]) {
     setRings(next);
-    saveLocations({ showId, locations: next });
+    const previous = savedRings.current;
+    if (JSON.stringify(previous) === JSON.stringify(next)) return;
+    savedRings.current = next;
+    saveLocations(
+      { showId, locations: next },
+      {
+        onError: () => {
+          // Only roll back if no newer save has gone out since this one.
+          if (savedRings.current !== next) return;
+          savedRings.current = previous;
+          setRings(previous);
+        },
+      },
+    );
   }
 
   function setCount(raw: string) {
+    setCountDraft(null);
+    // A cleared field means "no change", not "zero rings".
+    if (raw.trim() === '') return;
     const count = Math.max(0, Math.min(MAX_RINGS, Number(raw) || 0));
     const next = Array.from(
       { length: count },
@@ -82,9 +101,8 @@ export function VenueCard({
     commit(next);
   }
 
-  function rename(index: number, name: string) {
-    const next = rings.map((r, i) => (i === index ? { ...r, name } : r));
-    commit(next);
+  function editName(index: number, name: string) {
+    setRings(rings.map((r, i) => (i === index ? { ...r, name } : r)));
   }
 
   function resize(index: number, size: 'standard' | 'small') {
@@ -95,7 +113,7 @@ export function VenueCard({
   return (
     <>
       <Card className={SM_CARD_PAD}>
-        <h2 className={SM_SECTION_HEAD}>Venue</h2>
+        <SmHead icon="venue" title="Venue" sub="Where the show runs and how many arenas it uses" />
         <p className={SM_NOTE}>
           Pick a saved venue to bring in its ring layout — build or edit venues under Venues in the
           left nav. The rings/arenas below are that venue&rsquo;s layout; adjust the count or names
@@ -116,11 +134,25 @@ export function VenueCard({
                 setSelectedVenue(e.target.value);
                 if (!e.target.value) return;
                 const venue = venues.find((v) => v.id === e.target.value);
-                applyVenue({ showId, venueId: e.target.value });
-                if (venue)
-                  setRings(
-                    venue.rings.length ? venue.rings : [{ name: 'Ring 1', size: 'standard' }],
-                  );
+                const previousVenue = selectedVenue;
+                const previousRings = savedRings.current;
+                applyVenue(
+                  { showId, venueId: e.target.value },
+                  {
+                    onError: () => {
+                      setSelectedVenue(previousVenue);
+                      savedRings.current = previousRings;
+                      setRings(previousRings);
+                    },
+                  },
+                );
+                if (venue) {
+                  const next: RingRow[] = venue.rings.length
+                    ? venue.rings
+                    : [{ name: 'Ring 1', size: 'standard' }];
+                  savedRings.current = next;
+                  setRings(next);
+                }
               }}
             >
               <option value="">— choose a saved venue —</option>
@@ -147,10 +179,16 @@ export function VenueCard({
             type="number"
             min={0}
             max={MAX_RINGS}
-            value={rings.length}
+            value={countDraft ?? rings.length}
             className={`h-auto ${SM_INPUT}`}
             onChange={(e) => {
+              setCountDraft(e.target.value);
+            }}
+            onBlur={(e) => {
               setCount(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
             }}
           />
         </div>
@@ -161,12 +199,15 @@ export function VenueCard({
               key={i}
               className="grid grid-cols-[30px_minmax(0,1fr)_190px_auto] items-center gap-3"
             >
-              <span className="text-forest text-[13.5px] font-bold">{i + 1}</span>
+              <span className="text-[13.5px] font-bold text-[#101828]">{i + 1}</span>
               <Input
                 value={ring.name}
                 className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
-                  rename(i, e.target.value);
+                  editName(i, e.target.value);
+                }}
+                onBlur={() => {
+                  commit(rings);
                 }}
               />
               <select
@@ -185,7 +226,7 @@ export function VenueCard({
               <Button
                 type="button"
                 variant="ghost"
-                className="hover:border-gold hover:text-ink-deep h-auto rounded-[9px] border border-[#EDF0EE] bg-[#EFEAE0] px-[15px] py-2.5 text-[13px] font-semibold whitespace-nowrap text-[#48574F] transition-colors hover:bg-[#EFEAE0]"
+                className="h-auto rounded-[9px] border border-[#EEF1F4] bg-[#F5F7F8] px-[15px] py-2.5 text-[13px] font-semibold whitespace-nowrap text-[#475467] transition-colors hover:border-[#D6DBE1] hover:bg-[#F5F7F8] hover:text-[#101828]"
                 onClick={() => {
                   setAssignRing(ring.name);
                 }}
@@ -196,8 +237,8 @@ export function VenueCard({
           ))}
         </div>
 
-        <div className="mt-[26px] border-t border-[#EDF0EE] pt-[22px]">
-          <div className="mb-2 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
+        <div className="mt-[26px] border-t border-[#EEF1F4] pt-[22px]">
+          <div className="mb-2 text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
             Stables
           </div>
           <p className={SM_NOTE}>

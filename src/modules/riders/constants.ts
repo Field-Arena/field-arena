@@ -1,5 +1,14 @@
 export const ORDER_STATUSES = ['pending', 'paid', 'failed', 'abandoned'] as const;
 
+/* Order statuses a confirmed Stripe payment may move to 'paid'. 'abandoned'
+ * is only the 6h cron's guess that checkout was walked away from. */
+export const CLAIMABLE_ORDER_STATUSES = ['pending', 'abandoned'] as const;
+
+/* Stripe Checkout sessions expire before the 6h abandon cron
+ * (abandon_stale_orders) can mark their order abandoned, so a session can
+ * never be paid after its order was given up on. Stripe's minimum is 30 min. */
+export const CHECKOUT_SESSION_TTL_SECONDS = 60 * 60 * 5;
+
 export const CLASS_ENTRY_STATUSES = ['scheduled', 'scored', 'scratched', 'disqualified'] as const;
 
 export const NON_CAPPED_ENTRY_STATUS = 'scratched' as const;

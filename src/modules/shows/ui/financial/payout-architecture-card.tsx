@@ -11,7 +11,7 @@ export function PayoutArchitectureCard() {
   const [open, setOpen] = useState(true);
 
   return (
-    <Card className={cn(SM_CARD_PAD, 'border-l-gold border-l-4')}>
+    <Card className={cn(SM_CARD_PAD, 'border-l-4 border-l-[#B45309]')}>
       <Button
         type="button"
         variant="ghost"
@@ -21,10 +21,10 @@ export function PayoutArchitectureCard() {
         aria-expanded={open}
         className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
       >
-        <span className="text-forest font-[family-name:var(--font-nr)] text-[17px] font-semibold">
-          ✓ Payout architecture — confirmed
+        <span className="text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
+          Payout architecture — confirmed
         </span>
-        <span className="text-[11px] whitespace-nowrap text-[#7A8781]">
+        <span className="text-[11px] whitespace-nowrap text-[#8A94A3]">
           {open ? 'Hide ▲' : 'Show ▼'}
         </span>
       </Button>
@@ -36,7 +36,7 @@ export function PayoutArchitectureCard() {
             and vendor payments land in Field &amp; Arena&apos;s Stripe balance first, and
             organizers are paid out via a separate transfer afterward.
           </p>
-          <ol className="text-ink-deep mt-2.5 list-decimal pl-5 text-[13.5px] leading-[1.55]">
+          <ol className="mt-2.5 list-decimal pl-5 text-[13.5px] leading-[1.55] text-[#101828]">
             {STRIPE_PAYOUT_DECISIONS.map((decision) => (
               <li key={decision} className="mb-2">
                 {decision.startsWith('Still open') ? (

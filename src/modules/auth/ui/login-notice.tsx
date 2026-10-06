@@ -11,11 +11,19 @@ const MESSAGES: Record<string, string> = {
   pending_invite:
     'Your email is confirmed, but this account is not set up on Field & Arena yet. Ask your organizer or a platform admin to invite you, then sign in.',
   missing_code: 'That link is incomplete. Request a new one and try again.',
+  missing_token: 'That link is incomplete. Request a new one and try again.',
+  link_expired: 'That link has expired or was already used. Request a new one and try again.',
+  rate_limited: 'Too many attempts from this address. Wait a little while and try again.',
+  auth_failed: 'We could not sign you in with that link. Request a new one and try again.',
 };
+
+// Only known codes are rendered — `?error=` is attacker-controllable, so raw
+// text from the URL is never shown on the page.
+const FALLBACK_MESSAGE = 'Something went wrong signing you in. Please try again.';
 
 export function LoginNotice({ error }: { error: string }) {
   const signOut = useSignOut();
-  const message = MESSAGES[error] ?? error;
+  const message = MESSAGES[error] ?? FALLBACK_MESSAGE;
 
   return (
     <div className="mb-6 space-y-3">

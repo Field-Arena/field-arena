@@ -64,11 +64,13 @@ export function AddNoteDialog({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Issues / Notes / Requests</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             Add a note or request
           </DialogTitle>
-          <DialogDescription>For anything staff need to track that isn&apos;t already flagged automatically.</DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogDescription>
+            For anything staff need to track that isn&apos;t already flagged automatically.
+          </DialogDescription>
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -93,7 +95,12 @@ export function AddNoteDialog({
 
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <Select value={kind} onValueChange={(v) => { setKind(v as typeof kind); }}>
+            <Select
+              value={kind}
+              onValueChange={(v) => {
+                setKind(v as typeof kind);
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -106,12 +113,24 @@ export function AddNoteDialog({
 
           <div className="space-y-1.5">
             <Label>Summary</Label>
-            <Input value={message} onChange={(e) => { setMessage(e.target.value); }} maxLength={300} />
+            <Input
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+              }}
+              maxLength={300}
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>Detail (optional)</Label>
-            <Textarea value={detail} onChange={(e) => { setDetail(e.target.value); }} rows={3} />
+            <Textarea
+              value={detail}
+              onChange={(e) => {
+                setDetail(e.target.value);
+              }}
+              rows={3}
+            />
           </div>
         </div>
 
@@ -128,7 +147,13 @@ export function AddNoteDialog({
             type="button"
             disabled={isPending || !showEntryId || !message.trim()}
             onClick={() => {
-              mutate({ showId, showEntryId, kind, message: message.trim(), detail: detail || undefined });
+              mutate({
+                showId,
+                showEntryId,
+                kind,
+                message: message.trim(),
+                detail: detail || undefined,
+              });
             }}
           >
             {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}

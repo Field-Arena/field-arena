@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2Icon } from 'lucide-react';
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
+import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton, GoldButton, DangerButton } from '@/shared/ui/organizer/buttons';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/shared/ui/shadcn/table';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import type { BridleNumberPoolStatus } from '@/modules/shows/data/bridle-number-queries';
+import type { BridleNumberPoolStatus } from '@/modules/shows/types';
 import {
   useCreateNumberRange,
   useDeleteNumberRange,
@@ -27,9 +27,11 @@ import { BridleNumberAssignDialog } from '@/modules/shows/ui/filing-cabinet/brid
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex-1 rounded-[10px] border border-[#E9EDEB] bg-[#FAFAF6] px-4 py-3">
-      <div className="text-[10.5px] font-bold tracking-[.08em] text-[#7A8781] uppercase">{label}</div>
-      <div className="text-forest mt-1 text-2xl font-bold">{value}</div>
+    <div className="flex-1 rounded-[10px] border border-[#E7EAEE] bg-[#FBFCFD] px-4 py-3">
+      <div className="text-[10.5px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-bold text-[#101828]">{value}</div>
     </div>
   );
 }
@@ -158,14 +160,15 @@ export function BridleNumbersScreen({
   data: BridleNumberPoolStatus;
   availableBridleNumbers: number[];
 }) {
-  const { showId, showName, ranges, counts, unavailableNumbers, waitingHorses, recentChanges } = data;
+  const { showId, showName, ranges, counts, unavailableNumbers, waitingHorses, recentChanges } =
+    data;
   const deleteRange = useDeleteNumberRange();
   const restoreNumber = useRestoreNumberAvailability();
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4">
-        <ScreenTitle className="mb-1.5">Bridle Numbers</ScreenTitle>
+        <SectionTitle className="mb-1.5">Bridle Numbers</SectionTitle>
         <ScreenLede className="mb-0">
           The physical number packs the office has for {showName} — define what&apos;s available,
           mark what&apos;s missing, and see what still needs a number.
@@ -185,7 +188,7 @@ export function BridleNumbersScreen({
           <AddRangeForm showId={showId} />
         </div>
         {ranges.length === 0 ? (
-          <p className="text-[13px] text-[#7A8781] italic">
+          <p className="text-[13px] text-[#8A94A3] italic">
             No ranges defined yet — add one above (e.g. 201–500) to start assigning numbers.
           </p>
         ) : (
@@ -218,7 +221,11 @@ export function BridleNumbersScreen({
                       type="button"
                       className="h-7 px-2.5 py-0 text-[12px]"
                       disabled={deleteRange.isPending || r.assigned > 0}
-                      title={r.assigned > 0 ? 'Some numbers from this range are still assigned' : undefined}
+                      title={
+                        r.assigned > 0
+                          ? 'Some numbers from this range are still assigned'
+                          : undefined
+                      }
                       onClick={() => {
                         deleteRange.mutate({ showId, rangeId: r.id });
                       }}
@@ -239,17 +246,17 @@ export function BridleNumbersScreen({
           <MarkUnavailableForm showId={showId} />
         </div>
         {unavailableNumbers.length === 0 ? (
-          <p className="text-[13px] text-[#7A8781] italic">No numbers are marked unavailable.</p>
+          <p className="text-[13px] text-[#8A94A3] italic">No numbers are marked unavailable.</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {unavailableNumbers.map((n) => (
               <li
                 key={n.number}
-                className="flex items-center justify-between rounded-lg border border-[#E9EDEB] px-3 py-2 text-[13px]"
+                className="flex items-center justify-between rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
               >
                 <span>
                   <strong>{n.number}</strong>
-                  {n.reason && <span className="ml-2 text-[#7A8781]">{n.reason}</span>}
+                  {n.reason && <span className="ml-2 text-[#8A94A3]">{n.reason}</span>}
                 </span>
                 <GhostButton
                   type="button"
@@ -270,13 +277,13 @@ export function BridleNumbersScreen({
       <Card className="mb-4 p-[18px_20px_20px]">
         <h2 className="mb-3 text-[14px] font-bold">Horses waiting for a number</h2>
         {waitingHorses.length === 0 ? (
-          <p className="text-[13px] text-[#7A8781] italic">Every horse has a bridle number.</p>
+          <p className="text-[13px] text-[#8A94A3] italic">Every horse has a bridle number.</p>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {waitingHorses.map((h) => (
               <li
                 key={h.showHorseId}
-                className="flex items-center justify-between rounded-lg border border-[#E9EDEB] px-3 py-2 text-[13px]"
+                className="flex items-center justify-between rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
               >
                 <span className="font-semibold">{h.horseName}</span>
                 <BridleNumberAssignDialog
@@ -296,7 +303,9 @@ export function BridleNumbersScreen({
         <Card className="p-[18px_20px_20px]">
           <h2 className="mb-3 text-[14px] font-bold">Recent changes</h2>
           <Table>
-            <TableCaption className="sr-only">Bridle number change history for {showName}</TableCaption>
+            <TableCaption className="sr-only">
+              Bridle number change history for {showName}
+            </TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead scope="col">Horse</TableHead>
@@ -313,7 +322,7 @@ export function BridleNumbersScreen({
                   <TableCell>{c.oldNumber ?? '—'}</TableCell>
                   <TableCell>{c.newNumber ?? '—'}</TableCell>
                   <TableCell>{c.reason ?? '—'}</TableCell>
-                  <TableCell className="text-[12px] text-[#7A8781]">
+                  <TableCell className="text-[12px] text-[#8A94A3]">
                     {formatTimestamp(c.changedAt)}
                   </TableCell>
                 </TableRow>

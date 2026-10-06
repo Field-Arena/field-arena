@@ -15,7 +15,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
-import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
+import type { SelectEventsData } from '@/modules/shows/types';
 import { useAddCustomClass } from '@/modules/shows/hooks/use-select-events-mutations';
 import {
   SM_LABEL,

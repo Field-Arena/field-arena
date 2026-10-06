@@ -11,7 +11,7 @@ export function GroupingToggle({ showId, byDivision }: { showId: string; byDivis
     'h-auto rounded-none px-[15px] py-[9px] text-[13px] font-bold transition-colors disabled:opacity-60 first:rounded-l-[10px] last:rounded-r-[10px]';
 
   return (
-    <div className="inline-flex overflow-hidden rounded-[10px] border border-[#D9E1DD]">
+    <div className="inline-flex overflow-hidden rounded-[10px] border border-[#E7EAEE]">
       <Button
         type="button"
         variant="ghost"
@@ -19,8 +19,8 @@ export function GroupingToggle({ showId, byDivision }: { showId: string; byDivis
         className={cn(
           base,
           byDivision
-            ? 'text-forest hover:text-forest bg-white hover:bg-white'
-            : 'bg-forest hover:bg-forest text-white hover:text-white',
+            ? 'bg-white text-[#101828] hover:bg-white hover:text-[#146A47]'
+            : 'bg-[#146A47] text-white hover:bg-[#0E5537] hover:text-white',
         )}
         onClick={() => {
           if (byDivision) save.mutate({ showId, awardsByDivision: false });
@@ -36,8 +36,8 @@ export function GroupingToggle({ showId, byDivision }: { showId: string; byDivis
         className={cn(
           base,
           byDivision
-            ? 'bg-forest hover:bg-forest text-white hover:text-white'
-            : 'text-forest hover:text-forest bg-white hover:bg-white',
+            ? 'bg-[#146A47] text-white hover:bg-[#0E5537] hover:text-white'
+            : 'bg-white text-[#101828] hover:bg-white hover:text-[#146A47]',
         )}
         onClick={() => {
           if (!byDivision) save.mutate({ showId, awardsByDivision: true });

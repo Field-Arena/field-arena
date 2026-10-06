@@ -2,7 +2,7 @@
 
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import { useUpdateScheduleRules } from '@/modules/shows/hooks/use-schedule-mutations';
 
 const BASE =
@@ -13,11 +13,11 @@ export function AwardsGroupingToggle({ data }: { data: MasterScheduleData }) {
   const byDivision = data.rules.awardsByDivision;
 
   return (
-    <div className="inline-flex overflow-hidden rounded-[9px] border border-[#D9E1DD]">
+    <div className="inline-flex overflow-hidden rounded-[9px] border border-[#E7EAEE]">
       <Button
         type="button"
         variant="ghost"
-        className={cn(BASE, byDivision ? 'text-forest bg-white' : 'bg-forest text-white')}
+        className={cn(BASE, byDivision ? 'bg-white text-[#101828]' : 'bg-[#146A47] text-white')}
         onClick={() => {
           if (byDivision) save.mutate({ showId: data.showId, awardsByDivision: false });
         }}
@@ -28,7 +28,7 @@ export function AwardsGroupingToggle({ data }: { data: MasterScheduleData }) {
         type="button"
         variant="ghost"
         title="Splits ribbons per division within a class — e.g. Young Rider, Adult Amateur, Open each place separately."
-        className={cn(BASE, byDivision ? 'bg-forest text-white' : 'text-forest bg-white')}
+        className={cn(BASE, byDivision ? 'bg-[#146A47] text-white' : 'bg-white text-[#101828]')}
         onClick={() => {
           if (!byDivision) save.mutate({ showId: data.showId, awardsByDivision: true });
         }}

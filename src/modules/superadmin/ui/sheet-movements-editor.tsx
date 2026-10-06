@@ -25,7 +25,7 @@ export function SheetMovementsEditor({
     <>
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Sheet header</h2>
-        <p className="mb-[18px] text-[12.5px] text-[#8A8275]">Masthead fields the judge sees.</p>
+        <p className="mb-[18px] text-[12.5px] text-[#8A94A3]">Masthead fields the judge sees.</p>
         <div className="grid [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))] gap-[18px]">
           <Field
             label="Introduce (new movements)"
@@ -104,18 +104,18 @@ export function SheetMovementsEditor({
 
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Movements</h2>
-        <p className="mb-4 text-[12.5px] leading-[1.55] text-[#8A8275]">
+        <p className="mb-4 text-[12.5px] leading-[1.55] text-[#8A94A3]">
           Each numbered movement: the test text as printed, the judge&rsquo;s directives, and its
           coefficient. % = (subtotal &minus; errors) &divide; max.
         </p>
         <div className="mb-3.5 flex flex-col gap-3">
           {def.movements.length === 0 && (
-            <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+            <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
           )}
           {def.movements.map((mv, i) => (
-            <div key={i} className="rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3">
+            <div key={i} className="rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3">
               <div className="flex items-center gap-3">
-                <span className="w-6 flex-none text-[13px] font-bold text-[#16261F]">{mv.n}</span>
+                <span className="w-6 flex-none text-[13px] font-bold text-[#101828]">{mv.n}</span>
                 <Input
                   value={mv.text}
                   placeholder="Test text as printed"

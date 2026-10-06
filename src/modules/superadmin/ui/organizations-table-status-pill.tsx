@@ -9,10 +9,10 @@ export function StatusPill({
   children: ReactNode;
 }) {
   const tones = {
-    success: 'bg-[#E4F1E8] text-[#2E7048] [--dot:#3E8E5A]',
-    warn: 'bg-[#F6EAC8] text-[#8A6D14] [--dot:#C9A227]',
-    danger: 'bg-alert-bg text-alert-fg [--dot:#B4432F]',
-    info: 'bg-mint text-forest [--dot:#5A6B63]',
+    success: 'bg-[#EAF5EF] text-[#15794F] [--dot:#146A47]',
+    warn: 'bg-[#FDF2E3] text-[#B45309] [--dot:#146A47]',
+    danger: 'bg-alert-bg text-alert-fg [--dot:#B42318]',
+    info: 'bg-[#EAF5EF] text-[#101828] [--dot:#475467]',
   } as const;
 
   return (

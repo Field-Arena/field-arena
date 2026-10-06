@@ -6,12 +6,12 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Card } from '@/shared/ui/organizer/card';
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
-import type { ShowPnl } from '@/modules/shows/data/setup-queries';
+import type { ShowPnl } from '@/modules/shows/types';
 import { SM_CARD_PAD, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import { RevenueBreakdown } from '@/modules/shows/ui/financial/revenue-breakdown';
 import { ExpenseEditor } from '@/modules/shows/ui/financial/expense-editor';
 
-const TITLE = 'font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest';
+const TITLE = 'text-[15px] font-semibold tracking-[-.2px] text-[#101828]';
 
 export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: boolean }) {
   const [revenueOpen, setRevenueOpen] = useState(true);
@@ -37,7 +37,7 @@ export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: bo
           </span>
           <span className="flex items-center gap-3">
             <b className="text-[16px]">{formatMoneyExact(pnl.revenueTotal)}</b>
-            <span className="text-[11px] whitespace-nowrap text-[#7A8781]">
+            <span className="text-[11px] whitespace-nowrap text-[#8A94A3]">
               {revenueOpen ? 'Hide ▲' : 'By category ▼'}
             </span>
           </span>
@@ -68,7 +68,7 @@ export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: bo
           </span>
           <span className="flex items-center gap-3">
             <b className="text-[16px]">{formatMoneyExact(pnl.expensesTotal)}</b>
-            <span className="text-[11px] whitespace-nowrap text-[#7A8781]">
+            <span className="text-[11px] whitespace-nowrap text-[#8A94A3]">
               {expensesOpen ? 'Hide ▲' : 'Show detail ▼'}
             </span>
           </span>
@@ -86,7 +86,7 @@ export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: bo
           <span className={TITLE} title="Revenue minus expenses for this show">
             Net
           </span>
-          <b className="text-[20px]" style={{ color: pnl.net < 0 ? '#a33' : '#1A5B3C' }}>
+          <b className="text-[20px]" style={{ color: pnl.net < 0 ? '#a33' : '#146A47' }}>
             {formatMoneyExact(pnl.net)}
             {pnl.net < 0 && (
               <span className="ml-1 text-[12px] font-bold tracking-[.3px]">(LOSS)</span>

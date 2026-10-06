@@ -10,6 +10,11 @@ export const UNDO_WINDOW_MS = 20000;
 
 export const POLL_INTERVAL_MS = 4000;
 
+/** Ceiling the poll backs off to while nothing on the class is changing. */
+export const POLL_MAX_INTERVAL_MS = 15000;
+
+export const POLL_BACKOFF_FACTOR = 1.5;
+
 export const MARK_DEBOUNCE_MS = 400;
 
 export const REMARK_DEBOUNCE_MS = 500;
@@ -20,5 +25,3 @@ export const MAX_WRITE_RETRIES = 3;
 
 export const JUDGING_PATH = '/dashboard/judging';
 export const JUDGING_HISTORY_PATH = '/dashboard/judging/history';
-
-export const RIDE_MINUTES = 9;

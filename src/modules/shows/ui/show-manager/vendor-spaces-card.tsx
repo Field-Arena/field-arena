@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useCreateVendorItem } from '@/modules/shows/hooks/use-catalog-mutations';
-import type { RiderEntriesData } from '@/modules/shows/data/setup-queries';
+import type { RiderEntriesData } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -55,7 +55,7 @@ export function VendorSpacesCard({
       {extraAction}
 
       {data.vendorSpaces.length === 0 ? (
-        <p className="mb-3 text-[13px] text-[#98A29D] italic">
+        <p className="mb-3 text-[13px] text-[#8A94A3] italic">
           No vendor spaces configured — add whatever this show offers
         </p>
       ) : (
@@ -76,7 +76,7 @@ export function VendorSpacesCard({
           }}
           aria-label="New vendor space name"
         />
-        <span className="text-[13px] text-[#6E7C76]">Qty</span>
+        <span className="text-[13px] text-[#8A94A3]">Qty</span>
         <Input
           className={cn('h-auto', SM_ROW_INPUT, 'w-[86px] flex-none')}
           placeholder="∞"
@@ -87,7 +87,7 @@ export function VendorSpacesCard({
           }}
           aria-label="New vendor space quantity"
         />
-        <span className="text-[13px] text-[#6E7C76]">$</span>
+        <span className="text-[13px] text-[#8A94A3]">$</span>
         <Input
           className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
           inputMode="numeric"

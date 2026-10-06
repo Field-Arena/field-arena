@@ -1,8 +1,12 @@
 import type { Metadata } from 'next';
-import { listMyShows, listShowDocuments, pickCurrentShow } from '@/modules/announcements/data/queries';
+import {
+  listMyShows,
+  listShowDocuments,
+  pickCurrentShow,
+} from '@/modules/announcements/data/queries';
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { ShowDocumentsTable } from '@/modules/announcements/ui/show-documents-table';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 

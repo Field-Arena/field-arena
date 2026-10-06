@@ -3,8 +3,10 @@ import {
   MAX_STABLES,
   MAX_STALLS_PER_STABLE,
   MANUALLY_SETTABLE_STALL_STATUSES,
+  STALL_STATUSES,
 } from '@/modules/shows/constants';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
+import { minAllowedTodayIso } from '@/modules/shows/utils/today-iso';
 
 const optionalText = (max: number) =>
   z
@@ -63,7 +65,7 @@ export const createShowSchema = z
     message: 'End date cannot be before the start date',
     path: ['endDate'],
   })
-  .refine((d) => d.startDate >= new Date().toISOString().slice(0, 10), {
+  .refine((d) => d.startDate >= minAllowedTodayIso(d.timezone), {
     message: 'Start date cannot be in the past',
     path: ['startDate'],
   });
@@ -673,6 +675,8 @@ export const setStallStatusSchema = z.object({
   stableId: z.string().trim().min(1),
   stallId: z.string().trim().min(1),
   status: z.enum(MANUALLY_SETTABLE_STALL_STATUSES),
+  // The status the caller saw — the write only lands if the stall still has it.
+  expectedStatus: z.enum(STALL_STATUSES),
   reason: z.string().trim().max(200).optional(),
 });
 
@@ -724,7 +728,11 @@ export const assignGroupToStableSchema = z.object({
 
 export type AssignGroupToStableInput = z.input<typeof assignGroupToStableSchema>;
 
-export const toggleStableChartStatusSchema = z.object({ showId: z.uuid() });
+export const toggleStableChartStatusSchema = z.object({
+  showId: z.uuid(),
+  // The chart status the caller saw — the flip only lands if it is unchanged.
+  expectedStatus: z.enum(['draft', 'published']),
+});
 
 export type ToggleStableChartStatusInput = z.input<typeof toggleStableChartStatusSchema>;
 
@@ -1007,3 +1015,69 @@ export const resolveIssueSchema = z.object({
 });
 
 export type ResolveIssueInput = z.input<typeof resolveIssueSchema>;
+
+// ── Select Events: per-test controls on the Offered classes table ─────────
+const classIdsSchema = z.array(z.uuid()).min(1).max(200);
+
+export const setTestDivisionSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+  division: z.string().trim().min(1).max(120),
+  on: z.boolean(),
+});
+export type SetTestDivisionInput = z.input<typeof setTestDivisionSchema>;
+
+export const updateTestFeeSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+  fee: z.coerce.number().min(0).max(100000),
+});
+export type UpdateTestFeeInput = z.input<typeof updateTestFeeSchema>;
+
+export const setTestQualifyingSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+  qualifying: z.boolean(),
+});
+export type SetTestQualifyingInput = z.input<typeof setTestQualifyingSchema>;
+
+export const removeTestClassesSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+});
+export type RemoveTestClassesInput = z.input<typeof removeTestClassesSchema>;
+
+// ── Raw-argument server actions ──────────────────────────────────────────
+// These actions keep their positional signatures for the hooks, but every
+// 'use server' export is publicly callable, so each validates its args here.
+
+export const showIdArgSchema = z.object({ showId: z.uuid() });
+
+export const idArgSchema = z.object({ id: z.uuid() });
+
+export const setShowPublishedSchema = z.object({
+  showId: z.uuid(),
+  published: z.boolean(),
+});
+
+export const runnerStatePatchSchema = z
+  .object({
+    ticketClosed: z.boolean().optional(),
+    approved: z.boolean().optional(),
+  })
+  .strict();
+
+export const advanceRunnerStateSchema = z.object({
+  showId: z.uuid(),
+  patch: runnerStatePatchSchema,
+});
+
+export const applySavedVenueSchema = z.object({
+  showId: z.uuid(),
+  venueId: z.uuid(),
+});
+
+export const approveWaiverSchema = z.object({
+  showId: z.uuid(),
+  waiverText: z.string().max(20000),
+});

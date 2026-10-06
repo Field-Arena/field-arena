@@ -76,7 +76,7 @@ export function BridleNumberAssignDialog({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Bridle Number</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             {horseName}
           </DialogTitle>
           <DialogDescription>
@@ -84,7 +84,7 @@ export function BridleNumberAssignDialog({
               ? `Currently ${currentNumber} — replacing it retires that number and records why.`
               : "This horse hasn't been assigned a bridle number yet."}
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -112,7 +112,7 @@ export function BridleNumberAssignDialog({
               </SelectContent>
             </Select>
             {availableNumbers.length === 0 && (
-              <p className="text-[12px] text-[#B4432F]">
+              <p className="text-[12px] text-[#B42318]">
                 No numbers are available — add a range in Bridle Numbers first.
               </p>
             )}

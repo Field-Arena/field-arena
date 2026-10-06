@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import type { ShowDocument } from '@/modules/announcements/data/queries';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
+import type { ShowDocument } from '@/modules/announcements/types';
 
 /* Legacy previewed the PDF inline in an expanding panel with a new-tab link as
  * a fallback (announcer.html:558) rather than only handing over a link. That

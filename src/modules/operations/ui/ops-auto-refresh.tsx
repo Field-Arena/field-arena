@@ -21,8 +21,14 @@ export function OpsAutoRefresh({ intervalMs = OPS_REFRESH_MS }: { intervalMs?: n
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
     }, intervalMs);
+    // Coming back to the tab shows fresh data at once, not after a full tick.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') router.refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [router, intervalMs]);
 

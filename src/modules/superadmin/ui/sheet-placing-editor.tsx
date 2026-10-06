@@ -16,7 +16,7 @@ export function SheetPlacingEditor({
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-1.5`}>Placing</h2>
-      <p className="mb-[18px] text-[12.5px] text-[#8A8275]">
+      <p className="mb-[18px] text-[12.5px] text-[#8A94A3]">
         Horses are placed against each other rather than marked, so this sheet records the method
         and the criteria instead of movements.
       </p>

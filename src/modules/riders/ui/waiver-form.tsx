@@ -26,12 +26,10 @@ export function WaiverForm({
   const textRef = useRef<HTMLDivElement>(null);
   const [scrolledToBottom, setScrolledToBottom] = useState(!!existingSignature);
   const [fullName, setFullName] = useState(existingSignature?.full_name ?? '');
-  const [signatureDate, setSignatureDate] = useState(
-    existingSignature?.signature_date ?? new Date().toISOString().slice(0, 10),
-  );
   const [agreed, setAgreed] = useState(!!existingSignature);
   const signWaiver = useSignWaiver();
   const signed = !!existingSignature || signWaiver.isSuccess;
+  const signatureDate = existingSignature?.signature_date ?? signWaiver.data?.signature_date ?? '';
 
   const checkScrolled = () => {
     const el = textRef.current;
@@ -46,8 +44,7 @@ export function WaiverForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount, same as legacy's one-shot check
   }, []);
 
-  const canSign =
-    scrolledToBottom && fullName.trim().length > 0 && signatureDate.trim().length > 0 && agreed;
+  const canSign = scrolledToBottom && fullName.trim().length > 0 && agreed;
 
   return (
     <Card>
@@ -93,12 +90,10 @@ export function WaiverForm({
             <Label htmlFor="waiver-date">Date</Label>
             <Input
               id="waiver-date"
-              type="date"
               value={signatureDate}
-              disabled={signed}
-              onChange={(event) => {
-                setSignatureDate(event.target.value);
-              }}
+              readOnly
+              disabled
+              placeholder="Dated automatically when you sign"
             />
           </div>
         </div>
@@ -123,7 +118,7 @@ export function WaiverForm({
             type="button"
             disabled={!canSign || signWaiver.isPending}
             onClick={() => {
-              signWaiver.mutate({ showId, fullName: fullName.trim(), signatureDate });
+              signWaiver.mutate({ showId, fullName: fullName.trim() });
             }}
           >
             {signWaiver.isPending ? 'Signing…' : 'Sign waiver'}

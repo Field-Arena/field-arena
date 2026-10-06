@@ -29,10 +29,10 @@ import { cn } from '@/shared/lib/utils';
 import { ADD_USER_ROLES } from '../constants';
 import { addStaffUserSchema, type AddStaffUserInput } from '../schemas';
 import { useAddStaffUser } from '../hooks/use-user-directory-mutations';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import type { ShowListItem } from '@/modules/shows/types';
 
 const SELECT_CLASS =
-  'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
+  'w-full rounded-lg border border-[#E7EAEE] bg-white px-3 py-2 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]';
 
 export interface ClassOption {
   id: string;
@@ -43,10 +43,13 @@ export function AddUserDialog({
   shows,
   defaultShowId,
   classes,
+  canGrantMoney,
 }: {
   shows: ShowListItem[];
   defaultShowId: string;
   classes: ClassOption[];
+  /** Only the org owner / a SuperAdmin may grant financial access. */
+  canGrantMoney: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -103,14 +106,14 @@ export function AddUserDialog({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Users</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             Add a User
           </DialogTitle>
           <DialogDescription>
             Invite someone to {showName}. They&apos;ll get a real email invite and fill in the rest
             — role details, phone, whatever applies — themselves.
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -203,20 +206,20 @@ export function AddUserDialog({
                   Which tests/classes are they {role === 'Judge' ? 'judging' : 'recording for'}?
                 </Label>
                 {classes.length === 0 ? (
-                  <p className="text-[12.5px] text-[#7A8781]">
+                  <p className="text-[12.5px] text-[#8A94A3]">
                     No classes with entries yet for this show — you can assign tests after adding
                     classes.
                   </p>
                 ) : (
-                  <div className="max-h-[180px] overflow-y-auto rounded-lg border border-[#D9E1DD] px-2.5 py-2">
+                  <div className="max-h-[180px] overflow-y-auto rounded-lg border border-[#E7EAEE] px-2.5 py-2">
                     {classes.map((cls) => (
                       <label
                         key={cls.id}
-                        className="text-ink-deep flex cursor-pointer items-center gap-1.5 py-1 text-[12.5px]"
+                        className="flex cursor-pointer items-center gap-1.5 py-1 text-[12.5px] text-[#101828]"
                       >
                         <input
                           type="checkbox"
-                          className="accent-hunter-deep size-4"
+                          className="size-4 accent-[#146A47]"
                           checked={classIds.includes(cls.id)}
                           onChange={(e) => {
                             form.setValue(
@@ -236,10 +239,10 @@ export function AddUserDialog({
             )}
 
             {role === 'Announcer' && (
-              <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
+              <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-[#101828]">
                 <input
                   type="checkbox"
-                  className="accent-hunter-deep size-4"
+                  className="size-4 accent-[#146A47]"
                   {...form.register('isSteward')}
                 />
                 Also handles ring steward duties (gate, order of go)
@@ -248,31 +251,33 @@ export function AddUserDialog({
 
             {!isVendor && !isRider && (
               <>
-                <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
+                <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-[#101828]">
                   <input
                     type="checkbox"
-                    className="accent-hunter-deep size-4"
+                    className="size-4 accent-[#146A47]"
                     {...form.register('canScratchSkipDq')}
                   />
                   Can scratch, skip, or eliminate riders on this show
                 </label>
 
-                <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
-                  <input
-                    type="checkbox"
-                    className="accent-hunter-deep size-4"
-                    {...form.register('canViewMoney')}
-                  />
-                  Can view financial data ($) for this show
-                </label>
+                {canGrantMoney && (
+                  <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-[#101828]">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[#146A47]"
+                      {...form.register('canViewMoney')}
+                    />
+                    Can view financial data ($) for this show
+                  </label>
+                )}
               </>
             )}
 
-            <div className="border-t border-[#E9EDEB] pt-4">
-              <label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px] font-semibold">
+            <div className="border-t border-[#E7EAEE] pt-4">
+              <label className="flex cursor-pointer items-center gap-2.5 text-[13px] font-semibold text-[#101828]">
                 <input
                   type="checkbox"
-                  className="accent-hunter-deep size-4"
+                  className="size-4 accent-[#146A47]"
                   {...form.register('addToMemberDatabase')}
                 />
                 Also a member of your organization

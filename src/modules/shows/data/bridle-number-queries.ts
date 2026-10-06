@@ -1,51 +1,22 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { assertCanManageEntryLedger, reconcileShowEntries } from '@/modules/shows/data/entry-numbering';
-
-export interface NumberRangeRow {
-  id: string;
-  rangeStart: number;
-  rangeEnd: number;
-  label: string | null;
-  total: number;
-  assigned: number;
-  available: number;
-  unavailable: number;
-}
-
-export interface UnavailableNumberRow {
-  number: number;
-  reason: string | null;
-}
-
-export interface WaitingHorseRow {
-  showHorseId: string;
-  horseName: string;
-}
-
-export interface BridleNumberChangeRow {
-  id: string;
-  showHorseId: string;
-  horseName: string;
-  oldNumber: string | null;
-  newNumber: string | null;
-  reason: string | null;
-  changedAt: string;
-}
-
-export interface BridleNumberPoolStatus {
-  showId: string;
-  showName: string;
-  ranges: NumberRangeRow[];
-  counts: { available: number; assigned: number; unavailable: number };
-  unavailableNumbers: UnavailableNumberRow[];
-  waitingHorses: WaitingHorseRow[];
-  recentChanges: BridleNumberChangeRow[];
-}
+import {
+  assertCanManageEntryLedger,
+  reconcileShowEntries,
+} from '@/modules/shows/data/entry-numbering';
+import type {
+  BridleNumberChangeRow,
+  BridleNumberPoolStatus,
+  NumberRangeRow,
+  UnavailableNumberRow,
+  WaitingHorseRow,
+} from '@/modules/shows/types';
 
 type NumberStatus = 'available' | 'assigned' | 'unavailable';
 
-export async function getBridleNumberPoolStatus(showId: string): Promise<BridleNumberPoolStatus | null> {
+export async function getBridleNumberPoolStatus(
+  showId: string,
+): Promise<BridleNumberPoolStatus | null> {
   await assertCanManageEntryLedger(showId);
   await reconcileShowEntries(showId);
 
@@ -120,7 +91,12 @@ export async function getBridleNumberPoolStatus(showId: string): Promise<BridleN
   unavailableNumbers.sort((a, b) => a.number - b.number);
 
   const rangeRows: NumberRangeRow[] = ranges.map((r) => {
-    const bucket = bucketByRange.get(r.id) ?? { total: 0, available: 0, assigned: 0, unavailable: 0 };
+    const bucket = bucketByRange.get(r.id) ?? {
+      total: 0,
+      available: 0,
+      assigned: 0,
+      unavailable: 0,
+    };
     return {
       id: r.id,
       rangeStart: r.range_start,

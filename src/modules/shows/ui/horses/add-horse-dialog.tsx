@@ -85,13 +85,13 @@ export function AddHorseDialog({ showId }: { showId: string }) {
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Horses</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             Add a horse
           </DialogTitle>
           <DialogDescription>
             For a horse with no real class entry behind it — yours, or any staff member&apos;s.
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -124,10 +124,10 @@ export function AddHorseDialog({ showId }: { showId: string }) {
               </div>
             ))}
 
-            <Label className="text-ink-deep flex cursor-pointer items-center gap-2.5 text-[13px]">
+            <Label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-[#101828]">
               <input
                 type="checkbox"
-                className="accent-hunter-deep size-4"
+                className="size-4 accent-[#146A47]"
                 {...form.register('isStallion')}
               />
               This horse is a stallion

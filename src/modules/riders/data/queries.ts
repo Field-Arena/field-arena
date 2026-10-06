@@ -2,8 +2,9 @@ import 'server-only';
 import { cache } from 'react';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
-import { SHOW_DOCS_BUCKET } from '@/modules/shows/constants';
+import { scheduleDelta } from '@/shared/lib/schedule-delta';
+import { resolveTimeZone } from '@/shared/lib/format/time-zone';
+import { SHOW_DOCS_BUCKET } from '@/shared/constants/storage';
 import {
   HORSE_DOCUMENTS_BUCKET,
   HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS,
@@ -25,6 +26,7 @@ import type {
   RiderScorecardCard,
   WaiverSignatureRow,
 } from '@/modules/riders/types';
+import type { RiderShowLink, RingScheduleStatus } from '@/modules/riders/types';
 
 /* auth.getUser() re-verifies the JWT against Supabase's Auth server on
  * every call (unlike getSession(), which trusts the local cookie) — a real
@@ -49,17 +51,6 @@ export async function getCurrentRiderProfile(): Promise<RiderRow | null> {
   const { data, error } = await supabase.from('riders').select('*').eq('id', user.id).maybeSingle();
   if (error) throw error;
   return data;
-}
-
-export interface RiderShowLink {
-  showId: string;
-  showSlug: string | null;
-  showName: string;
-  /* The rider's assigned number for this show (class_entries.num, assigned
-   * once per checkout by nextRiderNumberForShow in checkout.ts — same value
-   * across every entry the rider has for that show). Null only if every
-   * entry is somehow missing it. */
-  riderNumber: string | null;
 }
 
 /* Every show this rider has at least one class_entries row in — the /rider
@@ -465,22 +456,20 @@ export async function getRiderScorecard(entryId: string): Promise<RiderScorecard
 
   // scores depends only on entryId, same as entry itself -- fetch both
   // together instead of waiting for the whole entry -> class -> show chain.
-  const [
-    { data: entry, error: entryError },
-    { data: scores, error: scoresError },
-  ] = await Promise.all([
-    supabase
-      .from('class_entries')
-      .select('id, class_id, rider_id, num, rider, horse, final_pct, test_override')
-      .eq('id', entryId)
-      .maybeSingle(),
-    supabase
-      .from('scores')
-      .select(
-        'seat_id, movements, collectives, errors, remarks, final_remarks, submitted, signed_by, signed_at',
-      )
-      .eq('entry_id', entryId),
-  ]);
+  const [{ data: entry, error: entryError }, { data: scores, error: scoresError }] =
+    await Promise.all([
+      supabase
+        .from('class_entries')
+        .select('id, class_id, rider_id, num, rider, horse, final_pct, test_override')
+        .eq('id', entryId)
+        .maybeSingle(),
+      supabase
+        .from('scores')
+        .select(
+          'seat_id, movements, collectives, errors, remarks, final_remarks, submitted, signed_by, signed_at',
+        )
+        .eq('entry_id', entryId),
+    ]);
   if (entryError) throw entryError;
   if (scoresError) throw scoresError;
   if (entry?.rider_id !== user.id) return null;
@@ -596,12 +585,6 @@ export async function getRiderScorecard(entryId: string): Promise<RiderScorecard
   };
 }
 
-export interface RingScheduleStatus {
-  ring: string;
-  label: string;
-  status: ScheduleStatus;
-}
-
 /* Rider-portal counterpart to the judge/scorer LiveClockStrip
  * (scoring/ui/live-clock-strip.tsx) — same real scheduleDelta formula
  * (classes.time + scoring_pos + the fixed RIDE_MINUTES pace), reused
@@ -612,19 +595,28 @@ export interface RingScheduleStatus {
 export async function getRiderRingSchedule(showId: string): Promise<RingScheduleStatus[]> {
   const supabase = await createServerClient();
 
-  const { data: classes, error } = await supabase
-    .from('classes')
-    .select('location, arena, time, scoring_pos')
-    .eq('show_id', showId)
-    .eq('scoring_open', true);
+  const [{ data: classes, error }, { data: show }] = await Promise.all([
+    supabase
+      .from('classes')
+      .select('location, arena, time, scoring_pos')
+      .eq('show_id', showId)
+      .eq('scoring_open', true),
+    supabase
+      .from('shows')
+      .select('timezone, organizations(timezone)')
+      .eq('id', showId)
+      .maybeSingle(),
+  ]);
   if (error) throw error;
+  // classes.time is wall-clock time at the show, not server (UTC) time.
+  const timeZone = resolveTimeZone(show?.timezone, show?.organizations.timezone);
 
   const now = new Date();
   const rows: RingScheduleStatus[] = [];
   for (const cls of classes) {
     const ring = cls.location ?? cls.arena;
     if (!ring) continue;
-    const result = scheduleDelta(cls.time, cls.scoring_pos ?? 0, now);
+    const result = scheduleDelta(cls.time, cls.scoring_pos ?? 0, now, timeZone);
     if (!result) continue;
     rows.push({ ring, label: result.label, status: result.status });
   }

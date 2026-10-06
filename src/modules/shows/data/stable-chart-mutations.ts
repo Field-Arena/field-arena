@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { parseInput } from '@/shared/lib/action-result';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { parseInput, UserFacingError } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
 import {
   setStableCountSchema,
@@ -24,16 +24,14 @@ import { resizeStableStalls } from '@/modules/shows/utils/resize-stable-stalls';
 import { findAvailableRuns } from '@/modules/shows/utils/find-available-runs';
 import { normalizeTrainerKey } from '@/modules/shows/utils/normalize-trainer-name';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
-import {
-  getStableAssignmentGroups,
-  type StableAssignmentGroup,
-} from '@/modules/shows/data/stable-assignment-groups-queries';
-import {
-  normalizeStableChart,
-  type StableChart,
-  type StableChartStable,
-  type StableChartStall,
-} from '@/modules/shows/data/stable-chart-queries';
+import type {
+  StableAssignmentGroup,
+  StableChart,
+  StableChartStable,
+  StableChartStall,
+} from '@/modules/shows/types';
+import { getStableAssignmentGroups } from '@/modules/shows/data/stable-assignment-groups-queries';
+import { normalizeStableChart } from '@/modules/shows/data/stable-chart-queries';
 import { HORSES_PATH, STABLE_CHART_PATH } from '@/modules/shows/constants';
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
@@ -53,263 +51,238 @@ async function readChart(supabase: SupabaseClient, showId: string): Promise<Stab
   return normalizeStableChart(data.stable_chart);
 }
 
-async function writeChart(
+// One stable-chart edit, applied in SQL against the stored value in a single
+// UPDATE (apply_stable_chart_ops), so two people editing at once both land
+// instead of the later write overwriting the earlier one.
+type StableChartOp =
+  | { op: 'toggle_status'; expect: 'draft' | 'published' }
+  | { op: 'resize_stables'; count: number }
+  | { op: 'append_stables'; stables: StableChartStable[] }
+  | { op: 'patch_stable'; stableId: string; set: Partial<Omit<StableChartStable, 'id'>> }
+  | { op: 'resize_stalls'; stableId: string; stallCount?: number }
+  | {
+      op: 'patch_stall';
+      stableId: string;
+      stallId: string;
+      set: Partial<StableChartStall>;
+      expect?: Partial<Pick<StableChartStall, 'status' | 'horseId'>>;
+      required?: boolean;
+    }
+  | {
+      op: 'move_stall';
+      fromStableId: string;
+      fromStallId: string;
+      toStableId: string;
+      toStallId: string;
+    }
+  | { op: 'swap_stalls'; stableAId: string; stallAId: string; stableBId: string; stallBId: string };
+
+// SQLSTATE the chart functions raise for a failed precondition.
+const STABLE_CHART_USER_ERROR = 'FA100';
+
+async function applyChartOps(
   supabase: SupabaseClient,
   showId: string,
-  chart: StableChart,
+  ops: StableChartOp[],
 ): Promise<void> {
-  const { error } = await supabase
-    .from('shows')
-    .update({ stable_chart: chart as unknown as Json })
-    .eq('id', showId);
-  if (error) throw new Error(error.message);
+  if (ops.length === 0) return;
+  const { data, error } = await supabase.rpc('apply_stable_chart_ops', {
+    p_show_id: showId,
+    p_ops: ops as unknown as Json,
+  });
+  if (error) {
+    if (error.code === STABLE_CHART_USER_ERROR) throw new UserFacingError(error.message);
+    throw new Error(error.message);
+  }
+  if (!data) {
+    throw new UserFacingError("You don't have permission to edit this stable chart.");
+  }
   revalidateStableChart();
+}
+
+// Auto-assign plans its placement in memory from a snapshot; only the stalls
+// it changed are written, each guarded on still being in the state it read.
+function diffStallOps(before: StableChartStable[], after: StableChartStable[]): StableChartOp[] {
+  const ops: StableChartOp[] = [];
+  before.forEach((stable, si) => {
+    stable.stalls.forEach((old, ti) => {
+      const next = after[si]?.stalls[ti];
+      if (!next) return;
+      const set: Partial<StableChartStall> = {};
+      let changed = false;
+      for (const key of Object.keys(next) as (keyof StableChartStall)[]) {
+        if (next[key] !== old[key]) {
+          (set as Record<string, unknown>)[key] = next[key];
+          changed = true;
+        }
+      }
+      if (!changed) return;
+      ops.push({
+        op: 'patch_stall',
+        stableId: stable.id,
+        stallId: old.id,
+        set,
+        expect: { status: old.status, horseId: old.horseId },
+      });
+    });
+  });
+  return ops;
 }
 
 export async function setStableCount(input: unknown): Promise<void> {
   const parsed = parseInput(setStableCountSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.slice(0, parsed.count);
-  while (stables.length < parsed.count) {
-    stables.push({
-      id: crypto.randomUUID(),
-      name: `Stable ${String(stables.length + 1)}`,
-      stallCount: 0,
-      rowCount: 1,
-      stalls: [],
-    });
-  }
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  // Lowering the count drops stables off the end. The SQL refuses to drop one
+  // that still has horses in it — those assignments would vanish with no undo.
+  await applyChartOps(supabase, parsed.showId, [{ op: 'resize_stables', count: parsed.count }]);
 }
 
 export async function updateStableField(input: unknown): Promise<void> {
   const parsed = parseInput(updateStableFieldSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s): StableChartStable =>
-    s.id === parsed.stableId
-      ? {
-          ...s,
-          ...(parsed.name !== undefined ? { name: parsed.name } : {}),
-          ...(parsed.stallCount !== undefined ? { stallCount: parsed.stallCount } : {}),
-          ...(parsed.rowCount !== undefined ? { rowCount: parsed.rowCount } : {}),
-        }
-      : s,
-  );
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'patch_stable',
+      stableId: parsed.stableId,
+      set: {
+        ...(parsed.name !== undefined ? { name: parsed.name } : {}),
+        ...(parsed.stallCount !== undefined ? { stallCount: parsed.stallCount } : {}),
+        ...(parsed.rowCount !== undefined ? { rowCount: parsed.rowCount } : {}),
+      },
+    },
+  ]);
 }
 
 export async function generateStableStalls(input: unknown): Promise<void> {
   const parsed = parseInput(generateStableStallsSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s): StableChartStable => {
-    if (s.id !== parsed.stableId) return s;
-    const stallCount = parsed.stallCount ?? s.stallCount;
-    return { ...s, stallCount, stalls: resizeStableStalls(s.stalls, stallCount) };
-  });
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'resize_stalls',
+      stableId: parsed.stableId,
+      ...(parsed.stallCount !== undefined ? { stallCount: parsed.stallCount } : {}),
+    },
+  ]);
 }
 
 export async function renameStall(input: unknown): Promise<void> {
   const parsed = parseInput(renameStallSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s): StableChartStable =>
-    s.id !== parsed.stableId
-      ? s
-      : {
-          ...s,
-          stalls: s.stalls.map((st) =>
-            st.id === parsed.stallId ? { ...st, label: parsed.label } : st,
-          ),
-        },
-  );
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'patch_stall',
+      stableId: parsed.stableId,
+      stallId: parsed.stallId,
+      set: { label: parsed.label },
+    },
+  ]);
 }
 
 export async function setStallStatus(input: unknown): Promise<void> {
   const parsed = parseInput(setStallStatusSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s): StableChartStable =>
-    s.id !== parsed.stableId
-      ? s
-      : {
-          ...s,
-          stalls: s.stalls.map((st): StableChartStall => {
-            if (st.id !== parsed.stallId) return st;
-            const clearingHorse = parsed.status !== 'available' && st.status === 'occupied';
-            return {
-              ...st,
-              status: parsed.status,
-              statusReason: parsed.reason ?? null,
-              ...(clearingHorse
-                ? {
-                    horseId: null,
-                    horseName: null,
-                    riderName: null,
-                    trainerName: null,
-                    shavings: 0,
-                    isStallion: false,
-                  }
-                : {}),
-            };
-          }),
-        },
-  );
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  // Guarded on the status the caller saw, so two people changing the same
+  // stall at once can't silently undo each other — the loser gets "the chart
+  // changed". Moving an occupied stall to any non-available status clears its
+  // horse (the guard pins the current status, so that's decided here).
+  const clearsHorse = parsed.expectedStatus === 'occupied' && parsed.status !== 'available';
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'patch_stall',
+      stableId: parsed.stableId,
+      stallId: parsed.stallId,
+      required: true,
+      expect: { status: parsed.expectedStatus },
+      set: {
+        status: parsed.status,
+        statusReason: parsed.reason ?? null,
+        ...(clearsHorse
+          ? {
+              horseId: null,
+              horseName: null,
+              riderName: null,
+              trainerName: null,
+              shavings: 0,
+              isStallion: false,
+            }
+          : {}),
+      },
+    },
+  ]);
 }
 
 export async function unassignStall(input: unknown): Promise<void> {
   const parsed = parseInput(unassignStallSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s): StableChartStable =>
-    s.id !== parsed.stableId
-      ? s
-      : {
-          ...s,
-          stalls: s.stalls.map((st): StableChartStall =>
-            st.id !== parsed.stallId
-              ? st
-              : {
-                  ...st,
-                  status: 'available',
-                  horseId: null,
-                  horseName: null,
-                  riderName: null,
-                  trainerName: null,
-                  shavings: 0,
-                  isStallion: false,
-                },
-          ),
-        },
-  );
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'patch_stall',
+      stableId: parsed.stableId,
+      stallId: parsed.stallId,
+      set: {
+        status: 'available',
+        horseId: null,
+        horseName: null,
+        riderName: null,
+        trainerName: null,
+        shavings: 0,
+        isStallion: false,
+      },
+    },
+  ]);
 }
 
 export async function updateStallNote(input: unknown): Promise<void> {
   const parsed = parseInput(updateStallNoteSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s): StableChartStable =>
-    s.id !== parsed.stableId
-      ? s
-      : {
-          ...s,
-          stalls: s.stalls.map((st): StableChartStall =>
-            st.id !== parsed.stallId ? st : { ...st, note: parsed.note },
-          ),
-        },
-  );
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'patch_stall',
+      stableId: parsed.stableId,
+      stallId: parsed.stallId,
+      set: { note: parsed.note },
+    },
+  ]);
 }
 
 export async function reassignStall(input: unknown): Promise<void> {
   const parsed = parseInput(reassignStallSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s) => ({ ...s, stalls: s.stalls.map((st) => ({ ...st })) }));
-  const fromStall = stables
-    .find((s) => s.id === parsed.fromStableId)
-    ?.stalls.find((st) => st.id === parsed.fromStallId);
-  const toStall = stables
-    .find((s) => s.id === parsed.toStableId)
-    ?.stalls.find((st) => st.id === parsed.toStallId);
-  if (!fromStall || !toStall) throw new Error('Stall not found.');
-  // Re-validated here regardless of what the UI already checked — never
-  // trust the client on "is this stall actually available."
-  if (toStall.status !== 'available') throw new Error('That stall is not available.');
-
-  toStall.horseId = fromStall.horseId;
-  toStall.horseName = fromStall.horseName;
-  toStall.riderName = fromStall.riderName;
-  toStall.trainerName = fromStall.trainerName;
-  toStall.isStallion = fromStall.isStallion;
-  toStall.shavings = fromStall.shavings;
-  toStall.status = 'occupied';
-  toStall.statusReason = null;
-
-  fromStall.horseId = null;
-  fromStall.horseName = null;
-  fromStall.riderName = null;
-  fromStall.trainerName = null;
-  fromStall.isStallion = false;
-  fromStall.shavings = 0;
-  fromStall.status = 'available';
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  // The SQL re-validates that the target is still available — never trust
+  // the client on "is this stall actually available."
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'move_stall',
+      fromStableId: parsed.fromStableId,
+      fromStallId: parsed.fromStallId,
+      toStableId: parsed.toStableId,
+      toStallId: parsed.toStallId,
+    },
+  ]);
 }
 
 export async function swapStalls(input: unknown): Promise<void> {
   const parsed = parseInput(swapStallsSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  const stables = chart.stables.map((s) => ({ ...s, stalls: s.stalls.map((st) => ({ ...st })) }));
-  const stallA = stables
-    .find((s) => s.id === parsed.stableAId)
-    ?.stalls.find((st) => st.id === parsed.stallAId);
-  const stallB = stables
-    .find((s) => s.id === parsed.stableBId)
-    ?.stalls.find((st) => st.id === parsed.stallBId);
-  if (!stallA || !stallB) throw new Error('Stall not found.');
-  if (stallA.status !== 'occupied' || stallB.status !== 'occupied') {
-    throw new Error('Both stalls must be occupied to swap.');
-  }
-
-  const a = {
-    horseId: stallA.horseId,
-    horseName: stallA.horseName,
-    riderName: stallA.riderName,
-    trainerName: stallA.trainerName,
-    isStallion: stallA.isStallion,
-    shavings: stallA.shavings,
-  };
-
-  stallA.horseId = stallB.horseId;
-  stallA.horseName = stallB.horseName;
-  stallA.riderName = stallB.riderName;
-  stallA.trainerName = stallB.trainerName;
-  stallA.isStallion = stallB.isStallion;
-  stallA.shavings = stallB.shavings;
-
-  stallB.horseId = a.horseId;
-  stallB.horseName = a.horseName;
-  stallB.riderName = a.riderName;
-  stallB.trainerName = a.trainerName;
-  stallB.isStallion = a.isStallion;
-  stallB.shavings = a.shavings;
-
-  await writeChart(supabase, parsed.showId, { ...chart, stables });
+  await applyChartOps(supabase, parsed.showId, [
+    {
+      op: 'swap_stalls',
+      stableAId: parsed.stableAId,
+      stallAId: parsed.stallAId,
+      stableBId: parsed.stableBId,
+      stallBId: parsed.stallBId,
+    },
+  ]);
 }
 
 export async function toggleStableChartStatus(input: unknown): Promise<void> {
   const parsed = parseInput(toggleStableChartStatusSchema, input);
   const supabase = await createServerClient();
-  const chart = await readChart(supabase, parsed.showId);
-
-  await writeChart(supabase, parsed.showId, {
-    ...chart,
-    status: chart.status === 'published' ? 'draft' : 'published',
-  });
+  // Flips only if the chart is still in the status the caller saw; otherwise
+  // two people clicking at once would cancel each other out.
+  await applyChartOps(supabase, parsed.showId, [
+    { op: 'toggle_status', expect: parsed.expectedStatus },
+  ]);
 }
 
 interface StallRef {
@@ -506,7 +479,7 @@ export async function autoAssignStableStalls(input: unknown): Promise<void> {
     placedRuns.set(group.trainerKey, [...(placedRuns.get(group.trainerKey) ?? []), ...chosen]);
   }
 
-  await writeChart(supabase, parsed.showId, { ...chart, stables: nextStables });
+  await applyChartOps(supabase, parsed.showId, diffStallOps(chart.stables, nextStables));
 }
 
 // The manual "drop this whole barn's block here" entry point — re-derives
@@ -584,7 +557,7 @@ export async function assignGroupToStable(input: unknown): Promise<void> {
 
   placeGroup(nextStables, group, [chosen], horseByKey, assignedKeys);
 
-  await writeChart(supabase, parsed.showId, { ...chart, stables: nextStables });
+  await applyChartOps(supabase, parsed.showId, diffStallOps(chart.stables, nextStables));
 }
 
 interface SavedVenueStall {
@@ -609,10 +582,11 @@ export async function applySavedLocationStables(input: unknown): Promise<void> {
   const supabase = await createServerClient();
   // Any organization's venue, not just the caller's own -- see
   // 20260924120000_shared_venues.sql.
-  const [chart, venueResult] = await Promise.all([
-    readChart(supabase, parsed.showId),
-    supabase.from('venues').select('id, name, stables').eq('id', parsed.venueId).maybeSingle(),
-  ]);
+  const venueResult = await supabase
+    .from('venues')
+    .select('id, name, stables')
+    .eq('id', parsed.venueId)
+    .maybeSingle();
   if (venueResult.error) throw new Error(venueResult.error.message);
   const venue = venueResult.data;
   if (!venue) throw new Error('Saved location not found.');
@@ -648,5 +622,5 @@ export async function applySavedLocationStables(input: unknown): Promise<void> {
     };
   });
 
-  await writeChart(supabase, parsed.showId, { ...chart, stables: [...chart.stables, ...added] });
+  await applyChartOps(supabase, parsed.showId, [{ op: 'append_stables', stables: added }]);
 }

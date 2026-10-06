@@ -20,17 +20,17 @@ export function SheetFreestyleEditor({
     <>
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Technical panel</h2>
-        <p className="mb-4 text-[12.5px] text-[#8A8275]">
+        <p className="mb-4 text-[12.5px] text-[#8A94A3]">
           The required elements, and what the judge is looking for in each.
         </p>
         <div className="mb-3.5 flex flex-col gap-2.5">
           {def.technical.length === 0 && (
-            <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+            <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
           )}
           {def.technical.map((row, i) => (
             <div
               key={i}
-              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
             >
               <Input
                 value={row.name}
@@ -80,17 +80,17 @@ export function SheetFreestyleEditor({
 
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Artistic panel</h2>
-        <p className="mb-4 text-[12.5px] text-[#8A8275]">
+        <p className="mb-4 text-[12.5px] text-[#8A94A3]">
           Presentation marks and their coefficients.
         </p>
         <div className="mb-3.5 flex flex-col gap-2.5">
           {def.artistic.length === 0 && (
-            <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+            <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
           )}
           {def.artistic.map((row, i) => (
             <div
               key={i}
-              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
             >
               <Input
                 value={row.name}

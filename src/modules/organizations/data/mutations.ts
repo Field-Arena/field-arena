@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { getImpersonatedOrgId } from '@/shared/lib/auth/view-as';
+import { getOrgAccessBlock, getSelectedOrg } from '@/modules/staff';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
 import { env } from '@/shared/lib/env';
+import { escapeLikePattern } from '@/shared/lib/escape-like-pattern';
 import { parseInput } from '@/shared/lib/action-result';
 import {
   completeOrgProfileSchema,
@@ -23,14 +25,41 @@ import {
 } from '@/modules/organizations/schemas';
 import { MEMBERS_PATH } from '@/modules/organizations/constants';
 
+/* The org a write lands on must be the one the workspace is showing: the
+ * impersonated org for a SuperAdmin, else the org picked in the switcher
+ * (getSelectedOrg validates the cookie against the caller's own orgs and
+ * falls back to their home org). Reading profile.org_id alone sent a
+ * multi-org owner's venue/member writes to their home org regardless. */
 async function requireOrgId(): Promise<string> {
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');
 
   const impersonatedOrgId = await getImpersonatedOrgId();
-  const orgId = impersonatedOrgId ?? profile.org_id;
+  if (impersonatedOrgId) return impersonatedOrgId;
+
+  const [{ orgId: selectedOrgId }, block] = await Promise.all([
+    getSelectedOrg(),
+    getOrgAccessBlock(),
+  ]);
+  const orgId = selectedOrgId ?? profile.org_id;
   if (!orgId) throw new Error('Your account is not the owner of an organization.');
+  if (block.blockedOrgIds.includes(orgId)) {
+    throw new Error('This organization is suspended. Contact Field & Arena support.');
+  }
   return orgId;
+}
+
+/* Organizer / additional owner of the org, or a SuperAdmin — never a Show
+ * Admin. can_access_org is the same predicate RLS uses for org ownership. */
+async function requireOrgOwner(orgId: string): Promise<void> {
+  const supabase = await createServerClient();
+  const { data: allowed, error } = await supabase.rpc('can_access_org', {
+    target_org_id: orgId,
+  });
+  if (error) throw new Error(error.message);
+  if (!allowed) {
+    throw new Error('Only the organization’s owner can connect a payout account.');
+  }
 }
 
 export async function completeOrganizationProfile(input: unknown): Promise<void> {
@@ -45,10 +74,9 @@ export async function completeOrganizationProfile(input: unknown): Promise<void>
     throw new Error('Only a Super Admin can complete another organization’s profile.');
   }
 
-  const orgId = parsed.orgId ?? profile.org_id;
-  if (!orgId) {
-    throw new Error('Your account is not the owner of an organization.');
-  }
+  // No explicit target: the org the workspace is showing (impersonated or
+  // switcher-selected), not the home org on the profile.
+  const orgId = parsed.orgId ?? (await requireOrgId());
 
   const supabase = await createServerClient();
   const { error } = await supabase
@@ -67,7 +95,7 @@ export async function completeOrganizationProfile(input: unknown): Promise<void>
   if (error) throw new Error(error.message);
 
   revalidatePath('/dashboard');
-  revalidatePath('/dashboard/superadmin');
+  revalidatePath('/dashboard/superadmin', 'layout');
 }
 
 export async function addOrgMember(input: unknown): Promise<{ added: boolean }> {
@@ -80,7 +108,7 @@ export async function addOrgMember(input: unknown): Promise<{ added: boolean }> 
     .from('member_database')
     .select('id')
     .eq('org_id', parsed.orgId)
-    .ilike('email', email)
+    .ilike('email', escapeLikePattern(email))
     .maybeSingle();
   if (existingError) throw new Error(existingError.message);
   if (existing) return { added: false };
@@ -381,12 +409,14 @@ export async function startStripeConnect(): Promise<{ url: string }> {
   }
 
   const orgId = await requireOrgId();
-  const supabase = await createServerClient();
+  await requireOrgOwner(orgId);
+  const admin = createAdminClient();
 
-  // stripe_connect_account_id is not SELECT-able by `authenticated`
-  // (20260907120000_fix_money_column_privileges.sql). requireOrgId() has already
-  // scoped orgId to the caller's own organization, so read it with the service role.
-  const { data: org, error: readError } = await createAdminClient()
+  // stripe_connect_account_id is neither SELECT-able nor UPDATE-able by
+  // `authenticated` (20260907120000_fix_money_column_privileges.sql and the
+  // platform-column revoke). requireOrgOwner() has already checked the caller
+  // owns orgId, so read and write it with the service role.
+  const { data: org, error: readError } = await admin
     .from('organizations')
     .select('email, stripe_connect_account_id')
     .eq('id', orgId)
@@ -417,7 +447,7 @@ export async function startStripeConnect(): Promise<{ url: string }> {
     });
     accountId = account.id;
 
-    const { error } = await supabase
+    const { error } = await admin
       .from('organizations')
       .update({ stripe_connect_account_id: accountId })
       .eq('id', orgId);

@@ -8,6 +8,8 @@ export const demoRequestSchema = z.object({
   discipline: z.enum(DEMO_DISCIPLINES),
   volume: z.enum(DEMO_VOLUMES),
   notes: z.string().trim().max(1000).optional(),
+  /** Honeypot — hidden from people, so anything in it came from a bot. */
+  hpCompanyUrl: z.string().max(200).optional(),
 });
 
 export type DemoRequestInput = z.infer<typeof demoRequestSchema>;

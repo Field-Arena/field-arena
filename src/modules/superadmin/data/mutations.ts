@@ -4,9 +4,11 @@ import { revalidatePath } from 'next/cache';
 import type { Database } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { env } from '@/shared/lib/env';
 import { sendEmail } from '@/shared/lib/email';
+import { escapeLikePattern } from '@/shared/lib/escape-like-pattern';
+import { platformRoleForStaff } from '@/shared/lib/staff-platform-role';
 import { ROUTES } from '@/shared/constants/routes';
 import { ROLE_PERMISSION_DEFAULTS, PERMISSION_KEYS } from '@/shared/constants/permissions';
 import { parseInput } from '@/shared/lib/action-result';
@@ -47,11 +49,8 @@ import {
   DOCUMENTS_PATH,
   DOCS_BUCKET,
 } from '@/modules/superadmin/constants';
-import {
-  fail,
-  type CreateOrganizationResult,
-  type AddSuperAdminResult,
-} from '@/modules/superadmin/data/action-result';
+import type { AddSuperAdminResult, CreateOrganizationResult } from '@/modules/superadmin/types';
+import { fail } from '@/modules/superadmin/data/action-result';
 
 /* Every mutation in this module is SuperAdmin-only, exactly as the legacy
  * console's routes were (requireSuperAdmin in api/_lib/auth.js guarded all of
@@ -65,7 +64,8 @@ function escapeHtml(value: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function requireSuperAdmin() {
@@ -77,6 +77,11 @@ async function requireSuperAdmin() {
 }
 
 export async function createOrganization(input: unknown): Promise<CreateOrganizationResult> {
+  try {
+    await requireSuperAdmin();
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : 'Not allowed.');
+  }
   const parsedResult = createOrganizationSchema.safeParse(input);
   if (!parsedResult.success) {
     return fail(parsedResult.error.issues[0]?.message ?? 'Please check the form and try again.');
@@ -98,15 +103,16 @@ export async function createOrganization(input: unknown): Promise<CreateOrganiza
   const { data: nameClash } = await admin
     .from('organizations')
     .select('id')
-    .ilike('name', parsed.name.trim())
+    .ilike('name', escapeLikePattern(parsed.name.trim()))
     .is('deleted_at', null)
     .maybeSingle();
   if (nameClash) {
     return fail(`An organizer named “${parsed.name.trim()}” already exists.`);
   }
 
-  const supabase = await createServerClient();
-  const { data: org, error } = await supabase
+  // fee_model / is_demo are platform-only columns; the caller is a verified
+  // SuperAdmin, so write them with the service role.
+  const { data: org, error } = await admin
     .from('organizations')
     .insert({
       name: parsed.name,
@@ -132,7 +138,7 @@ export async function createOrganization(input: unknown): Promise<CreateOrganiza
     },
   );
   if (inviteError) {
-    revalidatePath(CONSOLE_PATH);
+    revalidatePath(CONSOLE_PATH, 'layout');
     return fail(
       `Organization "${org.name}" was created, but its owner invite could not be sent (${inviteError.message}). Use Resend invite to try again.`,
     );
@@ -147,13 +153,13 @@ export async function createOrganization(input: unknown): Promise<CreateOrganiza
   });
   if (profileError) {
     await admin.auth.admin.deleteUser(invited.user.id);
-    revalidatePath(CONSOLE_PATH);
+    revalidatePath(CONSOLE_PATH, 'layout');
     return fail(
       `Organization "${org.name}" was created, but its owner account could not be provisioned (${profileError.message}).`,
     );
   }
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
   return { ok: true, id: org.id, name: org.name };
 }
 
@@ -208,7 +214,7 @@ export async function resendOrganizerInvite(input: unknown): Promise<{ email: st
     }
   }
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
   return { email };
 }
 
@@ -260,7 +266,7 @@ export async function addOrganizationOwner(
     return { ok: false, error: insertError.message };
   }
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
   return { ok: true, email: normalizedEmail };
 }
 
@@ -276,7 +282,7 @@ export async function removeOrganizationOwner(input: unknown): Promise<{ ok: tru
     .eq('user_id', userId);
   if (error) throw new Error(error.message);
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
   return { ok: true };
 }
 
@@ -294,7 +300,11 @@ export async function resendAllPendingOrganizerInvites(): Promise<{
 
   const [{ data: orgs, error: orgsError }, { data: owners, error: ownersError }] =
     await Promise.all([
-      admin.from('organizations').select('id, name, email').is('deleted_at', null),
+      admin
+        .from('organizations')
+        .select('id, name, email')
+        .is('deleted_at', null)
+        .eq('is_demo', false),
       admin.from('users').select('org_id, onboarded_at').eq('platform_role', 'Organizer'),
     ]);
   if (orgsError) throw new Error(orgsError.message);
@@ -316,16 +326,17 @@ export async function resendAllPendingOrganizerInvites(): Promise<{
     }
   }
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
   return { sent, total: pending.length, failed };
 }
 
 export async function updateOrganization(input: unknown) {
   await requireSuperAdmin();
   const parsed = parseInput(updateOrganizationSchema, input);
-  const supabase = await createServerClient();
+  // fee_model is a platform-only column (no UPDATE grant for authenticated).
+  const admin = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('organizations')
     .update({
       name: parsed.name,
@@ -341,32 +352,32 @@ export async function updateOrganization(input: unknown) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
 }
 
 export async function setOrganizationSuspended(input: unknown) {
   await requireSuperAdmin();
   const { id, value } = parseInput(organizationFlagSchema, input);
-  const supabase = await createServerClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase.from('organizations').update({ suspended: value }).eq('id', id);
+  const { error } = await admin.from('organizations').update({ suspended: value }).eq('id', id);
   if (error) throw new Error(error.message);
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
 }
 
 export async function setOrganizationDeleted(input: unknown) {
   await requireSuperAdmin();
   const { id, value } = parseInput(organizationFlagSchema, input);
-  const supabase = await createServerClient();
+  const admin = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('organizations')
     .update({ deleted_at: value ? new Date().toISOString() : null })
     .eq('id', id);
   if (error) throw new Error(error.message);
 
-  revalidatePath(CONSOLE_PATH);
+  revalidatePath(CONSOLE_PATH, 'layout');
 }
 
 export async function addSuperAdmin(input: unknown): Promise<AddSuperAdminResult> {
@@ -454,10 +465,6 @@ export async function removeSuperAdmin(input: unknown): Promise<{ ok: true }> {
   return { ok: true };
 }
 
-function platformRoleForStaff(role: string): string {
-  return role === 'Show Admin' ? 'ShowAdmin' : role;
-}
-
 async function sendStaffInviteNotification(params: {
   to: string;
   name: string;
@@ -518,10 +525,14 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string; emai
   if (assignError) throw new Error(assignError.message);
 
   const admin = createAdminClient();
-  const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
+  const [existingStaffUserRes, existingRiderRes] = await Promise.all([
     admin.from('users').select('id, onboarded_at').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
+  if (existingStaffUserRes.error) throw new Error(existingStaffUserRes.error.message);
+  if (existingRiderRes.error) throw new Error(existingRiderRes.error.message);
+  const existingStaffUser = existingStaffUserRes.data;
+  const existingRider = existingRiderRes.data;
 
   // The staff row is real either way -- a failed send is surfaced, never
   // rolled back (same stance as legacy's POST /api/shows/:id/staff, which
@@ -535,11 +546,12 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string; emai
     // hold it, but the rail can't see it. Mirrors provisionIfNewAccount() on
     // the organizer's own add-staff path.
     if (existingStaffUser) {
-      await admin
+      const { error: linkError } = await admin
         .from('staff_assignments')
         .update({ user_id: existingStaffUser.id })
         .eq('email', email)
         .is('user_id', null);
+      if (linkError) throw new Error(linkError.message);
     }
 
     // A users row exists but they never finished setting a password (the
@@ -573,17 +585,19 @@ export async function addOrgStaff(input: unknown): Promise<{ email: string; emai
 
     if (!inviteError) {
       emailSent = true;
-      await admin.from('users').insert({
+      const { error: profileError } = await admin.from('users').insert({
         id: invited.user.id,
         name,
         email,
         platform_role: platformRoleForStaff(parsed.role),
       });
-      await admin
+      if (profileError) throw new Error(profileError.message);
+      const { error: linkError } = await admin
         .from('staff_assignments')
         .update({ user_id: invited.user.id })
         .eq('email', email)
         .is('user_id', null);
+      if (linkError) throw new Error(linkError.message);
     }
   }
 
@@ -733,6 +747,7 @@ export async function toggleLeadChecklistItem(input: unknown): Promise<{ ok: tru
 }
 
 export async function sendLeadOnboarding(input: unknown): Promise<{ emailSent: boolean }> {
+  await requireSuperAdmin();
   const { id } = parseInput(leadIdSchema, input);
   const supabase = await createServerClient();
 
@@ -987,8 +1002,8 @@ export async function updateSettlement(input: unknown): Promise<void> {
   await requireSuperAdmin();
   const data = parseInput(updateSettlementSchema, input);
 
-  const supabase = await createServerClient();
-  const { error } = await supabase
+  // payout_cadence / holdback_percent are platform-only columns.
+  const { error } = await createAdminClient()
     .from('organizations')
     .update({
       payout_cadence: data.payoutCadence,

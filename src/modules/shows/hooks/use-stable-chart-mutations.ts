@@ -90,8 +90,14 @@ export function useRenameStall() {
 }
 
 export function useSetStallStatus() {
+  const router = useRouter();
   return useRefreshingMutation((input: SetStallStatusInput) => setStallStatus(input), {
     errorFallback: 'Could not update this stall',
+    // Usually "the chart changed" — pull the current chart so the next try
+    // starts from what's actually there.
+    onError: () => {
+      router.refresh();
+    },
   });
 }
 
@@ -127,16 +133,18 @@ export function useAssignGroupToStable() {
 
 export function useToggleStableChartStatus() {
   const router = useRouter();
-  return useMutation({
-    mutationFn: (input: ToggleStableChartStatusInput) => toggleStableChartStatus(input),
-    onSuccess: () => {
-      toast.success('Saved');
-      router.refresh();
+  return useRefreshingMutation(
+    (input: ToggleStableChartStatusInput) => toggleStableChartStatus(input),
+    {
+      successMessage: 'Saved',
+      errorFallback: 'Could not update the chart status',
+      // Usually "the chart changed" — pull the current status so the button
+      // shows what's actually there before the next click.
+      onError: () => {
+        router.refresh();
+      },
     },
-    onError: (error) => {
-      toast.error(readableError(error, 'Could not update the chart status'));
-    },
-  });
+  );
 }
 
 export function useAutoAssignStableStalls() {

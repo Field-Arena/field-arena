@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import { PrinterIcon } from 'lucide-react';
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
+import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import type { EntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
-import type { TestPrintPageData } from '@/modules/shows/data/test-print-queries';
-import type { RingPacketPageData } from '@/modules/shows/data/ring-packet-queries';
+import type {
+  EntryLedgerPageData,
+  RingPacketPageData,
+  TestPrintPageData,
+} from '@/modules/shows/types';
 import { EntryLedgerPrintView } from '@/modules/shows/ui/filing-cabinet/print/entry-ledger-print-view';
 import { NumberCardsPrintView } from '@/modules/shows/ui/filing-cabinet/print/number-cards-print-view';
 import { TestPrintView } from '@/modules/shows/ui/filing-cabinet/print/test-print-view';
@@ -83,9 +85,9 @@ export function PrintCenterScreen({
   }
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4 print:hidden">
-        <ScreenTitle className="mb-1.5">Print Center</ScreenTitle>
+        <SectionTitle className="mb-1.5">Print Center</SectionTitle>
         <ScreenLede className="mb-0">
           Print the entry ledger or entry/bridle/back number cards for {showName}.
         </ScreenLede>
@@ -93,7 +95,7 @@ export function PrintCenterScreen({
 
       {rows.length === 0 ? (
         <Card className="p-[18px_20px_20px] print:hidden">
-          <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">
+          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
             Nothing to print yet — entries appear once riders check out.
           </p>
         </Card>
@@ -127,7 +129,7 @@ export function PrintCenterScreen({
               onChange={(e) => {
                 setDayFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#D9E1DD] px-3 py-2 text-[13px]"
+              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
               aria-label="Filter by day"
             >
               <option value="">All days</option>
@@ -142,7 +144,7 @@ export function PrintCenterScreen({
               onChange={(e) => {
                 setRingFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#D9E1DD] px-3 py-2 text-[13px]"
+              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
               aria-label="Filter by ring"
             >
               <option value="">All rings</option>
@@ -173,7 +175,7 @@ export function PrintCenterScreen({
               onChange={(e) => {
                 setDayFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#D9E1DD] px-3 py-2 text-[13px]"
+              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
               aria-label="Filter by day"
             >
               <option value="">All days</option>
@@ -188,7 +190,7 @@ export function PrintCenterScreen({
               onChange={(e) => {
                 setRingFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#D9E1DD] px-3 py-2 text-[13px]"
+              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
               aria-label="Filter by ring"
             >
               <option value="">All rings</option>
@@ -198,7 +200,7 @@ export function PrintCenterScreen({
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-1.5 text-[13px] text-[#5A6B63]">
+            <label className="flex items-center gap-1.5 text-[13px] text-[#475467]">
               <input
                 type="checkbox"
                 checked={onlyChanged}
@@ -210,7 +212,7 @@ export function PrintCenterScreen({
             </label>
           </div>
 
-          <ul className="mb-3 flex flex-col gap-1 text-[12.5px] text-[#5A6B63]">
+          <ul className="mb-3 flex flex-col gap-1 text-[12.5px] text-[#475467]">
             {filteredPacketClasses.map((c) => (
               <li key={c.classId} className="flex items-center gap-2">
                 <span>{c.classLabel}</span>

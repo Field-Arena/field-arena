@@ -1,4 +1,4 @@
-import type { ScheduleClass } from '@/modules/operations/data/queries';
+import type { ScheduleClass } from '@/modules/operations/types';
 import { RibbonSwatch } from '@/modules/operations/ui/ribbon-swatch';
 import { ScoreCell } from '@/modules/operations/ui/score-cell';
 import { RideOrderTable } from '@/modules/operations/ui/ride-order-table';

@@ -20,7 +20,7 @@ export function TabStrip({
   return (
     <div
       className={cn(
-        'mb-[22px] flex flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-[#E9EDEB] bg-[#F4F7F5] p-1',
+        'mb-5 flex [scrollbar-width:none] flex-nowrap items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-[#E7EAEE] px-0.5 [&::-webkit-scrollbar]:hidden',
         className,
       )}
     >
@@ -30,7 +30,7 @@ export function TabStrip({
           return (
             <span
               key={tab.key}
-              className="flex-none cursor-default rounded-full px-3.5 py-[9px] text-[13.5px] font-medium whitespace-nowrap text-[#B8C2BD]"
+              className="flex-none cursor-default px-3.5 py-3 text-[13.5px] font-medium whitespace-nowrap text-[#C3CAD3]"
               title="Coming soon"
             >
               {tab.label}
@@ -45,8 +45,8 @@ export function TabStrip({
             aria-current={isActive ? 'page' : undefined}
             className={
               isActive
-                ? 'bg-forest flex-none rounded-full px-3.5 py-[9px] text-[13.5px] font-bold whitespace-nowrap text-white shadow-sm'
-                : 'flex-none rounded-full px-3.5 py-[9px] text-[13.5px] font-medium whitespace-nowrap text-[#6E7C76] transition-colors hover:bg-white hover:text-[#2B3B33]'
+                ? "relative flex-none px-3.5 py-3 text-[13.5px] font-semibold whitespace-nowrap text-[#146A47] after:absolute after:inset-x-3 after:-bottom-px after:h-0.5 after:rounded-sm after:bg-[#146A47] after:content-['']"
+                : 'flex-none px-3.5 py-3 text-[13.5px] font-medium whitespace-nowrap text-[#475467] transition-colors hover:text-[#101828]'
             }
           >
             {tab.label}

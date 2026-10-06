@@ -5,7 +5,7 @@ import { ActiveRingsPanel } from '@/modules/announcements/ui/active-rings-panel'
 import { AllRingsTable } from '@/modules/announcements/ui/all-rings-table';
 import { ANNOUNCING_RESULTS_PATH } from '@/modules/announcements/constants';
 import { AnnouncerAutoRefresh } from '@/modules/announcements/ui/announcer-auto-refresh';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Up Next — Field & Arena' };
 

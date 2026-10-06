@@ -3,7 +3,7 @@ import { getLiveResults, listMyShows, pickCurrentShow } from '@/modules/announce
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { LiveResultsTable } from '@/modules/announcements/ui/live-results-table';
 import { AnnouncerAutoRefresh } from '@/modules/announcements/ui/announcer-auto-refresh';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Results — Live — Field & Arena' };
 

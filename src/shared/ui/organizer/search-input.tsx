@@ -14,7 +14,7 @@ export function SearchInput({
   return (
     <span
       className={cn(
-        'relative inline-flex min-w-[240px] flex-1 basis-[280px] items-center',
+        'relative inline-flex min-w-[210px] flex-1 basis-[210px] items-center',
         containerClassName,
       )}
     >
@@ -23,11 +23,11 @@ export function SearchInput({
         height="15"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="#98A29D"
+        stroke="#8A94A3"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="pointer-events-none absolute left-[13px]"
+        className="pointer-events-none absolute left-2.5"
       >
         <circle cx="11" cy="11" r="7" />
         <path d="M21 21l-4.3-4.3" />
@@ -35,9 +35,9 @@ export function SearchInput({
       <input
         autoComplete={autoComplete}
         className={cn(
-          'box-border w-full rounded-[10px] border border-[#D9E1DD] bg-white',
-          'py-[11px] pr-3.5 pl-9 text-[13.5px] text-[#16261F]',
-          'placeholder:text-[#98A29D] focus:border-[#C9A227] focus:outline-none',
+          'box-border h-[34px] w-full rounded-[9px] border border-[#E7EAEE] bg-white',
+          'pr-2.5 pl-8 text-[13px] text-[#101828]',
+          'placeholder:text-[#8A94A3] focus:border-[#9FD3BA] focus:shadow-[0_0_0_3px_#EAF5EF] focus:outline-none',
           className,
         )}
         {...props}

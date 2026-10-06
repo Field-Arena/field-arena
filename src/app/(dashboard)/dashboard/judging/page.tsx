@@ -1,11 +1,11 @@
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import {
   listMyAssignments,
   listPanelContacts,
   getPreviewShowName,
 } from '@/modules/judging/data/queries';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
 import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
 import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
@@ -13,17 +13,16 @@ import { classifyAssignment } from '@/modules/judging/utils/classify-assignment'
 import { isAssignmentComplete } from '@/modules/judging/utils/is-assignment-complete';
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
-import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
-import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
 
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
 export default async function JudgingPage() {
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // Demo rows only; real rows carry today in their own show's timezone.
+  const demoTodayIso = todayInZone(resolveTimeZone());
   const [profile, realAssignments, realPanelContacts] = await Promise.all([
     getStaffProfile(),
-    listMyAssignments(todayIso),
+    listMyAssignments(),
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
@@ -31,61 +30,57 @@ export default async function JudgingPage() {
   // are the fallback for a SuperAdmin who hasn't picked one.
   const previewShowName = isSuperAdminPreview ? await getPreviewShowName() : null;
   const useDemoData = isSuperAdminPreview && previewShowName === null;
-  const assignments = useDemoData ? buildDemoAssignments(todayIso) : realAssignments;
+  const assignments = useDemoData ? buildDemoAssignments(demoTodayIso) : realAssignments;
   const panelContacts = useDemoData ? buildDemoPanelContacts() : realPanelContacts;
   const roleLabel = profile?.platform_role === 'Scribe' ? 'Scribe' : 'Judge';
-  const { rings, contacts, assignmentsToday } = buildTodaySnapshot(
+  const { ringSummaries, contacts, assignmentsToday } = buildTodaySnapshot(
     assignments,
     panelContacts,
-    todayIso,
   );
 
-  const today = assignments.filter((a) => classifyAssignment(a, todayIso) === 'today');
-  const upcoming = assignments.filter((a) => classifyAssignment(a, todayIso) === 'upcoming');
+  const today = assignments.filter((a) => classifyAssignment(a) === 'today');
+  const upcoming = assignments.filter((a) => classifyAssignment(a) === 'upcoming');
   const upcomingCount = today.length + upcoming.length;
 
   return (
-    <>
-      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
+    <section>
+      <div className="fa-page-head">
         <div>
-          <ScreenTitle>My Assignments</ScreenTitle>
-          <ScreenLede className="mb-0">
-            Today&apos;s ring times and every show you&apos;re on the panel for.
-          </ScreenLede>
+          <h2>My Assignments</h2>
+          <p>Today&apos;s ring times and every show you&apos;re on the panel for.</p>
         </div>
-        <StatusPill bg="#FFFFFF" border="#E9EDEB" fg="#16261F" icon={<GoldDot />}>
+        <span className="fa-badge fa-live !px-3.5 !py-2 !text-[12.5px]">
+          <span className="fa-dot" />
           {roleLabel} · {upcomingCount} upcoming assignment{upcomingCount === 1 ? '' : 's'}
-        </StatusPill>
+        </span>
       </div>
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
-      <JudgingStatusCard rings={rings} contacts={contacts} assignmentsToday={assignmentsToday} />
-
-      {today.length > 0 && (
-        <Link
-          href="/dashboard/judging/results"
-          className="hover:text-gold mb-3.5 inline-block text-[13px] font-semibold text-[#5A6B63]"
-        >
-          🏆 View Results
-        </Link>
-      )}
+      <JudgingStatusCard
+        ringSummaries={ringSummaries}
+        contacts={contacts}
+        assignmentsToday={assignmentsToday}
+        showResultsLink={today.length > 0}
+      />
 
       {assignments.length === 0 ? (
-        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
-          You are not on any class panel. An organizer assigns a {roleLabel.toLowerCase()} to a
-          class from ShowManager, and it appears here once they do.
-        </Card>
+        <div className="fa-mini-card text-center">
+          <p>
+            You are not on any class panel. An organizer assigns a {roleLabel.toLowerCase()} to a
+            class from Show Manager, and it appears here once they do.
+          </p>
+        </div>
       ) : (
         <>
-          <h3 className="text-ink-deep mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold">
-            Today&apos;s Ring Times
+          <h3 className="mb-3 text-[15px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
+            Today&apos;s ring times
           </h3>
           <div className="mb-8 flex flex-col gap-3">
             {today.length === 0 ? (
-              <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
-                Nothing on the panel for you today.
-              </Card>
+              <div className="fa-mini-card">
+                <p>Nothing on the panel for you today.</p>
+              </div>
             ) : (
               today.map((a) => (
                 <AssignmentCard
@@ -98,14 +93,14 @@ export default async function JudgingPage() {
             )}
           </div>
 
-          <h3 className="text-ink-deep mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold">
+          <h3 className="mb-3 text-[15px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
             Upcoming
           </h3>
           <div className="flex flex-col gap-3">
             {upcoming.length === 0 ? (
-              <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
-                Nothing else scheduled yet.
-              </Card>
+              <div className="fa-mini-card">
+                <p>Nothing else scheduled yet.</p>
+              </div>
             ) : (
               upcoming.map((a) => (
                 <AssignmentCard
@@ -118,10 +113,6 @@ export default async function JudgingPage() {
           </div>
         </>
       )}
-    </>
+    </section>
   );
-}
-
-function GoldDot() {
-  return <span className="bg-gold size-2 rounded-full" />;
 }

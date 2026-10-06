@@ -1,17 +1,16 @@
 import { getShowManagerHeader } from '@/modules/shows/data/setup-queries';
 import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-shell';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
-import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
+import { getShowStage } from '@/modules/shows/data/queries';
 
-/* Renders the Show Manager shell (title, tab strip, lifecycle, stats) once
+/* Renders the Show Manager shell (title, lifecycle, tab strip) once
  * per show instead of once per tab -- previously every one of the 8 tab
  * pages re-fetched context/vitals and re-rendered the whole shell itself,
  * which also meant the tab strip flashed out and back in on every click
  * because it wasn't behind a stable layout boundary. Each tab's own page.tsx
  * still does its own tab-specific data fetch; only the shell's own data
- * (header/context/vitals) lives here now. */
+ * (header + stage) lives here now. */
 export default async function ShowManagerLayout({
   children,
   params,
@@ -32,21 +31,10 @@ export default async function ShowManagerLayout({
     );
   }
 
-  const [context, vitals] = await Promise.all([
-    getOrganizerContext(header.id),
-    getShowManagerVitals(header.id),
-  ]);
+  const stage = await getShowStage(header.id);
 
   return (
-    <ShowManagerShell
-      showId={showId}
-      showName={header.name}
-      orgName={context.orgName}
-      shows={context.shows}
-      stats={vitals.stats}
-      stage={vitals.stage}
-      canViewMoney={context.canViewMoney}
-    >
+    <ShowManagerShell showId={showId} stage={stage}>
       {children}
     </ShowManagerShell>
   );

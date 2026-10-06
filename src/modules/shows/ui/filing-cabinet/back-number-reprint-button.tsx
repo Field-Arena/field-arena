@@ -6,7 +6,13 @@ import { Loader2Icon, PrinterIcon } from 'lucide-react';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { downloadBackNumberCards } from '@/modules/shows/utils/download-back-number-cards';
 
-export function BackNumberReprintButton({ showId, showEntryId }: { showId: string; showEntryId: string }) {
+export function BackNumberReprintButton({
+  showId,
+  showEntryId,
+}: {
+  showId: string;
+  showEntryId: string;
+}) {
   const [pending, setPending] = useState(false);
 
   async function reprint() {

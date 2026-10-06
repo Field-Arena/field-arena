@@ -1,5 +1,5 @@
 import { StatusBadge } from '@/shared/ui/status-badge';
-import type { RingRow } from '@/modules/announcements/data/queries';
+import type { RingRow } from '@/modules/announcements/types';
 
 export function AllRingsTable({ rings }: { rings: RingRow[] }) {
   return (

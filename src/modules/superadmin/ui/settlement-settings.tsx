@@ -8,9 +8,9 @@ import { Label } from '@/shared/ui/shadcn/label';
 import { useUpdateSettlement } from '@/modules/superadmin/hooks/use-settlement-mutations';
 
 const FIELD =
-  'h-auto w-full rounded-[10px] border-field bg-white px-4 py-3 text-[14.5px] text-hunter-deep ' +
-  'focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/[.16]';
-const LABEL = 'mb-2 block text-[10px] font-bold uppercase tracking-[.16em] text-fa-muted-2';
+  'h-auto w-full rounded-[10px] border-[#E7EAEE] bg-white px-4 py-3 text-[14.5px] text-[#101828] ' +
+  'focus-visible:border-[#9FD3BA] focus-visible:ring-[3px] focus-visible:ring-[#EAF5EF]';
+const LABEL = 'mb-2 block text-[10px] font-bold uppercase tracking-[.08em] text-[#8A94A3]';
 
 export function SettlementSettings({
   orgId,
@@ -33,11 +33,11 @@ export function SettlementSettings({
     (parsed ?? null) !== (holdbackPercent === 0 ? null : holdbackPercent);
 
   return (
-    <section className="border-line-mint rounded-xl border bg-[#F3F0E7] p-7">
-      <h2 className="text-hunter-deep mb-1.5 font-[family-name:var(--font-nr)] text-[22px] font-medium">
+    <section className="rounded-xl border border-[#E7EAEE] bg-[#F5F7F8] p-7">
+      <h2 className="mb-1.5 font-[family-name:var(--font-nr)] text-[22px] font-medium text-[#101828]">
         Settlement settings
       </h2>
-      <p className="text-fa-muted mb-6 max-w-[620px] text-[13.5px] leading-[1.6]">
+      <p className="mb-6 max-w-[620px] text-[13.5px] leading-[1.6] text-[#475467]">
         Real, per-organizer — how often this organizer is paid, and whether a holdback is reserved
         against refunds and disputes before the rest transfers.
       </p>
@@ -87,7 +87,7 @@ export function SettlementSettings({
               holdbackPercent: parsed,
             });
           }}
-          className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep h-auto rounded-[10px] px-6 py-3 text-sm font-bold disabled:opacity-45"
+          className="h-auto rounded-[10px] bg-[#146A47] px-6 py-3 text-sm font-bold text-white hover:bg-[#146A47] hover:text-white disabled:opacity-45"
         >
           {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
           {isPending ? 'Saving…' : 'Save'}

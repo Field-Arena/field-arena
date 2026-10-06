@@ -1,11 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
-import type {
-  HorseDirectoryRow,
-  RiderDirectoryRow,
-  VendorRow,
-} from '@/modules/operations/data/queries';
+import type { HorseDirectoryRow, RiderDirectoryRow, VendorRow } from '@/modules/operations/types';
 import { rowStyle, whereStyle, searchStyle } from '@/modules/operations/ui/directory-styles';
 
 export function FindPanel({

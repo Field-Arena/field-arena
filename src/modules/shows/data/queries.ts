@@ -1,43 +1,34 @@
 import 'server-only';
+import { parseFinalPct } from '../utils/parse-final-pct';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { formatMoney } from '@/shared/lib/format/currency';
+import { splitTicketClose } from '@/shared/lib/format/ticket-close';
+import { resolveTimeZone, zonedDateTimeToUtc } from '@/shared/lib/format/time-zone';
+import { collectibleFeeForEntry } from '@/modules/shows/utils/charged-class-fee';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { isStaleAccountError } from '@/shared/lib/stripe-errors';
 import { awardUnitsFor, type AwardClassInput } from '@/modules/shows/awards-engine';
 import { ribbonFor, type RibbonColor } from '@/modules/shows/constants';
-
-export interface ShowListItem {
-  id: string;
-  slug: string | null;
-  name: string;
-  dateLabel: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  status: string | null;
-  published: boolean;
-  venueName: string | null;
-}
-
-export interface ShowStats {
-  riders: number;
-  entries: number;
-  horses: number;
-  vendorSpaces: number;
-
-  testsOffered: number;
-
-  settledRevenue: number;
-
-  entryValue: number;
-}
-
-export interface InventoryRow {
-  name: string;
-  qty: number;
-  revenue: number;
-
-  settled: boolean;
-}
+import { rankPlacings } from '@/shared/lib/rank-placings';
+import type {
+  ActivityItem,
+  AttentionItem,
+  DashboardReadiness,
+  DashboardShowRow,
+  IncompleteShowSummary,
+  InventoryRow,
+  OrgBilling,
+  OrgPayoutRow,
+  RunShowData,
+  ShowListItem,
+  ShowManagerVitals,
+  ShowPickerSummary,
+  ShowResultRow,
+  ShowStats,
+  StripeConnectStatus,
+} from '@/modules/shows/types';
 
 export async function listShowsForOrg(orgId: string): Promise<ShowListItem[]> {
   const supabase = await createServerClient();
@@ -94,14 +85,17 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
     horse: string | null;
     horse_id: string | null;
     class_id: string;
+    order_id: string | null;
+    status: string | null;
   }[] = [];
   if (classIds.length > 0) {
-    const { data, error } = await supabase
-      .from('class_entries')
-      .select('rider, rider_id, horse, horse_id, class_id')
-      .in('class_id', classIds);
-    if (error) throw error;
-    entries = data;
+    entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('rider, rider_id, horse, horse_id, class_id, order_id, status')
+        .in('class_id', classIds)
+        .order('id'),
+    );
   }
 
   const [{ count: vendorCount }, { data: paidOrders, error: orderError }] = await Promise.all([
@@ -110,7 +104,11 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
       .select('id', { count: 'exact', head: true })
       .eq('show_id', showId)
       .eq('status', 'paid'),
-    supabase.from('orders').select('amount_total').eq('show_id', showId).eq('status', 'paid'),
+    supabase
+      .from('orders')
+      .select('id, status, amount_total, items')
+      .eq('show_id', showId)
+      .eq('status', 'paid'),
   ]);
   if (orderError) throw orderError;
 
@@ -120,6 +118,7 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
    * it only read the text column. rider_id/horse_id are the real identity;
    * the text is only needed as a fallback for manual/legacy entries that
    * were never linked to a real riders/horses row. */
+  const paidOrderById = new Map(paidOrders.map((o) => [o.id, o]));
   const riders = new Set(entries.map((e) => e.rider_id ?? e.rider).filter(Boolean));
   const horses = new Set(entries.map((e) => e.horse_id ?? e.horse).filter(Boolean));
 
@@ -130,7 +129,12 @@ export async function getShowStats(showId: string): Promise<ShowStats> {
     vendorSpaces: vendorCount ?? 0,
     testsOffered: classes.length,
     settledRevenue: paidOrders.reduce((sum, o) => sum + o.amount_total, 0),
-    entryValue: entries.reduce((sum, e) => sum + (feeByClass.get(e.class_id) ?? 0), 0),
+    // What was actually charged (paid order line) or, if unpaid, the current
+    // fee -- scratched entries aren't collectible.
+    entryValue: entries.reduce(
+      (sum, e) => sum + collectibleFeeForEntry(e, feeByClass.get(e.class_id) ?? 0, paidOrderById),
+      0,
+    ),
   };
 }
 
@@ -196,27 +200,106 @@ export async function getShowStage(showId: string): Promise<string> {
   return 'setup';
 }
 
-export interface ShowManagerVitals {
-  stats: ShowStats;
-  stage: string;
-}
-
 export async function getShowManagerVitals(showId: string): Promise<ShowManagerVitals> {
   const [stats, stage] = await Promise.all([getShowStats(showId), getShowStage(showId)]);
   return { stats, stage };
 }
 
-export interface RunShowData {
-  showId: string;
-  showSlug: string | null;
-  showName: string;
-  stage: string;
-  published: boolean;
-  publishedAt: string | null;
-  waiverApproved: boolean;
-  runner: { ticketClosed: boolean; approved: boolean };
-  stats: ShowStats;
-  classResults: { total: number; resultsPublished: number; scoringOpen: number };
+/* One batched pass across every show in the org — never N+1 per show. Stage
+ * mirrors getShowStage()'s rules; rider counts mirror getShowStats()'s
+ * rider_id-falls-back-to-rider identity rule, just grouped by show instead
+ * of computed for one. */
+export async function listDashboardShows(orgId: string): Promise<DashboardShowRow[]> {
+  const supabase = await createServerClient();
+
+  const { data: shows, error } = await supabase
+    .from('shows')
+    .select('id, slug, name, date_label, published, runner_state')
+    .eq('org_id', orgId)
+    .order('start_date', { ascending: false });
+  if (error) throw error;
+  if (shows.length === 0) return [];
+
+  const showIds = shows.map((s) => s.id);
+
+  const [{ data: classes, error: classError }, { data: publishedClasses, error: pubError }] =
+    await Promise.all([
+      supabase.from('classes').select('id, show_id').in('show_id', showIds),
+      supabase
+        .from('classes')
+        .select('show_id')
+        .in('show_id', showIds)
+        .eq('results_published', true),
+    ]);
+  if (classError) throw classError;
+  if (pubError) throw pubError;
+
+  const completeShowIds = new Set(publishedClasses.map((c) => c.show_id));
+  const showIdByClassId = new Map(classes.map((c) => [c.id, c.show_id]));
+  const classIds = classes.map((c) => c.id);
+
+  const ridersByShow = new Map<string, Set<string>>();
+  if (classIds.length > 0) {
+    const entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('rider, rider_id, class_id')
+        .in('class_id', classIds)
+        .order('id'),
+    );
+    for (const e of entries) {
+      const showId = showIdByClassId.get(e.class_id);
+      if (!showId) continue;
+      const key = e.rider_id ?? e.rider;
+      if (!key) continue;
+      const set = ridersByShow.get(showId) ?? new Set<string>();
+      set.add(key);
+      ridersByShow.set(showId, set);
+    }
+  }
+
+  return shows.map((show) => {
+    const runner = (show.runner_state ?? {}) as { approved?: boolean; ticketClosed?: boolean };
+    const stage = completeShowIds.has(show.id)
+      ? 'complete'
+      : runner.approved
+        ? 'live'
+        : runner.ticketClosed
+          ? 'sales-closed'
+          : show.published
+            ? 'sales-open'
+            : 'setup';
+
+    return {
+      id: show.id,
+      slug: show.slug,
+      name: show.name,
+      dateLabel: show.date_label,
+      stage,
+      riderCount: ridersByShow.get(show.id)?.size ?? 0,
+    };
+  });
+}
+
+export async function getDashboardReadiness(showId: string): Promise<DashboardReadiness> {
+  const supabase = await createServerClient();
+
+  const [{ data: show, error: showError }, { data: judges, error: judgeError }] = await Promise.all(
+    [
+      supabase.from('shows').select('runner_state').eq('id', showId).maybeSingle(),
+      supabase.from('staff_assignments').select('status').eq('show_id', showId).eq('role', 'Judge'),
+    ],
+  );
+  if (showError) throw showError;
+  if (judgeError) throw judgeError;
+
+  const runner = (show?.runner_state ?? {}) as { approved?: boolean };
+
+  return {
+    schedulePublished: runner.approved === true,
+    judgesTotal: judges.length,
+    judgesAccepted: judges.filter((j) => j.status === 'accepted').length,
+  };
 }
 
 export async function getRunShowData(showId: string): Promise<RunShowData | null> {
@@ -260,15 +343,6 @@ export async function getRunShowData(showId: string): Promise<RunShowData | null
   };
 }
 
-export interface IncompleteShowSummary {
-  id: string;
-  slug: string | null;
-  name: string;
-  dateLabel: string | null;
-  startDate: string | null;
-  venueName: string | null;
-}
-
 export async function listIncompleteShowsForOrg(orgId: string): Promise<IncompleteShowSummary[]> {
   const supabase = await createServerClient();
 
@@ -288,12 +362,6 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
     startDate: s.start_date,
     venueName: s.venue_name,
   }));
-}
-
-export interface ShowPickerSummary extends IncompleteShowSummary {
-  published: boolean;
-
-  stage: string;
 }
 
 export async function listShowsForPicker(orgId: string): Promise<ShowPickerSummary[]> {
@@ -361,18 +429,6 @@ export async function getOrgStripeAccountId(orgId: string): Promise<string | nul
   return data?.stripe_connect_account_id ?? null;
 }
 
-export interface StripeConnectStatus {
-  configured: boolean;
-  connected: boolean;
-  accountId: string | null;
-
-  status: 'not_started' | 'onboarding' | 'restricted' | 'active' | 'error';
-  chargesEnabled: boolean;
-  payoutsEnabled: boolean;
-
-  requirementsDue: string[];
-}
-
 export async function getStripeConnectStatus(orgId: string): Promise<StripeConnectStatus> {
   const base = {
     configured: isStripeConfigured(),
@@ -413,29 +469,6 @@ export async function getStripeConnectStatus(orgId: string): Promise<StripeConne
     }
     return { ...base, connected: true, accountId, status: 'error' };
   }
-}
-
-export interface OrgChargeRow {
-  id: string;
-
-  show: string;
-  date: string;
-  amount: number;
-
-  fee: number;
-}
-
-export interface OrgPayoutRow {
-  id: string;
-  date: string | null;
-  status: string;
-  amount: number;
-}
-
-export interface OrgBilling {
-  charges: OrgChargeRow[];
-
-  payouts: OrgPayoutRow[];
 }
 
 export async function getOrgBilling(orgId: string): Promise<OrgBilling> {
@@ -498,39 +531,11 @@ async function listStripePayouts(orgId: string): Promise<OrgPayoutRow[]> {
   }
 }
 
-export interface AttentionItem {
-  severity: 'warn' | 'info';
-  label: string;
-  detail: string;
-  actionLabel: string;
-  href: string;
-}
-
-function ticketCloseAt(value: string | null): number | null {
+function ticketCloseAt(value: string | null, tz: string): number | null {
   if (!value) return null;
-  const match = /^(\d{4}-\d{2}-\d{2})\s*·\s*(\d{2}:\d{2})$/.exec(value.trim());
-  if (!match) return null;
-  const time = new Date(`${match[1] ?? ''}T${match[2] ?? ''}:00`).getTime();
-  return Number.isNaN(time) ? null : time;
-}
-
-export interface ShowResultRow {
-  unitLabel: string;
-  pooled: boolean;
-  classId: string;
-  className: string;
-  division: string | null;
-  entryId: string;
-  num: string;
-  rider: string;
-  horse: string;
-  testName: string | null;
-  pct: number | null;
-  rank: number | null;
-  ribbonPlace: string | null;
-  ribbonName: string | null;
-  ribbonBg: string | null;
-  ribbonFg: string | null;
+  const { date, time: clock } = splitTicketClose(value);
+  if (!date) return null;
+  return zonedDateTimeToUtc(date, clock || '23:59', tz)?.getTime() ?? null;
 }
 
 function extractResultTestName(override: unknown): string | null {
@@ -539,48 +544,14 @@ function extractResultTestName(override: unknown): string | null {
   return typeof name === 'string' && name.trim() ? name : null;
 }
 
-function parseResultPct(raw: string | null): number | null {
-  if (raw === null || raw === 'SCR' || raw === 'ELIM') return null;
-  const n = Number(raw);
-  return Number.isNaN(n) ? null : n;
-}
+// Same rule as Awards: anything that isn't a real percentage is unplaced.
+const parseResultPct = parseFinalPct;
 
-/* Same "rank within test, not within the whole class" rule as
- * judging/utils/rank-placings.ts — a Test of Choice class puts riders on
- * different tests, so a percentage only means something compared against
- * others on the same test. Duplicated in miniature here rather than
- * importing across modules, since data/ in one module must not depend on
- * another module's internals. */
+/* Rank within test, not within the whole class — the shared placing rule. */
 function rankByTest(
   rows: { entryId: string; testName: string | null; pct: number | null; ctot: number | null }[],
 ): Map<string, number> {
-  const groups = new Map<string, typeof rows>();
-  for (const row of rows) {
-    if (row.pct === null) continue;
-    const key = row.testName ?? '';
-    const group = groups.get(key) ?? [];
-    group.push(row);
-    groups.set(key, group);
-  }
-  const ranks = new Map<string, number>();
-  for (const group of groups.values()) {
-    const sorted = [...group].sort((a, b) => {
-      if ((b.pct ?? 0) !== (a.pct ?? 0)) return (b.pct ?? 0) - (a.pct ?? 0);
-      if (a.ctot != null && b.ctot != null && a.ctot !== b.ctot) return b.ctot - a.ctot;
-      return 0;
-    });
-    let rank = 1;
-    sorted.forEach((row, i) => {
-      const prev = i > 0 ? sorted[i - 1] : null;
-      if (prev) {
-        const stillTied =
-          row.pct === prev.pct && (row.ctot == null || prev.ctot == null || row.ctot === prev.ctot);
-        if (!stillTied) rank = i + 1;
-      }
-      ranks.set(row.entryId, rank);
-    });
-  }
-  return ranks;
+  return new Map(rankPlacings(rows).map((r) => [r.entryId, r.rank]));
 }
 
 /* Every class's confirmed scores for the whole show, ranked per test within
@@ -606,12 +577,16 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
   if (classes.length === 0) return [];
 
   const classIds = classes.map((c) => c.id);
-  const { data: entries, error: entryError } = await supabase
-    .from('class_entries')
-    .select('id, class_id, num, rider, rider_id, horse, final_pct, collective_total, test_override')
-    .in('class_id', classIds)
-    .order('ride_order');
-  if (entryError) throw entryError;
+  const entries = await fetchAllRows(() =>
+    supabase
+      .from('class_entries')
+      .select(
+        'id, class_id, num, rider, rider_id, horse, final_pct, collective_total, test_override',
+      )
+      .in('class_id', classIds)
+      .order('ride_order')
+      .order('id'),
+  );
 
   // entry.rider is a denormalized text snapshot that can be blank for a real
   // account (nothing captures a rider's own first/last name at signup —
@@ -627,7 +602,9 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
 
   function resolveRiderName(e: { rider: string | null; rider_id: string | null }): string {
     const riderRow = e.rider_id ? riderById.get(e.rider_id) : undefined;
-    const fromAccount = riderRow ? [riderRow.first_name, riderRow.last_name].filter(Boolean).join(' ') : '';
+    const fromAccount = riderRow
+      ? [riderRow.first_name, riderRow.last_name].filter(Boolean).join(' ')
+      : '';
     return [fromAccount, e.rider, riderRow?.email].find((v) => v?.trim()) ?? '—';
   }
 
@@ -700,13 +677,12 @@ export async function getShowAttention(showId: string): Promise<AttentionItem[]>
   const supabase = await createServerClient();
 
   // Neither query depends on the other's result -- both only need showId.
-  const [
-    { data: show, error },
-    { data: classes, error: classesError },
-  ] = await Promise.all([
+  const [{ data: show, error }, { data: classes, error: classesError }] = await Promise.all([
     supabase
       .from('shows')
-      .select('id, name, published, ticket_close, runner_state, waiver_text, waiver_approved_text')
+      .select(
+        'id, name, published, ticket_close, timezone, runner_state, waiver_text, waiver_approved_text, organizations(timezone)',
+      )
       .eq('id', showId)
       .maybeSingle(),
     supabase.from('classes').select('id').eq('show_id', showId),
@@ -728,7 +704,13 @@ export async function getShowAttention(showId: string): Promise<AttentionItem[]>
     });
   }
 
-  const closeAt = ticketCloseAt(show.ticket_close);
+  const closeAt = ticketCloseAt(
+    show.ticket_close,
+    resolveTimeZone(
+      show.timezone,
+      (show.organizations as { timezone: string | null } | null)?.timezone,
+    ),
+  );
   if (closeAt !== null) {
     const days = Math.ceil((closeAt - Date.now()) / 86_400_000);
 
@@ -819,4 +801,116 @@ export async function getShowAttention(showId: string): Promise<AttentionItem[]>
   }
 
   return items;
+}
+
+/* The dashboard's "Recent activity" feed. There is no organizer-readable
+ * event log (audit_log is SuperAdmin-only), so the feed is assembled from the
+ * timestamps real rows already carry: orders placed, staff added, schedule
+ * changes, and results published. */
+export async function getShowActivity(showId: string, limit = 5): Promise<ActivityItem[]> {
+  const supabase = await createServerClient();
+
+  const [orders, staff, classes] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('created_at, amount_total, status')
+      .eq('show_id', showId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase
+      .from('staff_assignments')
+      .select('created_at, name, first_name, last_name, role, status')
+      .eq('show_id', showId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase
+      .from('classes')
+      .select('display_name, label, arena, schedule_updated_at, results_published_at')
+      .eq('show_id', showId),
+  ]);
+  if (orders.error) throw orders.error;
+  if (staff.error) throw staff.error;
+  if (classes.error) throw classes.error;
+
+  const items: ActivityItem[] = [];
+
+  for (const o of orders.data) {
+    if (!o.created_at) continue;
+    const paid = o.status === 'paid';
+    items.push({
+      at: o.created_at,
+      title: `${paid ? 'Paid order' : 'New order'} · ${formatMoney(o.amount_total)}`,
+      tone: 'brand',
+    });
+  }
+
+  for (const s of staff.data) {
+    const name = s.name || [s.first_name, s.last_name].filter(Boolean).join(' ') || 'Staff';
+    items.push({
+      at: s.created_at,
+      title: s.status === 'accepted' ? `${s.role} ${name} confirmed` : `${s.role} ${name} invited`,
+      tone: 'violet',
+    });
+  }
+
+  // One row per ring for schedule changes (a rebuild touches every class in
+  // it), one per class for published results.
+  const latestByRing = new Map<string, string>();
+  for (const c of classes.data) {
+    if (c.schedule_updated_at) {
+      const ring = c.arena ?? 'Schedule';
+      const prev = latestByRing.get(ring);
+      if (!prev || prev < c.schedule_updated_at) latestByRing.set(ring, c.schedule_updated_at);
+    }
+    if (c.results_published_at) {
+      items.push({
+        at: c.results_published_at,
+        title: `Results published · ${c.display_name ?? c.label}`,
+        tone: 'amber',
+      });
+    }
+  }
+  for (const [ring, at] of latestByRing) {
+    items.push({ at, title: `Schedule updated · ${ring}`, tone: 'sky' });
+  }
+
+  return items.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, limit);
+}
+
+/** A show's display name, or null when missing / not visible to the caller. */
+export async function getShowName(showId: string): Promise<string | null> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('shows')
+    .select('name')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.name ?? null;
+}
+
+/** Ring names from a show's `locations` (falling back to "Ring N"). */
+export async function getShowRingNames(showId: string): Promise<string[]> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('shows')
+    .select('locations')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  return ((data?.locations ?? []) as { name?: string; num?: number }[])
+    .map((loc) => loc.name ?? (loc.num ? `Ring ${String(loc.num)}` : null))
+    .filter((name): name is string => !!name);
+}
+
+/** The raw `stable_chart` JSON; callers run it through normalizeStableChart. */
+export async function getShowStableChartRaw(showId: string): Promise<unknown> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('shows')
+    .select('stable_chart')
+    .eq('id', showId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.stable_chart ?? null;
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { listMyBookings } from '@/modules/vendors/data/queries';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { formatMoney } from '@/shared/lib/format/currency';
 
 export const metadata: Metadata = { title: 'History — Field & Arena' };

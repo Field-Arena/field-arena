@@ -10,6 +10,10 @@ import {
   addQualTypePreset,
   createTocClass,
   removeCatalogGroup,
+  removeTestClasses,
+  setTestDivision,
+  setTestQualifying,
+  updateTestFee,
   updateGroupLocation,
   updateGroupDivision,
   updateTicketWindow,
@@ -19,6 +23,10 @@ import type {
   AddCustomClassInput,
   AddQualTypePresetInput,
   CreateTocClassInput,
+  RemoveTestClassesInput,
+  SetTestDivisionInput,
+  SetTestQualifyingInput,
+  UpdateTestFeeInput,
   UpdateGroupLocationInput,
   UpdateGroupDivisionInput,
   UpdateTicketWindowInput,
@@ -148,6 +156,64 @@ export function useAddQualTypePreset() {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not add the qualifying type'));
+    },
+  });
+}
+
+// ── Offered classes table (per-test) ────────────────────────────────────
+// Quiet on success — these are inline edits the row already reflects — and
+// loud on failure, which is usually the entries guard.
+
+export function useSetTestDivision() {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: (input: SetTestDivisionInput) => setTestDivision(input),
+    onSuccess: () => {
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not change the division'));
+    },
+  });
+}
+
+export function useUpdateTestFee() {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: (input: UpdateTestFeeInput) => updateTestFee(input),
+    onSuccess: () => {
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not save the price'));
+    },
+  });
+}
+
+export function useSetTestQualifying() {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: (input: SetTestQualifyingInput) => setTestQualifying(input),
+    onSuccess: () => {
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not update qualifying'));
+    },
+  });
+}
+
+export function useRemoveTestClasses() {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: (input: RemoveTestClassesInput & { name: string }) =>
+      removeTestClasses({ showId: input.showId, classIds: input.classIds }),
+    onSuccess: (_data, { name }) => {
+      toast.success(`${name} removed`);
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not remove this test'));
     },
   });
 }

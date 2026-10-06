@@ -139,8 +139,8 @@ export function SheetDetailsForm({
             ))}
           </select>
           {sourceFile && (
-            <p className="mt-1.5 text-[12px] text-[#8A8275]">
-              Source doc: <code className="text-[#16261F]">{sourceFile}</code>
+            <p className="mt-1.5 text-[12px] text-[#8A94A3]">
+              Source doc: <code className="text-[#101828]">{sourceFile}</code>
             </p>
           )}
         </div>

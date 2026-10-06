@@ -26,24 +26,24 @@ export function SheetWeightedEditor({
         <h2 className={H2}>Categories</h2>
         <span
           className="text-[12.5px] font-bold"
-          style={{ color: balanced ? '#2E7048' : '#8A6D14' }}
+          style={{ color: balanced ? '#15794F' : '#B45309' }}
         >
           {totalWeight} / 100
           {!balanced && def.categories.length > 0 && ' — weights don’t total 100'}
         </span>
       </div>
-      <p className="mb-4 text-[12.5px] text-[#8A8275]">
+      <p className="mb-4 text-[12.5px] text-[#8A94A3]">
         Each section carries a weight; the weighted marks sum toward 100.
       </p>
 
       <div className="mb-3.5 flex flex-col gap-2.5">
         {def.categories.length === 0 && (
-          <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+          <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
         )}
         {def.categories.map((row, i) => (
           <div
             key={i}
-            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
           >
             <Input
               value={row.name}

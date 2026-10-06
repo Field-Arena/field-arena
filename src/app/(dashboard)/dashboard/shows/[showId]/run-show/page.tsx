@@ -3,7 +3,7 @@ import { getRunShowData } from '@/modules/shows/data/queries';
 import { getTicketWindowData } from '@/modules/shows/data/setup-queries';
 import { RunShowCard } from '@/modules/shows/ui/show-manager/run-show-card';
 import { TicketWindowCard } from '@/modules/shows/ui/show-manager/ticket-window-card';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 
 export const metadata: Metadata = { title: 'Run Show — Field & Arena' };

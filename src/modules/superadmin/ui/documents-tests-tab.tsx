@@ -29,10 +29,10 @@ import { RowUpload } from '@/modules/superadmin/ui/documents-tests-row-upload';
 import { BulkDrop } from '@/modules/superadmin/ui/documents-tests-bulk-drop';
 
 const HEAD =
-  'bg-[#F6F0E2] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[0.14em] text-fa-muted-2';
+  'bg-[#FBFCFD] px-5 py-[11px] text-[10px] font-bold uppercase tracking-[.08em] text-[#8A94A3]';
 const LINK =
-  'text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px] hover:text-gold';
-const DEL = 'text-[13px] font-bold text-[#B4432F] hover:text-[#8E3627]';
+  'text-[13px] font-semibold text-[#101828] underline underline-offset-[3px] hover:text-[#146A47]';
+const DEL = 'text-[13px] font-bold text-[#B42318] hover:text-[#B42318]';
 
 export function DocumentsTestsTab({
   testSheets,
@@ -95,7 +95,7 @@ export function DocumentsTestsTab({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[13.5px] text-[#5A6B63]">
+        <span className="text-[13.5px] text-[#475467]">
           {uploadedCount} of {testSheets.length} official test sheet
           {testSheets.length === 1 ? '' : 's'} uploaded.
         </span>
@@ -105,16 +105,16 @@ export function DocumentsTestsTab({
           onClick={() => {
             setOnlyMissing((v) => !v);
           }}
-          className="inline-flex h-auto items-center gap-2.5 px-0 py-0 text-[13.5px] text-[#16261F] hover:bg-transparent"
+          className="inline-flex h-auto items-center gap-2.5 px-0 py-0 text-[13.5px] text-[#101828] hover:bg-transparent"
         >
           <span
             className="grid size-[17px] place-items-center rounded border"
             style={{
-              borderColor: onlyMissing ? '#0D2C23' : '#C7D6CE',
-              background: onlyMissing ? '#0D2C23' : '#FFFFFF',
+              borderColor: onlyMissing ? '#101828' : '#D0D5DD',
+              background: onlyMissing ? '#101828' : '#FFFFFF',
             }}
           >
-            {onlyMissing && <CheckIcon className="text-gold size-3" aria-hidden />}
+            {onlyMissing && <CheckIcon className="size-3 text-[#146A47]" aria-hidden />}
           </span>
           Show only missing
         </Button>
@@ -127,12 +127,12 @@ export function DocumentsTestsTab({
         }}
       />
       {bulkSummary && (
-        <p className="text-fa-muted text-[13px]" role="status">
+        <p className="text-[13px] text-[#475467]" role="status">
           {bulkSummary}
         </p>
       )}
 
-      <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
+      <div className="overflow-hidden rounded-[14px] border border-[#E7EAEE] bg-white">
         <Table className="min-w-[900px] border-collapse">
           <TableHeader className="[&_tr]:border-0">
             <TableRow className="border-b-0 hover:bg-transparent">
@@ -147,7 +147,7 @@ export function DocumentsTestsTab({
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={4}
-                  className="text-fa-muted-2 px-5 py-[42px] text-center text-[13.5px] whitespace-normal"
+                  className="px-5 py-[42px] text-center text-[13.5px] whitespace-normal text-[#8A94A3]"
                 >
                   {onlyMissing ? 'Every test sheet has a file. 🎉' : 'No test sheets yet.'}
                 </TableCell>
@@ -158,19 +158,19 @@ export function DocumentsTestsTab({
                 return (
                   <TableRow
                     key={sheet.id}
-                    className="border-b border-[#EEF2EF] last:border-b-0 hover:bg-transparent"
-                    style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
+                    className="border-b border-[#EEF1F4] last:border-b-0 hover:bg-transparent"
+                    style={{ background: i % 2 ? '#FBFCFD' : '#FFFFFF' }}
                   >
-                    <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#16261F]">
+                    <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#101828]">
                       {sheet.title}
                       {!sheet.hasDeclaredSourceFile && (
-                        <span className="text-fa-muted-2 mt-0.5 block text-[11.5px]">
+                        <span className="mt-0.5 block text-[11.5px] text-[#8A94A3]">
                           No source filename set — an upload here is stored as{' '}
                           <code>{sheet.sourceFile}</code>
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
+                    <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#475467]">
                       {sheet.level ?? '—'}
                     </TableCell>
                     <TableCell className="px-4 py-3">
@@ -220,10 +220,10 @@ export function DocumentsTestsTab({
 
       {unmatched.length > 0 && (
         <div className="space-y-3">
-          <h2 className="font-[family-name:var(--font-nr)] text-[20px] font-semibold text-[#16261F]">
+          <h2 className="font-[family-name:var(--font-nr)] text-[20px] font-semibold text-[#101828]">
             Unmatched uploads ({unmatched.length})
           </h2>
-          <p className="max-w-[900px] text-[13.5px] leading-[1.6] text-[#5A6B63]">
+          <p className="max-w-[900px] text-[13.5px] leading-[1.6] text-[#475467]">
             These uploaded fine, but their filename didn&apos;t match any test in the Scoring
             Catalog, so they won&apos;t show a file against one there. If a file genuinely
             isn&apos;t a test — a waiver, glossary, agreement — move it to the Documents folder
@@ -243,7 +243,7 @@ export function DocumentsTestsTab({
                     rematchable.map(({ doc, hit }) => ({ id: doc.id, name: hit.sourceFile })),
                   );
                 }}
-                className="text-hunter-deep hover:border-gold h-auto rounded-lg border border-[#C4D3CB] bg-white px-3.5 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+                className="h-auto rounded-lg border border-[#D0D5DD] bg-white px-3.5 py-2 text-[12.5px] font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
               >
                 {rematch.isPending
                   ? 'Matching…'
@@ -261,7 +261,7 @@ export function DocumentsTestsTab({
                     folder: 'Documents',
                   });
                 }}
-                className="text-hunter-deep hover:border-gold h-auto rounded-lg border border-[#C4D3CB] bg-white px-3.5 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+                className="h-auto rounded-lg border border-[#D0D5DD] bg-white px-3.5 py-2 text-[12.5px] font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
               >
                 {moveMany.isPending
                   ? 'Moving…'
@@ -269,7 +269,7 @@ export function DocumentsTestsTab({
               </Button>
             )}
           </div>
-          <div className="overflow-hidden rounded-[14px] border border-[#E2E8E4] bg-white">
+          <div className="overflow-hidden rounded-[14px] border border-[#E7EAEE] bg-white">
             <Table className="min-w-[720px] border-collapse">
               <TableHeader className="[&_tr]:border-0">
                 <TableRow className="border-b-0 hover:bg-transparent">
@@ -286,22 +286,22 @@ export function DocumentsTestsTab({
                 {unmatched.map((d, i) => (
                   <TableRow
                     key={d.id}
-                    className="border-b border-[#EEF2EF] last:border-b-0 hover:bg-transparent"
-                    style={{ background: i % 2 ? '#FBF7EC' : '#FFFFFF' }}
+                    className="border-b border-[#EEF1F4] last:border-b-0 hover:bg-transparent"
+                    style={{ background: i % 2 ? '#FBFCFD' : '#FFFFFF' }}
                   >
-                    <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#16261F]">
+                    <TableCell className="px-5 py-3 text-[14px] whitespace-normal text-[#101828]">
                       {d.name}
                       {(() => {
                         const hit = findCatalogMatch(d.name, testSheets);
                         if (!hit) return null;
                         return (
-                          <span className="ml-2 inline-flex h-[19px] items-center rounded-full bg-[#E6F1EA] px-2 text-[10.5px] font-bold text-[#2E7048]">
+                          <span className="ml-2 inline-flex h-[19px] items-center rounded-full bg-[#E7F6EE] px-2 text-[10.5px] font-bold text-[#15794F]">
                             Now matches {hit.title}
                           </span>
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#5A6B63]">
+                    <TableCell className="px-4 py-3 text-[13.5px] whitespace-nowrap text-[#475467]">
                       {formatTimestamp(d.createdAt)}
                     </TableCell>
                     <TableCell className="px-5 py-3">
@@ -314,7 +314,7 @@ export function DocumentsTestsTab({
                         <Button
                           type="button"
                           variant="ghost"
-                          className="hover:text-gold h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
+                          className="h-auto px-0 py-0 text-[13px] font-semibold text-[#475467] hover:bg-transparent hover:text-[#146A47]"
                           onClick={() => {
                             move.mutate({ id: d.id, folder: 'Documents' });
                           }}

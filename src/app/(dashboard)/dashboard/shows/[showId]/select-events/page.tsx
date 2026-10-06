@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getSelectEventsData } from '@/modules/shows/data/setup-queries';
 import { SelectEventsPicker } from '@/modules/shows/ui/show-manager/select-events-picker';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 
 export const metadata: Metadata = { title: 'Select Events — Field & Arena' };

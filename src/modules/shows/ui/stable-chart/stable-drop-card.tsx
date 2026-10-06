@@ -6,7 +6,7 @@ import { fa } from '@/shared/lib/organizer-theme';
 import { splitStallsIntoRows } from '@/modules/shows/utils/split-stalls-into-rows';
 import { buildStableDropId } from '@/modules/shows/utils/stall-dnd-id';
 import { StallBox } from '@/modules/shows/ui/stable-chart/stall-box';
-import type { StableChartStable } from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStable } from '@/modules/shows/types';
 
 // Wraps one stable's card as a drop target for a whole Stabling Group
 // dragged from the sidebar, in addition to the individual StallBoxes inside
@@ -29,7 +29,7 @@ export function StableDropCard({
         className="mb-4 p-[18px_20px_20px]"
         style={isOver ? { outline: `2px dashed ${fa.gold}`, outlineOffset: 2 } : undefined}
       >
-        <div className="mb-3 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
+        <div className="mb-3 text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
           {stable.name} — {stable.stalls.length} stalls
         </div>
         {rows.map((rowStalls, i) => (

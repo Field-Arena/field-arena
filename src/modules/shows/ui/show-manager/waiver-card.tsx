@@ -12,7 +12,8 @@ import {
   useUploadWaiverDocument,
   useRemoveWaiverDocument,
 } from '@/modules/shows/hooks/use-show-mutations';
-import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
+import { SM_CARD_PAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
+import { SmHead } from './sm-head';
 
 export function WaiverCard({
   showId,
@@ -47,7 +48,11 @@ export function WaiverCard({
 
   return (
     <Card className={SM_CARD_PAD}>
-      <h2 className={SM_SECTION_HEAD}>Waiver of Liability</h2>
+      <SmHead
+        icon="waiver"
+        title="Waiver of liability"
+        sub="What riders read and sign before entering"
+      />
       <p className={SM_NOTE}>
         The text riders must scroll through and sign before entering. Use {'{{SHOW_NAME}}'},{' '}
         {'{{SHOW_DATES}}'}, and {'{{ORGANIZER_NAME}}'} as placeholders — they&rsquo;re filled in
@@ -66,7 +71,7 @@ export function WaiverCard({
               href={waiverDocumentUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-forest text-[13px] font-semibold underline underline-offset-2"
+              className="text-[13px] font-semibold text-[#101828] underline underline-offset-2"
             >
               {waiverDocumentName}
             </a>
@@ -81,7 +86,7 @@ export function WaiverCard({
             </GhostButton>
           </>
         ) : (
-          <span className="text-[13px] text-[#7A8781] italic">None uploaded yet</span>
+          <span className="text-[13px] text-[#8A94A3] italic">None uploaded yet</span>
         )}
         <input
           ref={fileInputRef}
@@ -107,13 +112,13 @@ export function WaiverCard({
       </div>
       <p className={SM_NOTE + ' mb-4'}>
         Can&rsquo;t paste a long formatted document (like a USEF form) into the text box below and
-        keep it readable? Upload a PDF, Word (.docx), or .txt file instead — its text fills the
-        box below automatically, and riders will also see a link to the original file alongside
-        the typed text when they sign. A scanned or photographed document has no text to pull
-        from, so it will attach but won&rsquo;t fill the box.
+        keep it readable? Upload a PDF, Word (.docx), or .txt file instead — its text fills the box
+        below automatically, and riders will also see a link to the original file alongside the
+        typed text when they sign. A scanned or photographed document has no text to pull from, so
+        it will attach but won&rsquo;t fill the box.
       </p>
 
-      <div className={`mb-3 text-sm ${approved ? 'text-[#2E7048]' : 'text-status-danger'}`}>
+      <div className={`mb-3 text-sm ${approved ? 'text-[#15794F]' : 'text-status-danger'}`}>
         {approved ? 'Approved' : 'Not yet approved — required before Go Live'}
       </div>
 
@@ -121,7 +126,7 @@ export function WaiverCard({
         value={text}
         rows={8}
         spellCheck={false}
-        className="text-ink-deep focus-visible:border-gold w-full resize-y rounded-[6px] border border-[#AEB8B3] bg-white px-3.5 py-3 font-sans text-[13px] leading-[1.6] outline-none"
+        className="w-full resize-y rounded-[6px] border border-[#D0D5DD] bg-white px-3.5 py-3 font-sans text-[13px] leading-[1.6] text-[#101828] outline-none focus-visible:border-[#9FD3BA]"
         onChange={(e) => {
           setText(e.target.value);
         }}
@@ -146,7 +151,7 @@ export function WaiverCard({
           {approving ? 'Approving…' : 'Approve this waiver'}
         </GhostButton>
         {approved && (
-          <span className="inline-flex items-center gap-[7px] text-[13.5px] font-semibold text-[#1A5B3C]">
+          <span className="inline-flex items-center gap-[7px] text-[13.5px] font-semibold text-[#146A47]">
             <IconCheck size={15} strokeWidth={2.6} />
             Saved
           </span>

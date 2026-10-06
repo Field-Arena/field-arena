@@ -19,12 +19,12 @@ export function SheetCollectivesEditor({
       <h2 className={`${H2} mb-4`}>Collective marks</h2>
       <div className="mb-3.5 flex flex-col gap-2.5">
         {def.collectives.length === 0 && (
-          <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+          <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
         )}
         {def.collectives.map((cm, i) => (
           <div
             key={i}
-            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
           >
             <Input
               value={cm.name}

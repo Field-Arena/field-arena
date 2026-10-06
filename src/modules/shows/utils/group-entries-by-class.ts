@@ -1,4 +1,4 @@
-import type { EntryListRow } from '@/modules/shows/data/setup-queries';
+import type { EntryListRow } from '@/modules/shows/types';
 
 export function groupEntriesByClass(
   entries: EntryListRow[],

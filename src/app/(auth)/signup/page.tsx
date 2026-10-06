@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AuthShell } from '@/modules/auth/ui/auth-shell';
 import { SignUpForm } from '@/modules/auth/ui/signup-form';
-import { getRiderProfile, getStaffProfile } from '@/modules/auth/data/queries';
+import { getRiderProfile, getStaffProfile } from '@/shared/lib/auth/session';
 import { ROUTES } from '@/shared/constants/routes';
 
 export const metadata: Metadata = {

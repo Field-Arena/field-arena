@@ -2,12 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
-import { Button } from '@/shared/ui/shadcn/button';
-import type { ShowPickerSummary } from '@/modules/shows/data/queries';
-import type { ShowCompleteness } from '@/modules/shows/data/setup-queries';
+import type { ShowCompleteness, ShowPickerSummary } from '@/modules/shows/types';
 import { MissingSectionsDialog } from '@/modules/shows/ui/incomplete/missing-sections-dialog';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 import { DeleteShowButton } from '@/modules/shows/ui/show-manager/delete-show-button';
@@ -22,95 +19,114 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
   const openRow = rows.find((r) => r.show.id === openShowId);
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <ScreenTitle>Show Manager</ScreenTitle>
-      <ScreenLede>Set up, schedule, and run your show — start to finish.</ScreenLede>
-
-      <div className="mb-[18px] flex flex-wrap items-center gap-5 rounded-xl border border-[#E7E0D0] bg-[#F8F5EC] px-5 py-[18px]">
-        <div className="min-w-0">
-          <div className="mb-[5px] font-[Newsreader,serif] text-[19px] font-semibold text-[#0D2C23]">
-            Pick a show
-          </div>
-          <div className="text-[13px] text-[#7A6A5C]">
-            Everything for one show at a time — setup, schedule, and running it live.
-          </div>
+    <section>
+      <div className="fa-page-head">
+        <div>
+          <h2>All shows</h2>
+          <p>
+            Every show {orgName} runs — open one to set it up, schedule it, and run it. Show Manager
+            works on one show at a time.
+          </p>
         </div>
-        <NewShowButton className="ml-auto" />
+        <div className="fa-head-actions">
+          <NewShowButton variant="primary" />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2.5">
-        {rows.map(({ show, completeness }) => {
-          const complete = completeness.complete;
-
-          return (
-            <div
-              key={show.id}
-              className="grid [grid-template-columns:minmax(0,1fr)_auto] items-center gap-[18px] rounded-[10px] border-[1.5px] bg-[#FAF6EC] px-[18px] py-[15px]"
-              style={{
-                borderColor: show.published ? '#E9EDEB' : '#B4432F',
-                borderLeft: show.published ? '4px solid #2E7048' : '1.5px solid #B4432F',
-              }}
-            >
-              <div className="min-w-0">
-                <div className="mb-1 font-[Newsreader,serif] text-[17px] font-semibold text-[#0D2C23]">
-                  {show.name}
-                </div>
-                <div className="text-[12.5px] text-[#7A6A5C]">
-                  {show.dateLabel ??
-                    (show.startDate ? formatDateShort(show.startDate) : 'Dates TBD')}
-                  {show.venueName ? ` · ${show.venueName}` : ''}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {!complete && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setOpenShowId(show.id);
-                    }}
-                    className="flex h-auto cursor-pointer flex-col items-end gap-[3px] border-0 bg-transparent p-0 hover:bg-transparent"
-                  >
-                    <span className="rounded-full bg-[#B4432F] px-[11px] py-1 text-[10px] font-extrabold tracking-[.1em] text-[#FBF7EE]">
-                      INCOMPLETE
-                    </span>
-                    <span className="text-[11px] text-[#7A6A5C] italic">
-                      Click to see what&rsquo;s missing
-                    </span>
-                  </Button>
-                )}
-
-                {show.published ? (
-                  <Link
-                    href={`/dashboard/shows/${show.slug ?? show.id}/run-show`}
-                    prefetch={false}
-                    className="inline-flex items-center gap-[7px] rounded-full border border-[#B9D8C0] bg-[#E3F0E5] px-[15px] py-2 text-[13px] font-bold whitespace-nowrap text-[#2E7048]"
-                  >
-                    <span className="size-[7px] rounded-full bg-[#2E7048]" />
-                    {SHOW_STAGES.find((s) => s.key === show.stage)?.label ?? 'Live'}
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href={`/dashboard/shows/${show.slug ?? show.id}`}
-                      prefetch={false}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#E4B5AC] bg-[#FDF0EE] px-[17px] py-[9px] text-[13px] font-bold whitespace-nowrap text-[#16261F] transition-colors hover:border-[#B4432F]"
-                    >
-                      <span className="size-1.5 rounded-full bg-[#B4432F]" />
-                      Setup
-                    </Link>
-                    <DeleteShowButton showId={show.id} showName={show.name} />
-                  </>
-                )}
-              </div>
+      <div className="fa-card">
+        <div className="fa-card-head">
+          <div>
+            <h3>Your shows</h3>
+            <div className="fa-sub">
+              {rows.length} show{rows.length === 1 ? '' : 's'} · pick one to open it
             </div>
-          );
-        })}
+          </div>
+        </div>
 
-        {rows.length === 0 && (
-          <div className="rounded-[10px] border border-dashed border-[#DCE6E0] p-[26px] text-center text-[13.5px] text-[#7A8781]">
-            No shows yet — create one to get started. {orgName} has nothing scheduled.
+        {rows.length === 0 ? (
+          <p className="px-5 py-8 text-center text-[13.5px] text-[var(--fa-ink-3)]">
+            No shows yet — create one to get started.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="fa-table min-w-[720px]">
+              <thead>
+                <tr>
+                  <th>Show</th>
+                  <th>Stage</th>
+                  <th>Setup</th>
+                  <th aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ show, completeness }) => {
+                  const ref = show.slug ?? show.id;
+                  const stage = SHOW_STAGES.find((st) => st.key === show.stage)?.label ?? 'Setup';
+                  return (
+                    <tr key={show.id}>
+                      <td>
+                        <Link
+                          href={`/dashboard/shows/${ref}`}
+                          prefetch={false}
+                          className="fa-show-name no-underline hover:text-[var(--fa-brand)]"
+                        >
+                          {show.name}
+                        </Link>
+                        <div className="fa-org-loc">
+                          {show.dateLabel ??
+                            (show.startDate ? formatDateShort(show.startDate) : 'Dates TBD')}
+                          {show.venueName ? ` · ${show.venueName}` : ''}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`fa-badge ${show.published ? 'fa-live' : 'fa-stub'}`}>
+                          <span className="fa-dot" />
+                          {show.published ? stage : 'Draft'}
+                        </span>
+                      </td>
+                      <td>
+                        {completeness.complete ? (
+                          <span className="fa-badge fa-onboard">
+                            <span className="fa-dot" />
+                            Complete
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="fa-badge fa-pending cursor-pointer border-0"
+                            title="See what's missing"
+                            onClick={() => {
+                              setOpenShowId(show.id);
+                            }}
+                          >
+                            <span className="fa-dot" />
+                            Incomplete · see what&rsquo;s missing
+                          </button>
+                        )}
+                      </td>
+                      <td>
+                        <div className="fa-row-actions items-center">
+                          <Link
+                            href={
+                              show.published
+                                ? `/dashboard/shows/${ref}/run-show`
+                                : `/dashboard/shows/${ref}`
+                            }
+                            prefetch={false}
+                            className="fa-act fa-enter"
+                          >
+                            {show.published ? 'Run show →' : 'Set up →'}
+                          </Link>
+                          {!show.published && (
+                            <DeleteShowButton showId={show.id} showName={show.name} />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -125,6 +141,6 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
           }}
         />
       )}
-    </div>
+    </section>
   );
 }

@@ -37,31 +37,33 @@ export function StatCard({
     <Comp
       {...(hasOnClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
-        'flex flex-col items-start gap-3 px-[18px] pt-[17px] pb-[18px] text-left',
-        'rounded-[14px] border border-[#EDF0EE] bg-white',
-        'shadow-[0_1px_2px_rgba(16,40,32,.04),0_10px_26px_-16px_rgba(16,40,32,.14)]',
+        'flex flex-col items-start px-[17px] pt-[17px] pb-[15px] text-left',
+        'rounded-[14px] border border-[#E7EAEE] bg-white',
+        'shadow-[0_1px_2px_rgba(16,24,40,.05)]',
         'transition-[box-shadow,transform] duration-150 ease-out',
         interactive
-          ? 'cursor-pointer hover:-translate-y-px hover:shadow-[0_2px_4px_rgba(16,40,32,.05),0_16px_34px_-18px_rgba(16,40,32,.2)]'
+          ? 'cursor-pointer hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(16,24,40,.08)]'
           : 'cursor-default',
       )}
     >
       <span
-        className="inline-grid size-9 place-items-center rounded-[11px]"
+        className="mb-[13px] inline-grid size-[34px] place-items-center rounded-[9px]"
         style={{ background: tintBg, color: tintFg }}
       >
         {icon}
       </span>
       <span
         className={cn(
-          'text-[31px] leading-none font-bold tracking-[-.028em] text-[#16261F]',
+          'text-[26px] leading-none font-bold tracking-[-1px] text-[#101828] tabular-nums',
           valueClassName,
         )}
       >
         {value}
       </span>
-      <Eyebrow>{label}</Eyebrow>
-      {note ? <span className={cn('text-xs text-[#98A29D]', noteClassName)}>{note}</span> : null}
+      <Eyebrow className="mt-[7px]">{label}</Eyebrow>
+      {note ? (
+        <span className={cn('mt-1.5 text-[11.5px] text-[#8A94A3]', noteClassName)}>{note}</span>
+      ) : null}
     </Comp>
   );
 }

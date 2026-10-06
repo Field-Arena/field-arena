@@ -44,6 +44,7 @@ export function DemoDialog({
       discipline: 'Dressage',
       volume: '4–10',
       notes: '',
+      hpCompanyUrl: '',
     },
   });
 
@@ -218,6 +219,16 @@ export function DemoDialog({
                   {...form.register('notes')}
                 />
               </div>
+
+              {/* Honeypot: off-screen and skipped by keyboard and screen readers. */}
+              <input
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute -left-[9999px] size-px opacity-0"
+                {...form.register('hpCompanyUrl')}
+              />
 
               {request.error && (
                 <p

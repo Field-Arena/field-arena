@@ -2,8 +2,8 @@
 import { Fragment, useMemo, useState } from 'react';
 import { formatShowDate } from '@/shared/lib/format/date';
 import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import type { ScheduleClass } from '@/modules/operations/data/queries';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
+import type { ScheduleClass } from '@/modules/operations/types';
 import { classStatusLabel } from '@/modules/operations/utils/class-status-label';
 import { fmtTimeLabel } from '@/modules/operations/utils/fmt-time-label';
 import { ClassResultsBlock } from '@/modules/operations/ui/class-results-block';

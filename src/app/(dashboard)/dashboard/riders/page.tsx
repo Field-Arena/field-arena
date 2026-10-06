@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowRiders } from '@/modules/shows/data/setup-queries';
-import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
 import { RidersListScreen } from '@/modules/shows/ui/lists/riders-list-screen';
 
 export const metadata: Metadata = { title: 'Riders — Field & Arena' };

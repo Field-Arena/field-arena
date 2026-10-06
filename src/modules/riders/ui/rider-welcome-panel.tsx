@@ -7,8 +7,7 @@ import {
   LEGACY_GEORGIA,
   legacyButtonGhostStyle,
 } from '@/modules/riders/ui/legacy-theme';
-import type { RiderRow } from '@/modules/riders/types';
-import type { RiderShowLink } from '@/modules/riders/data/queries';
+import type { RiderRow, RiderShowLink } from '@/modules/riders/types';
 
 export function RiderWelcomePanel({ rider, shows }: { rider: RiderRow; shows: RiderShowLink[] }) {
   const signOut = useSignOutRider();

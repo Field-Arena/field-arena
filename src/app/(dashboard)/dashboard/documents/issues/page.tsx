@@ -3,7 +3,7 @@ import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getIssuesPageData } from '@/modules/shows/data/entry-issues-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { IssuesScreen } from '@/modules/shows/ui/filing-cabinet/issues-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Issues — Field & Arena' };
 

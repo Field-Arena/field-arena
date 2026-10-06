@@ -1,35 +1,12 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { assertCanManageEntryLedger, reconcileShowEntries } from '@/modules/shows/data/entry-numbering';
+import {
+  assertCanManageEntryLedger,
+  reconcileShowEntries,
+} from '@/modules/shows/data/entry-numbering';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
 import { REJECTION_REASON_LABELS, MEMBERSHIP_FLAG_LABELS } from '@/modules/shows/constants';
-import type { ENTRY_ISSUE_KINDS } from '@/modules/shows/constants';
-
-export type EntryIssueKind = (typeof ENTRY_ISSUE_KINDS)[number];
-
-export interface EntryIssueRow {
-  id: string;
-  showEntryId: string;
-  entryNumber: string;
-  bridleNumber: string;
-  riderName: string;
-  horseName: string;
-  kind: EntryIssueKind;
-  message: string;
-  detail: string | null;
-  status: 'open' | 'resolved';
-  source: 'auto' | 'manual';
-  createdAt: string;
-  resolvedAt: string | null;
-  resolutionNote: string | null;
-}
-
-export interface IssuesPageData {
-  showId: string;
-  showName: string;
-  issues: EntryIssueRow[];
-  entries: { id: string; label: string }[];
-}
+import type { EntryIssueKind, EntryIssueRow, IssuesPageData } from '@/modules/shows/types';
 
 interface Candidate {
   showEntryId: string;
@@ -112,7 +89,8 @@ export async function getIssuesPageData(
   if (entriesError) throw entriesError;
   if (checksError) throw checksError;
 
-  if (entries.length === 0) return { showId: show.id, showName: show.name, issues: [], entries: [] };
+  if (entries.length === 0)
+    return { showId: show.id, showName: show.name, issues: [], entries: [] };
 
   const showHorseIds = [...new Set(entries.map((e) => e.show_horse_id))];
   const { data: showHorses, error: horsesErr } = await supabase

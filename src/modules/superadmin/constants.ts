@@ -74,12 +74,12 @@ export const LEAD_STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'i
 };
 
 export const LEAD_PILL: Record<string, { bg: string; fg: string; dot: string }> = {
-  new: { bg: '#EDF5F1', fg: '#5A6B63', dot: '#9AA6A0' },
-  demo_scheduled: { bg: '#F9F0D8', fg: '#8A6D14', dot: '#C9A227' },
-  demo_completed: { bg: '#E6F1EA', fg: '#2E7048', dot: '#3E8E5A' },
-  onboarding: { bg: '#E4EDE8', fg: '#0D2C23', dot: '#0D2C23' },
-  customer: { bg: '#F6EAC8', fg: '#8A6D14', dot: '#C9A227' },
-  lost: { bg: '#FCF1EF', fg: '#8E3627', dot: '#B4432F' },
+  new: { bg: '#EAF5EF', fg: '#475467', dot: '#8A94A3' },
+  demo_scheduled: { bg: '#FDF2E3', fg: '#B45309', dot: '#146A47' },
+  demo_completed: { bg: '#E7F6EE', fg: '#15794F', dot: '#146A47' },
+  onboarding: { bg: '#EEF1F4', fg: '#101828', dot: '#101828' },
+  customer: { bg: '#FDF2E3', fg: '#B45309', dot: '#146A47' },
+  lost: { bg: '#FEF3F2', fg: '#B42318', dot: '#B42318' },
 };
 
 export const ONBOARDING_CHECKLIST_TEMPLATE = [
@@ -108,16 +108,16 @@ export const CATALOG_FAMILY_META: Record<
   movement: {
     label: 'Movement test',
     blurb: 'Numbered movements × coefficient + collectives − errors → %',
-    bg: '#EDF5F1',
-    fg: '#2E7048',
-    bd: '#D3E6DA',
+    bg: '#EAF5EF',
+    fg: '#15794F',
+    bd: '#CFE9DB',
   },
   freestyle: {
     label: 'Freestyle',
     blurb: 'Technical + Artistic panels → %',
-    bg: '#F6EAC8',
-    fg: '#8A6D14',
-    bd: '#EBDCAF',
+    bg: '#FDF2E3',
+    fg: '#B45309',
+    bd: '#F6DCB8',
   },
   weighted: {
     label: 'Weighted / 100',
@@ -136,9 +136,9 @@ export const CATALOG_FAMILY_META: Record<
   unassigned: {
     label: 'Unassigned',
     blurb: 'Scoring family not yet confirmed',
-    bg: '#F1F3F2',
-    fg: '#7A8781',
-    bd: '#E2E8E4',
+    bg: '#EEF1F4',
+    fg: '#8A94A3',
+    bd: '#E7EAEE',
   },
 };
 
@@ -155,21 +155,21 @@ export const CATALOG_DISCIPLINES = [
   'Combined Driving',
 ] as const;
 
+// Grouped as the redesign's console sidebar (field-arena-prototype/superadmin.html).
 export const SUPERADMIN_SIDEBAR = [
-  {
-    heading: 'Clients',
-    items: [
-      { key: 'overview', label: 'Organizers', href: '/dashboard/superadmin', icon: 'organizers' },
-      { key: 'users', label: 'Users', href: '/dashboard/superadmin/users', icon: 'users' },
-      { key: 'sales', label: 'Sales Funnel', href: '/dashboard/superadmin/sales', icon: 'funnel' },
-    ],
-  },
   {
     heading: 'Platform',
     items: [
+      { key: 'overview', label: 'Overview', href: '/dashboard/superadmin', icon: 'overview' },
+      {
+        key: 'organizers',
+        label: 'Organizers',
+        href: '/dashboard/superadmin/organizers',
+        icon: 'organizers',
+      },
       {
         key: 'catalog',
-        label: 'Scoring catalog',
+        label: 'Scoring Catalog',
         href: '/dashboard/superadmin/catalog',
         icon: 'catalog',
       },
@@ -180,11 +180,25 @@ export const SUPERADMIN_SIDEBAR = [
         icon: 'documents',
       },
       { key: 'billing', label: 'Billing', href: '/dashboard/superadmin/billing', icon: 'billing' },
+      { key: 'users', label: 'Users', href: '/dashboard/superadmin/users', icon: 'users' },
+    ],
+  },
+  {
+    heading: 'Growth',
+    items: [
+      {
+        key: 'signup-preview',
+        label: 'Signup Flow',
+        href: '/dashboard/superadmin/preview',
+        icon: 'preview',
+      },
+      { key: 'sales', label: 'Sales Funnel', href: '/dashboard/superadmin/sales', icon: 'funnel' },
     ],
   },
 ] as const;
 
 export const CONSOLE_PATH = '/dashboard/superadmin';
+export const ORGANIZERS_PATH = '/dashboard/superadmin/organizers';
 export const USERS_PATH = '/dashboard/superadmin/users';
 export const SALES_PATH = '/dashboard/superadmin/sales';
 export const CATALOG_PATH = '/dashboard/superadmin/catalog';
@@ -192,13 +206,6 @@ export const DOCUMENTS_PATH = '/dashboard/superadmin/documents';
 export const DOCS_BUCKET = 'catalog-docs';
 
 export const SUPERADMIN_TOOLS = [
-  {
-    key: 'signup-preview',
-    label: 'Signup flow preview',
-    icon: 'preview',
-    href: '/dashboard/superadmin/preview',
-    reason: 'Step through every signup and invite page, role by role.',
-  },
   {
     key: 'demo-show',
     label: 'Demo show',

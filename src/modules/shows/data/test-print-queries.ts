@@ -1,27 +1,8 @@
 import 'server-only';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
-
-export interface TestPrintRow {
-  classId: string;
-  classLabel: string;
-  division: string | null;
-  location: string | null;
-  date: string | null;
-  testName: string | null;
-  testEdition: string | null;
-  rideCount: number;
-  judgeCount: number;
-  workingCopies: number;
-  blankCopies: number;
-  totalCopies: number;
-}
-
-export interface TestPrintPageData {
-  showId: string;
-  showName: string;
-  rows: TestPrintRow[];
-}
+import type { TestPrintPageData, TestPrintRow } from '@/modules/shows/types';
 
 export async function getTestPrintCounts(showId: string): Promise<TestPrintPageData | null> {
   await assertCanManageEntryLedger(showId);
@@ -46,14 +27,15 @@ export async function getTestPrintCounts(showId: string): Promise<TestPrintPageD
 
   const classIds = classes.map((c) => c.id);
 
-  const [{ data: tests, error: testsError }, { data: entries, error: entriesError }, { data: panel, error: panelError }] =
+  const [{ data: tests, error: testsError }, entries, { data: panel, error: panelError }] =
     await Promise.all([
       supabase.from('class_tests').select('class_id, name, edition').in('class_id', classIds),
-      supabase.from('class_entries').select('class_id').in('class_id', classIds),
+      fetchAllRows(() =>
+        supabase.from('class_entries').select('class_id').in('class_id', classIds).order('id'),
+      ),
       supabase.from('class_panel').select('class_id, judge_staff_id').in('class_id', classIds),
     ]);
   if (testsError) throw testsError;
-  if (entriesError) throw entriesError;
   if (panelError) throw panelError;
 
   const testByClass = new Map(tests.map((t) => [t.class_id, t]));

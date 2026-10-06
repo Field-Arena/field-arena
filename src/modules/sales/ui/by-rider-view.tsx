@@ -12,7 +12,7 @@ export function ByRiderView({ rows, canViewMoney }: { rows: SaleRow[]; canViewMo
 
   if (riders.length === 0) {
     return (
-      <p className="px-1 py-8 text-center text-[13px] text-[#98A29D]">
+      <p className="px-1 py-8 text-center text-[13px] text-[#8A94A3]">
         No paid rider entries yet for this show.
       </p>
     );
@@ -22,9 +22,9 @@ export function ByRiderView({ rows, canViewMoney }: { rows: SaleRow[]; canViewMo
     <Table className="text-[13.5px]">
       <TableBody>
         {riders.map((r) => (
-          <TableRow key={r.rider} className="border-b border-[#EEF2F0]">
+          <TableRow key={r.rider} className="border-b border-[#EEF1F4]">
             <TableCell className="px-3 py-2.5 font-semibold whitespace-normal">{r.rider}</TableCell>
-            <TableCell className="px-3 py-2.5 whitespace-normal text-[#5A6B63]">
+            <TableCell className="px-3 py-2.5 whitespace-normal text-[#475467]">
               {r.items.join(', ') || '—'}
             </TableCell>
             {canViewMoney && (

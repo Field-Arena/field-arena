@@ -14,7 +14,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE, FM_SETS, type FmSetName } from '@/modules/shows/constants';
-import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
+import type { SelectEventsData } from '@/modules/shows/types';
 import { useAddCatalogGroup } from '@/modules/shows/hooks/use-select-events-mutations';
 import { SM_GREEN_BTN, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 
@@ -73,11 +73,13 @@ export function FmSetDialog({
 
   async function save() {
     const calls = levels.flatMap((level) =>
-      divisionNames.map((division) => ({
-        level,
-        division,
-        tests: level.tests.filter((test) => picked.has(catalogKey(level.name, test, division))),
-      })).filter((call) => call.tests.length > 0),
+      divisionNames
+        .map((division) => ({
+          level,
+          division,
+          tests: level.tests.filter((test) => picked.has(catalogKey(level.name, test, division))),
+        }))
+        .filter((call) => call.tests.length > 0),
     );
     if (calls.length === 0) {
       onClose();
@@ -87,7 +89,8 @@ export function FmSetDialog({
     setSaving(true);
     try {
       for (const { level, division, tests } of calls) {
-        const fee = data.divisions.find((d) => d.name === division)?.defaultFee ?? DEFAULT_CLASS_FEE;
+        const fee =
+          data.divisions.find((d) => d.name === division)?.defaultFee ?? DEFAULT_CLASS_FEE;
         await add
           .mutateAsync({
             showId: data.showId,
@@ -122,11 +125,11 @@ export function FmSetDialog({
         </DialogHeader>
 
         {levels.length === 0 ? (
-          <p className="py-4 text-[13.5px] text-[#7A8781]">
+          <p className="py-4 text-[13.5px] text-[#8A94A3]">
             No organization has built an Independent test yet.
           </p>
         ) : divisionNames.length === 0 ? (
-          <p className="py-4 text-[13.5px] text-[#7A8781]">
+          <p className="py-4 text-[13.5px] text-[#8A94A3]">
             Set up your Class Divisions on the Setup tab first, then come back here to assign
             classes to them.
           </p>
@@ -165,18 +168,18 @@ export function FmSetDialog({
                 return (
                   <div
                     key={level.name}
-                    className="rounded-[10px] border border-[#EDF0EE] px-3.5 py-2.5"
+                    className="rounded-[10px] border border-[#EEF1F4] px-3.5 py-2.5"
                   >
                     <Label className="flex cursor-pointer items-center gap-3">
                       <input
                         type="checkbox"
-                        className="size-4 flex-none accent-[#1A5B3C]"
+                        className="size-4 flex-none accent-[#146A47]"
                         checked={allChecked}
                         onChange={(e) => {
                           toggleLevel(level, e.target.checked);
                         }}
                       />
-                      <span className="text-ink-deep text-[13.5px] font-semibold">
+                      <span className="text-[13.5px] font-semibold text-[#101828]">
                         {level.name}
                       </span>
                     </Label>
@@ -185,20 +188,22 @@ export function FmSetDialog({
                       {level.tests.map((test) => (
                         <div
                           key={test}
-                          className="border-t border-[#EEF2F0] pt-2 first:border-t-0 first:pt-0"
+                          className="border-t border-[#EEF1F4] pt-2 first:border-t-0 first:pt-0"
                         >
-                          <div className="text-ink-deep mb-1 text-[13px] font-semibold">{test}</div>
+                          <div className="mb-1 text-[13px] font-semibold text-[#101828]">
+                            {test}
+                          </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                             {divisionNames.map((division) => {
                               const key = catalogKey(level.name, test, division);
                               return (
                                 <Label
                                   key={division}
-                                  className="flex cursor-pointer items-center gap-1.5 text-[12.5px] text-[#5A6B63]"
+                                  className="flex cursor-pointer items-center gap-1.5 text-[12.5px] text-[#475467]"
                                 >
                                   <input
                                     type="checkbox"
-                                    className="size-3.5 flex-none accent-[#1A5B3C]"
+                                    className="size-3.5 flex-none accent-[#146A47]"
                                     checked={picked.has(key)}
                                     onChange={(e) => {
                                       toggle(key, e.target.checked);

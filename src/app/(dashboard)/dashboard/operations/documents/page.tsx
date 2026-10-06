@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { listMyShows, listShowDocuments } from '@/modules/operations/data/queries';
 import { DocumentUploadButton } from '@/modules/operations/ui/document-upload-button';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
@@ -13,9 +13,7 @@ export default async function OperationsDocumentsPage({
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
   const currentShow =
-    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
-    shows[0] ??
-    null;
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null;
 
   if (!currentShow) {
     return (

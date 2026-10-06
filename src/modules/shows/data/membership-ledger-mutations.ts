@@ -8,6 +8,7 @@ import {
   updateMembershipCheckSchema,
   setMembershipVerificationStatusSchema,
 } from '@/modules/shows/schemas';
+import { assertUpdated } from '@/modules/shows/data/assert-updated';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
 import { DOCUMENTS_PATH } from '@/modules/shows/constants';
 
@@ -50,15 +51,17 @@ export async function linkMembershipRecord(input: unknown): Promise<void> {
     membershipStatus = member?.membership_status === 'active' ? 'active' : 'inactive';
   }
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('entry_membership_checks')
     .update({
       member_database_id: parsed.memberDatabaseId,
       membership_status: membershipStatus,
       updated_at: new Date().toISOString(),
     })
-    .eq('show_entry_id', parsed.showEntryId);
+    .eq('show_entry_id', parsed.showEntryId)
+    .select('id');
   if (error) throw error;
+  assertUpdated(updatedRows, "You don't have permission to change this membership check.");
 
   revalidatePath(DOCUMENTS_PATH);
 }
@@ -69,7 +72,7 @@ export async function updateMembershipCheck(input: unknown): Promise<void> {
   const supabase = await createServerClient();
   await ensureCheckRow(supabase, parsed.showId, parsed.showEntryId);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('entry_membership_checks')
     .update({
       association: parsed.association ?? null,
@@ -82,8 +85,10 @@ export async function updateMembershipCheck(input: unknown): Promise<void> {
       notes: parsed.notes ?? null,
       updated_at: new Date().toISOString(),
     })
-    .eq('show_entry_id', parsed.showEntryId);
+    .eq('show_entry_id', parsed.showEntryId)
+    .select('id');
   if (error) throw error;
+  assertUpdated(updatedRows, "You don't have permission to change this membership check.");
 
   revalidatePath(DOCUMENTS_PATH);
 }
@@ -98,7 +103,7 @@ export async function setMembershipVerificationStatus(input: unknown): Promise<v
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('entry_membership_checks')
     .update({
       verification_status: parsed.verificationStatus,
@@ -106,8 +111,10 @@ export async function setMembershipVerificationStatus(input: unknown): Promise<v
       verified_by: parsed.verificationStatus === 'verified' ? (user?.id ?? null) : null,
       updated_at: new Date().toISOString(),
     })
-    .eq('show_entry_id', parsed.showEntryId);
+    .eq('show_entry_id', parsed.showEntryId)
+    .select('id');
   if (error) throw error;
+  assertUpdated(updatedRows, "You don't have permission to change this membership check.");
 
   revalidatePath(DOCUMENTS_PATH);
 }

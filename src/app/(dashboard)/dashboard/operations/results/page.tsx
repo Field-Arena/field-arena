@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { listMyShows, listSchedule, listPastShowResults } from '@/modules/operations/data/queries';
 import { ResultsBoard } from '@/modules/operations/ui/results-board';
 import { OpsClock } from '@/modules/operations/ui/ops-clock';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Results — Field & Arena' };
 
@@ -14,9 +14,7 @@ export default async function OperationsResultsPage({
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
   const currentShow =
-    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
-    shows[0] ??
-    null;
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null;
 
   if (!currentShow) {
     return (

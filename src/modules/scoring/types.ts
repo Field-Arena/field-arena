@@ -81,6 +81,9 @@ export interface ClassScoringState {
 
   scheduledTime: string | null;
 
+  /** The show's IANA timezone; scheduledTime is wall-clock there. */
+  timeZone: string;
+
   ring: string | null;
 }
 
@@ -91,4 +94,16 @@ export interface MySeat {
   role: SeatRole;
   staffId: string;
   name: string;
+}
+
+export interface PublishResultsOutcome {
+  published: boolean;
+  /** Rides not yet fully scored and signed (0 once published). */
+  incomplete: number;
+}
+
+export interface PanelCandidate {
+  staffId: string;
+  name: string;
+  role: 'Judge' | 'Scribe';
 }

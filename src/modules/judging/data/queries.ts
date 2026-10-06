@@ -1,32 +1,16 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getPreviewShowId } from '@/shared/lib/preview-show';
-
-export interface AssignmentRow {
-  classId: string;
-  classLabel: string;
-  showId: string;
-  showName: string;
-  showDate: string | null;
-
-  classDate: string | null;
-  classTime: string | null;
-  ring: string | null;
-  seatId: string;
-  position: string | null;
-
-  seatRole: 'judge' | 'scribe';
-
-  partnerName: string | null;
-  partnerRole: 'judge' | 'scribe' | null;
-  entryCount: number;
-  scoringOpen: boolean;
-  resultsPublished: boolean;
-  scoredCount: number;
-
-  advancedCount: number;
-}
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { getPreviewShowId } from '@/shared/lib/auth/view-as';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
+import type {
+  AssignmentRow,
+  ClassPlacingEntry,
+  EntryScorecard,
+  PanelContact,
+  RideOrderEntry,
+  ScoredRideRow,
+} from '@/modules/judging/types';
 
 /* Which staff_assignments rows this screen speaks for.
  *
@@ -84,7 +68,7 @@ function resolveClassDate(
   return showStartDate;
 }
 
-export async function listMyAssignments(todayIso: string): Promise<AssignmentRow[]> {
+export async function listMyAssignments(): Promise<AssignmentRow[]> {
   const profile = await getStaffProfile();
   if (!profile) return [];
 
@@ -130,11 +114,14 @@ export async function listMyAssignments(todayIso: string): Promise<AssignmentRow
   const showIds = [...new Set(classes.data.map((c) => c.show_id))];
   const { data: shows, error: showError } = await supabase
     .from('shows')
-    .select('id, name, date_label, start_date, end_date')
+    .select('id, name, date_label, start_date, end_date, timezone, organizations(timezone)')
     .in('id', showIds);
   if (showError) throw showError;
 
   const showById = new Map(shows.map((s) => [s.id, s]));
+  const zoneByShow = new Map(
+    shows.map((s) => [s.id, resolveTimeZone(s.timezone, s.organizations.timezone)]),
+  );
   const classById = new Map(classes.data.map((c) => [c.id, c]));
   const seatStaffNameById = new Map(seatStaff.data.map((s) => [s.id, s.name]));
 
@@ -161,6 +148,8 @@ export async function listMyAssignments(todayIso: string): Promise<AssignmentRow
       const cls = classById.get(seat.class_id);
       if (!cls) return null;
       const show = showById.get(cls.show_id);
+      const timeZone = zoneByShow.get(cls.show_id) ?? resolveTimeZone();
+      const todayIso = todayInZone(timeZone);
 
       const isJudge = seat.judge_staff_id !== null && staffIdSet.has(seat.judge_staff_id);
       const partnerId = isJudge ? seat.scribe_staff_id : seat.judge_staff_id;
@@ -177,6 +166,8 @@ export async function listMyAssignments(todayIso: string): Promise<AssignmentRow
           show?.end_date ?? null,
           todayIso,
         ),
+        todayIso,
+        timeZone,
         classTime: cls.time,
         ring: cls.location,
         seatId: seat.seat_id,
@@ -195,16 +186,6 @@ export async function listMyAssignments(todayIso: string): Promise<AssignmentRow
     .sort(
       (a, b) => a.showName.localeCompare(b.showName) || a.classLabel.localeCompare(b.classLabel),
     );
-}
-
-export interface PanelContact {
-  staffId: string;
-  name: string;
-  role: 'judge' | 'scribe';
-
-  classIds: string[];
-  showName: string;
-  position: string | null;
 }
 
 export async function listPanelContacts(): Promise<PanelContact[]> {
@@ -251,7 +232,7 @@ export async function listPanelContacts(): Promise<PanelContact[]> {
   const [othersRes, classesRes] = await Promise.all([
     supabase
       .from('staff_assignments')
-      .select('id, name')
+      .select('id, name, license')
       .in('id', [...otherIds]),
     supabase.from('classes').select('id, show_id').in('id', classIds),
   ]);
@@ -266,6 +247,7 @@ export async function listPanelContacts(): Promise<PanelContact[]> {
   if (showError) throw showError;
 
   const nameById = new Map(othersRes.data.map((o) => [o.id, o.name]));
+  const licenseById = new Map(othersRes.data.map((o) => [o.id, o.license]));
   const classById = new Map(classesRes.data.map((c) => [c.id, c]));
   const showNameById = new Map(shows.map((s) => [s.id, s.name]));
 
@@ -297,39 +279,13 @@ export async function listPanelContacts(): Promise<PanelContact[]> {
           classIds: [seat.class_id],
           showName,
           position: seat.position,
+          license: role === 'judge' ? (licenseById.get(staffId) ?? null) : null,
         });
       }
     }
   }
 
   return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
-}
-
-export interface TodayPanelContact {
-  name: string;
-  role: 'judge' | 'scribe';
-  position: string | null;
-}
-
-export interface RideOrderEntry {
-  id: string;
-  num: string;
-  rider: string | null;
-  horse: string | null;
-  rideOrder: number;
-  status: string;
-  finalPct: string | null;
-  holding: boolean;
-}
-
-export interface ClassPlacingEntry {
-  entryId: string;
-  num: string;
-  rider: string;
-  horse: string;
-  finalPct: number | null;
-  ctot: number | null;
-  testName: string | null;
 }
 
 function parseFinalPctNumber(raw: string | null): number | null {
@@ -377,25 +333,6 @@ export async function getClassPlacings(
       testName: extractTestName(e.test_override),
     })),
   };
-}
-
-export interface EntryScorecard {
-  className: string;
-  entryId: string;
-  num: string;
-  rider: string;
-  horse: string;
-  finalPct: string | null;
-  test: {
-    name: string;
-    movements: { num: number; text: string; coef: number }[];
-    collectives: { key: string; label: string; coef: number }[];
-  } | null;
-
-  movementMarks: Record<string, number | null>;
-
-  movementRemarks: Record<string, string>;
-  collectiveMarks: Record<string, number | null>;
 }
 
 function isJsonRecordLocal(value: unknown): value is Record<string, unknown> {
@@ -457,7 +394,13 @@ export async function getEntryScorecard(entryId: string): Promise<EntryScorecard
       .select('name, movements, collectives')
       .eq('class_id', entry.class_id)
       .maybeSingle(),
-    supabase.from('scores').select('movements, collectives, remarks').eq('entry_id', entryId),
+    // Only signed-off sheets feed the published scorecard — a draft or a
+    // reopened sheet would otherwise drag the averages around.
+    supabase
+      .from('scores')
+      .select('movements, collectives, remarks')
+      .eq('entry_id', entryId)
+      .eq('submitted', true),
   ]);
   if (clsRes.error) throw clsRes.error;
   if (classTestRes.error) throw classTestRes.error;
@@ -467,15 +410,17 @@ export async function getEntryScorecard(entryId: string): Promise<EntryScorecard
   let movementsRaw: unknown = [];
   let collectivesRaw: unknown = [];
 
-  if (classTestRes.data) {
+  // The ride's own test (override) wins when it carries movements — the same
+  // precedence scoring uses (resolveEffectiveTest) — else the class test.
+  const override = isJsonRecordLocal(entry.test_override) ? entry.test_override : null;
+  if (override && parseMovementsList(override.movements).length > 0) {
+    resolvedName = typeof override.name === 'string' ? override.name : '';
+    movementsRaw = override.movements;
+    collectivesRaw = override.collectives;
+  } else if (classTestRes.data) {
     resolvedName = classTestRes.data.name;
     movementsRaw = classTestRes.data.movements;
     collectivesRaw = classTestRes.data.collectives;
-  } else if (isJsonRecordLocal(entry.test_override)) {
-    const t = entry.test_override;
-    resolvedName = typeof t.name === 'string' ? t.name : '';
-    movementsRaw = t.movements;
-    collectivesRaw = t.collectives;
   } else if (clsRes.data.catalog_id) {
     const { data: catalog, error: catalogError } = await supabase
       .from('scoring_catalog')
@@ -568,4 +513,63 @@ export async function getPreviewShowName(): Promise<string | null> {
   const supabase = await createServerClient();
   const { data } = await supabase.from('shows').select('name').eq('id', showId).maybeSingle();
   return data?.name ?? null;
+}
+
+/* History's table: every ride finalized in the classes this person sat on,
+ * newest first. Scores are read per seat from class_entries.judge_pct (keyed
+ * by seat id when the panel's scores are combined). */
+export async function listMyScoredRides(
+  classes: { classId: string; seatId: string; showName: string; classLabel: string }[],
+): Promise<ScoredRideRow[]> {
+  if (classes.length === 0) return [];
+  const supabase = await createServerClient();
+  const byClass = new Map(classes.map((c) => [c.classId, c]));
+
+  const { data, error } = await supabase
+    .from('class_entries')
+    .select('id, class_id, rider, horse, final_pct, judge_pct, finalized_at')
+    .in('class_id', [...byClass.keys()])
+    .not('finalized_at', 'is', null)
+    .order('finalized_at', { ascending: false });
+  if (error) throw error;
+
+  return data.flatMap((e) => {
+    const cls = byClass.get(e.class_id);
+    if (!cls) return [];
+    const perSeat =
+      e.judge_pct && typeof e.judge_pct === 'object' && !Array.isArray(e.judge_pct)
+        ? (e.judge_pct as Record<string, unknown>)[cls.seatId]
+        : undefined;
+    return [
+      {
+        entryId: e.id,
+        classId: e.class_id,
+        showName: cls.showName,
+        classLabel: cls.classLabel,
+        rider: e.rider ?? '—',
+        horse: e.horse ?? '—',
+        score: typeof perSeat === 'string' ? perSeat : e.final_pct,
+        scoredAt: e.finalized_at,
+      },
+    ];
+  });
+}
+
+/** The signed-in judge's own licence / rating, from any show that recorded
+ * one — shown in the Judge workspace's user card. */
+export async function getMyJudgeLicense(): Promise<string | null> {
+  const profile = await getStaffProfile();
+  if (!profile) return null;
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('staff_assignments')
+    .select('license')
+    .eq('user_id', profile.id)
+    .eq('role', 'Judge')
+    .not('license', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.license ?? null;
 }

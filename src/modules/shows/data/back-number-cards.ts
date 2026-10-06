@@ -1,9 +1,6 @@
 import 'server-only';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-
-export interface BackNumberCard {
-  backNumber: string;
-}
+import type { BackNumberCard } from '@/modules/shows/types';
 
 const PT_PER_IN = 72;
 const PAGE_WIDTH_PT = 8.5 * PT_PER_IN;
@@ -93,7 +90,14 @@ function drawCard(
   page: Awaited<ReturnType<PDFDocument['addPage']>>,
   font: Awaited<ReturnType<PDFDocument['embedFont']>>,
   text: string,
-  box: { originX: number; originY: number; width: number; height: number; maxTextWidth: number; maxTextHeight: number },
+  box: {
+    originX: number;
+    originY: number;
+    width: number;
+    height: number;
+    maxTextWidth: number;
+    maxTextHeight: number;
+  },
 ): void {
   const size = fitFontSize(font, text, box.maxTextWidth, box.maxTextHeight);
   const textWidth = font.widthOfTextAtSize(text, size);

@@ -16,12 +16,12 @@ import { StaffEditDialog } from './staff-edit-dialog';
 import { RingCoverageCard } from './ring-coverage-card';
 import { RiderDetailDialog } from './rider-detail-dialog';
 import { VendorDetailDialog } from './vendor-detail-dialog';
-import { VendorApprovalActions } from '@/modules/vendors/ui/vendor-approval-actions';
+import { VendorApprovalActions } from '@/modules/vendors/public';
 import type { UserDirectoryRow, UserDirectoryStatus, RingCoverageData } from '../types';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import type { ShowListItem } from '@/modules/shows/types';
 
 const FILTER_SELECT_CLASS =
-  'min-w-[160px] flex-1 rounded-[10px] border border-[#D9E1DD] bg-white px-3 py-2.5 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
+  'min-w-[160px] flex-1 rounded-[10px] border border-[#E7EAEE] bg-white px-3 py-2.5 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]';
 
 const STATUS_ORDER: UserDirectoryStatus[] = ['onboard', 'pending', 'not_invited'];
 
@@ -31,6 +31,8 @@ export function UsersDirectory({
   initialShowId,
   classesByShow,
   ringCoverageByShow,
+  isOrgOwner,
+  viewerEmail,
 }: {
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
@@ -38,6 +40,9 @@ export function UsersDirectory({
 
   classesByShow: Record<string, ClassOption[]>;
   ringCoverageByShow: Record<string, RingCoverageData>;
+  /** Org owner / SuperAdmin — may grant money permissions and change roles. */
+  isOrgOwner: boolean;
+  viewerEmail: string;
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
   const [search, setSearch] = useState('');
@@ -102,7 +107,7 @@ export function UsersDirectory({
     : 'minmax(160px,1.4fr) 120px 160px minmax(160px,1.2fr) 130px 110px';
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <Eyebrow className="mb-1.5 block">Access</Eyebrow>
@@ -111,8 +116,8 @@ export function UsersDirectory({
             Invite and manage everyone with access — judges, scribes, staff, and more.
           </ScreenLede>
         </div>
-        <span className="inline-flex flex-none items-center gap-1.5 rounded-full border border-[#E9EDEB] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#0D2C23]">
-          <span className="size-1.5 rounded-full bg-[#3E8E5A]" aria-hidden />
+        <span className="inline-flex flex-none items-center gap-1.5 rounded-full border border-[#E7EAEE] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#101828]">
+          <span className="size-1.5 rounded-full bg-[#146A47]" aria-hidden />
           {rows.length} of {rows.length}
         </span>
       </div>
@@ -123,7 +128,7 @@ export function UsersDirectory({
           onChange={(e) => {
             setTargetShowId(e.target.value);
           }}
-          className="text-ink-deep min-w-[280px] flex-[0_1_360px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
+          className="min-w-[280px] flex-[0_1_360px] rounded-[10px] border border-[#E7EAEE] px-3 py-2.5 text-sm text-[#101828]"
           aria-label="Show to add or export staff for"
         >
           {shows.map((show) => (
@@ -138,6 +143,7 @@ export function UsersDirectory({
           shows={shows}
           defaultShowId={targetShowId}
           classes={classesByShow[targetShowId] ?? []}
+          canGrantMoney={isOrgOwner}
         />
         {targetShow && <UploadStaffListDialog showId={targetShow.id} showName={targetShow.name} />}
         {targetShow && <ExportStaffListButton rows={targetShowStaff} showName={targetShow.name} />}
@@ -152,20 +158,20 @@ export function UsersDirectory({
 
       <Card className="p-[18px_20px_20px]">
         <div className="mb-1 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-forest font-[Newsreader,serif] text-[20px] font-semibold">
+          <h2 className="font-[family-name:var(--fa-serif)] text-[20px] font-semibold text-[#101828]">
             All Users
           </h2>
-          <span className="text-[13px] font-semibold text-[#5A6B63]">
+          <span className="text-[13px] font-semibold text-[#475467]">
             {filteredRows.length} of {rows.length}
           </span>
         </div>
-        <p className="mb-4 text-[13px] text-[#5A6B63]">
+        <p className="mb-4 text-[13px] text-[#475467]">
           Everyone with access across every one of your shows — search or filter to find someone.
         </p>
 
         {noncompliantCount > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E4B5AC] bg-[#FDEEEB] px-4 py-3 text-[13px] text-[#98341F]">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B4432F] px-2.5 py-1 text-[11.5px] font-bold text-white">
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-[#FBCFC9] bg-[#FEF3F2] px-4 py-3 text-[13px] text-[#912018]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B42318] px-2.5 py-1 text-[11.5px] font-bold text-white">
               ⚠ {noncompliantCount}
             </span>
             <span>riders outside Coggins compliance — missing, expired, or not yet verified.</span>
@@ -255,10 +261,10 @@ export function UsersDirectory({
           )}
         </div>
 
-        <div className="overflow-x-auto rounded-[12px] border border-[#EDF0EE]">
+        <div className="overflow-x-auto rounded-[12px] border border-[#EEF1F4]">
           <div className="min-w-[900px]">
             <div
-              className="grid gap-3.5 border-b border-[#EEF2F0] bg-[#F8FAF9] px-4 py-2.5"
+              className="grid gap-3.5 border-b border-[#EEF1F4] bg-[#FBFCFD] px-4 py-2.5"
               style={{ gridTemplateColumns: columns }}
             >
               {[
@@ -272,7 +278,7 @@ export function UsersDirectory({
               ].map((label) => (
                 <span
                   key={label}
-                  className="text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase"
+                  className="text-[9.5px] font-bold tracking-[.08em] text-[#8A94A3] uppercase"
                 >
                   {label}
                 </span>
@@ -280,7 +286,7 @@ export function UsersDirectory({
             </div>
 
             {filteredRows.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13.5px] text-[#7A8781]">
+              <div className="px-5 py-10 text-center text-[13.5px] text-[#8A94A3]">
                 No users match those filters.
               </div>
             ) : (
@@ -300,14 +306,16 @@ export function UsersDirectory({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') openRow();
                     }}
-                    className="grid cursor-pointer items-center gap-3.5 border-b border-[#F1F4F3] px-4 py-3 text-[13px] transition-colors last:border-b-0 hover:bg-[#F8FAF9]"
+                    className="grid cursor-pointer items-center gap-3.5 border-b border-[#EEF1F4] px-4 py-3 text-[13px] transition-colors last:border-b-0 hover:bg-[#FBFCFD]"
                     style={{ gridTemplateColumns: columns }}
                   >
-                    <span className="text-ink-deep min-w-0 truncate font-semibold">{row.name}</span>
-                    <span className="min-w-0 truncate text-[#48574F]">{row.role}</span>
-                    <span className="min-w-0 truncate text-[#48574F]">{row.showName}</span>
-                    <span className="min-w-0 truncate text-[#48574F]">{row.email ?? '—'}</span>
-                    <span className="min-w-0 truncate text-[#48574F]">{row.phone ?? '—'}</span>
+                    <span className="min-w-0 truncate font-semibold text-[#101828]">
+                      {row.name}
+                    </span>
+                    <span className="min-w-0 truncate text-[#475467]">{row.role}</span>
+                    <span className="min-w-0 truncate text-[#475467]">{row.showName}</span>
+                    <span className="min-w-0 truncate text-[#475467]">{row.email ?? '—'}</span>
+                    <span className="min-w-0 truncate text-[#475467]">{row.phone ?? '—'}</span>
                     <span>
                       <StatusPill bg={meta.bg} border="transparent" fg={meta.fg}>
                         {meta.label}
@@ -334,7 +342,7 @@ export function UsersDirectory({
           </div>
 
           {filteredRows.length > PAGE_SIZE && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#48574F]">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#475467]">
               <span>
                 Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredRows.length)} of{' '}
                 {filteredRows.length}
@@ -346,7 +354,7 @@ export function UsersDirectory({
                   onClick={() => {
                     setPage(effectivePage - 1);
                   }}
-                  className="text-ink-deep hover:border-gold rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold transition-colors disabled:opacity-40"
+                  className="rounded-[9px] border border-[#E7EAEE] bg-white px-3 py-1.5 font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] disabled:opacity-40"
                 >
                   Previous
                 </button>
@@ -359,7 +367,7 @@ export function UsersDirectory({
                   onClick={() => {
                     setPage(effectivePage + 1);
                   }}
-                  className="text-ink-deep hover:border-gold rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 font-bold transition-colors disabled:opacity-40"
+                  className="rounded-[9px] border border-[#E7EAEE] bg-white px-3 py-1.5 font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -380,6 +388,11 @@ export function UsersDirectory({
       <StaffEditDialog
         row={editingRow}
         shows={shows}
+        isOrgOwner={isOrgOwner}
+        isOwnRow={
+          !!editingRow?.email &&
+          editingRow.email.trim().toLowerCase() === viewerEmail.trim().toLowerCase()
+        }
         onClose={() => {
           setEditingRow(null);
         }}
@@ -411,13 +424,13 @@ export function UsersDirectory({
  * with no date on file is its own red case, distinct from an actual past
  * date. */
 function CogginsCell({ row }: { row: UserDirectoryRow }) {
-  if (row.role !== 'Rider') return <span className="text-[#98A29D]">—</span>;
+  if (row.role !== 'Rider') return <span className="text-[#8A94A3]">—</span>;
 
   const coggins = row.coggins;
-  if (!coggins?.applicable) return <span className="text-[#98A29D]">—</span>;
+  if (!coggins?.applicable) return <span className="text-[#8A94A3]">—</span>;
 
   if (coggins.reason === 'missing') {
-    return <span className="text-[12.5px] font-bold text-[#B4432F]">✕ Not uploaded</span>;
+    return <span className="text-[12.5px] font-bold text-[#B42318]">✕ Not uploaded</span>;
   }
 
   const isExpired = coggins.reason === 'expired';
@@ -425,23 +438,23 @@ function CogginsCell({ row }: { row: UserDirectoryRow }) {
   return (
     <span className="text-[12.5px] whitespace-nowrap">
       {coggins.expirationDate ? (
-        <span className={isExpired ? 'font-bold text-[#B4432F]' : 'text-ink-deep'}>
+        <span className={isExpired ? 'font-bold text-[#B42318]' : 'text-[#101828]'}>
           {isExpired ? 'Expired ' : ''}
           {formatDateShort(coggins.expirationDate)}
         </span>
       ) : (
-        <span className="font-bold text-[#B4432F]">no date on file</span>
+        <span className="font-bold text-[#B42318]">no date on file</span>
       )}{' '}
-      <span className="font-semibold text-[#1A5B3C]">✓</span>
-      <span className="text-[10.5px] text-[#98A29D]"> up</span>{' '}
+      <span className="font-semibold text-[#146A47]">✓</span>
+      <span className="text-[10.5px] text-[#8A94A3]"> up</span>{' '}
       <span
         className={
-          coggins.verified ? 'font-semibold text-[#1A5B3C]' : 'font-semibold text-[#8A6D0B]'
+          coggins.verified ? 'font-semibold text-[#146A47]' : 'font-semibold text-[#8A6D0B]'
         }
       >
         {coggins.verified ? '✓' : '◐'}
       </span>
-      <span className="text-[10.5px] text-[#98A29D]"> ver</span>
+      <span className="text-[10.5px] text-[#8A94A3]"> ver</span>
     </span>
   );
 }

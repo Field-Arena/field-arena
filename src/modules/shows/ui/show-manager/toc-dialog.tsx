@@ -15,7 +15,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { DEFAULT_CLASS_FEE, FM_SETS } from '@/modules/shows/constants';
-import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
+import type { SelectEventsData } from '@/modules/shows/types';
 import { useCreateTocClass } from '@/modules/shows/hooks/use-select-events-mutations';
 import {
   SM_LABEL,
@@ -125,17 +125,17 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
             />
 
             {filtered.length === 0 ? (
-              <p className="py-3 text-[13px] text-[#7A8781]">No tests match that search.</p>
+              <p className="py-3 text-[13px] text-[#8A94A3]">No tests match that search.</p>
             ) : (
-              <div className="max-h-[220px] overflow-y-auto rounded-[10px] border border-[#EDF0EE]">
+              <div className="max-h-[220px] overflow-y-auto rounded-[10px] border border-[#EEF1F4]">
                 {filtered.map((option) => (
                   <Label
                     key={option}
-                    className="flex cursor-pointer items-center gap-2.5 border-b border-[#F1F4F3] px-3 py-2 last:border-b-0"
+                    className="flex cursor-pointer items-center gap-2.5 border-b border-[#EEF1F4] px-3 py-2 last:border-b-0"
                   >
                     <input
                       type="checkbox"
-                      className="size-4 flex-none accent-[#1A5B3C]"
+                      className="size-4 flex-none accent-[#146A47]"
                       checked={picked.has(option)}
                       onChange={(e) => {
                         setPicked((prev) => {
@@ -146,7 +146,7 @@ export function TocDialog({ data, onClose }: { data: SelectEventsData; onClose: 
                         });
                       }}
                     />
-                    <span className="text-ink-deep text-[12.5px]">{option}</span>
+                    <span className="text-[12.5px] text-[#101828]">{option}</span>
                   </Label>
                 ))}
               </div>

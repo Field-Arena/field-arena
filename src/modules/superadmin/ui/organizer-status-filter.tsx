@@ -39,17 +39,16 @@ export function OrganizerStatusFilter({
         return (
           <Link
             key={tab.key}
-            href={query ? `/dashboard/superadmin?${query}` : '/dashboard/superadmin'}
+            href={
+              query
+                ? `/dashboard/superadmin/organizers?${query}`
+                : '/dashboard/superadmin/organizers'
+            }
             scroll={false}
             prefetch={false}
-            className={cn(
-              'inline-flex h-8 items-center rounded-full px-3.5 text-[12.5px] font-semibold transition-colors',
-              active === tab.key
-                ? 'bg-forest text-paper'
-                : 'border-line text-forest hover:border-gold border bg-white',
-            )}
+            className={cn('fa-chip no-underline', active === tab.key && 'fa-active')}
           >
-            {tab.label} {tab.count}
+            {tab.label} <span className="fa-ct">{tab.count}</span>
           </Link>
         );
       })}

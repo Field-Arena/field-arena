@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
+import { OrgAvatar } from '@/shared/ui/organizer/org-avatar';
 import { GhostButton, PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { IconUpload, IconFile, IconColumns } from '@/shared/ui/organizer/icons';
 import { SearchInput } from '@/shared/ui/organizer/search-input';
@@ -20,7 +21,7 @@ import {
   MEMBER_ROW_CAP,
   type MemberColumnKey,
 } from '@/modules/organizations/constants';
-import type { MemberRow } from '@/modules/organizations/data/queries';
+import type { MemberRow } from '@/modules/organizations/types';
 import { buildMembersCsv } from '@/modules/organizations/utils/build-members-csv';
 import { useAddMembersToShow } from '@/modules/organizations/hooks/use-member-mutations';
 import { MemberEditDialog } from '@/modules/organizations/ui/member-edit-dialog';
@@ -92,7 +93,7 @@ export function MemberDatabaseScreen({
   }
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <ScreenTitle className="mb-1.5">Member Database</ScreenTitle>
@@ -131,7 +132,7 @@ export function MemberDatabaseScreen({
               setTargetShow(e.target.value);
             }}
             aria-label="Show to add them to"
-            className="rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13px]"
+            className="rounded-[8px] border border-[#E7EAEE] bg-white px-3 py-2 text-[13px]"
           >
             {shows.map((show) => (
               <option key={show.id} value={show.id}>
@@ -159,14 +160,14 @@ export function MemberDatabaseScreen({
 
       <Card className="p-5">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-forest font-[family-name:var(--font-nr)] text-[17px] font-semibold">
-            Member Database
-          </span>
-          <span className="text-[12.5px] text-[#7A8781]">
+          <h3 className="m-0 text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
+            All members
+          </h3>
+          <span className="text-[12.5px] text-[#8A94A3]">
             {filtered.length} of {members.length}
           </span>
         </div>
-        <p className="mb-3 text-[12.5px] leading-[1.55] text-[#6E7C76]">
+        <p className="mb-3 text-[12.5px] leading-[1.55] text-[#8A94A3]">
           Your organization&apos;s full contact list. Check anyone and add them straight into a show
           — it copies them in, it doesn&apos;t remove them from here.
         </p>
@@ -188,7 +189,7 @@ export function MemberDatabaseScreen({
               setRoleFilter(e.target.value);
             }}
             aria-label="Filter by type"
-            className="rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13px]"
+            className="rounded-[8px] border border-[#E7EAEE] bg-white px-3 py-2 text-[13px]"
           >
             <option value="">All types</option>
             {roles.map((role) => (
@@ -207,11 +208,11 @@ export function MemberDatabaseScreen({
               <IconColumns size={14} /> Columns
             </GhostButton>
             {columnsOpen && (
-              <div className="absolute top-full right-0 z-20 mt-1 w-[190px] rounded-[10px] border border-[#E9EDEB] bg-white p-2 shadow-lg">
+              <div className="absolute top-full right-0 z-20 mt-1 w-[190px] rounded-[10px] border border-[#E7EAEE] bg-white p-2 shadow-lg">
                 {columns.map((col) => (
                   <label
                     key={col.key}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[12.5px] hover:bg-[#F5F7F6]"
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[12.5px] hover:bg-[#F5F7F8]"
                   >
                     <input
                       type="checkbox"
@@ -234,14 +235,14 @@ export function MemberDatabaseScreen({
         </div>
 
         {filtered.length > MEMBER_ROW_CAP && (
-          <p className="mb-2.5 rounded-[8px] bg-[#FCF3E4] px-3 py-2 text-[12.5px] text-[#8A6D14]">
+          <p className="mb-2.5 rounded-[8px] bg-[#FDF2E3] px-3 py-2 text-[12.5px] text-[#B45309]">
             Showing {MEMBER_ROW_CAP} of {filtered.length} matches — search or filter by type to
             narrow it down.
           </p>
         )}
 
         {filtered.length === 0 ? (
-          <p className="py-4 text-[13px] text-[#98A29D] italic">
+          <p className="py-4 text-[13px] text-[#8A94A3] italic">
             {members.length === 0
               ? 'Nobody in your database yet — add someone, or upload a list.'
               : 'No members match those filters.'}
@@ -251,7 +252,7 @@ export function MemberDatabaseScreen({
             <Table className="border-collapse text-[13px]">
               <caption className="sr-only">Everyone in your organization&apos;s database</caption>
               <TableHeader className="[&_tr]:border-0">
-                <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+                <TableRow className="border-b border-[#E7EAEE] hover:bg-transparent">
                   <TableHead scope="col" className="h-auto w-[30px] py-2">
                     <input
                       type="checkbox"
@@ -289,7 +290,7 @@ export function MemberDatabaseScreen({
                       onClick={() => {
                         setEditing(member);
                       }}
-                      className="cursor-pointer border-b border-[#F1F4F3] hover:bg-[#F8FAF9]"
+                      className="cursor-pointer border-b border-[#EEF1F4] hover:bg-[#FBFCFD]"
                     >
                       <TableCell
                         className="py-2 whitespace-normal"
@@ -311,8 +312,11 @@ export function MemberDatabaseScreen({
                           }}
                         />
                       </TableCell>
-                      <TableCell className="py-2 font-semibold whitespace-normal">
-                        {member.name}
+                      <TableCell className="py-2.5 whitespace-normal">
+                        <span className="flex items-center gap-2.5">
+                          <OrgAvatar name={member.name} size={30} />
+                          <span className="font-semibold text-[#101828]">{member.name}</span>
+                        </span>
                       </TableCell>
 
                       {visibleCols.map((col) => (
@@ -321,10 +325,10 @@ export function MemberDatabaseScreen({
                           className={cn(
                             'py-2 whitespace-normal',
 
-                            (col.key === 'notes' || col.extra) && 'text-[12px] text-[#7A8781]',
+                            (col.key === 'notes' || col.extra) && 'text-[12px] text-[#8A94A3]',
                             col.key === 'membershipExpires' &&
                               expired &&
-                              'font-semibold text-[#B4432F]',
+                              'font-semibold text-[#B42318]',
                           )}
                         >
                           {col.key === 'membershipStatus' ? (

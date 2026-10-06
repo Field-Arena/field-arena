@@ -1,6 +1,6 @@
 'use client';
 import { useMemo } from 'react';
-import type { StablingData } from '@/modules/operations/data/queries';
+import type { StablingData } from '@/modules/operations/types';
 
 export function StablingPanel({ stabling }: { stabling: StablingData }) {
   const byStable = useMemo(() => {

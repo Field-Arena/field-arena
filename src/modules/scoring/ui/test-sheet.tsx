@@ -1,8 +1,7 @@
 'use client';
 
-import { useImperativeHandle, useState, type Ref } from 'react';
+import { type ReactNode, useImperativeHandle, useState, type Ref } from 'react';
 import { cn } from '@/shared/lib/utils';
-import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { useDebouncedWrite } from '@/modules/scoring/hooks/use-debounced-write';
 import { REMARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
@@ -55,6 +54,7 @@ export function TestSheet({
   seatRole,
   locked,
   defaultCollapsed = false,
+  deductions,
   onSetMark,
   onSetCollective,
   onToggleError,
@@ -67,6 +67,8 @@ export function TestSheet({
   seatRole: 'judge' | 'scribe';
   locked: boolean;
   defaultCollapsed?: boolean;
+  /** Rendered as the sheet's Deductions section, between collectives and remarks. */
+  deductions?: ReactNode;
   onSetMark: (movementNum: number, value: number) => void;
   onSetCollective: (key: string, value: number) => void;
   onToggleError: (movementNum: number) => void;
@@ -123,49 +125,29 @@ export function TestSheet({
     submitted: score?.submitted ?? false,
   };
 
+  const ROW = 'flex flex-wrap items-center gap-3 border-b border-[var(--fa-line-soft)] px-5 py-2.5';
+  const SECTION =
+    'flex items-center justify-between gap-3 border-b border-[var(--fa-line-soft)] bg-[var(--fa-surface-2)] px-5 py-2 text-[10.5px] font-bold tracking-[.08em] text-[var(--fa-ink-3)] uppercase';
+  const lineTotal = (value: number | null | undefined, coef: number) =>
+    value === null || value === undefined ? '—' : (value * coef).toFixed(1);
+  const Coef = ({ coef }: { coef: number }) =>
+    coef > 1 ? (
+      <span className="rounded-[5px] bg-[var(--fa-violet-tint)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--fa-violet)]">
+        ×{coef}
+      </span>
+    ) : null;
+
   const movementRow = (m: TestMovement) => {
     const mark = movements[String(m.num)];
+    const lockedHere = isLockedFor(mark?.enteredBy ?? null);
     return (
-      <div
-        key={m.num}
-        className="flex flex-wrap items-center gap-3 rounded-xl border border-[#E9EDEB] bg-white p-[14px_16px]"
-      >
-        <span className="w-6 flex-none text-[13px] font-bold text-[#7A8781]">{m.num}</span>
-        <span className="text-ink-deep min-w-[220px] flex-1 text-[13.5px]">{m.text}</span>
-
-        <MarkStepper
-          value={mark?.value ?? null}
-          enteredBy={mark?.enteredBy ?? null}
-          locked={isLockedFor(mark?.enteredBy ?? null)}
-          onChange={(value) => {
-            movementWrite.debounced(String(m.num), value);
-          }}
-        />
-
-        {/* The error flag follows the movement it sits on: legacy hid this
-            control entirely on a judge-owned mark (showrunner-scoring.html:1273,
-            `lockedForScribe ? '' : errToggle`). Errors subtract from the score
-            and eliminate at three, so a scribe toggling one on a judge's
-            movement changes the judge's result without touching a mark.
-            Gating on `locked` alone missed that. */}
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={isLockedFor(mark?.enteredBy ?? null)}
-          onClick={() => {
-            onToggleError(m.num);
-          }}
-          aria-pressed={Boolean(errorAt[String(m.num)])}
-          aria-label="Toggle error of course"
-          className={cn(
-            'grid size-8 h-auto flex-none place-items-center rounded-[8px] border px-0 py-0 text-[15px] font-normal hover:bg-transparent disabled:opacity-40',
-            errorAt[String(m.num)]
-              ? 'border-[#E3B8B8] bg-[#F7E1E1] text-[#B23A3A]'
-              : 'hover:border-gold border-[#D9E1DD] bg-white text-[#B4BFB9]',
-          )}
-        >
-          ⚠
-        </Button>
+      <div key={m.num} className={ROW}>
+        <span className="grid size-[22px] flex-none place-items-center rounded-[6px] border border-[var(--fa-line)] bg-[var(--fa-surface-2)] text-[11px] font-bold text-[var(--fa-ink-2)]">
+          {m.num}
+        </span>
+        <span className="w-[220px] flex-none text-[13px] font-semibold text-[var(--fa-ink)]">
+          {m.text}
+        </span>
 
         <RemarkField
           value={remarks[String(m.num)] ?? ''}
@@ -174,6 +156,45 @@ export function TestSheet({
             remarkWrite.debounced(String(m.num), text);
           }}
         />
+
+        <Coef coef={m.coef} />
+
+        {/* The error flag follows the movement it sits on: legacy hid this
+            control entirely on a judge-owned mark (showrunner-scoring.html:1273,
+            `lockedForScribe ? '' : errToggle`). Errors subtract from the score
+            and eliminate at three, so a scribe toggling one on a judge's
+            movement changes the judge's result without touching a mark.
+            Gating on `locked` alone missed that. */}
+        <button
+          type="button"
+          disabled={lockedHere}
+          onClick={() => {
+            onToggleError(m.num);
+          }}
+          aria-pressed={Boolean(errorAt[String(m.num)])}
+          aria-label="Toggle error of course"
+          title="Error of course at this movement"
+          className={cn(
+            'grid size-8 flex-none place-items-center rounded-[8px] border text-[14px] transition disabled:opacity-40',
+            errorAt[String(m.num)]
+              ? 'border-[#FBCFC9] bg-[var(--fa-red-tint)] text-[var(--fa-red)]'
+              : 'border-[var(--fa-line)] bg-white text-[var(--fa-ink-3)] hover:border-[#D6DBE1]',
+          )}
+        >
+          ⚠
+        </button>
+
+        <MarkStepper
+          value={mark?.value ?? null}
+          enteredBy={mark?.enteredBy ?? null}
+          locked={lockedHere}
+          onChange={(value) => {
+            movementWrite.debounced(String(m.num), value);
+          }}
+        />
+        <span className="w-12 flex-none text-right text-[13px] font-semibold text-[var(--fa-ink-2)] tabular-nums">
+          {lineTotal(mark?.value, m.coef)}
+        </span>
       </div>
     );
   };
@@ -181,8 +202,15 @@ export function TestSheet({
   const collectiveRow = (c: TestCollective) => {
     const mark = collectives[c.key];
     return (
-      <div key={c.key} className="flex items-center gap-3">
-        <span className="text-ink-deep min-w-[180px] flex-1 text-[13.5px]">{c.label}</span>
+      <div key={c.key} className={ROW}>
+        <span className="w-[22px] flex-none" />
+        <span className="w-[220px] flex-none text-[13px] font-semibold text-[var(--fa-ink)]">
+          {c.label}
+        </span>
+        <span className="flex-1" />
+        <Coef coef={c.coef} />
+        {/* Movement rows carry the error-of-course toggle here. */}
+        <span className="size-8 flex-none" aria-hidden />
         <MarkStepper
           value={mark?.value ?? null}
           enteredBy={mark?.enteredBy ?? null}
@@ -191,71 +219,89 @@ export function TestSheet({
             collectiveWrite.debounced(c.key, value);
           }}
         />
+        <span className="w-12 flex-none text-right text-[13px] font-semibold text-[var(--fa-ink-2)] tabular-nums">
+          {lineTotal(mark?.value, c.coef)}
+        </span>
       </div>
     );
   };
 
+  const subtotal = (text: string) => (
+    <div className="border-b border-[var(--fa-line-soft)] px-5 py-1.5 text-right text-[11.5px] font-semibold text-[var(--fa-ink-3)]">
+      {text}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-2.5">
-      <details
-        open={open}
-        onToggle={(e) => {
-          setOpen(e.currentTarget.open);
-        }}
-        className="flex flex-col gap-2.5"
-      >
-        <summary className="text-ink-deep cursor-pointer list-none rounded-xl border border-[#E9EDEB] bg-white p-[12px_16px] text-[13px] font-semibold marker:hidden">
-          {open ? 'Hide' : 'Show'} full test sheet — {test.movements.length} movements
+    <div>
+      <div className={SECTION}>
+        <span>
+          Movements · {test.movements.length}
           {test.collectives.length > 0
-            ? `, ${String(test.collectives.length)} collective marks`
+            ? ` + ${String(test.collectives.length)} collective marks`
             : ''}
-        </summary>
-
-        {movementGroups
-          ? movementGroups.map((group) => (
-              <div key={group.section} className="flex flex-col gap-2.5">
-                <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
-                  {group.section}
-                </span>
-                {group.items.map(movementRow)}
-                <div className="pr-1 text-right text-[12px] font-semibold text-[#7A8781]">
-                  Section subtotal {subtotalForMovements(markSheet, group.items)} /{' '}
-                  {maxForMovements(group.items)}
-                </div>
-              </div>
-            ))
-          : test.movements.map(movementRow)}
-
-        {test.collectives.length > 0 && (
-          <div className="mt-2 flex flex-col gap-2.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-            <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
-              Collective marks
-            </span>
-            {collectiveGroups
-              ? collectiveGroups.map((group) => (
-                  <div key={group.section} className="flex flex-col gap-2.5">
-                    <span className="text-[11px] font-semibold text-[#7A8781]">
-                      {group.section}
-                    </span>
-                    {group.items.map(collectiveRow)}
-                    <div className="pr-1 text-right text-[12px] font-semibold text-[#7A8781]">
-                      Section subtotal {subtotalForCollectives(markSheet, group.items)} /{' '}
-                      {maxForCollectives(group.items)}
-                    </div>
-                  </div>
-                ))
-              : test.collectives.map(collectiveRow)}
-          </div>
-        )}
-      </details>
-
-      <div className="mt-2 flex flex-col gap-1.5 rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-        <label
-          htmlFor="final-remarks"
-          className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase"
+        </span>
+        <button
+          type="button"
+          className="border-0 bg-transparent text-[11px] font-semibold tracking-normal text-[var(--fa-brand)] normal-case hover:underline"
+          aria-expanded={open}
+          onClick={() => {
+            setOpen((v) => !v);
+          }}
         >
-          Final remarks
-        </label>
+          {open ? 'Hide full test sheet' : 'Show full test sheet'}
+        </button>
+      </div>
+
+      {open && (
+        <>
+          {movementGroups
+            ? movementGroups.map((group) => (
+                <div key={group.section}>
+                  <div className={SECTION}>{group.section}</div>
+                  {group.items.map(movementRow)}
+                  {subtotal(
+                    `Section subtotal ${String(subtotalForMovements(markSheet, group.items))} / ${String(maxForMovements(group.items))}`,
+                  )}
+                </div>
+              ))
+            : test.movements.map(movementRow)}
+
+          {test.collectives.length > 0 && (
+            <>
+              <div className={SECTION}>Collective marks</div>
+              {collectiveGroups
+                ? collectiveGroups.map((group) => (
+                    <div key={group.section}>
+                      <div className="px-5 pt-2 text-[11px] font-semibold text-[var(--fa-ink-3)]">
+                        {group.section}
+                      </div>
+                      {group.items.map(collectiveRow)}
+                      {subtotal(
+                        `Section subtotal ${String(subtotalForCollectives(markSheet, group.items))} / ${String(maxForCollectives(group.items))}`,
+                      )}
+                    </div>
+                  ))
+                : test.collectives.map(collectiveRow)}
+            </>
+          )}
+        </>
+      )}
+
+      {deductions && (
+        <>
+          <div className={SECTION}>Deductions</div>
+          <div className="border-b border-[var(--fa-line-soft)] px-5 py-3">{deductions}</div>
+        </>
+      )}
+
+      <div className={SECTION}>
+        <label htmlFor="final-remarks">Final remarks</label>
+      </div>
+      <div className="flex flex-col gap-1.5 px-5 py-3">
+        <span className="text-[12px] text-[var(--fa-ink-3)]">
+          Overall comment for the test — appears on the rider&apos;s scoresheet.
+        </span>
         <FinalRemarksField
           initialValue={score?.finalRemarks ?? ''}
           disabled={locked}
@@ -303,14 +349,14 @@ function RemarkField({
       type="text"
       value={draft}
       disabled={disabled}
-      placeholder="Remark"
+      placeholder="Remark for this movement"
       onFocus={onFocus}
       onBlur={onBlur}
       onChange={(e) => {
         setDraft(e.target.value);
         onChange(e.target.value);
       }}
-      className="text-ink-deep focus-visible:border-gold h-auto min-w-[160px] flex-1 rounded-[8px] border border-[#D9E1DD] px-2.5 py-1.5 text-[12.5px] outline-none disabled:bg-[#F1F4F3] disabled:opacity-100"
+      className="h-8 min-w-[160px] flex-1 rounded-[8px] border border-[var(--fa-line)] px-2.5 py-1 text-[12.5px] text-[var(--fa-ink)] italic shadow-none outline-none placeholder:text-[var(--fa-ink-3)] focus-visible:border-[#9FD3BA] focus-visible:not-italic disabled:bg-[var(--fa-surface-2)] disabled:opacity-100"
     />
   );
 }
@@ -337,7 +383,7 @@ function FinalRemarksField({
         setDraft(e.target.value);
         onChange(e.target.value);
       }}
-      className="text-ink-deep focus-visible:border-gold resize-none rounded-[8px] border border-[#D9E1DD] px-2.5 py-2 text-[13px] outline-none disabled:bg-[#F1F4F3]"
+      className="resize-y rounded-[10px] border border-[var(--fa-line)] px-3 py-2.5 text-[13px] text-[var(--fa-ink)] outline-none focus-visible:border-[#9FD3BA] focus-visible:shadow-[0_0_0_3px_var(--fa-brand-tint)] disabled:bg-[var(--fa-surface-2)]"
     />
   );
 }

@@ -8,11 +8,13 @@ export function SectionFooter({
   currentTab,
   showId,
   blockedReason,
+  previewUrl,
 }: {
   currentTab: ShowManagerTab;
 
   showId?: string;
   blockedReason?: string | null;
+  previewUrl?: string;
 }) {
   const section = SHOW_MANAGER_SECTIONS.find((s) => s.label === currentTab);
   const next = section?.nextLabel
@@ -21,8 +23,8 @@ export function SectionFooter({
 
   if (!section || !next) {
     return (
-      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
-        <p className="min-w-0 text-[13px] text-[#6E7C76]">
+      <div className="fa-card flex flex-wrap items-center gap-4 px-5 py-4">
+        <p className="m-0 min-w-0 text-[13px] text-[var(--fa-ink-3)]">
           That&apos;s every Show Manager section for this show — jump back to any tab above, or head
           to your dashboard.
         </p>
@@ -34,19 +36,26 @@ export function SectionFooter({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
+    <div className="fa-card flex flex-wrap items-center gap-4 px-5 py-4">
       <div className="min-w-0">
-        <p className="text-[13px] text-[#6E7C76]">{section.nextNote}</p>
+        <span className="fa-autosave-inline">
+          <span className="fa-as-dot" />
+          {section.nextNote}
+        </span>
         {blockedReason && (
-          <p className="mt-1 text-[12.5px] text-[#B4432F] italic">{blockedReason}</p>
+          <p className="m-0 mt-1 text-[12px] text-[var(--fa-amber)]">{blockedReason}</p>
         )}
       </div>
-      <Link
-        href={`/dashboard/shows/${showId ?? ''}${next.path}`}
-        className={cn(SM_GREEN_BTN, 'ml-auto')}
-      >
-        Continue to {next.label} →
-      </Link>
+      <div className="ml-auto flex flex-wrap items-center gap-3">
+        {previewUrl && (
+          <a href={previewUrl} target="_blank" rel="noreferrer" className="fa-filelink">
+            Preview ticket page ↗
+          </a>
+        )}
+        <Link href={`/dashboard/shows/${showId ?? ''}${next.path}`} className={SM_GREEN_BTN}>
+          Continue to {next.label} →
+        </Link>
+      </div>
     </div>
   );
 }

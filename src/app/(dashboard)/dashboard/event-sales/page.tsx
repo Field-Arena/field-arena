@@ -4,7 +4,7 @@ import { listSales, getCanRefund } from '@/modules/sales/data/queries';
 import { computeSalesStats } from '@/modules/sales/utils/compute-sales-stats';
 import { EventSalesScreen } from '@/modules/sales/ui/event-sales-screen';
 import { isStripeLive } from '@/shared/lib/stripe';
-import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Event Sales — Field & Arena' };
 
@@ -20,7 +20,7 @@ export default async function EventSalesPage({
     return (
       <WorkspacePage
         title="Event Sales"
-        description="Rider entries and add-ons."
+        description="Entry fees, add-ons, and vendor booths for the focused show — open any order to view the invoice, refund, or charge more."
         orgName={context.orgName}
         showPicker={false}
       >
@@ -32,16 +32,19 @@ export default async function EventSalesPage({
   const isOrganizerOrImpersonating =
     context.profile.platform_role === 'Organizer' || context.impersonating;
 
-  const [rows, canRefund] = await Promise.all([
-    listSales(context.currentShow.id),
-    getCanRefund(context.currentShow.id, isOrganizerOrImpersonating),
-  ]);
+  const canRefund = await getCanRefund(context.currentShow.id, isOrganizerOrImpersonating);
+  // Without canViewMoney the rows come back with every money figure zeroed,
+  // so nothing the UI hides is ever shipped to the browser.
+  const rows = await listSales(context.currentShow.id, {
+    canViewMoney: context.canViewMoney,
+    canRefund,
+  });
   const stats = computeSalesStats(rows);
 
   return (
     <WorkspacePage
       title="Event Sales"
-      description="Rider entries and add-ons."
+      description="Entry fees, add-ons, and vendor booths for the focused show — open any order to view the invoice, refund, or charge more."
       orgName={context.orgName}
       shows={context.shows}
       currentShow={context.currentShow}

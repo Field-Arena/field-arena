@@ -50,7 +50,7 @@ export function StableConfigBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-hunter-deep font-serif text-xl">
+        <DialogTitle className="font-serif text-xl text-[#101828]">
           {stable.name || 'Stable'} — stalls
         </DialogTitle>
         <DialogDescription>
@@ -75,7 +75,7 @@ export function StableConfigBody({
       </div>
 
       {stalls.length === 0 ? (
-        <p className="my-4 text-[13px] text-[#7A8781]">
+        <p className="my-4 text-[13px] text-[#8A94A3]">
           Set a stall count above to build the grid.
         </p>
       ) : (

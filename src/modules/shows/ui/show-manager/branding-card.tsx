@@ -1,5 +1,5 @@
 import { Card } from '@/shared/ui/organizer/card';
-import type { RiderEntriesData } from '@/modules/shows/data/setup-queries';
+import type { RiderEntriesData } from '@/modules/shows/types';
 import { SM_CARD_PAD, SM_SECTION_HEAD } from '@/modules/shows/ui/show-manager/tokens';
 import { BrandingSlot } from '@/modules/shows/ui/show-manager/branding-slot';
 

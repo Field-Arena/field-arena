@@ -1,4 +1,4 @@
-import type { RingRow } from '@/modules/announcements/data/queries';
+import type { RingRow } from '@/modules/announcements/types';
 
 export interface RingBoardCard {
   ring: string;

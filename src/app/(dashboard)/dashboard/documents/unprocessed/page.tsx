@@ -3,7 +3,7 @@ import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { UnprocessedDocumentsScreen } from '@/modules/shows/ui/filing-cabinet/unprocessed-documents-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Unprocessed Documents — Field & Arena' };
 

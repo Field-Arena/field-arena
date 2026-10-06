@@ -12,7 +12,7 @@ export const MAX_STALLS_PER_STABLE = 300;
 export const VENUE_STAT_TINTS = [
   { bg: '#E3EDFB', fg: '#2E5FA8' },
   { bg: '#EEE7FA', fg: '#6B4FA0' },
-  { bg: '#FCF3E4', fg: '#8A6D14' },
+  { bg: '#FDF2E3', fg: '#B45309' },
 ] as const;
 
 export const MEMBER_TYPES = [

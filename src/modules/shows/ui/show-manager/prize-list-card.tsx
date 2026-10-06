@@ -6,13 +6,8 @@ import { GhostButton } from '@/shared/ui/organizer/buttons';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useUpdatePrizeList } from '@/modules/shows/hooks/use-show-mutations';
-import {
-  SM_CARD_PAD,
-  SM_SECTION_HEAD,
-  SM_NOTE,
-  SM_LABEL,
-  SM_INPUT,
-} from '@/modules/shows/ui/show-manager/tokens';
+import { SM_CARD_PAD, SM_NOTE, SM_LABEL, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import { SmHead } from './sm-head';
 
 export function PrizeListCard({
   showId,
@@ -27,7 +22,7 @@ export function PrizeListCard({
 
   return (
     <Card className={SM_CARD_PAD}>
-      <h2 className={SM_SECTION_HEAD}>Prize list</h2>
+      <SmHead icon="prize" title="Prize list" sub="A link riders can open from the ticket page" />
       <p className={SM_NOTE}>
         Paste a link to your prize list (a PDF, Google Doc, or any page riders can view). It shows
         up as a bold &ldquo;PRIZE LIST&rdquo; link at the top of your ticket page — riders can open
@@ -48,8 +43,8 @@ export function PrizeListCard({
               }}
             />
           ) : (
-            <div className="text-ink-deep truncate text-[14.5px]">
-              {value || <span className="text-[#98A29D] italic">Not set</span>}
+            <div className="truncate text-[14.5px] text-[#101828]">
+              {value || <span className="text-[#8A94A3] italic">Not set</span>}
             </div>
           )}
         </div>

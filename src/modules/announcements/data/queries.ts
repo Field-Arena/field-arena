@@ -1,24 +1,21 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { withSharedRank } from '@/modules/operations/utils/with-shared-rank';
-import {
-  ANNOUNCER_ROLE,
-  CONTACT_ROLES,
-  UP_NEXT_DEPTH,
-} from '@/modules/announcements/constants';
-
-export type ShowStatus = 'today' | 'upcoming' | 'completed';
-
-export interface AnnouncerShow {
-  id: string;
-  slug: string | null;
-  name: string;
-  dateLabel: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  status: ShowStatus;
-}
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { isRideFinished, pickRideInRing, resolveCurrentRideIndex } from '@/shared/lib/current-ride';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
+import { withSharedRank } from '@/shared/lib/with-shared-rank';
+import { overrideTestName } from '@/shared/lib/rank-placings';
+import { ANNOUNCER_ROLE, CONTACT_ROLES, UP_NEXT_DEPTH } from '@/modules/announcements/constants';
+import type {
+  AnnouncerShow,
+  HistoryRow,
+  ResultRow,
+  RingRow,
+  ScheduleRow,
+  ShowContact,
+  ShowDocument,
+  ShowStatus,
+} from '@/modules/announcements/types';
 
 /* Legacy derived today/upcoming/completed from the show's own dates rather
  * than from staff_assignments.status, and left a comment explaining why: that
@@ -28,7 +25,11 @@ export interface AnnouncerShow {
  * Legacy compared a single `date` field. Shows here carry start_date AND
  * end_date, so a multi-day show reads as "today" for its whole run instead of
  * only on opening day. */
-function showStatus(startDate: string | null, endDate: string | null, todayIso: string): ShowStatus {
+function showStatus(
+  startDate: string | null,
+  endDate: string | null,
+  todayIso: string,
+): ShowStatus {
   const start = startDate ?? endDate;
   const end = endDate ?? startDate;
   if (!start || !end) return 'upcoming';
@@ -61,33 +62,38 @@ export async function listMyShows(): Promise<AnnouncerShow[]> {
   const showIds = [...new Set(staffRows.map((s) => s.show_id))];
   const { data: shows, error: showError } = await supabase
     .from('shows')
-    .select('id, slug, name, date_label, start_date, end_date')
+    .select('id, slug, name, date_label, start_date, end_date, timezone, organizations(timezone)')
     .in('id', showIds);
   if (showError) throw showError;
 
-  const todayIso = new Date().toISOString().slice(0, 10);
-
-  return shows
-    .map((s) => ({
-      id: s.id,
-      slug: s.slug,
-      name: s.name,
-      dateLabel: s.date_label,
-      startDate: s.start_date,
-      endDate: s.end_date,
-      status: showStatus(s.start_date, s.end_date, todayIso),
-    }))
-    /* Today's show must sort first. Ordering by start_date desc put the
-     * furthest-FUTURE show at shows[0], so on a show day the announcer opened
-     * the board onto the wrong show entirely. Within a bucket: soonest first
-     * for today/upcoming, most recent first for completed. */
-    .sort((a, b) => {
-      const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-      if (byStatus !== 0) return byStatus;
-      const av = a.startDate ?? '';
-      const bv = b.startDate ?? '';
-      return a.status === 'completed' ? bv.localeCompare(av) : av.localeCompare(bv);
-    });
+  return (
+    shows
+      .map((s) => ({
+        id: s.id,
+        slug: s.slug,
+        name: s.name,
+        dateLabel: s.date_label,
+        startDate: s.start_date,
+        endDate: s.end_date,
+        // Today in the show's own zone — the server clock is UTC.
+        status: showStatus(
+          s.start_date,
+          s.end_date,
+          todayInZone(resolveTimeZone(s.timezone, s.organizations.timezone)),
+        ),
+      }))
+      /* Today's show must sort first. Ordering by start_date desc put the
+       * furthest-FUTURE show at shows[0], so on a show day the announcer opened
+       * the board onto the wrong show entirely. Within a bucket: soonest first
+       * for today/upcoming, most recent first for completed. */
+      .sort((a, b) => {
+        const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+        if (byStatus !== 0) return byStatus;
+        const av = a.startDate ?? '';
+        const bv = b.startDate ?? '';
+        return a.status === 'completed' ? bv.localeCompare(av) : av.localeCompare(bv);
+      })
+  );
 }
 
 /* The show this workspace opens on: today's if there is one, else the next
@@ -97,29 +103,8 @@ export function pickCurrentShow(
   requestedShowId: string | undefined,
 ): AnnouncerShow | null {
   return (
-    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
-    shows[0] ??
-    null
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null
   );
-}
-
-export interface RingEntrySummary {
-  num: string;
-  rider: string | null;
-  horse: string | null;
-}
-
-export interface RingRow {
-  className: string;
-  classId: string;
-  ring: string | null;
-  scoringOpen: boolean;
-  position: number;
-  entryCount: number;
-
-  current: RingEntrySummary | null;
-
-  upNext: RingEntrySummary[];
 }
 
 export async function getRingStatus(showId: string): Promise<RingRow[]> {
@@ -127,7 +112,7 @@ export async function getRingStatus(showId: string): Promise<RingRow[]> {
 
   const { data: classes, error } = await supabase
     .from('classes')
-    .select('id, label, location, arena, scoring_open, scoring_pos')
+    .select('id, label, location, arena, scoring_open, working_in_entry_id')
     .eq('show_id', showId)
     .order('label');
   if (error) throw error;
@@ -135,12 +120,13 @@ export async function getRingStatus(showId: string): Promise<RingRow[]> {
 
   const { data: entries, error: entryError } = await supabase
     .from('class_entries')
-    .select('class_id, num, rider, horse, ride_order, status, holding')
+    .select('id, class_id, num, rider, horse, ride_order, status, holding, advanced_past')
     .in(
       'class_id',
       classes.map((c) => c.id),
     )
-    .order('ride_order');
+    .order('ride_order')
+    .order('id');
   if (entryError) throw entryError;
 
   const byClass = new Map<string, typeof entries>();
@@ -156,13 +142,31 @@ export async function getRingStatus(showId: string): Promise<RingRow[]> {
     // listSchedule already does. Filtering only `holding` here let a scratched
     // rider surface as "Now in ring" / "Next up" and inflated entryCount, so
     // the ops board and the Schedule tab disagreed about the same class.
-    const list = (byClass.get(cls.id) ?? []).filter(
-      (e) => !e.holding && e.status !== 'scratched',
-    );
-    const position = cls.scoring_pos ?? 0;
-    const current = list[position] ?? null;
+    const classEntries = byClass.get(cls.id) ?? [];
+    const list = classEntries.filter((e) => !e.holding && e.status !== 'scratched');
+    // "Now in ring" is the first unfinished ride, matched the same way the
+    // scoring screen does (resolveCurrentRideIndex) — never classes.scoring_pos
+    // used as an index, which counts scratched rides this list has dropped.
+    const asRide = (e: (typeof list)[number]) => ({
+      status: e.status,
+      advancedPast: e.advanced_past ?? false,
+    });
+    const position = resolveCurrentRideIndex(list.map(asRide));
+    // During a work-in the judge is scoring the worked-in rider, not the next
+    // in order — name the same rider the judge screen does (pickRideInRing).
+    const current = pickRideInRing({
+      workingInEntryId: cls.working_in_entry_id,
+      rides: list,
+      holdingRides: classEntries.filter((e) => (e.holding ?? false) || e.status === 'scratched'),
+      pos: position,
+    });
+    // While a rider is worked in, the ride at `position` hasn't gone yet — it
+    // is the first one up next.
+    const workingIn = current !== null && current.id === cls.working_in_entry_id;
     const upNext = list
-      .slice(position + 1, position + 1 + UP_NEXT_DEPTH)
+      .filter((e, i) => (workingIn ? i >= position && e.id !== current.id : i > position))
+      .filter((e) => !isRideFinished(asRide(e)))
+      .slice(0, UP_NEXT_DEPTH)
       .map((e) => ({ num: e.num, rider: e.rider, horse: e.horse }));
 
     return {
@@ -178,15 +182,6 @@ export async function getRingStatus(showId: string): Promise<RingRow[]> {
   });
 }
 
-export interface ResultRow {
-  classLabel: string;
-  num: string;
-  rider: string | null;
-  horse: string | null;
-  finalPct: string | null;
-  place: number;
-}
-
 export async function getLiveResults(showId: string): Promise<ResultRow[]> {
   const supabase = await createServerClient();
 
@@ -199,7 +194,7 @@ export async function getLiveResults(showId: string): Promise<ResultRow[]> {
 
   const { data: entries, error: entryError } = await supabase
     .from('class_entries')
-    .select('class_id, num, rider, horse, final_pct, status')
+    .select('class_id, num, rider, horse, final_pct, status, collective_total, test_override')
     .in(
       'class_id',
       classes.map((c) => c.id),
@@ -227,9 +222,9 @@ export async function getLiveResults(showId: string): Promise<ResultRow[]> {
           Number.isFinite(Number(e.final_pct))
             ? Number(e.final_pct)
             : null,
-      }))
-      .filter((r) => r.finalPctNum !== null)
-      .sort((a, b) => (b.finalPctNum ?? 0) - (a.finalPctNum ?? 0));
+        ctot: e.collective_total,
+        testName: overrideTestName(e.test_override),
+      }));
 
     /* Two riders on the same percentage share a place — 1st, 1st, 3rd — which
      * is how every other placings surface in this app ranks (awards-engine,
@@ -248,16 +243,6 @@ export async function getLiveResults(showId: string): Promise<ResultRow[]> {
   }
 
   return rows;
-}
-
-export interface ScheduleRow {
-  classId: string;
-  className: string;
-  ring: string | null;
-  date: string | null;
-  time: string | null;
-  entryCount: number;
-  scoringOpen: boolean;
 }
 
 /* Legacy had a Schedule tab but it was a stub — one row per assignment with a
@@ -300,16 +285,6 @@ export async function listShowSchedule(showId: string): Promise<ScheduleRow[]> {
     entryCount: counts.get(c.id) ?? 0,
     scoringOpen: c.scoring_open ?? false,
   }));
-}
-
-export interface HistoryRow {
-  showId: string;
-  showSlug: string | null;
-  showName: string;
-  dateLabel: string | null;
-  startDate: string | null;
-  classCount: number;
-  scoredCount: number;
 }
 
 /* Legacy's History tab listed completed assignments with a "Result" column
@@ -363,13 +338,6 @@ export async function listAnnouncerHistory(): Promise<HistoryRow[]> {
   }));
 }
 
-export interface ShowContact {
-  staffId: string;
-  name: string;
-  role: string;
-  phone: string | null;
-}
-
 export async function listShowContacts(showId: string): Promise<ShowContact[]> {
   const supabase = await createServerClient();
 
@@ -383,13 +351,6 @@ export async function listShowContacts(showId: string): Promise<ShowContact[]> {
   if (error) throw error;
 
   return data.map((row) => ({ staffId: row.id, name: row.name, role: row.role, phone: row.phone }));
-}
-
-export interface ShowDocument {
-  id: string;
-  name: string;
-
-  url: string | null;
 }
 
 export async function listShowDocuments(showId: string): Promise<ShowDocument[]> {

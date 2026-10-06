@@ -3,7 +3,10 @@ import {
   ROLE_PERMISSION_DEFAULTS,
   type PermissionKey,
 } from '@/shared/constants/permissions';
+import type { GRANTABLE_ROLES } from '@/shared/constants/roles';
 import { USER_ROLE_RANK } from './constants';
+
+type GrantableRole = (typeof GRANTABLE_ROLES)[number];
 
 export function resolveStaffPermissions(input: {
   role: string;
@@ -38,6 +41,11 @@ export function resolveStaffPermissions(input: {
   return resolved;
 }
 
+/** Money permissions only the org owner / a SuperAdmin may change. */
+export function isOwnerOnlyPermission(key: PermissionKey): boolean {
+  return key === 'canViewMoney' || key === 'canRefund';
+}
+
 export function roleRank(role: string): number {
   const i = (USER_ROLE_RANK as readonly string[]).indexOf(role);
   return i === -1 ? 99 : i;
@@ -48,7 +56,10 @@ export function splitName(name: string): { first: string; last: string } {
   return { first: parts[0] ?? '', last: parts.slice(1).join(' ') };
 }
 
-export function normalizeCsvRole(raw: string): string {
+/* Always one of GRANTABLE_ROLES — the import action only accepts that closed
+ * list, so an unrecognised cell becomes ShowStaff rather than failing the
+ * whole file (or, as it once did, flowing through as free text). */
+export function normalizeCsvRole(raw: string): GrantableRole {
   const r = raw.toLowerCase().trim();
   if (r.includes('super')) return 'Show Admin';
   if (r.includes('organiz')) return 'Show Admin';
@@ -59,13 +70,13 @@ export function normalizeCsvRole(raw: string): string {
   if (r.includes('vendor')) return 'Vendor';
   if (r.includes('showstaff') || r.includes('show staff')) return 'ShowStaff';
   if (r.includes('volunt')) return 'ShowStaff';
-  return r ? r.charAt(0).toUpperCase() + r.slice(1) : 'ShowStaff';
+  return 'ShowStaff';
 }
 
 export interface ParsedStaffCsvRow {
   firstName: string;
   lastName: string;
-  role: string;
+  role: GrantableRole;
   phone: string;
   email: string;
 }

@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
-import type { RiderDirectoryRow } from '@/modules/operations/data/queries';
+import type { RiderDirectoryRow } from '@/modules/operations/types';
 import { searchStyle } from '@/modules/operations/ui/directory-styles';
 
 export function RidersPanel({ riders }: { riders: RiderDirectoryRow[] }) {

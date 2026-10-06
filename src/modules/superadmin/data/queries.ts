@@ -1,7 +1,9 @@
 import 'server-only';
+import { cache } from 'react';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
+import { fetchAllRows } from '@/modules/superadmin/data/fetch-all-rows';
 import { findCatalogMatch } from '@/modules/superadmin/utils/find-catalog-match';
 import { resolveStaffPermissions } from '@/modules/superadmin/utils/resolve-staff-permissions';
 import { countEnabledPermissions } from '@/modules/superadmin/utils/count-enabled-permissions';
@@ -30,7 +32,7 @@ import type {
 export async function getPlatformStats(): Promise<PlatformStats> {
   const supabase = await createServerClient();
 
-  const [orgs, activeOrgs, shows, published, classes, entries, riders, staff, paid] =
+  const [orgs, activeOrgs, shows, published, classes, entries, riders, staff, paidCount, paid] =
     await Promise.all([
       supabase.from('organizations').select('id', { count: 'exact', head: true }),
       supabase
@@ -44,10 +46,19 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       supabase.from('class_entries').select('id', { count: 'exact', head: true }),
       supabase.from('riders').select('id', { count: 'exact', head: true }),
       supabase.from('users').select('id', { count: 'exact', head: true }),
-      supabase.from('orders').select('amount_total').eq('status', 'paid'),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+      // Paged: a single select is capped at 1000 rows, which froze revenue.
+      fetchAllRows((from, to) =>
+        supabase
+          .from('orders')
+          .select('amount_total')
+          .eq('status', 'paid')
+          .order('id')
+          .range(from, to),
+      ),
     ]);
 
-  const revenue = (paid.data ?? []).reduce((sum, row) => sum + row.amount_total, 0);
+  const revenue = paid.reduce((sum, row) => sum + row.amount_total, 0);
 
   return {
     organizations: orgs.count ?? 0,
@@ -59,31 +70,38 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     riders: riders.count ?? 0,
     staff: staff.count ?? 0,
     revenue,
-    paidOrders: paid.data?.length ?? 0,
+    paidOrders: paidCount.count ?? 0,
   };
 }
 
 export async function listOrganizations(): Promise<OrganizationSummary[]> {
   const supabase = await createServerClient();
 
-  const { data: orgs, error } = await supabase
-    .from('organizations')
-    .select(
-      'id, name, city, region, currency, locale, suspended, is_demo, deleted_at, fee_model, avg_entry_value, created_at',
-    )
-    .order('name');
-  if (error) throw error;
+  const orgs = await fetchAllRows((from, to) =>
+    supabase
+      .from('organizations')
+      .select(
+        'id, name, city, region, currency, locale, suspended, is_demo, deleted_at, fee_model, avg_entry_value, created_at',
+      )
+      .order('name')
+      .order('id')
+      .range(from, to),
+  );
 
-  const organizerAccounts = await supabase
-    .from('users')
-    .select('id, org_id, onboarded_at')
-    .eq('platform_role', 'Organizer')
-    .not('org_id', 'is', null);
-  if (organizerAccounts.error) throw organizerAccounts.error;
+  // Paged: a single select is capped at 1000 rows.
+  const organizerAccounts = await fetchAllRows((from, to) =>
+    supabase
+      .from('users')
+      .select('id, org_id, onboarded_at')
+      .eq('platform_role', 'Organizer')
+      .not('org_id', 'is', null)
+      .order('id')
+      .range(from, to),
+  );
 
-  const accountOrgs = new Set(organizerAccounts.data.map((row) => row.org_id));
+  const accountOrgs = new Set(organizerAccounts.map((row) => row.org_id));
   const signedInOrgs = new Set(
-    organizerAccounts.data.filter((row) => row.onboarded_at).map((row) => row.org_id),
+    organizerAccounts.filter((row) => row.onboarded_at).map((row) => row.org_id),
   );
 
   // One aggregated row per org (GROUP BY in SQL) instead of pulling every
@@ -95,10 +113,16 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
   if (summariesError) throw summariesError;
   const summaryByOrg = new Map(summaries.map((s) => [s.org_id, s]));
 
-  const { data: additionalOwnerRows, error: ownersError } = await supabase
-    .from('organization_owners')
-    .select('org_id, users(id, name, email)');
-  if (ownersError) throw ownersError;
+  // Paged (1000-row cap). organization_owners has no id column; its
+  // (org_id, user_id) primary key gives a stable order.
+  const additionalOwnerRows = await fetchAllRows((from, to) =>
+    supabase
+      .from('organization_owners')
+      .select('org_id, users(id, name, email)')
+      .order('org_id')
+      .order('user_id')
+      .range(from, to),
+  );
 
   const additionalOwnersByOrg = new Map<
     string,
@@ -126,6 +150,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       suspended: org.suspended,
       isDemo: org.is_demo,
       deletedAt: org.deleted_at,
+      createdAt: org.created_at,
       feeModel: org.fee_model,
       showCount,
       // Legacy's "Riders" column was the sum of each show's entry count, and
@@ -135,11 +160,7 @@ export async function listOrganizations(): Promise<OrganizationSummary[]> {
       entryCount,
       riderCount: summary?.rider_count ?? 0,
       revenueEstimate: entryCount * (org.avg_entry_value ?? 0),
-      onboarded: signedInOrgs.has(org.id)
-        ? true
-        : accountOrgs.has(org.id)
-          ? false
-          : showCount > 0,
+      onboarded: signedInOrgs.has(org.id) ? true : accountOrgs.has(org.id) ? false : showCount > 0,
       additionalOwners: additionalOwnersByOrg.get(org.id) ?? [],
     };
   });
@@ -241,12 +262,16 @@ export async function listCatalogDocuments(): Promise<CatalogDocument[]> {
 
 export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
   const supabase = await createServerClient();
-  const { data: rows, error } = await supabase
-    .from('users')
-    .select('id, name, email, platform_role, created_at, onboarded_at')
-    .order('platform_role')
-    .order('name');
-  if (error) throw error;
+  // Paged (1000-row cap); id is the tiebreaker that keeps pages stable.
+  const rows = await fetchAllRows((from, to) =>
+    supabase
+      .from('users')
+      .select('id, name, email, platform_role, created_at, onboarded_at')
+      .order('platform_role')
+      .order('name')
+      .order('id')
+      .range(from, to),
+  );
 
   return rows.map((row) => ({
     id: row.id,
@@ -267,28 +292,32 @@ export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[
       .select('id, name, city, region')
       .is('deleted_at', null)
       .order('name'),
-    supabase.from('shows').select('id, name, org_id'),
-    supabase
-      .from('staff_assignments')
-      .select(
-        'id, show_id, name, email, role, status, permissions, can_scratch_skip_dq, can_view_money',
-      ),
+    fetchAllRows((from, to) =>
+      supabase.from('shows').select('id, name, org_id').order('id').range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase
+        .from('staff_assignments')
+        .select(
+          'id, show_id, name, email, role, status, permissions, can_scratch_skip_dq, can_view_money',
+        )
+        .order('id')
+        .range(from, to),
+    ),
   ]);
   if (orgsRes.error) throw orgsRes.error;
-  if (showsRes.error) throw showsRes.error;
-  if (staffRes.error) throw staffRes.error;
 
-  const showById = new Map(showsRes.data.map((s) => [s.id, s]));
+  const showById = new Map(showsRes.map((s) => [s.id, s]));
 
   const showsByOrg = new Map<string, { id: string; name: string }[]>();
-  for (const show of showsRes.data) {
+  for (const show of showsRes) {
     const list = showsByOrg.get(show.org_id) ?? [];
     list.push({ id: show.id, name: show.name });
     showsByOrg.set(show.org_id, list);
   }
 
   const staffByOrg = new Map<string, DirectoryStaff[]>();
-  for (const row of staffRes.data) {
+  for (const row of staffRes) {
     const show = showById.get(row.show_id);
     if (!show) continue;
     const resolved = resolveStaffPermissions(row);
@@ -325,12 +354,23 @@ export async function listOrganizerStaffDirectory(): Promise<DirectoryOrganizer[
 export async function getBillingSummary(): Promise<BillingSummary> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select('amount_total, fee_total, refunded_amount, status');
-  if (error) throw error;
+  const countByStatus = (status: string) =>
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', status);
 
-  const paid = data.filter((row) => row.status === 'paid');
+  const [paid, pending, failed] = await Promise.all([
+    fetchAllRows((from, to) =>
+      supabase
+        .from('orders')
+        .select('amount_total, fee_total, refunded_amount')
+        .eq('status', 'paid')
+        .order('id')
+        .range(from, to),
+    ),
+    countByStatus('pending'),
+    countByStatus('failed'),
+  ]);
+  if (pending.error) throw pending.error;
+  if (failed.error) throw failed.error;
 
   const grossPaid = paid.reduce((sum, row) => sum + row.amount_total, 0);
   const platformFees = paid.reduce((sum, row) => sum + (row.fee_total ?? 0), 0);
@@ -342,8 +382,8 @@ export async function getBillingSummary(): Promise<BillingSummary> {
     refunded,
     netToOrganizers: grossPaid - platformFees - refunded,
     paidOrders: paid.length,
-    pendingOrders: data.filter((row) => row.status === 'pending').length,
-    failedOrders: data.filter((row) => row.status === 'failed').length,
+    pendingOrders: pending.count ?? 0,
+    failedOrders: failed.count ?? 0,
   };
 }
 
@@ -416,15 +456,18 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
       .select('id, name, city, region, fee_model, currency, locale')
       .is('deleted_at', null)
       .order('name'),
-    supabase
-      .from('orders')
-      .select('amount_total, fee_total, refunded_amount, shows!inner(org_id)')
-      .eq('status', 'paid'),
+    fetchAllRows((from, to) =>
+      supabase
+        .from('orders')
+        .select('amount_total, fee_total, refunded_amount, shows!inner(org_id)')
+        .eq('status', 'paid')
+        .order('id')
+        .range(from, to),
+    ),
     admin.from('organizations').select('id, stripe_connect_account_id'),
   ]);
 
   if (orgs.error) throw orgs.error;
-  if (orders.error) throw orders.error;
   if (connect.error) throw connect.error;
 
   const accountByOrg = new Map(connect.data.map((row) => [row.id, row.stripe_connect_account_id]));
@@ -441,7 +484,7 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
   );
 
   const byOrg = new Map<string, { count: number; gross: number; fee: number; refunded: number }>();
-  for (const order of orders.data) {
+  for (const order of orders) {
     const orgId = order.shows.org_id;
     if (!orgId) continue;
     const bucket = byOrg.get(orgId) ?? { count: 0, gross: 0, fee: 0, refunded: 0 };
@@ -480,7 +523,7 @@ export async function listOrganizationBilling(): Promise<OrganizationBilling[]> 
   });
 }
 
-export async function getOrganizationBillingDetail(
+async function getOrganizationBillingDetailUncached(
   orgId: string,
 ): Promise<OrganizationBillingDetail | null> {
   const supabase = await createServerClient();
@@ -515,17 +558,19 @@ export async function getOrganizationBillingDetail(
   const showIds = shows.data.map((show) => show.id);
 
   const orders = showIds.length
-    ? await supabase
-        .from('orders')
-        .select('show_id, amount_total, fee_total, refunded_amount')
-        .eq('status', 'paid')
-        .in('show_id', showIds)
-    : { data: [], error: null };
-
-  if (orders.error) throw orders.error;
+    ? await fetchAllRows((from, to) =>
+        supabase
+          .from('orders')
+          .select('show_id, amount_total, fee_total, refunded_amount')
+          .eq('status', 'paid')
+          .in('show_id', showIds)
+          .order('id')
+          .range(from, to),
+      )
+    : [];
 
   const byShow = new Map<string, { volume: number; fee: number; refunded: number }>();
-  for (const order of orders.data) {
+  for (const order of orders) {
     const bucket = byShow.get(order.show_id) ?? { volume: 0, fee: 0, refunded: 0 };
     bucket.volume += order.amount_total;
     bucket.fee += order.fee_total ?? 0;
@@ -577,7 +622,9 @@ export async function getOrganizationBillingDetail(
  * into their workspace (legacy viewOrgShows / orgShowsHtml). The stage
  * pill mirrors the same setup/on-sale/live split the organizer sees.
  * ------------------------------------------------------------------ */
-export async function getOrganizationShows(orgId: string): Promise<OrganizationShowsDetail | null> {
+async function getOrganizationShowsUncached(
+  orgId: string,
+): Promise<OrganizationShowsDetail | null> {
   const supabase = await createServerClient();
 
   const [orgRes, showsRes, ownerRes] = await Promise.all([
@@ -605,20 +652,32 @@ export async function getOrganizationShows(orgId: string): Promise<OrganizationS
 
   const showIds = showsRes.data.map((s) => s.id);
 
-  const classRes = showIds.length
-    ? await supabase.from('classes').select('id, show_id').in('show_id', showIds)
-    : { data: [] as { id: string; show_id: string }[], error: null };
-  if (classRes.error) throw classRes.error;
+  const classRows = showIds.length
+    ? await fetchAllRows((from, to) =>
+        supabase
+          .from('classes')
+          .select('id, show_id')
+          .in('show_id', showIds)
+          .order('id')
+          .range(from, to),
+      )
+    : [];
 
-  const classIds = classRes.data.map((c) => c.id);
-  const entryRes = classIds.length
-    ? await supabase.from('class_entries').select('id, class_id, status').in('class_id', classIds)
-    : { data: [] as { id: string; class_id: string; status: string | null }[], error: null };
-  if (entryRes.error) throw entryRes.error;
+  const classIds = classRows.map((c) => c.id);
+  const entryRows = classIds.length
+    ? await fetchAllRows((from, to) =>
+        supabase
+          .from('class_entries')
+          .select('id, class_id, status')
+          .in('class_id', classIds)
+          .order('id')
+          .range(from, to),
+      )
+    : [];
 
-  const showByClass = new Map(classRes.data.map((c) => [c.id, c.show_id]));
+  const showByClass = new Map(classRows.map((c) => [c.id, c.show_id]));
   const entriesByShow = new Map<string, number>();
-  for (const entry of entryRes.data) {
+  for (const entry of entryRows) {
     if (entry.status === 'scratched') continue;
     const showId = showByClass.get(entry.class_id);
     if (!showId) continue;
@@ -657,7 +716,7 @@ export async function getOrganizationShows(orgId: string): Promise<OrganizationS
  * node (loadRealRidersRoster). Scratched entries are excluded, exactly as
  * legacy did, so the roster reflects who is actually riding. class_entries
  * already carries plain rider/horse text, so there is no rider/horse join. */
-export async function getShowRoster(showId: string): Promise<{
+async function getShowRosterUncached(showId: string): Promise<{
   showName: string;
   orgId: string;
   orgName: string;
@@ -682,18 +741,21 @@ export async function getShowRoster(showId: string): Promise<{
   if (classError) throw classError;
 
   const classIds = classes.map((c) => c.id);
-  const entriesRes = classIds.length
-    ? await supabase
-        .from('class_entries')
-        .select('id, class_id, num, rider, horse, status, final_pct')
-        .in('class_id', classIds)
-    : { data: [], error: null };
-  if (entriesRes.error) throw entriesRes.error;
+  const entryRows = classIds.length
+    ? await fetchAllRows((from, to) =>
+        supabase
+          .from('class_entries')
+          .select('id, class_id, num, rider, horse, status, final_pct')
+          .in('class_id', classIds)
+          .order('id')
+          .range(from, to),
+      )
+    : [];
 
   const classById = new Map(classes.map((c) => [c.id, c]));
   const byRider = new Map<string, ShowRosterRider>();
 
-  for (const entry of entriesRes.data) {
+  for (const entry of entryRows) {
     if (entry.status === 'scratched') continue;
     const riderName = entry.rider ?? 'Unnamed rider';
     const horse = entry.horse ?? '—';
@@ -780,3 +842,10 @@ export function planCatalogRematch(
   }
   return plan;
 }
+
+/* React cache(): each of these backs both a page and its generateMetadata,
+ * which would otherwise run the same queries (and Stripe calls) twice per
+ * request. */
+export const getOrganizationShows = cache(getOrganizationShowsUncached);
+export const getOrganizationBillingDetail = cache(getOrganizationBillingDetailUncached);
+export const getShowRoster = cache(getShowRosterUncached);

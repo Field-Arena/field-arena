@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
@@ -50,7 +50,7 @@ import {
 } from '@/modules/superadmin/hooks/use-organization-mutations';
 import { FeeModelField } from '@/modules/superadmin/ui/fee-model-field';
 import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
-import { enterAsOrganizer } from '@/shared/lib/impersonation';
+import { useEnterAsOrganizer } from '../hooks/use-session-mutations';
 import type { OrganizationSummary } from '@/modules/superadmin/types';
 
 export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
@@ -59,7 +59,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [ownersOpen, setOwnersOpen] = useState(false);
 
-  const [entering, startEntering] = useTransition();
+  const { isPending: entering, enter: enterAsOrganizer } = useEnterAsOrganizer();
   const suspend = useSetOrganizationSuspended();
   const remove = useSetOrganizationDeleted();
   const resendInvite = useResendOrganizerInvite();
@@ -107,11 +107,9 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
             ? 'This organizer is deleted — restore them before entering their workspace'
             : "Full impersonation — you'll act as this organizer, not just view their shows"
         }
-        className="border-line-strong text-forest hover:border-gold inline-flex h-auto items-center gap-2 rounded-lg border px-3 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors hover:bg-[#FFFCF2] disabled:opacity-45"
+        className="fa-act fa-enter inline-flex h-auto items-center gap-1.5 border border-transparent whitespace-nowrap disabled:opacity-45"
         onClick={() => {
-          startEntering(async () => {
-            await enterAsOrganizer(org.id);
-          });
+          enterAsOrganizer(org.id);
         }}
       >
         {entering ? 'Entering…' : 'Enter as organizer'}
@@ -121,15 +119,15 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`More actions for ${org.name}`}
-          className="text-fa-muted-2 hover:border-field hover:text-forest grid size-8 flex-none place-items-center rounded-lg border border-transparent transition-colors hover:bg-white"
+          className="grid size-8 flex-none place-items-center rounded-lg border border-transparent text-[#8A94A3] transition-colors hover:border-[#E7EAEE] hover:bg-white hover:text-[#146A47]"
         >
           <EllipsisVerticalIcon className="size-4" aria-hidden />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="border-line-mint w-52 rounded-xl p-1.5">
+        <DropdownMenuContent align="end" className="w-52 rounded-xl border-[#E7EAEE] p-1.5">
           <DropdownMenuItem asChild>
             <Link href={`/dashboard/superadmin/organizations/${org.id}`} prefetch={false}>
-              <CalendarDaysIcon className="text-fa-muted size-[15px]" aria-hidden />
+              <CalendarDaysIcon className="size-[15px] text-[#475467]" aria-hidden />
               View shows
             </Link>
           </DropdownMenuItem>
@@ -139,7 +137,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               setEditOpen(true);
             }}
           >
-            <PencilIcon className="text-fa-muted size-[15px]" aria-hidden />
+            <PencilIcon className="size-[15px] text-[#475467]" aria-hidden />
             Edit organizer
           </DropdownMenuItem>
 
@@ -148,7 +146,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               setOwnersOpen(true);
             }}
           >
-            <UsersIcon className="text-fa-muted size-[15px]" aria-hidden />
+            <UsersIcon className="size-[15px] text-[#475467]" aria-hidden />
             Grant org access
             {org.additionalOwners.length > 0 && ` (${String(org.additionalOwners.length)})`}
           </DropdownMenuItem>
@@ -160,7 +158,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                   href={`/dashboard/superadmin/organizations/${org.id}/onboarding`}
                   prefetch={false}
                 >
-                  <ClipboardListIcon className="text-fa-muted size-[15px]" aria-hidden />
+                  <ClipboardListIcon className="size-[15px] text-[#475467]" aria-hidden />
                   Onboarding profile
                 </Link>
               </DropdownMenuItem>
@@ -171,7 +169,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                   resendInvite.mutate(org.id);
                 }}
               >
-                <MailIcon className="text-fa-muted size-[15px]" aria-hidden />
+                <MailIcon className="size-[15px] text-[#475467]" aria-hidden />
                 {resendInvite.isPending ? 'Sending…' : 'Resend invite'}
               </DropdownMenuItem>
             </>
@@ -183,11 +181,11 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               setSuspendOpen(true);
             }}
           >
-            <CircleSlashIcon className="text-fa-muted size-[15px]" aria-hidden />
+            <CircleSlashIcon className="size-[15px] text-[#475467]" aria-hidden />
             {org.suspended ? 'Reactivate access' : 'Suspend access'}
           </DropdownMenuItem>
 
-          <DropdownMenuSeparator className="bg-[#EEF2EF]" />
+          <DropdownMenuSeparator className="bg-[#EEF1F4]" />
 
           {org.deletedAt ? (
             <DropdownMenuItem
@@ -196,7 +194,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
                 remove.mutate({ id: org.id, value: false });
               }}
             >
-              <RotateCcwIcon className="text-fa-muted size-[15px]" aria-hidden />
+              <RotateCcwIcon className="size-[15px] text-[#475467]" aria-hidden />
               Restore organizer
             </DropdownMenuItem>
           ) : (
@@ -217,9 +215,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
-              Edit Organizer
-            </DialogTitle>
+            <DialogTitle className="font-serif text-xl text-[#101828]">Edit Organizer</DialogTitle>
             <DialogDescription>{org.name}</DialogDescription>
           </DialogHeader>
 
@@ -299,7 +295,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       <Dialog open={suspendOpen} onOpenChange={setSuspendOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               {org.suspended ? `Reactivate ${org.name}?` : `Suspend ${org.name}?`}
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
@@ -344,7 +340,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               Delete {org.name}?
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
@@ -389,12 +385,12 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
       <Dialog open={ownersOpen} onOpenChange={setOwnersOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               Organization access
             </DialogTitle>
             <DialogDescription>
-              Grant another Organizer account access to {org.name} — they&apos;ll be able to
-              switch into it from their own workspace, alongside their own organization.
+              Grant another Organizer account access to {org.name} — they&apos;ll be able to switch
+              into it from their own workspace, alongside their own organization.
             </DialogDescription>
           </DialogHeader>
 
@@ -403,11 +399,11 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               {org.additionalOwners.map((owner) => (
                 <div
                   key={owner.userId}
-                  className="border-line-mint flex items-center justify-between rounded-lg border px-3 py-2 text-[13px]"
+                  className="flex items-center justify-between rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
                 >
                   <span>
                     <span className="font-semibold">{owner.name}</span>{' '}
-                    <span className="text-fa-muted">{owner.email}</span>
+                    <span className="text-[#475467]">{owner.email}</span>
                   </span>
                   <Button
                     type="button"
@@ -444,7 +440,7 @@ export function OrganizationRowActions({ org }: { org: OrganizationSummary }) {
               <input
                 type="email"
                 placeholder="organizer@example.com"
-                className="border-line-mint w-full rounded-lg border px-3 py-2 text-[13px]"
+                className="w-full rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
                 {...ownerForm.register('email')}
               />
               {ownerForm.formState.errors.email && (

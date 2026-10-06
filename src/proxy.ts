@@ -52,8 +52,8 @@ export async function proxy(request: NextRequest) {
     url.pathname = ROUTES.home;
     url.search = '';
     url.searchParams.set('signin', '1');
-
-    url.searchParams.set('next', pathname);
+    // Keep the query too, so a deep link like /dashboard/entries?show=… survives sign-in.
+    url.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
     return copyCookies(response, NextResponse.redirect(url));
   }
 
@@ -79,5 +79,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)',
   ],
 };
-
-//test

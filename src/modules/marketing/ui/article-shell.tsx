@@ -2,7 +2,7 @@ import { Suspense, type ReactNode } from 'react';
 import { LandingNav } from '@/modules/marketing/ui/landing/landing-nav';
 import { LandingFooter } from '@/modules/marketing/ui/landing/landing-footer';
 import { DemoDialogMount } from '@/modules/marketing/ui/landing/demo-dialog-mount';
-import { LoginDialog } from '@/modules/auth/ui/login-dialog';
+import { LoginDialog } from '@/modules/auth/public';
 
 const PROSE = [
   '[&_p]:mb-5 [&_p]:text-[15.5px] [&_p]:leading-[1.7] [&_p]:text-ink-lead',

@@ -1,6 +1,6 @@
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { ANNOUNCING_RESULTS_PATH } from '@/modules/announcements/constants';
-import type { HistoryRow } from '@/modules/announcements/data/queries';
+import type { HistoryRow } from '@/modules/announcements/types';
 
 export function AnnouncerHistoryTable({ history }: { history: HistoryRow[] }) {
   if (history.length === 0) {

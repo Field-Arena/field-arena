@@ -22,16 +22,16 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { MEMBER_TYPES } from '@/modules/organizations/constants';
-import type { MemberRow } from '@/modules/organizations/data/queries';
+import type { MemberRow } from '@/modules/organizations/types';
 import {
   useCreateMember,
   useDeleteMember,
   useUpdateMember,
 } from '@/modules/organizations/hooks/use-member-mutations';
 
-const LABEL = 'mb-1.5 block text-[12.5px] font-semibold text-forest';
+const LABEL = 'mb-1.5 block text-[12.5px] font-semibold text-[#101828]';
 const FIELD =
-  'w-full rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
+  'w-full rounded-[8px] border border-[#E7EAEE] bg-white px-3 py-2 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]';
 
 export function MemberEditDialog({
   member,
@@ -102,7 +102,7 @@ export function MemberEditDialog({
       >
         <DialogHeader className={modalBodyClass + ' flex-none gap-1.5 pb-0'}>
           <ModalEyebrow>Member Database</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             {member ? member.name : 'Add member'}
           </DialogTitle>
           <DialogDescription>
@@ -110,7 +110,7 @@ export function MemberEditDialog({
               ? "In your organization's database"
               : "Add someone to your organization's database. This doesn't put them on any show yet."}
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -255,10 +255,10 @@ export function MemberEditDialog({
 
           {Object.keys(extra).length > 0 && (
             <div>
-              <div className="text-forest mb-1 text-[12px] font-bold tracking-wide uppercase">
+              <div className="mb-1 text-[12px] font-bold tracking-wide text-[#101828] uppercase">
                 Additional fields
               </div>
-              <p className="mb-2 text-[12px] text-[#7A8781]">
+              <p className="mb-2 text-[12px] text-[#8A94A3]">
                 Picked up from an imported list — edit or clear any of these like any other field.
               </p>
               <div className="space-y-3">
@@ -283,7 +283,7 @@ export function MemberEditDialog({
           )}
 
           {nameError && (
-            <p role="alert" className="text-[12.5px] text-[#B4432F]">
+            <p role="alert" className="text-[12.5px] text-[#B42318]">
               Please enter a name.
             </p>
           )}
@@ -298,7 +298,7 @@ export function MemberEditDialog({
               onClick={() => {
                 setConfirmDelete(true);
               }}
-              className="h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold text-[#B4432F] hover:bg-transparent hover:underline"
+              className="h-auto bg-transparent px-0 py-0 text-[12.5px] font-semibold text-[#B42318] hover:bg-transparent hover:underline"
             >
               Delete from database
             </Button>

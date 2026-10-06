@@ -5,6 +5,7 @@ import type {
   ORDER_STATUSES,
   RIDER_CATEGORIES,
 } from '@/modules/riders/constants';
+import type { ScheduleStatus } from '@/shared/lib/schedule-delta';
 
 export type RiderRow = Database['public']['Tables']['riders']['Row'];
 export type HorseRow = Database['public']['Tables']['horses']['Row'];
@@ -21,7 +22,12 @@ export type OrderRow = Database['public']['Tables']['orders']['Row'];
  * grant will fail at the database, not silently return null. */
 export type RiderVisibleOrderRow = Omit<
   OrderRow,
-  'stripe_customer_id' | 'stripe_payment_method_id' | 'stabling_request'
+  | 'stripe_customer_id'
+  | 'stripe_payment_method_id'
+  | 'stabling_request'
+  // Server-only (20261002130000): not granted to authenticated.
+  | 'refund_log'
+  | 'review_reason'
 >;
 export type ClassEntryRow = Database['public']['Tables']['class_entries']['Row'];
 export type WaiverSignatureRow = Database['public']['Tables']['waiver_signatures']['Row'];
@@ -166,6 +172,18 @@ export interface FinalizeOrderResult {
   items: OrderLineItem[];
 }
 
+/* The rider came back from Stripe before the payment settled ('processing'),
+ * or Stripe's amount did not match the order and it was set aside for staff
+ * ('review'). Neither fulfils the order, and neither is an error to crash the
+ * return page on. */
+export interface CheckoutPendingResult {
+  ok: false;
+  reason: 'processing' | 'review';
+  orderId: string;
+}
+
+export type ConfirmCheckoutResult = FinalizeOrderResult | CheckoutPendingResult;
+
 export interface RiderEntryDetail {
   id: string;
   classId: string;
@@ -231,4 +249,21 @@ export interface RiderScorecard {
   horse: string | null;
   finalPct: string | null;
   cards: RiderScorecardCard[];
+}
+
+export interface RiderShowLink {
+  showId: string;
+  showSlug: string | null;
+  showName: string;
+  /* The rider's assigned number for this show (class_entries.num, assigned
+   * once per checkout by nextRiderNumberForShow in checkout.ts — same value
+   * across every entry the rider has for that show). Null only if every
+   * entry is somehow missing it. */
+  riderNumber: string | null;
+}
+
+export interface RingScheduleStatus {
+  ring: string;
+  label: string;
+  status: ScheduleStatus;
 }

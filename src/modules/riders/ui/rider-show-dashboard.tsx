@@ -17,12 +17,12 @@ import type {
   ClassWithCapacity,
   DocumentRequirement,
   HorseWithDocumentUrls,
-  RiderVisibleOrderRow,
   RiderEntryDetail,
   RiderRow,
+  RiderVisibleOrderRow,
+  RingScheduleStatus,
   ShowRow,
 } from '@/modules/riders/types';
-import type { RingScheduleStatus } from '@/modules/riders/data/queries';
 
 type DashTab = 'schedule' | 'profile' | 'horse' | 'purchases' | 'results';
 

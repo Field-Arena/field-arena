@@ -35,7 +35,7 @@ export function EconomicsSection({ lead }: { lead: LeadRow }) {
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-1.5`}>Deal economics</h2>
-      <p className="text-fa-muted-2 mb-5 text-[13px] leading-[1.55]">
+      <p className="mb-5 text-[13px] leading-[1.55] text-[#8A94A3]">
         What this account is projected to cost us to run and what it&apos;s worth — fill in after
         the demo.
       </p>
@@ -50,7 +50,7 @@ export function EconomicsSection({ lead }: { lead: LeadRow }) {
           />
         ))}
       </div>
-      <div className="mt-[22px] border-t border-[#EEF2EF] pt-5">
+      <div className="mt-[22px] border-t border-[#EEF1F4] pt-5">
         <Button
           type="button"
           variant="ghost"

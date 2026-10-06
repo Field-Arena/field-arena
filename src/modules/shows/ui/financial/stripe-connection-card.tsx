@@ -3,8 +3,8 @@
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card } from '@/shared/ui/organizer/card';
 import { cn } from '@/shared/lib/utils';
-import { useStartStripeConnect } from '@/modules/organizations/hooks/use-stripe-connect';
-import type { StripeConnectStatus } from '@/modules/shows/data/queries';
+import { useStartStripeConnect } from '@/modules/organizations/public';
+import type { StripeConnectStatus } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -13,11 +13,11 @@ import {
 } from '@/modules/shows/ui/show-manager/tokens';
 
 const STATUS_PILL: Record<StripeConnectStatus['status'], { label: string; className: string }> = {
-  not_started: { label: 'Not connected', className: 'bg-[#FDF0EE] text-[#B4432F]' },
+  not_started: { label: 'Not connected', className: 'bg-[#FDF0EE] text-[#B42318]' },
   onboarding: { label: 'Onboarding', className: 'bg-[#FDF6E3] text-[#8A6D1F]' },
-  restricted: { label: 'Action needed', className: 'bg-[#FDF0EE] text-[#B4432F]' },
-  active: { label: 'Active', className: 'bg-[#E3F0E5] text-[#2E7048]' },
-  error: { label: 'Could not check', className: 'bg-[#F1F4F3] text-[#6E7C76]' },
+  restricted: { label: 'Action needed', className: 'bg-[#FDF0EE] text-[#B42318]' },
+  active: { label: 'Active', className: 'bg-[#E3F0E5] text-[#15794F]' },
+  error: { label: 'Could not check', className: 'bg-[#EEF1F4] text-[#8A94A3]' },
 };
 
 export function StripeConnectionCard({ connect }: { connect: StripeConnectStatus }) {
@@ -25,7 +25,7 @@ export function StripeConnectionCard({ connect }: { connect: StripeConnectStatus
   const pill = STATUS_PILL[connect.status];
 
   const label = !connect.connected
-    ? '🔗 Connect with Stripe'
+    ? 'Connect with Stripe'
     : connect.status === 'active'
       ? 'Manage Stripe account →'
       : 'Finish Stripe onboarding →';
@@ -68,7 +68,7 @@ export function StripeConnectionCard({ connect }: { connect: StripeConnectStatus
       </div>
 
       {connect.requirementsDue.length > 0 && (
-        <p className="mt-2 text-[12.5px] leading-[1.55] text-[#B4432F]">
+        <p className="mt-2 text-[12.5px] leading-[1.55] text-[#B42318]">
           Stripe still needs: {connect.requirementsDue.join(', ')}
         </p>
       )}

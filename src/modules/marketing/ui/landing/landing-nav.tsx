@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { NAV_LINKS } from '@/modules/marketing/landing-content';
-import { LoginTrigger } from '@/modules/auth/ui/login-trigger';
+import { LoginTrigger } from '@/modules/auth/public';
 import { DemoTrigger } from '@/modules/marketing/ui/landing/demo-trigger';
 import { LandingMobileNav } from '@/modules/marketing/ui/landing/mobile-nav';
 

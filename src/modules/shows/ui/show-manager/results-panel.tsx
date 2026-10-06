@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ShowResultRow } from '@/modules/shows/data/queries';
+import type { ShowResultRow } from '@/modules/shows/types';
 import { buildResultsCsv } from '@/modules/shows/utils/build-results-csv';
 import { resultsCsvFilename } from '@/modules/shows/utils/results-csv-filename';
 import { Card } from '@/shared/ui/organizer/card';
@@ -37,10 +37,10 @@ export function ResultsPanel({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-[13.5px] text-[#5A6B63]">
+        <p className="text-[13.5px] text-[#475467]">
           Every class&apos;s riders and scores, ranked per test for Test of Choice classes and
-          combined for classes sharing a championship. Unscored riders are included so this
-          doubles as a full roster.
+          combined for classes sharing a championship. Unscored riders are included so this doubles
+          as a full roster.
         </p>
         {canExportRoster && (
           <PrimaryButton
@@ -65,7 +65,7 @@ export function ResultsPanel({
       </div>
 
       {byUnit.size === 0 ? (
-        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
+        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#8A94A3]">
           No classes yet.
         </Card>
       ) : (
@@ -82,10 +82,10 @@ export function ResultsPanel({
           return (
             <Card key={unitLabel} className="p-[16px_18px]">
               <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <h3 className="text-ink-deep font-[Newsreader,serif] text-[17px] font-semibold">
+                <h3 className="text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
                   {unitLabel}
                   {unitRows[0]?.division ? (
-                    <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
+                    <span className="ml-1.5 text-[13px] font-normal text-[#8A94A3]">
                       ({unitRows[0].division})
                     </span>
                   ) : null}
@@ -96,7 +96,7 @@ export function ResultsPanel({
                       key={classId}
                       href={`/dashboard/scoring/${classId}`}
                       prefetch={false}
-                      className="text-forest text-[12.5px] font-semibold hover:underline"
+                      className="text-[12.5px] font-semibold text-[#101828] hover:underline"
                     >
                       Score{distinctClasses.length > 1 ? ` ${className}` : ''} →
                     </Link>
@@ -104,13 +104,13 @@ export function ResultsPanel({
                 </div>
               </div>
               {pooled && (
-                <p className="mb-2 text-[12px] text-[#7A8781]">
+                <p className="mb-2 text-[12px] text-[#8A94A3]">
                   Combined placing across: {pooledClasses.join(', ')}
                 </p>
               )}
               <Table className="border-collapse text-[13.5px]">
                 <TableHeader className="[&_tr]:border-0">
-                  <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
+                  <TableRow className="text-left text-[11px] tracking-[.08em] text-[#8A94A3] uppercase hover:bg-transparent">
                     <TableHead className="h-auto p-2">Place</TableHead>
                     <TableHead className="h-auto p-2">Ribbon</TableHead>
                     <TableHead className="h-auto p-2">Rider</TableHead>
@@ -124,38 +124,41 @@ export function ResultsPanel({
                   {unitRows.map((row) => (
                     <TableRow
                       key={row.entryId}
-                      className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent"
+                      className="border-t border-b-0 border-[#E7EAEE] hover:bg-transparent"
                     >
-                      <TableCell className="text-ink-deep p-2 font-bold whitespace-normal">
+                      <TableCell className="p-2 font-bold whitespace-normal text-[#101828]">
                         {row.rank ?? '—'}
                       </TableCell>
                       <TableCell className="p-2 whitespace-normal">
                         {row.ribbonName && (
                           <span
                             className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                            style={{ background: row.ribbonBg ?? undefined, color: row.ribbonFg ?? undefined }}
+                            style={{
+                              background: row.ribbonBg ?? undefined,
+                              color: row.ribbonFg ?? undefined,
+                            }}
                           >
                             {row.ribbonPlace} · {row.ribbonName}
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-ink-deep p-2 whitespace-normal">
-                        <span className="text-[#98A29D]">#{row.num}</span> {row.rider}
+                      <TableCell className="p-2 whitespace-normal text-[#101828]">
+                        <span className="text-[#8A94A3]">#{row.num}</span> {row.rider}
                       </TableCell>
-                      <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
+                      <TableCell className="p-2 whitespace-normal text-[#475467]">
                         {row.horse}
                       </TableCell>
                       {pooled && (
-                        <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
+                        <TableCell className="p-2 whitespace-normal text-[#475467]">
                           {row.className}
                         </TableCell>
                       )}
                       {isMultiTest && (
-                        <TableCell className="p-2 whitespace-normal text-[#5A6B63]">
+                        <TableCell className="p-2 whitespace-normal text-[#475467]">
                           {row.testName ?? '—'}
                         </TableCell>
                       )}
-                      <TableCell className="text-ink-deep p-2 text-right font-mono font-semibold whitespace-normal">
+                      <TableCell className="p-2 text-right font-mono font-semibold whitespace-normal text-[#101828]">
                         {row.pct != null ? `${row.pct.toFixed(3)}%` : '—'}
                       </TableCell>
                     </TableRow>

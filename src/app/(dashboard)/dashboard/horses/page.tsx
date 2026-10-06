@@ -5,12 +5,9 @@ import {
   normalizeStableChart,
   summarizeStableChart,
 } from '@/modules/shows/data/stable-chart-queries';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
-import { createServerClient } from '@/shared/lib/supabase/server';
-import { WorkspaceHeader } from '@/shared/ui/organizer/workspace-header';
+import { getShowStableChartRaw } from '@/modules/shows/data/queries';
 import { HorsesScreen } from '@/modules/shows/ui/horses/horses-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Horses — Field & Arena' };
 
@@ -30,14 +27,8 @@ export default async function HorsesPage({
     );
   }
 
-  const supabase = await createServerClient();
-  const [{ stats, stage }, showRow, horsesData] = await Promise.all([
-    getShowManagerVitals(context.currentShow.id),
-    supabase
-      .from('shows')
-      .select('locations, stable_chart')
-      .eq('id', context.currentShow.id)
-      .single(),
+  const [stableChartRaw, horsesData] = await Promise.all([
+    getShowStableChartRaw(context.currentShow.id),
     getHorsesPageData(context.currentShow.id),
   ]);
 
@@ -49,25 +40,10 @@ export default async function HorsesPage({
     );
   }
 
-  const rings = ((showRow.data?.locations ?? []) as { name?: string; num?: number }[])
-    .map((loc) => loc.name ?? (loc.num ? `Ring ${String(loc.num)}` : null))
-    .filter((name): name is string => !!name);
-
-  const stableChartSummary = summarizeStableChart(normalizeStableChart(showRow.data?.stable_chart));
+  const stableChartSummary = summarizeStableChart(normalizeStableChart(stableChartRaw));
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <WorkspaceHeader
-        orgName={context.orgName}
-        shows={context.shows}
-        currentShow={context.currentShow}
-        stage={stage}
-        stats={stats}
-        canViewMoney={context.canViewMoney}
-        rings={rings}
-        newShowSlot={<NewShowButton className="px-[15px] py-2.5 text-[13px]" />}
-      />
-
       <HorsesScreen
         data={horsesData}
         stableChartSummary={stableChartSummary}

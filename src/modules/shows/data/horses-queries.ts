@@ -1,18 +1,16 @@
 import 'server-only';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import {
-  getDocumentRequirements,
-  type DocumentRequirement,
-} from '@/modules/shows/data/setup-queries';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
+import { getDocumentRequirements } from '@/modules/shows/data/setup-queries';
 import { COGGINS_LABEL } from '@/modules/shows/constants';
-
-export interface ManualHorseEntry {
-  id: string;
-  riderName: string;
-  horseName: string;
-  isStallion: boolean;
-  addedAt: string;
-}
+import type {
+  DocumentReviewStatus,
+  HorseDocumentStatus,
+  HorseRow,
+  HorsesPageData,
+  ManualHorseEntry,
+} from '@/modules/shows/types';
 
 interface RawUpload {
   requirementId?: string;
@@ -25,8 +23,6 @@ interface RawUpload {
   reviewedAt?: string;
 }
 
-export type DocumentReviewStatus = 'pending' | 'approved' | 'rejected' | 'replacement_requested';
-
 /* Rows written before the review workflow existed only ever set `verified`.
  * Every read resolves `status` from the newer field first, falling back to
  * the boolean so old rows still render correctly without a backfill. */
@@ -34,61 +30,6 @@ function resolveReviewStatus(up: RawUpload): DocumentReviewStatus {
   if (up.status === 'approved' || up.status === 'rejected' || up.status === 'replacement_requested')
     return up.status;
   return up.verified ? 'approved' : 'pending';
-}
-
-export interface HorseDocumentStatus {
-  requirementId: string;
-  label: string;
-  uploaded: boolean;
-
-  url: string | null;
-  expirationDate: string | null;
-  requiresExpiration: boolean;
-  requiresApproval: boolean;
-  verified: boolean;
-
-  expired: boolean;
-
-  needsApproval: boolean;
-
-  status: DocumentReviewStatus;
-  rejectionReason: string | null;
-  rejectionNote: string | null;
-}
-
-export interface HorseRow {
-  key: string;
-
-  horseId: string | null;
-  horseName: string;
-  riderLabel: string;
-
-  riderEmail: string | null;
-  classesCount: number;
-  isStallion: boolean;
-  height: string | null;
-  farrier: string | null;
-  trainer: string | null;
-  stable: string | null;
-  documents: HorseDocumentStatus[];
-
-  complete: boolean;
-  missingLabels: string[];
-  needsVerification: boolean;
-  cogginsExpired: boolean;
-
-  /* This same horse appears on class_entries under more than one rider name
-   * — a lease or catch-ride horse, not a data error. riders lists every
-   * distinct name seen so the organizer can see who, not just how many. */
-  isMultiEntry: boolean;
-  riders: string[];
-}
-
-export interface HorsesPageData {
-  showId: string;
-  showName: string;
-  requirements: DocumentRequirement[];
-  rows: HorseRow[];
 }
 
 export async function getHorsesPageData(
@@ -99,7 +40,11 @@ export async function getHorsesPageData(
   const supabase = await createServerClient();
 
   const [showResult, requirements] = await Promise.all([
-    supabase.from('shows').select('id, name, manual_horses').eq('id', showId).maybeSingle(),
+    supabase
+      .from('shows')
+      .select('id, name, manual_horses, timezone, organizations(timezone)')
+      .eq('id', showId)
+      .maybeSingle(),
     getDocumentRequirements(showId),
   ]);
   if (showResult.error) throw showResult.error;
@@ -107,7 +52,14 @@ export async function getHorsesPageData(
   const show = showResult.data;
 
   const docReqs = requirements.filter((r) => r.label.trim());
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Expiry is judged against the show's own calendar day, not the server's
+  // (UTC) one -- a document expiring today is still valid until local midnight.
+  const todayStr = todayInZone(
+    resolveTimeZone(
+      show.timezone,
+      (show.organizations as { timezone: string | null } | null)?.timezone,
+    ),
+  );
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
@@ -126,14 +78,16 @@ export async function getHorsesPageData(
   const byHorse = new Map<string, Group>();
 
   if (classes.length > 0) {
-    const { data: entries, error } = await supabase
-      .from('class_entries')
-      .select('horse, rider, horse_id, rider_id')
-      .in(
-        'class_id',
-        classes.map((c) => c.id),
-      );
-    if (error) throw error;
+    const entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('horse, rider, horse_id, rider_id')
+        .in(
+          'class_id',
+          classes.map((c) => c.id),
+        )
+        .order('id'),
+    );
 
     for (const entry of entries) {
       if (!entry.horse) continue;
@@ -242,10 +196,7 @@ export async function getHorsesPageData(
       const up = uploads.find((u) => u.requirementId === req.id);
       const uploaded = !!up;
       const expired =
-        uploaded &&
-        !!req.requiresExpiration &&
-        !!up.expirationDate &&
-        up.expirationDate < todayStr;
+        uploaded && !!req.requiresExpiration && !!up.expirationDate && up.expirationDate < todayStr;
       const status = uploaded ? resolveReviewStatus(up) : 'pending';
       const needsApproval = uploaded && !!req.requiresApproval && status === 'pending';
       const url = uploaded && up.path ? (signedUrlByPath.get(up.path) ?? null) : null;

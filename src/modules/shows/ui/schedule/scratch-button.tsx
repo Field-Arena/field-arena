@@ -28,7 +28,7 @@ export function ScratchButton({
           setOpen(true);
         }}
         className={cn(
-          'h-auto rounded-[6px] border border-[#E4B5AC] bg-[#FDF0EE] px-2 py-0.5 text-[11px] font-semibold text-[#B4432F] transition-colors hover:border-[#B4432F]',
+          'h-auto rounded-[6px] border border-[#FBCFC9] bg-[#FDF0EE] px-2 py-0.5 text-[11px] font-semibold text-[#B42318] transition-colors hover:border-[#B42318]',
           'hover:bg-transparent',
         )}
       >

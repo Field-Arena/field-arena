@@ -79,13 +79,17 @@ export const updateStaffDetailsSchema = z.object({
     .default(''),
 
   isSteward: z.boolean().optional().default(false),
+  /** Judge licence / rating, e.g. USEF "S". Empty clears it. */
+  license: z.string().trim().max(40).optional().default(''),
 });
 export type UpdateStaffDetailsInput = z.input<typeof updateStaffDetailsSchema>;
 
 const importStaffRowSchema = z.object({
   firstName: z.string().trim().max(80),
   lastName: z.string().trim().max(80),
-  role: z.string().trim().min(1).max(40),
+  // A closed list, never free text: this value ends up (mapped) in
+  // users.platform_role for brand-new accounts.
+  role: z.enum(GRANTABLE_ROLES),
   phone: z
     .string()
     .trim()

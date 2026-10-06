@@ -4,12 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { run, parseInput, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
-import { addOrgMember } from '@/modules/organizations/data/mutations';
-import { assignJudgeToClasses, assignScribeToClasses } from '@/modules/judging/data/mutations';
-import { verifyHorseDocument } from '@/modules/shows/data/horses-mutations';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { getImpersonatedOrgId } from '@/shared/lib/auth/view-as';
+import { addOrgMember } from '@/modules/organizations';
+import { assignJudgeToClasses, assignScribeToClasses } from '@/modules/judging';
+import { verifyHorseDocument } from '@/modules/shows';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { platformRoleForStaff } from '@/shared/lib/staff-platform-role';
 import { ROUTES } from '@/shared/constants/routes';
 import {
   addStaffUserSchema,
@@ -22,6 +24,12 @@ import {
   assignRingAnnouncerSchema,
   updateRiderContactInfoSchema,
 } from '../schemas';
+import { isOwnerOnlyPermission, resolveStaffPermissions } from '../utils';
+import {
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  type PermissionKey,
+} from '@/shared/constants/permissions';
 
 const USERS_PATH = '/dashboard/users';
 
@@ -56,6 +64,66 @@ async function requireCanManageStaff(showId: string): Promise<{ orgId: string; s
   return result;
 }
 
+/* Grant scope — mirrors the staff_assignments_grant_scope trigger
+ * (20261002120000_audit_security_fixes.sql) so the user gets a clear message
+ * instead of a raw DB error. The org's Organizer / co-owner and SuperAdmin
+ * (can_access_org) are unrestricted. Anyone else who has canManageStaff (a
+ * Show Admin, typically):
+ *   - may not grant or change money permissions (canViewMoney / canRefund),
+ *   - may only newly grant a permission they hold on the show themselves,
+ *   - may not add themselves or touch their own row's role/permissions.
+ * Role changes are owner-only here (stricter than the trigger). */
+async function isOrgOwner(orgId: string): Promise<boolean> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.rpc('can_access_org', { target_org_id: orgId });
+  if (error) throw error;
+  return data;
+}
+
+async function requireOrgOwner(orgId: string, message: string): Promise<void> {
+  if (!(await isOrgOwner(orgId))) throw new UserFacingError(message);
+}
+
+async function holdsShowPermission(showId: string, key: PermissionKey): Promise<boolean> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.rpc('has_show_permission', {
+    target_show_id: showId,
+    permission_key: key,
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function requireHoldsShowPermission(showId: string, key: PermissionKey): Promise<void> {
+  if (!(await holdsShowPermission(showId, key))) {
+    throw new UserFacingError(
+      `You can't grant "${PERMISSION_LABELS[key]}" because you don't hold it on this show.`,
+    );
+  }
+}
+
+/* Nobody edits the permissions or role on their own staff row — not even an
+ * owner (who doesn't need one). Matched on user_id and on email, since a row
+ * may not be linked to the account yet. */
+async function requireNotOwnRow(staffId: string): Promise<void> {
+  const profile = await getStaffProfile();
+  if (!profile) throw new UserFacingError('Not signed in.');
+
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('staff_assignments')
+    .select('user_id, email')
+    .eq('id', staffId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new UserFacingError('Staff member not found.');
+
+  const ownEmail = profile.email.trim().toLowerCase();
+  if (data.user_id === profile.id || data.email?.trim().toLowerCase() === ownEmail) {
+    throw new UserFacingError("You can't change your own permissions or role.");
+  }
+}
+
 async function showIdForStaff(staffId: string): Promise<string> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
@@ -68,8 +136,13 @@ async function showIdForStaff(staffId: string): Promise<string> {
   return data.show_id;
 }
 
-function platformRoleForStaff(role: string): string {
-  return role === 'Show Admin' ? 'ShowAdmin' : role;
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function sendStaffInviteNotification(params: {
@@ -77,30 +150,40 @@ async function sendStaffInviteNotification(params: {
   name: string;
   role: string;
   showName: string;
-}): Promise<void> {
+}): Promise<boolean> {
   const firstName = params.name.trim().split(/\s+/)[0] ?? params.name;
   const link = `${env.siteUrl}${ROUTES.login}`;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Field & Arena <notifications@field-arena.com>',
-      to: params.to,
-      subject: `You've been added as ${params.role} for ${params.showName}`,
-      html:
-        `<p>Hi ${firstName},</p>` +
-        `<p>You've been added as <b>${params.role}</b> for <b>${params.showName}</b>. ` +
-        `Click below to log in and get set up:</p>` +
-        `<p><a href="${link}">${link}</a></p>`,
-    }),
+  // name / role / showName are all user-supplied (a CSV cell, a show title),
+  // so every one is escaped before it goes into the HTML body.
+  return sendEmail({
+    to: params.to,
+    subject: `You've been added as ${params.role} for ${params.showName}`,
+    html:
+      `<p>Hi ${escapeHtml(firstName)},</p>` +
+      `<p>You've been added as <b>${escapeHtml(params.role)}</b> for ` +
+      `<b>${escapeHtml(params.showName)}</b>. Click below to log in and get set up:</p>` +
+      `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`,
   });
-  if (!res.ok) return;
 }
 
+async function linkPendingAssignments(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+  userId: string,
+): Promise<void> {
+  const { error } = await admin
+    .from('staff_assignments')
+    .update({ user_id: userId })
+    .eq('email', email)
+    .is('user_id', null);
+  if (error) throw error;
+}
+
+/* Never throws for a failed *delivery* (the staff row is real either way and
+ * the caller has already written it), but a failed DB write is surfaced: a
+ * users row that silently didn't land leaves an invited account with no
+ * profile, and an unlinked assignment hides the role from the switcher. */
 async function provisionIfNewAccount(
   email: string,
   name: string,
@@ -108,17 +191,18 @@ async function provisionIfNewAccount(
   showName: string,
 ): Promise<void> {
   const admin = createAdminClient();
-  const [{ data: existingStaffUser }, { data: existingRider }] = await Promise.all([
+  const [existingStaffUserRes, existingRiderRes] = await Promise.all([
     admin.from('users').select('id, onboarded_at').eq('email', email).maybeSingle(),
     admin.from('riders').select('id').eq('email', email).maybeSingle(),
   ]);
+  if (existingStaffUserRes.error) throw existingStaffUserRes.error;
+  if (existingRiderRes.error) throw existingRiderRes.error;
+  const existingStaffUser = existingStaffUserRes.data;
+  const existingRider = existingRiderRes.data;
+
   if (existingStaffUser || existingRider) {
     if (existingStaffUser) {
-      await admin
-        .from('staff_assignments')
-        .update({ user_id: existingStaffUser.id })
-        .eq('email', email)
-        .is('user_id', null);
+      await linkPendingAssignments(admin, email, existingStaffUser.id);
 
       // A users row exists but they never finished setting a password (e.g.
       // the first invite link expired or was never opened) — a plain login
@@ -134,7 +218,8 @@ async function provisionIfNewAccount(
         // re-issue an invite (e.g. rate-limited) — still better than nothing.
       }
     }
-    await sendStaffInviteNotification({ to: email, name, role, showName }).catch(() => undefined);
+    const sent = await sendStaffInviteNotification({ to: email, name, role, showName });
+    if (!sent) console.error(`[staff] invite notification to ${email} was not delivered`);
     return;
   }
 
@@ -143,20 +228,20 @@ async function provisionIfNewAccount(
 
     redirectTo: env.siteUrl,
   });
-  if (inviteError) return;
+  if (inviteError) {
+    console.error(`[staff] invite to ${email} failed: ${inviteError.message}`);
+    return;
+  }
 
-  await admin.from('users').insert({
+  const { error: profileError } = await admin.from('users').insert({
     id: invited.user.id,
     name,
     email,
     platform_role: platformRoleForStaff(role),
   });
+  if (profileError) throw profileError;
 
-  await admin
-    .from('staff_assignments')
-    .update({ user_id: invited.user.id })
-    .eq('email', email)
-    .is('user_id', null);
+  await linkPendingAssignments(admin, email, invited.user.id);
 }
 
 export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
@@ -164,8 +249,38 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
     const parsed = parseInput(addStaffUserSchema, input);
     const { orgId, showName } = await requireCanManageStaff(parsed.showId);
 
+    // Riders register themselves; the dialog never sends this role here.
+    if (parsed.role === 'Rider') {
+      throw new UserFacingError('Riders sign up through the show page, not as staff.');
+    }
+
     const email = parsed.email.trim().toLowerCase();
     const supabase = await createServerClient();
+
+    if (parsed.role !== 'Vendor' && !(await isOrgOwner(orgId))) {
+      const profile = await getStaffProfile();
+      if (profile?.email.trim().toLowerCase() === email) {
+        throw new UserFacingError("You can't add yourself to a show's staff.");
+      }
+      if (parsed.canViewMoney) {
+        throw new UserFacingError(
+          'Only the organization owner can give someone access to financial data.',
+        );
+      }
+      if (parsed.canScratchSkipDq) await requireHoldsShowPermission(parsed.showId, 'canScratch');
+      if (parsed.role === 'Show Admin') {
+        const { data: isShowAdmin, error: roleError } = await supabase.rpc('has_staff_assignment', {
+          target_show_id: parsed.showId,
+          allowed_roles: ['Show Admin'],
+        });
+        if (roleError) throw roleError;
+        if (!isShowAdmin) {
+          throw new UserFacingError(
+            'Only a Show Admin or the organization owner can add a Show Admin.',
+          );
+        }
+      }
+    }
 
     if (parsed.role === 'Vendor') {
       const businessName = parsed.businessName.trim();
@@ -242,7 +357,9 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
 export async function changeStaffRole(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not change that role', async () => {
     const { staffId, role } = parseInput(changeStaffRoleSchema, input);
-    await requireCanManageStaff(await showIdForStaff(staffId));
+    const { orgId } = await requireCanManageStaff(await showIdForStaff(staffId));
+    await requireOrgOwner(orgId, 'Only the organization owner can change a staff role.');
+    await requireNotOwnRow(staffId);
 
     const supabase = await createServerClient();
     const { error } = await supabase.from('staff_assignments').update({ role }).eq('id', staffId);
@@ -274,7 +391,29 @@ export async function reassignStaffShow(input: unknown): Promise<ActionResult<{ 
 export async function updateStaffDetails(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not save these details', async () => {
     const parsed = parseInput(updateStaffDetailsSchema, input);
-    await requireCanManageStaff(await showIdForStaff(parsed.staffId));
+    const { orgId } = await requireCanManageStaff(await showIdForStaff(parsed.staffId));
+
+    // Re-pointing someone else's assignment at your own address would hand
+    // you their role and permissions.
+    const profile = await getStaffProfile();
+    if (
+      profile?.email.trim().toLowerCase() === parsed.email.trim().toLowerCase() &&
+      !(await isOrgOwner(orgId))
+    ) {
+      const ownRowCheck = await createServerClient();
+      const { data: row, error: rowError } = await ownRowCheck
+        .from('staff_assignments')
+        .select('user_id, email')
+        .eq('id', parsed.staffId)
+        .single();
+      if (rowError) throw rowError;
+      const alreadyMine =
+        row.user_id === profile.id ||
+        row.email?.trim().toLowerCase() === profile.email.trim().toLowerCase();
+      if (!alreadyMine) {
+        throw new UserFacingError("You can't move another staff assignment onto your own account.");
+      }
+    }
 
     const firstName = parsed.firstName.trim();
     const lastName = parsed.lastName.trim();
@@ -288,6 +427,7 @@ export async function updateStaffDetails(input: unknown): Promise<ActionResult<{
         email: parsed.email.trim().toLowerCase(),
         phone: parsed.phone || null,
         is_steward: parsed.isSteward,
+        license: parsed.license || null,
       })
       .eq('id', parsed.staffId);
     if (error) throw error;
@@ -312,7 +452,29 @@ export async function updateRiderContactInfo(input: unknown): Promise<ActionResu
     const parsed = parseInput(updateRiderContactInfoSchema, input);
     await requireCanManageStaff(parsed.showId);
 
+    // canManageStaff on *this* show only reaches riders entered in it — the
+    // admin client below bypasses RLS, so the scope check has to be here.
     const admin = createAdminClient();
+    const [classEntry, showEntry] = await Promise.all([
+      admin
+        .from('class_entries')
+        .select('id, classes!inner(show_id)')
+        .eq('rider_id', parsed.riderId)
+        .eq('classes.show_id', parsed.showId)
+        .limit(1),
+      admin
+        .from('show_entries')
+        .select('id')
+        .eq('rider_id', parsed.riderId)
+        .eq('show_id', parsed.showId)
+        .limit(1),
+    ]);
+    if (classEntry.error) throw classEntry.error;
+    if (showEntry.error) throw showEntry.error;
+    if (classEntry.data.length === 0 && showEntry.data.length === 0) {
+      throw new UserFacingError('That rider is not entered in this show.');
+    }
+
     const { error } = await admin
       .from('riders')
       .update({
@@ -377,12 +539,59 @@ export async function assignRingAnnouncer(input: unknown): Promise<ActionResult<
 export async function updateStaffPermissions(input: unknown): Promise<ActionResult<{ ok: true }>> {
   return run('Could not save those permissions', async () => {
     const { staffId, permissions } = parseInput(updateStaffPermissionsSchema, input);
-    await requireCanManageStaff(await showIdForStaff(staffId));
+    const showId = await showIdForStaff(staffId);
+    const { orgId } = await requireCanManageStaff(showId);
+    await requireNotOwnRow(staffId);
 
     const supabase = await createServerClient();
+    const implicitKeys = new Set<PermissionKey>();
+
+    if (!(await isOrgOwner(orgId))) {
+      // Compared against what's stored, resolved the way the dialog shows it
+      // (which always sends the full key set), so re-saving an unchanged
+      // toggle is never mistaken for a new grant.
+      const { data: current, error: currentError } = await supabase
+        .from('staff_assignments')
+        .select('role, permissions, can_scratch_skip_dq, can_view_money')
+        .eq('id', staffId)
+        .single();
+      if (currentError) throw currentError;
+      const resolved = resolveStaffPermissions({
+        role: current.role,
+        permissions: current.permissions,
+        canScratchSkipDq: current.can_scratch_skip_dq,
+        canViewMoney: current.can_view_money,
+      });
+      const stored =
+        current.permissions && typeof current.permissions === 'object'
+          ? (current.permissions as Record<string, unknown>)
+          : {};
+
+      for (const key of PERMISSION_KEYS) {
+        const next = permissions[key];
+        if (isOwnerOnlyPermission(key) && next !== resolved[key]) {
+          throw new UserFacingError(
+            'Only the organization owner can change financial or refund permissions.',
+          );
+        }
+        if (!next || stored[key] === true) continue;
+        // Already on via the role default / legacy column: not a new grant.
+        // Leave it implicit so the stored JSON doesn't gain a "new" true.
+        if (resolved[key]) {
+          implicitKeys.add(key);
+          continue;
+        }
+        await requireHoldsShowPermission(showId, key);
+      }
+    }
+
     const { error } = await supabase
       .from('staff_assignments')
-      .update({ permissions })
+      .update({
+        permissions: Object.fromEntries(
+          Object.entries(permissions).filter(([key]) => !implicitKeys.has(key as PermissionKey)),
+        ),
+      })
       .eq('id', staffId);
     if (error) throw error;
 
@@ -450,7 +659,12 @@ export async function importStaffList(
 
       existingEmails.add(email);
       added += 1;
-      await provisionIfNewAccount(email, name, row.role, showName);
+      try {
+        await provisionIfNewAccount(email, name, row.role, showName);
+      } catch (error) {
+        // The assignment row is in; one bad invite mustn't abort the rest.
+        console.error(`[staff] could not provision ${email}`, error);
+      }
     }
 
     revalidatePath(USERS_PATH);

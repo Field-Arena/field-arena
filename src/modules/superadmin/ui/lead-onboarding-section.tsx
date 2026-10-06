@@ -57,17 +57,17 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
         </Button>
       </div>
 
-      <p className="text-fa-muted-2 mt-4 text-[12.5px]">
+      <p className="mt-4 text-[12.5px] text-[#8A94A3]">
         {lead.onboarding_email_sent_at
           ? 'Onboarding checklist has been emailed.'
           : 'No onboarding email sent yet.'}
       </p>
 
       {checklist.length > 0 && (
-        <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E8E4]">
-          <div className="flex items-center gap-3 border-b border-[#E2E8E4] bg-[#F6F3EC] px-[18px] py-3.5">
-            <span className="text-hunter-deep text-[12.5px] font-bold">Onboarding checklist</span>
-            <span className="text-fa-muted ml-auto text-[12.5px] font-semibold">
+        <div className="mt-5 overflow-hidden rounded-xl border border-[#E7EAEE]">
+          <div className="flex items-center gap-3 border-b border-[#E7EAEE] bg-[#FBFCFD] px-[18px] py-3.5">
+            <span className="text-[12.5px] font-bold text-[#101828]">Onboarding checklist</span>
+            <span className="ml-auto text-[12.5px] font-semibold text-[#475467]">
               {done}/{checklist.length} done
             </span>
           </div>
@@ -84,13 +84,13 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
                 // re-read before the flip, so this can't clobber a concurrent edit.
                 toggleItem.mutate({ id: lead.id, itemId: item.id, done });
               }}
-              className="flex h-auto w-full items-start justify-start gap-3 border-b border-[#EEF2EF] px-[18px] py-3.5 text-left last:border-b-0 hover:bg-[#FAFCFB]"
+              className="flex h-auto w-full items-start justify-start gap-3 border-b border-[#EEF1F4] px-[18px] py-3.5 text-left last:border-b-0 hover:bg-[#FBFCFD]"
             >
               <span
                 className="grid size-[19px] flex-none place-items-center rounded-md border"
                 style={{
-                  borderColor: item.done ? '#C9A227' : '#D7E0DA',
-                  background: item.done ? '#FFF8DF' : '#FFFFFF',
+                  borderColor: item.done ? '#146A47' : '#E7EAEE',
+                  background: item.done ? '#FDF2E3' : '#FFFFFF',
                 }}
               >
                 {item.done && (
@@ -99,7 +99,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
                     height="12"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#C9A227"
+                    stroke="#146A47"
                     strokeWidth="3.2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -112,7 +112,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
               <span
                 className="text-[13.5px] leading-[1.5]"
                 style={{
-                  color: item.done ? '#9AA6A0' : '#16261F',
+                  color: item.done ? '#8A94A3' : '#101828',
                   textDecoration: item.done ? 'line-through' : 'none',
                 }}
               >
@@ -130,7 +130,7 @@ export function OnboardingSection({ lead }: { lead: LeadRow }) {
           type="button"
           variant="ghost"
           disabled={send.isPending}
-          className="bg-gold text-hunter-deep hover:bg-gold-light inline-flex h-auto items-center gap-2 rounded-[9px] px-5 py-3 text-[13.5px] font-bold transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
+          className="inline-flex h-auto items-center gap-2 rounded-[9px] bg-[#146A47] px-5 py-3 text-[13.5px] font-bold text-white transition hover:bg-[#0E5537] hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
           onClick={() => {
             send.mutate(lead.id);
           }}

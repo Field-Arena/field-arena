@@ -1,5 +1,5 @@
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import type { ShowContact } from '@/modules/announcements/data/queries';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
+import type { ShowContact } from '@/modules/announcements/types';
 
 export function ShowContactsTable({ contacts }: { contacts: ShowContact[] }) {
   if (contacts.length === 0) {

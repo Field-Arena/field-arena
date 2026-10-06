@@ -44,9 +44,7 @@ export async function uploadShowDocument(input: unknown): Promise<void> {
       // throwing, so the common failure here is this discarded value, not the
       // catch below. Both are dropped on purpose: the insert error is what the
       // caller needs, and a failed cleanup must never replace it.
-      const { error: cleanupError } = await supabase.storage
-        .from('documents')
-        .remove([path]);
+      const { error: cleanupError } = await supabase.storage.from('documents').remove([path]);
       if (cleanupError) {
         console.warn(
           '[operations] orphaned document blob left in storage (cleanup denied or failed)',

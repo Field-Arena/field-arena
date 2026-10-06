@@ -53,7 +53,7 @@ function DocumentRow({
   return (
     <li className="space-y-2 px-3 py-2.5 text-[12.5px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-ink-deep font-semibold">{doc.label}</span>
+        <span className="font-semibold text-[#101828]">{doc.label}</span>
         {/* Matches legacy's cogginsCellHtml: once uploaded, the date and the
             up/ver ticks always show together -- expired only changes how the
             date renders, it never hides whether this was uploaded/verified. */}
@@ -62,33 +62,33 @@ function DocumentRow({
         ) : (
           <span className="whitespace-nowrap">
             {savedExpiration ? (
-              <span className={pastDue ? 'text-status-danger font-semibold' : 'text-ink-deep'}>
+              <span className={pastDue ? 'text-status-danger font-semibold' : 'text-[#101828]'}>
                 {pastDue ? 'Expired ' : ''}
                 {formatDateShort(savedExpiration)}
               </span>
             ) : (
               <span className="text-status-danger font-semibold">no date on file</span>
             )}{' '}
-            <span className="font-semibold text-[#1A5B3C]">✓</span>
-            <span className="text-[10.5px] text-[#98A29D]"> up</span>
+            <span className="font-semibold text-[#146A47]">✓</span>
+            <span className="text-[10.5px] text-[#8A94A3]"> up</span>
             {doc.requiresApproval && (
               <>
                 {' '}
                 <span
                   className={
-                    savedVerified ? 'font-semibold text-[#1A5B3C]' : 'font-semibold text-[#8A6D0B]'
+                    savedVerified ? 'font-semibold text-[#146A47]' : 'font-semibold text-[#8A6D0B]'
                   }
                 >
                   {savedVerified ? '✓' : '◐'}
                 </span>
-                <span className="text-[10.5px] text-[#98A29D]"> ver</span>
+                <span className="text-[10.5px] text-[#8A94A3]"> ver</span>
               </>
             )}
           </span>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-1.5 text-[#5A6B63]">
+        <label className="flex items-center gap-1.5 text-[#475467]">
           Expires
           <input
             type="date"
@@ -96,18 +96,18 @@ function DocumentRow({
             onChange={(e) => {
               setExpirationDate(e.target.value);
             }}
-            className="rounded-md border border-[#D9E1DD] px-2 py-1 text-[12.5px]"
+            className="rounded-md border border-[#E7EAEE] px-2 py-1 text-[12.5px]"
           />
         </label>
         {doc.requiresApproval && (
-          <label className="flex cursor-pointer items-center gap-1.5 text-[#5A6B63]">
+          <label className="flex cursor-pointer items-center gap-1.5 text-[#475467]">
             <input
               type="checkbox"
               checked={verified}
               onChange={(e) => {
                 setVerified(e.target.checked);
               }}
-              className="accent-hunter-deep size-3.5"
+              className="size-3.5 accent-[#146A47]"
             />
             Verified
           </label>
@@ -162,7 +162,7 @@ export function RiderDetailDialog({
     >
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">{row.name}</DialogTitle>
+          <DialogTitle className="font-serif text-xl text-[#101828]">{row.name}</DialogTitle>
           <DialogDescription>{row.showName} · Rider</DialogDescription>
         </DialogHeader>
 
@@ -193,7 +193,7 @@ export function RiderDetailDialog({
             <div className="space-y-1.5">
               <Label htmlFor="rd-email">Email</Label>
               <Input id="rd-email" value={row.email ?? ''} disabled />
-              <p className="text-[11.5px] text-[#98A29D]">
+              <p className="text-[11.5px] text-[#8A94A3]">
                 This is the rider&apos;s sign-in email — it can&apos;t be changed here.
               </p>
             </div>
@@ -231,23 +231,23 @@ export function RiderDetailDialog({
         )}
 
         {!detail || (detail.horses.length === 0 && detail.classes.length === 0) ? (
-          <p className="text-[13.5px] text-[#7A8781] italic">No entries on file for this show.</p>
+          <p className="text-[13.5px] text-[#8A94A3] italic">No entries on file for this show.</p>
         ) : (
           <div className="space-y-5">
             {detail.horses.length > 0 && (
               <div className="space-y-3">
                 {detail.horses.map((horse) => (
-                  <div key={horse.id} className="rounded-lg border border-[#EDF0EE] p-3">
-                    <p className="text-ink-deep mb-1 text-[13.5px] font-bold">{horse.name}</p>
-                    <p className="mb-2 text-[11px] text-[#98A29D]">
+                  <div key={horse.id} className="rounded-lg border border-[#EEF1F4] p-3">
+                    <p className="mb-1 text-[13.5px] font-bold text-[#101828]">{horse.name}</p>
+                    <p className="mb-2 text-[11px] text-[#8A94A3]">
                       A horse&apos;s registered name can&apos;t be changed once entered.
                     </p>
                     {horse.documents.length === 0 ? (
-                      <p className="text-[12.5px] text-[#98A29D]">
+                      <p className="text-[12.5px] text-[#8A94A3]">
                         No document requirements set for this show.
                       </p>
                     ) : (
-                      <ul className="divide-y divide-[#EDF0EE]">
+                      <ul className="divide-y divide-[#EEF1F4]">
                         {horse.documents.map((doc) => (
                           <DocumentRow
                             key={doc.requirementId}
@@ -265,17 +265,17 @@ export function RiderDetailDialog({
 
             {detail.classes.length > 0 && (
               <div>
-                <p className="text-ink-deep mb-1.5 text-[12px] font-bold tracking-[.06em] uppercase">
+                <p className="mb-1.5 text-[12px] font-bold tracking-[.06em] text-[#101828] uppercase">
                   Classes entered
                 </p>
-                <ul className="divide-y divide-[#EDF0EE] rounded-lg border border-[#EDF0EE]">
+                <ul className="divide-y divide-[#EEF1F4] rounded-lg border border-[#EEF1F4]">
                   {detail.classes.map((c, i) => (
                     <li
                       key={`${c.label}-${String(i)}`}
                       className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
                     >
-                      <span className="text-ink-deep">{c.label}</span>
-                      <span className="text-[#5A6B63]">{formatMoneyExact(c.fee)}</span>
+                      <span className="text-[#101828]">{c.label}</span>
+                      <span className="text-[#475467]">{formatMoneyExact(c.fee)}</span>
                     </li>
                   ))}
                   <li className="flex items-center justify-between gap-3 px-3 py-2 text-[13px] font-bold">
@@ -288,20 +288,20 @@ export function RiderDetailDialog({
 
             {detail.addOns.length > 0 && (
               <div>
-                <p className="text-ink-deep mb-1.5 text-[12px] font-bold tracking-[.06em] uppercase">
+                <p className="mb-1.5 text-[12px] font-bold tracking-[.06em] text-[#101828] uppercase">
                   Stabling &amp; add-ons
                 </p>
-                <ul className="divide-y divide-[#EDF0EE] rounded-lg border border-[#EDF0EE]">
+                <ul className="divide-y divide-[#EEF1F4] rounded-lg border border-[#EEF1F4]">
                   {detail.addOns.map((a, i) => (
                     <li
                       key={`${a.label}-${String(i)}`}
                       className="flex items-center justify-between gap-3 px-3 py-2 text-[13px]"
                     >
-                      <span className="text-ink-deep">
+                      <span className="text-[#101828]">
                         {a.label}
-                        {a.qty > 1 && <span className="text-[#98A29D]"> × {a.qty}</span>}
+                        {a.qty > 1 && <span className="text-[#8A94A3]"> × {a.qty}</span>}
                       </span>
-                      <span className="text-[#5A6B63]">{formatMoneyExact(a.amount)}</span>
+                      <span className="text-[#475467]">{formatMoneyExact(a.amount)}</span>
                     </li>
                   ))}
                 </ul>

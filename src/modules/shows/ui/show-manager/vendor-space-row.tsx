@@ -8,7 +8,7 @@ import {
   useUpdateVendorItem,
   useDeleteVendorItem,
 } from '@/modules/shows/hooks/use-catalog-mutations';
-import type { VendorSpaceItem } from '@/modules/shows/data/setup-queries';
+import type { VendorSpaceItem } from '@/modules/shows/types';
 import { SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 
 export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
@@ -39,7 +39,7 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
         onBlur={commit}
         aria-label={`${space.name} name`}
       />
-      <span className="text-[13px] text-[#6E7C76]">Qty</span>
+      <span className="text-[13px] text-[#8A94A3]">Qty</span>
       <Input
         className={cn('h-auto', SM_ROW_INPUT, 'w-[86px] flex-none')}
         placeholder="∞"
@@ -51,7 +51,7 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
         onBlur={commit}
         aria-label={`${space.name} quantity`}
       />
-      <span className="text-[13px] text-[#6E7C76]">$</span>
+      <span className="text-[13px] text-[#8A94A3]">$</span>
       <Input
         className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
         inputMode="numeric"
@@ -68,7 +68,7 @@ export function VendorSpaceRow({ space }: { space: VendorSpaceItem }) {
         onClick={() => {
           remove.mutate(space.id);
         }}
-        className="h-auto flex-none rounded-[9px] border border-[#E4B5AC] bg-[#FDF0EE] px-3.5 py-2.5 text-[12.5px] font-semibold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FDF0EE]"
+        className="h-auto flex-none rounded-[9px] border border-[#FBCFC9] bg-[#FDF0EE] px-3.5 py-2.5 text-[12.5px] font-semibold text-[#B42318] transition-colors hover:border-[#B42318] hover:bg-[#FDF0EE]"
       >
         Remove
       </Button>

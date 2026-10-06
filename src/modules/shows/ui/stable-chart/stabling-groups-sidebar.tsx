@@ -4,7 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { Card } from '@/shared/ui/organizer/card';
 import { fa } from '@/shared/lib/organizer-theme';
 import { buildGroupDndId } from '@/modules/shows/utils/stall-dnd-id';
-import type { StableAssignmentGroup } from '@/modules/shows/data/stable-assignment-groups-queries';
+import type { StableAssignmentGroup } from '@/modules/shows/types';
 
 function GroupRow({ group }: { group: StableAssignmentGroup }) {
   const totalStalls = group.horseStallsNeeded + group.tackStallsNeeded;
@@ -36,10 +36,10 @@ export function StablingGroupsSidebar({ groups }: { groups: StableAssignmentGrou
 
   return (
     <Card className="mb-[18px] p-[18px_20px_20px] print:hidden">
-      <div className="mb-2.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
+      <div className="mb-2.5 text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
         Stabling groups
       </div>
-      <p className="mb-2.5 text-[11.5px] text-[#7A8781]">
+      <p className="mb-2.5 text-[11.5px] text-[#8A94A3]">
         Drag a group onto a stable below to place it as one block.
       </p>
       <div className="space-y-1.5">

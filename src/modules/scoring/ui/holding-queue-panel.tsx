@@ -32,21 +32,21 @@ export function HoldingQueuePanel({
   if (!canManage && holdingEntries.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-      <span className="mb-3 block text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
+    <div className="fa-card !overflow-visible p-5">
+      <span className="mb-3 block text-[11px] font-semibold tracking-[.08em] text-[var(--fa-ink-3)] uppercase">
         Holding queue
       </span>
 
       {holdingEntries.length === 0 ? (
-        <p className="text-[13px] text-[#7A8781]">No riders waiting.</p>
+        <p className="text-[13px] text-[#8A94A3]">No riders waiting.</p>
       ) : (
         <div className="mb-3 flex flex-col gap-2">
           {holdingEntries.map((e) => (
             <div
               key={e.id}
-              className="flex items-center gap-3 rounded-lg border border-[#E9EDEB] p-2.5"
+              className="flex items-center gap-3 rounded-lg border border-[#E7EAEE] p-2.5"
             >
-              <span className="text-ink-deep flex-1 text-[13.5px]">
+              <span className="flex-1 text-[13.5px] text-[#101828]">
                 #{e.num} {e.rider ?? '—'} {e.horse ? `· ${e.horse}` : ''}
               </span>
               {canManage && (

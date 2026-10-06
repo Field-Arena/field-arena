@@ -7,7 +7,7 @@ import {
   listVendors,
 } from '@/modules/operations/data/queries';
 import { FindPanel } from '@/modules/operations/ui/find-panel';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Find — Field & Arena' };
 
@@ -19,9 +19,7 @@ export default async function OperationsFindPage({
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
   const currentShow =
-    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
-    shows[0] ??
-    null;
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null;
 
   if (!currentShow) {
     return (

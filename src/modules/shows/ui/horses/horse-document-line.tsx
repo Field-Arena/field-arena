@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { useVerifyHorseDocument } from '@/modules/shows/hooks/use-horses-mutations';
-import type { HorseDocumentStatus } from '@/modules/shows/data/horses-queries';
+import type { HorseDocumentStatus } from '@/modules/shows/types';
 
 export function HorseDocumentLine({
   doc,
@@ -53,7 +53,7 @@ export function HorseDocumentLine({
           href={doc.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:border-gold rounded-md border border-[#D9E1DD] px-2 py-0.5 text-[11px] font-semibold text-[#0D2C23] transition-colors"
+          className="rounded-md border border-[#E7EAEE] px-2 py-0.5 text-[11px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1]"
         >
           View Doc
         </a>
@@ -69,10 +69,14 @@ export function HorseDocumentLine({
             setOptimisticVerified(next);
             verify.mutate(
               { showId, horseId, requirementId: doc.requirementId, verified: next },
-              { onError: () => { setOptimisticVerified(null); } },
+              {
+                onError: () => {
+                  setOptimisticVerified(null);
+                },
+              },
             );
           }}
-          className="size-[15px] accent-[#1A5B3C]"
+          className="size-[15px] accent-[#146A47]"
         />
       )}
     </div>

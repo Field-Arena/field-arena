@@ -7,6 +7,8 @@ import { UserFacingError } from '@/shared/lib/action-result';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { Json } from '@/shared/types/database.types';
 import {
+  CHECKOUT_SESSION_TTL_SECONDS,
+  CLAIMABLE_ORDER_STATUSES,
   DEFAULT_STARTING_RIDER_NUMBER,
   NON_CAPPED_ENTRY_STATUS,
   RIDER_NUMBER_PAD_WIDTH,
@@ -21,6 +23,7 @@ import type {
 } from '@/modules/riders/schemas';
 import type {
   ClassEntryRow,
+  ConfirmCheckoutResult,
   FinalizeOrderResult,
   OrderLineItem,
   OrderRow,
@@ -52,13 +55,74 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/* Two lines for the same add-on (qty 3 + qty 3) would each pass the stock
+ * check on their own while together overselling it. Collapse them into one
+ * line per add-on before anything is checked or priced. */
+function mergeAddOnLines(lines: CheckoutAddOnLine[]): CheckoutAddOnLine[] {
+  const merged = new Map<string, CheckoutAddOnLine>();
+  for (const line of lines) {
+    const existing = merged.get(line.addOnId);
+    merged.set(
+      line.addOnId,
+      existing ? { ...existing, qty: existing.qty + line.qty } : { ...line },
+    );
+  }
+  return [...merged.values()];
+}
+
+const ORDER_PAGE_SIZE = 1000;
+
+/* Units of each add-on already committed for a show. Paid orders always
+ * count. With `holdPendingFor`, orders still pending inside a live Checkout
+ * Session window count too (a soft reservation — two riders cannot both buy
+ * the last stall just because neither has paid yet), except that rider's own
+ * pending orders, so going back and re-starting checkout never blocks them.
+ * Paged so a show past 1000 orders is still counted in full. */
+async function addOnUnitsCommitted(
+  admin: AdminClient,
+  showId: string,
+  addOnIds: string[],
+  opts: { excludeOrderId?: string; holdPendingFor?: { riderId: string } } = {},
+): Promise<Map<string, number>> {
+  const committed = new Map<string, number>();
+  if (addOnIds.length === 0) return committed;
+  const wanted = new Set(addOnIds);
+  const pendingSince = new Date(Date.now() - CHECKOUT_SESSION_TTL_SECONDS * 1000).toISOString();
+  const statuses = opts.holdPendingFor ? ['paid', 'pending'] : ['paid'];
+
+  for (let from = 0; ; from += ORDER_PAGE_SIZE) {
+    const { data, error } = await admin
+      .from('orders')
+      .select('id, rider_id, status, created_at, items')
+      .eq('show_id', showId)
+      .in('status', statuses)
+      .order('id')
+      .range(from, from + ORDER_PAGE_SIZE - 1);
+    if (error) throw error;
+    for (const order of data) {
+      if (order.id === opts.excludeOrderId) continue;
+      if (order.status === 'pending') {
+        if (order.rider_id === opts.holdPendingFor?.riderId) continue;
+        if (order.created_at < pendingSince) continue;
+      }
+      for (const item of (order.items ?? []) as unknown as OrderLineItem[]) {
+        if (item.kind !== 'addon' || !item.refId || !wanted.has(item.refId)) continue;
+        committed.set(item.refId, (committed.get(item.refId) ?? 0) + item.qty);
+      }
+    }
+    if (data.length < ORDER_PAGE_SIZE) break;
+  }
+  return committed;
+}
+
 export async function priceCart(
   admin: AdminClient,
   riderId: string,
   showId: string,
   cart: CheckoutCartLine[],
-  addOnLines: CheckoutAddOnLine[],
+  rawAddOnLines: CheckoutAddOnLine[],
 ): Promise<PricedCart> {
+  const addOnLines = mergeAddOnLines(rawAddOnLines);
   if (cart.length === 0 && addOnLines.length === 0) {
     throw new UserFacingError('Your cart is empty.');
   }
@@ -150,10 +214,22 @@ export async function priceCart(
 
   const qualTypeIds = [...new Set(cart.flatMap((line) => line.qualTypeIds ?? []))];
   const qualRowsResult = qualTypeIds.length
-    ? await admin.from('qual_types').select('*').in('id', qualTypeIds)
+    ? await admin
+        .from('qual_types')
+        .select('*')
+        .in('id', qualTypeIds)
+        .eq('show_id', showId)
+        .eq('enabled', true)
     : { data: [], error: null };
   if (qualRowsResult.error) throw qualRowsResult.error;
   const qualById = new Map(qualRowsResult.data.map((q) => [q.id, q]));
+  // Only this show's enabled qualifications can be bought — the same set the
+  // class picker offers. Anything else is a tampered or stale cart.
+  for (const qualTypeId of qualTypeIds) {
+    if (!qualById.has(qualTypeId)) {
+      throw new UserFacingError('One of the selected qualifications is not available.');
+    }
+  }
 
   const feeModel = org.fee_model;
   const items: OrderLineItem[] = [];
@@ -195,12 +271,12 @@ export async function priceCart(
   if (addOnRowsResult.error) throw addOnRowsResult.error;
   const addOnById = new Map(addOnRowsResult.data.map((a) => [a.id, a]));
 
-  const { data: paidOrders, error: paidOrdersError } = await admin
-    .from('orders')
-    .select('items')
-    .eq('show_id', showId)
-    .eq('status', 'paid');
-  if (paidOrdersError) throw paidOrdersError;
+  const committedByAddOn = await addOnUnitsCommitted(
+    admin,
+    showId,
+    addOnRowsResult.data.filter((a) => a.qty != null).map((a) => a.id),
+    { holdPendingFor: { riderId } },
+  );
 
   for (const line of addOnLines) {
     const addOn = addOnById.get(line.addOnId);
@@ -208,13 +284,7 @@ export async function priceCart(
       throw new UserFacingError('Invalid add-on selection.');
     }
     if (addOn.qty != null) {
-      const sold = paidOrders.reduce((sum, order) => {
-        const orderItems = (order.items ?? []) as unknown as OrderLineItem[];
-        const addOnQty = orderItems
-          .filter((item) => item.kind === 'addon' && item.refId === addOn.id)
-          .reduce((s, item) => s + item.qty, 0);
-        return sum + addOnQty;
-      }, 0);
+      const sold = committedByAddOn.get(addOn.id) ?? 0;
       if (sold + line.qty > addOn.qty) {
         throw new UserFacingError(`"${addOn.name}" doesn't have enough left.`);
       }
@@ -276,7 +346,24 @@ export async function priceCart(
   };
 }
 
-export async function createOrderStripeCustomer(rider: RiderRow): Promise<string> {
+/* Reuses the Stripe customer from the rider's earlier orders (orders is the
+ * only place a rider's customer id is stored) instead of minting a new one on
+ * every checkout attempt. */
+export async function createOrderStripeCustomer(
+  admin: AdminClient,
+  rider: RiderRow,
+): Promise<string> {
+  const { data: previous, error: previousError } = await admin
+    .from('orders')
+    .select('stripe_customer_id')
+    .eq('rider_id', rider.id)
+    .not('stripe_customer_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (previousError) throw previousError;
+  if (previous?.stripe_customer_id) return previous.stripe_customer_id;
+
   const stripe = getStripeClient();
   const name = `${rider.first_name ?? ''} ${rider.last_name ?? ''}`.trim();
   const customer = await stripe.customers.create({
@@ -444,6 +531,16 @@ async function materializeStablingRequest(
   }
   if (horseStalls === 0 && tackStalls === 0) return;
 
+  // stabling_requests is unique per order: a retried fulfilment that already
+  // got this far must not fail on (or duplicate) the row.
+  const { data: existingRequest, error: existingError } = await admin
+    .from('stabling_requests')
+    .select('id')
+    .eq('order_id', order.id)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existingRequest) return;
+
   const { error: insertError } = await admin.from('stabling_requests').insert({
     show_id: order.show_id,
     order_id: order.id,
@@ -455,6 +552,64 @@ async function materializeStablingRequest(
     notes: details.notes ?? null,
   });
   if (insertError) throw insertError;
+}
+
+/* Add-on stock race. priceCart checks stock (paid + recent pending orders)
+ * when checkout starts, but two checkouts can still pass that check together
+ * and both get paid. Chosen approach: re-check at fulfilment against the
+ * other PAID orders, and if this order pushes an add-on over its stock, still
+ * fulfil it — the rider has paid, and silently dropping a paid line (or
+ * failing the whole fulfilment, which Stripe would retry forever) is worse
+ * than an oversell — but flag the order (review_reason) so the organizer can
+ * refund or make room. Holding stock with a DB reservation table would close
+ * the window completely but is far more machinery than the rare race needs.
+ * Best-effort: a failure here is logged and never blocks fulfilment. */
+async function flagOversoldAddOns(
+  admin: AdminClient,
+  order: OrderRow,
+  items: OrderLineItem[],
+): Promise<void> {
+  try {
+    const qtyByAddOn = new Map<string, number>();
+    for (const item of items) {
+      if (item.kind !== 'addon' || !item.refId) continue;
+      qtyByAddOn.set(item.refId, (qtyByAddOn.get(item.refId) ?? 0) + item.qty);
+    }
+    if (qtyByAddOn.size === 0) return;
+
+    const { data: addOns, error } = await admin
+      .from('add_ons')
+      .select('id, name, qty')
+      .in('id', [...qtyByAddOn.keys()])
+      .not('qty', 'is', null);
+    if (error) throw error;
+    if (addOns.length === 0) return;
+
+    const committed = await addOnUnitsCommitted(
+      admin,
+      order.show_id,
+      addOns.map((a) => a.id),
+      { excludeOrderId: order.id },
+    );
+    const oversold = addOns
+      .filter((a) => (committed.get(a.id) ?? 0) + (qtyByAddOn.get(a.id) ?? 0) > a.qty)
+      .map(
+        (a) =>
+          `"${a.name}" (stock ${String(a.qty)}, sold ${String((committed.get(a.id) ?? 0) + (qtyByAddOn.get(a.id) ?? 0))} incl. this order)`,
+      );
+    if (oversold.length === 0) return;
+
+    console.error('[riders] add-on oversold at fulfilment', order.id, oversold);
+    const { error: flagError } = await admin
+      .from('orders')
+      .update({
+        review_reason: `Add-on oversold at fulfilment — two checkouts raced for the last units: ${oversold.join('; ')}. The order was fulfilled; refund or make room.`,
+      })
+      .eq('id', order.id);
+    if (flagError) throw flagError;
+  } catch (cause) {
+    console.error('[riders] add-on oversell check failed', order.id, cause);
+  }
 }
 
 async function finalizeClaimedOrder(
@@ -493,11 +648,38 @@ async function finalizeClaimedOrder(
   const activeCountByClass = new Map<string, number>();
   const created: ClassEntryRow[] = [];
 
+  /* Fulfilment is idempotent per order. A previous attempt may have inserted
+   * some entries and then failed (the order is then put back to pending and
+   * the webhook / return page retries). Every entry carries order_id, so the
+   * ones already created are picked up here and skipped below rather than
+   * inserted a second time. Counted per class+horse so a retry recreates
+   * exactly the entries still missing. */
+  const { data: alreadyCreated, error: alreadyCreatedError } = await admin
+    .from('class_entries')
+    .select('*')
+    .eq('order_id', order.id);
+  if (alreadyCreatedError) throw alreadyCreatedError;
+  const entryKey = (classId: string, horseId: string | null | undefined) =>
+    `${classId}:${horseId ?? ''}`;
+  const unclaimedExisting = new Map<string, ClassEntryRow[]>();
+  for (const row of alreadyCreated) {
+    const key = entryKey(row.class_id, row.horse_id);
+    unclaimedExisting.set(key, [...(unclaimedExisting.get(key) ?? []), row]);
+  }
+
   const testOverrideByChoice = await buildTestOverrideLookup(admin, items);
 
   for (const item of items) {
     if (item.kind !== 'class_entry' || !item.classId) continue;
     const classId = item.classId;
+
+    const existingForItem = unclaimedExisting.get(entryKey(classId, item.horseId));
+    const reused = existingForItem?.shift();
+    if (reused) {
+      created.push(reused);
+      continue;
+    }
+
     if (!nextOrderByClass.has(classId)) {
       const { data: existing, error: existingError } = await admin
         .from('class_entries')
@@ -546,6 +728,7 @@ async function finalizeClaimedOrder(
   }
 
   await materializeStablingRequest(admin, order, rider, items);
+  await flagOversoldAddOns(admin, order, items);
 
   return {
     ok: true,
@@ -602,35 +785,82 @@ async function sendOrderConfirmationEmail(
   }
 }
 
+/* N8: what to show for an order this process did not claim. Only a 'paid'
+ * order whose entries all exist is "already fulfilled". 'paid' with entries
+ * still missing means another process (webhook vs return page) is mid-
+ * fulfilment, and any other unpaid state means that attempt rolled back —
+ * both are 'processing'. 'failed' is an order set aside for review. Never
+ * returns a partial (or empty) entry list as confirmed. */
+export async function readFulfilledOrder(
+  admin: AdminClient,
+  order: OrderRow,
+): Promise<ConfirmCheckoutResult> {
+  if (order.status === 'failed') return { ok: false, reason: 'review', orderId: order.id };
+  if (order.status !== 'paid') return { ok: false, reason: 'processing', orderId: order.id };
+
+  const items = (order.items ?? []) as unknown as OrderLineItem[];
+  const expectedEntries = items.filter(
+    (item) => item.kind === 'class_entry' && item.classId,
+  ).length;
+  const { data: entries, error: entriesError } = await admin
+    .from('class_entries')
+    .select('*')
+    .eq('order_id', order.id);
+  if (entriesError) throw entriesError;
+  if (entries.length < expectedEntries) {
+    return { ok: false, reason: 'processing', orderId: order.id };
+  }
+  return {
+    ok: true,
+    alreadyFulfilled: true,
+    entries,
+    riderNumber: entries[0]?.num ?? null,
+    orderId: order.id,
+    total: order.amount_total,
+    items,
+  };
+}
+
 export async function finalizeOrder(
   admin: AdminClient,
   order: OrderRow,
   rider: RiderRow,
-): Promise<FinalizeOrderResult> {
+  paymentIntentId: string | null = null,
+): Promise<ConfirmCheckoutResult> {
+  /* The session's PaymentIntent only exists once it is paid, so it is stored
+   * here (refunds and "charge more" look it up on the order).
+   * 'abandoned' is claimable too: the hourly cron abandons pending orders
+   * after 6h, but Stripe is the source of truth — if it says the session was
+   * paid (e.g. a late async payment), the rider still gets their entries. */
   const { data: claimed, error: claimError } = await admin
     .from('orders')
-    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
+    })
     .eq('id', order.id)
-    .eq('status', 'pending')
+    .in('status', CLAIMABLE_ORDER_STATUSES)
     .select()
     .maybeSingle();
   if (claimError) throw claimError;
 
   if (!claimed) {
-    const { data: entries, error: entriesError } = await admin
-      .from('class_entries')
+    if (paymentIntentId && !order.stripe_payment_intent_id) {
+      await admin
+        .from('orders')
+        .update({ stripe_payment_intent_id: paymentIntentId })
+        .eq('id', order.id)
+        .is('stripe_payment_intent_id', null);
+    }
+    const { data: current, error: currentError } = await admin
+      .from('orders')
       .select('*')
-      .eq('order_id', order.id);
-    if (entriesError) throw entriesError;
-    return {
-      ok: true,
-      alreadyFulfilled: true,
-      entries,
-      riderNumber: entries[0]?.num ?? null,
-      orderId: order.id,
-      total: order.amount_total,
-      items: (order.items ?? []) as unknown as OrderLineItem[],
-    };
+      .eq('id', order.id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error(`Order ${order.id} disappeared during fulfilment.`);
+    return readFulfilledOrder(admin, current);
   }
 
   try {
@@ -648,6 +878,38 @@ export async function finalizeOrder(
       );
     throw fulfillError;
   }
+}
+
+/* Stripe reported a paid session whose amount does not match the order. The
+ * order is NOT fulfilled; it is parked as 'failed' (only from an unpaid
+ * state) so it drops out of the abandon cron and shows up in SuperAdmin
+ * billing's failed-order count for someone to reconcile against Stripe. */
+export async function markOrderForReview(admin: AdminClient, orderId: string): Promise<void> {
+  const { error } = await admin
+    .from('orders')
+    .update({ status: 'failed' })
+    .eq('id', orderId)
+    .in('status', CLAIMABLE_ORDER_STATUSES);
+  if (error) throw error;
+}
+
+/* checkout.session.async_payment_failed: the delayed payment method (bank
+ * debit etc.) was declined, so the session will never be paid. The order is
+ * closed as 'failed' (only from an unpaid state). */
+export async function markOrderPaymentFailed(
+  admin: AdminClient,
+  orderId: string,
+  sessionId: string,
+): Promise<void> {
+  const { error } = await admin
+    .from('orders')
+    .update({
+      status: 'failed',
+      review_reason: `Delayed payment failed for checkout session ${sessionId} — nothing was charged.`,
+    })
+    .eq('id', orderId)
+    .in('status', CLAIMABLE_ORDER_STATUSES);
+  if (error) throw error;
 }
 
 export function buildStripeLineItems(

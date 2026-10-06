@@ -8,16 +8,16 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateMerchandise } from '@/modules/shows/hooks/use-show-mutations';
-import type { MerchItem } from '@/modules/shows/data/setup-queries';
+import type { MerchItem } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
-  SM_SECTION_HEAD,
   SM_NOTE,
   SM_LABEL,
   SM_SELECT,
   SM_ROW_INPUT,
   SM_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
+import { SmHead } from './sm-head';
 
 const MAX_MERCH_PRICE = 100000;
 
@@ -57,7 +57,11 @@ export function MerchandiseCard({
 
   return (
     <Card className={SM_CARD_PAD}>
-      <h2 className={SM_SECTION_HEAD}>Merchandise Sales</h2>
+      <SmHead
+        icon="merch"
+        title="Merchandise sales"
+        sub="Sell branded merchandise on the ticket page"
+      />
       <p className={SM_NOTE}>Will you have merchandise sales at this show?</p>
 
       <div className="mb-4 max-w-[200px]">
@@ -105,9 +109,7 @@ export function MerchandiseCard({
                   if (Number.isNaN(next)) return;
                   commit(
                     enabled,
-                    items.map((m) =>
-                      m.id === item.id ? { ...m, price: clampPrice(next) } : m,
-                    ),
+                    items.map((m) => (m.id === item.id ? { ...m, price: clampPrice(next) } : m)),
                   );
                 }}
               />
@@ -120,7 +122,7 @@ export function MerchandiseCard({
                     items.filter((m) => m.id !== item.id),
                   );
                 }}
-                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
               >
                 Remove
               </Button>

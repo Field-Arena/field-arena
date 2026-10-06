@@ -45,6 +45,8 @@ export const toggleErrorAtSchema = z.object({
   entryId: z.uuid(),
   seatId: z.string().min(1),
   movementNum: z.number().int(),
+  /** The flag's intended new state; omitted → flip the stored value. */
+  value: z.boolean().optional(),
 });
 export type ToggleErrorAtInput = z.infer<typeof toggleErrorAtSchema>;
 
@@ -116,6 +118,12 @@ export const advanceRideSchema = z.object({
 });
 export type AdvanceRideInput = z.infer<typeof advanceRideSchema>;
 
+export const startRideSchema = z.object({
+  classId: z.uuid(),
+  entryId: z.uuid(),
+});
+export type StartRideInput = z.infer<typeof startRideSchema>;
+
 export const scratchRideSchema = z.object({
   classId: z.uuid(),
   entryId: z.uuid(),
@@ -180,6 +188,8 @@ export type MarkOrderCheckedInput = z.infer<typeof markOrderCheckedSchema>;
 
 export const publishResultsSchema = z.object({
   classId: z.uuid(),
+  /** Publish even though some rides aren't fully scored and signed. */
+  force: z.boolean().optional(),
 });
 export type PublishResultsInput = z.infer<typeof publishResultsSchema>;
 

@@ -17,7 +17,7 @@ import {
 } from '@/shared/ui/shadcn/table';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { formatDayDate } from '@/modules/shows/utils/format-day-date';
-import type { ShowRiders } from '@/modules/shows/data/setup-queries';
+import type { ShowRiders } from '@/modules/shows/types';
 import { DayButton } from '@/modules/shows/ui/lists/day-button';
 
 export function RidersListScreen({
@@ -45,7 +45,7 @@ export function RidersListScreen({
   });
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div>
           <ScreenTitle className="mb-1.5">Riders</ScreenTitle>
@@ -67,10 +67,10 @@ export function RidersListScreen({
       </div>
 
       <div className="mb-3 flex flex-wrap items-baseline gap-2">
-        <h2 className="text-forest font-[family-name:var(--font-nr)] text-[19px] font-semibold">
+        <h2 className="text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
           {data.showName}
         </h2>
-        <span className="text-[12px] text-[#7A8781]">
+        <span className="text-[12px] text-[#8A94A3]">
           {rows.length} {rows.length === 1 ? 'rider' : 'riders'}
           {term && ` matching "${search.trim()}"`}
         </span>
@@ -83,7 +83,7 @@ export function RidersListScreen({
         onChange={(e) => {
           setSearch(e.target.value);
         }}
-        className="focus-visible:border-gold mb-3 h-auto w-full max-w-[340px] rounded-[6px] border border-[#D9E1DD] px-3 py-2 text-[13.5px] outline-none focus-visible:ring-0 print:hidden"
+        className="mb-3 h-auto w-full max-w-[340px] rounded-[6px] border border-[#E7EAEE] px-3 py-2 text-[13.5px] outline-none focus-visible:border-[#9FD3BA] focus-visible:ring-0 print:hidden"
       />
 
       {data.totalDays > 0 && (
@@ -111,7 +111,7 @@ export function RidersListScreen({
       )}
 
       {rows.length === 0 ? (
-        <p className="text-[13.5px] text-[#7A8781]">
+        <p className="text-[13.5px] text-[#8A94A3]">
           {term ? 'No riders match that search.' : 'No riders registered yet.'}
         </p>
       ) : (
@@ -119,7 +119,7 @@ export function RidersListScreen({
           <Table className="border-collapse text-[13px]">
             <TableCaption className="sr-only">Riders registered for {data.showName}</TableCaption>
             <TableHeader>
-              <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+              <TableRow className="border-b border-[#E7EAEE] hover:bg-transparent">
                 <TableHead scope="col" className="h-auto w-[60px] px-4 py-2.5 text-left">
                   #
                 </TableHead>
@@ -146,17 +146,17 @@ export function RidersListScreen({
               {rows.map((rider) => (
                 <TableRow
                   key={rider.num}
-                  className="border-b border-[#F1F4F3] hover:bg-transparent"
+                  className="border-b border-[#EEF1F4] hover:bg-transparent"
                 >
                   <TableCell className="px-4 py-2.5 whitespace-normal">{rider.num}</TableCell>
                   <TableCell className="px-4 py-2.5 font-semibold whitespace-normal">
                     {rider.name}
                   </TableCell>
                   <TableCell className="px-4 py-2.5 whitespace-normal">{rider.horse}</TableCell>
-                  <TableCell className="px-4 py-2.5 text-[12px] whitespace-normal text-[#7A8781]">
+                  <TableCell className="px-4 py-2.5 text-[12px] whitespace-normal text-[#8A94A3]">
                     {rider.classes.join(', ')}
                   </TableCell>
-                  <TableCell className="px-4 py-2.5 text-[12px] whitespace-normal text-[#7A8781] print:hidden">
+                  <TableCell className="px-4 py-2.5 text-[12px] whitespace-normal text-[#8A94A3] print:hidden">
                     {rider.documents.length === 0 ? (
                       <span>—</span>
                     ) : (
@@ -178,7 +178,7 @@ export function RidersListScreen({
                     )}
                     {rider.pastShows.length > 0 && (
                       <div
-                        className="mt-0.5 text-[11px] text-[#98A29D]"
+                        className="mt-0.5 text-[11px] text-[#8A94A3]"
                         title={rider.pastShows.join(', ')}
                       >
                         Entered {rider.pastShows.length} past show

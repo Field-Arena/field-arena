@@ -1,68 +1,18 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
-import {
-  getStableAssignmentGroups,
-  type StableAssignmentGroup,
-} from '@/modules/shows/data/stable-assignment-groups-queries';
+import { getStableAssignmentGroups } from '@/modules/shows/data/stable-assignment-groups-queries';
 import { STALL_STATUSES } from '@/modules/shows/constants';
-
-export type StallStatus = (typeof STALL_STATUSES)[number];
-
-export interface StableChartStall {
-  id: string;
-  number: number;
-  label: string;
-
-  horseId: string | null;
-  horseName: string | null;
-  riderName: string | null;
-  trainerName: string | null;
-  shavings: number;
-
-  status: StallStatus;
-  statusReason: string | null;
-  note: string | null;
-
-  isStallion: boolean;
-}
-
-export interface StableChartStable {
-  id: string;
-  name: string;
-  stallCount: number;
-  rowCount: number;
-  stalls: StableChartStall[];
-}
-
-export interface StableChart {
-  status: 'draft' | 'published';
-  stables: StableChartStable[];
-}
-
-export interface StableChartHorseRow {
-  key: string;
-  riderLabel: string;
-  horseName: string;
-  isStallion: boolean;
-
-  shavings: number;
-}
-
-export interface SavedLocationOption {
-  id: string;
-  name: string;
-  stableCount: number;
-}
-
-export interface StableChartPageData {
-  showId: string;
-  showName: string;
-  chart: StableChart;
-  horseRows: StableChartHorseRow[];
-  savedLocations: SavedLocationOption[];
-  groups: StableAssignmentGroup[];
-}
+import type {
+  SavedLocationOption,
+  StableChart,
+  StableChartHorseRow,
+  StableChartPageData,
+  StableChartStable,
+  StableChartStall,
+  StableChartSummary,
+  StallStatus,
+} from '@/modules/shows/types';
 
 // Backward-compat: shows saved before the status enum existed only have
 // `closed`/`horseId` on each stall. Derive `status` from that old shape when
@@ -116,16 +66,6 @@ export function normalizeStableChart(raw: unknown): StableChart {
       };
     }),
   };
-}
-
-export interface StableChartSummary {
-  total: number;
-  occupied: number;
-  available: number;
-  closed: number;
-  reserved: number;
-  tack: number;
-  hold: number;
 }
 
 export function summarizeStableChart(chart: StableChart): StableChartSummary | null {

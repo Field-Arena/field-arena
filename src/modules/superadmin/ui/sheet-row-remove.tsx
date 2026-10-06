@@ -35,7 +35,7 @@ export function RowRemove({
         onClick={() => {
           setOpen(true);
         }}
-        className="grid size-[30px] h-auto flex-none place-items-center rounded-[7px] border border-transparent p-0 text-[#B4432F] transition-colors hover:border-[#F0D3CE] hover:bg-[#FCF1EF]"
+        className="grid size-[30px] h-auto flex-none place-items-center rounded-[7px] border border-transparent p-0 text-[#B42318] transition-colors hover:border-[#FBCFC9] hover:bg-[#FEF3F2]"
       >
         <Trash2Icon className="size-[14px]" aria-hidden />
       </Button>
@@ -43,7 +43,7 @@ export function RowRemove({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-lg">
+            <DialogTitle className="font-serif text-lg text-[#101828]">
               {confirmTitle ?? 'Remove this row?'}
             </DialogTitle>
             <DialogDescription>

@@ -1,12 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { Json } from '@/shared/types/database.types';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { getImpersonatedOrgId } from '@/shared/lib/auth/view-as';
 import { getShowStage } from '@/modules/shows/data/queries';
-import { parseInput } from '@/shared/lib/action-result';
+import { parseInput, UserFacingError } from '@/shared/lib/action-result';
 import {
   createShowSchema,
   createClassSchema,
@@ -27,6 +26,10 @@ import {
   saveWaiverTextSchema,
   updateTicketWindowSchema,
   addCatalogGroupSchema,
+  setTestDivisionSchema,
+  updateTestFeeSchema,
+  setTestQualifyingSchema,
+  removeTestClassesSchema,
   updateGroupLocationSchema,
   updateGroupDivisionSchema,
   addCustomClassSchema,
@@ -55,17 +58,26 @@ import {
   createWaiverDocumentUploadUrlSchema,
   registerWaiverDocumentSchema,
   removeWaiverDocumentSchema,
+  showIdArgSchema,
+  idArgSchema,
+  setShowPublishedSchema,
+  advanceRunnerStateSchema,
+  applySavedVenueSchema,
+  approveWaiverSchema,
 } from '@/modules/shows/schemas';
+import { patchShowJsonColumn } from '@/modules/shows/data/show-json-column';
+import { assertUpdated } from '@/modules/shows/data/assert-updated';
 import {
   VENDOR_SPACE_TEMPLATE,
   DASHBOARD_PATH,
   SHOWS_PATH,
   SCHEDULE_PATH,
-  SHOW_DOCS_BUCKET,
   arenaLabelForRing,
 } from '@/modules/shows/constants';
+import { SHOW_DOCS_BUCKET } from '@/shared/constants/storage';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { slugify } from '@/modules/shows/utils/slugify';
+import type { StandardVendorSpaceRow } from '@/modules/shows/types';
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
 
@@ -133,6 +145,97 @@ async function resolveArenaForLocation(
   if (error) throw new Error(error.message);
   const rings = (data?.locations ?? []) as unknown as { name: string; size: string }[];
   return arenaLabelForRing(location, rings);
+}
+
+// Deleting a class cascades to its class_entries (and their scores / payment
+// trail), so the "no entries" check and the delete run together in one
+// transaction (delete_show_classes_if_unentered) — an entry added between a
+// separate check and delete would otherwise be wiped. All-or-nothing: if any
+// class has an entry, scratched ones included, nothing is deleted.
+async function deleteClassesIfUnentered(
+  supabase: SupabaseClient,
+  showId: string,
+  classIds: string[],
+): Promise<{ deleted: number; blocked: number }> {
+  if (classIds.length === 0) return { deleted: 0, blocked: 0 };
+  const { data, error } = await supabase.rpc('delete_show_classes_if_unentered', {
+    p_show_id: showId,
+    p_class_ids: classIds,
+  });
+  if (error) throw new Error(error.message);
+  const result = (data ?? {}) as { deleted?: number; blocked?: number };
+  return { deleted: result.deleted ?? 0, blocked: result.blocked ?? 0 };
+}
+
+interface RingShape {
+  name: string;
+  size?: string;
+}
+
+function readRings(value: unknown): RingShape[] {
+  return Array.isArray(value) ? (value as RingShape[]) : [];
+}
+
+// Rings edited in place on the Venue card keep their position, so a name that
+// changed at the same index (and isn't just two rings swapping names) is a
+// rename. Anything else that disappeared is a deleted ring.
+function detectRingRenames(before: RingShape[], after: RingShape[]): Map<string, string> {
+  const renames = new Map<string, string>();
+  const beforeNames = new Set(before.map((r) => r.name));
+  const afterNames = new Set(after.map((r) => r.name));
+  before.forEach((ring, i) => {
+    const next = after[i];
+    if (!next || next.name === ring.name) return;
+    if (afterNames.has(ring.name) || beforeNames.has(next.name)) return;
+    renames.set(ring.name, next.name);
+  });
+  return renames;
+}
+
+// Classes point at their ring by name and mirror its size in `arena`. After
+// the ring list changes, follow renames, clear rings that no longer exist,
+// and refresh arena — so no class is left assigned to a ring that's gone.
+async function syncClassesToRings(
+  supabase: SupabaseClient,
+  showId: string,
+  rings: RingShape[],
+  renames: Map<string, string>,
+): Promise<void> {
+  const ringSizes = rings.map((r) => ({ name: r.name, size: r.size ?? 'standard' }));
+  const names = new Set(ringSizes.map((r) => r.name));
+
+  const { data: classes, error } = await supabase
+    .from('classes')
+    .select('id, location, arena')
+    .eq('show_id', showId)
+    .not('location', 'is', null);
+  if (error) throw new Error(error.message);
+
+  const buckets = new Map<
+    string,
+    { location: string | null; arena: string | null; ids: string[] }
+  >();
+  for (const cls of classes) {
+    const renamed = cls.location ? (renames.get(cls.location) ?? cls.location) : null;
+    const location = renamed && names.has(renamed) ? renamed : null;
+    const arena = arenaLabelForRing(location, ringSizes);
+    if (location === cls.location && arena === cls.arena) continue;
+    const key = JSON.stringify([location, arena]);
+    const bucket = buckets.get(key) ?? { location, arena, ids: [] };
+    bucket.ids.push(cls.id);
+    buckets.set(key, bucket);
+  }
+
+  for (const { location, arena, ids } of buckets.values()) {
+    const { data: updatedRows, error: updateError } = await supabase
+      .from('classes')
+      .update({ location, arena })
+      .eq('show_id', showId)
+      .in('id', ids)
+      .select('id');
+    if (updateError) throw new Error(updateError.message);
+    assertUpdated(updatedRows, "You don't have permission to change these classes.");
+  }
 }
 
 async function resolveOrgId(): Promise<string> {
@@ -270,23 +373,59 @@ export async function renameDivision(input: unknown): Promise<void> {
 
   const { data: division, error: readError } = await supabase
     .from('divisions')
-    .select('show_id')
+    .select('show_id, name')
     .eq('id', parsed.divisionId)
     .single();
   if (readError) throw new Error(readError.message);
+  if (division.name === parsed.name) return;
 
-  const { error } = await supabase
-    .from('divisions')
-    .update({ name: parsed.name })
-    .eq('id', parsed.divisionId);
+  // rename_division renames the row and re-points every class naming it in
+  // one transaction (classes reference divisions by name, not id).
+  const { error } = await supabase.rpc('rename_division', {
+    division_id: parsed.divisionId,
+    new_name: parsed.name,
+  });
   if (error) {
-    if (error.code === '23505') {
+    if (error.code === '23505' || error.message.includes('already has a division')) {
       throw new Error(`This show already has a division called "${parsed.name}".`);
     }
     throw new Error(error.message);
   }
+  // SECURITY INVOKER: an RLS-blocked caller gets no error, just no change.
+  const { data: after } = await supabase
+    .from('divisions')
+    .select('name')
+    .eq('id', parsed.divisionId)
+    .maybeSingle();
+  if (after?.name !== parsed.name) {
+    throw new UserFacingError("You don't have permission to rename this division.");
+  }
+
+  // A class also carries its division as the label's last " — " segment.
+  // Best effort: a label that would collide with an existing one keeps its
+  // old text rather than failing a rename that has already landed.
+  const { data: classes, error: classReadError } = await supabase
+    .from('classes')
+    .select('id, label')
+    .eq('show_id', division.show_id)
+    .eq('division', parsed.name);
+  if (classReadError) throw new Error(classReadError.message);
+
+  const oldSuffix = ` — ${division.name}`;
+  for (const cls of classes) {
+    if (!cls.label.endsWith(oldSuffix)) continue;
+    const label = `${cls.label.slice(0, -oldSuffix.length)} — ${parsed.name}`;
+    const { error: labelError } = await supabase
+      .from('classes')
+      .update({ label })
+      .eq('id', cls.id)
+      .eq('show_id', division.show_id);
+    if (labelError && labelError.code !== '23505') throw new Error(labelError.message);
+  }
 
   revalidatePath(`/dashboard/shows/${division.show_id}`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/select-events`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/schedule`);
 }
 
 export async function updateDivisionDefaultFee(input: unknown): Promise<void> {
@@ -300,18 +439,21 @@ export async function updateDivisionDefaultFee(input: unknown): Promise<void> {
     .single();
   if (readError) throw new Error(readError.message);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('divisions')
     .update({ default_fee: parsed.defaultFee })
-    .eq('id', parsed.divisionId);
+    .eq('id', parsed.divisionId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to change this division.");
 
   revalidatePath(`/dashboard/shows/${division.show_id}`);
   revalidatePath(`/dashboard/shows/${division.show_id}/select-events`);
   revalidatePath(`/dashboard/shows/${division.show_id}/test-builder`);
 }
 
-export async function deleteDivision(divisionId: string): Promise<void> {
+export async function deleteDivision(rawDivisionId: string): Promise<void> {
+  const { id: divisionId } = parseInput(idArgSchema, { id: rawDivisionId });
   const supabase = await createServerClient();
 
   const { data: division, error: readError } = await supabase
@@ -321,10 +463,19 @@ export async function deleteDivision(divisionId: string): Promise<void> {
     .single();
   if (readError) throw new Error(readError.message);
 
-  const { error } = await supabase.from('divisions').delete().eq('id', divisionId);
+  // delete_division clears the name off every class that used it and removes
+  // the row in one transaction, so no class is left naming a missing division.
+  const { error } = await supabase.rpc('delete_division', { division_id: divisionId });
   if (error) throw new Error(error.message);
+  const { data: stillThere } = await supabase
+    .from('divisions')
+    .select('id')
+    .eq('id', divisionId)
+    .maybeSingle();
+  if (stillThere) throw new UserFacingError("You don't have permission to remove this division.");
 
   revalidatePath(`/dashboard/shows/${division.show_id}`);
+  revalidatePath(`/dashboard/shows/${division.show_id}/select-events`);
 }
 
 export async function createAddOn(input: unknown): Promise<{ id: string }> {
@@ -359,7 +510,11 @@ export async function createAddOn(input: unknown): Promise<{ id: string }> {
   return { id: data.id };
 }
 
-export async function setShowPublished(showId: string, published: boolean): Promise<void> {
+export async function setShowPublished(rawShowId: string, rawPublished: boolean): Promise<void> {
+  const { showId, published } = parseInput(setShowPublishedSchema, {
+    showId: rawShowId,
+    published: rawPublished,
+  });
   const supabase = await createServerClient();
 
   if (published) {
@@ -379,39 +534,36 @@ export async function setShowPublished(showId: string, published: boolean): Prom
     }
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('shows')
     .update({
       published,
       published_at: published ? new Date().toISOString() : null,
     })
-    .eq('id', showId);
+    .eq('id', showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to publish this show.");
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
 }
 
 export async function advanceRunnerState(
-  showId: string,
-  patch: { ticketClosed?: boolean; approved?: boolean },
+  rawShowId: string,
+  rawPatch: { ticketClosed?: boolean; approved?: boolean },
 ): Promise<void> {
+  // .strict(): only the two known flags may ever land in runner_state.
+  const { showId, patch } = parseInput(advanceRunnerStateSchema, {
+    showId: rawShowId,
+    patch: rawPatch,
+  });
   const supabase = await createServerClient();
 
-  const { data: show, error: readError } = await supabase
-    .from('shows')
-    .select('runner_state')
-    .eq('id', showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const current = (show.runner_state ?? {}) as { approved?: boolean; ticketClosed?: boolean };
-
-  const { error } = await supabase
-    .from('shows')
-    .update({ runner_state: { ...current, ...patch } })
-    .eq('id', showId);
-  if (error) throw new Error(error.message);
+  await patchShowJsonColumn(supabase, showId, 'runner_state', (current) => ({
+    ...current,
+    ...patch,
+  }));
 
   revalidatePath(`/dashboard/shows/${showId}/run-show`);
   revalidatePath(`/dashboard/shows/${showId}/schedule`);
@@ -423,22 +575,13 @@ export async function updateShowDetails(input: unknown): Promise<void> {
   const parsed = parseInput(updateShowDetailsSchema, input);
   const supabase = await createServerClient();
 
-  const { data: current, error: readError } = await supabase
-    .from('shows')
-    .select('show_details')
-    .eq('id', parsed.showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-  const showDetails = {
-    ...(current.show_details as Record<string, unknown>),
-    org: parsed.org ?? '',
-  };
-
-  const { error } = await supabase
-    .from('shows')
-    .update({
+  await patchShowJsonColumn(
+    supabase,
+    parsed.showId,
+    'show_details',
+    (current) => ({ ...current, org: parsed.org ?? '' }),
+    {
       name: parsed.name,
-      show_details: showDetails,
       show_type: parsed.showType,
 
       start_date: parsed.startDate || null,
@@ -446,9 +589,8 @@ export async function updateShowDetails(input: unknown): Promise<void> {
       timezone: parsed.timezone ?? null,
       starting_rider_number: parsed.startingRiderNumber,
       governing_bodies: parsed.governingBodies,
-    })
-    .eq('id', parsed.showId);
-  if (error) throw new Error(error.message);
+    },
+  );
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
   revalidatePath(SHOWS_PATH);
@@ -459,16 +601,38 @@ export async function updateShowLocations(input: unknown): Promise<void> {
   const parsed = parseInput(updateShowLocationsSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: current, error: readError } = await supabase
+    .from('shows')
+    .select('locations')
+    .eq('id', parsed.showId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  const { data: updated, error } = await supabase
     .from('shows')
     .update({ locations: parsed.locations })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to change this show's rings.");
+
+  await syncClassesToRings(
+    supabase,
+    parsed.showId,
+    parsed.locations,
+    detectRingRenames(readRings(current.locations), parsed.locations),
+  );
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
+  revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
+  revalidateSchedule(parsed.showId);
 }
 
-export async function applySavedVenue(showId: string, venueId: string): Promise<void> {
+export async function applySavedVenue(rawShowId: string, rawVenueId: string): Promise<void> {
+  const { showId, venueId } = parseInput(applySavedVenueSchema, {
+    showId: rawShowId,
+    venueId: rawVenueId,
+  });
   const supabase = await createServerClient();
 
   const { data: venue, error: venueError } = await supabase
@@ -482,15 +646,21 @@ export async function applySavedVenue(showId: string, venueId: string): Promise<
     ? (venue.rings as { name: string; size?: string }[])
     : [{ name: 'Ring 1', size: 'standard' }];
 
-  const { error } = await supabase
+  const locations = rings.map((r) => ({ name: r.name, size: r.size ?? 'standard' }));
+  const { data: updated, error } = await supabase
     .from('shows')
     .update({
       venue_id: venue.id,
       venue_name: venue.name,
-      locations: rings.map((r) => ({ name: r.name, size: r.size ?? 'standard' })),
+      locations,
     })
-    .eq('id', showId);
+    .eq('id', showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to change this show's venue.");
+
+  // A venue swap replaces the ring list wholesale — no renames to follow.
+  await syncClassesToRings(supabase, showId, locations, new Map());
 
   revalidatePath(`/dashboard/shows/${showId}`);
 }
@@ -499,33 +669,27 @@ export async function updateSchedulePrefs(input: unknown): Promise<void> {
   const parsed = parseInput(updateSchedulePrefsSchema, input);
   const supabase = await createServerClient();
 
-  const { data: current, error: readError } = await supabase
-    .from('shows')
-    .select('schedule_prefs')
-    .eq('id', parsed.showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const { error } = await supabase
-    .from('shows')
-    .update({
-      schedule_prefs: {
-        ...((current.schedule_prefs ?? {}) as Record<string, unknown>),
-        perMin: parsed.perMin,
-        buffer: parsed.buffer,
-        upper: parsed.upper,
-        end: parsed.end,
-        order: parsed.order,
-        warmup: parsed.warmup,
-        lunch: parsed.lunch,
-        extraBreaks: parsed.extraBreaks,
-        extraBreakMin: parsed.extraBreakMin,
-      },
+  await patchShowJsonColumn(
+    supabase,
+    parsed.showId,
+    'schedule_prefs',
+    (current) => ({
+      ...current,
+      perMin: parsed.perMin,
+      buffer: parsed.buffer,
+      upper: parsed.upper,
+      end: parsed.end,
+      order: parsed.order,
+      warmup: parsed.warmup,
+      lunch: parsed.lunch,
+      extraBreaks: parsed.extraBreaks,
+      extraBreakMin: parsed.extraBreakMin,
+    }),
+    {
       day_start_times: parsed.dayStartTimes,
       day_end_times: parsed.dayEndTimes,
-    })
-    .eq('id', parsed.showId);
-  if (error) throw new Error(error.message);
+    },
+  );
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
@@ -545,7 +709,8 @@ export async function updateSchedulePrefs(input: unknown): Promise<void> {
  * Either way the delete cascades to the show's divisions, classes, staff,
  * vendors and documents; nothing is soft-deleted.
  */
-export async function deleteShow(showId: string): Promise<void> {
+export async function deleteShow(rawShowId: string): Promise<void> {
+  const { showId } = parseInput(showIdArgSchema, { showId: rawShowId });
   const supabase = await createServerClient();
 
   const profile = await getStaffProfile();
@@ -567,8 +732,13 @@ export async function deleteShow(showId: string): Promise<void> {
     }
   }
 
-  const { error } = await supabase.from('shows').delete().eq('id', showId);
+  const { data: deleted, error } = await supabase
+    .from('shows')
+    .delete()
+    .eq('id', showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(deleted, "You don't have permission to delete this show.");
 
   revalidatePath(DASHBOARD_PATH);
   revalidatePath(SHOWS_PATH);
@@ -578,25 +748,12 @@ export async function updateContact(input: unknown): Promise<void> {
   const parsed = parseInput(updateContactSchema, input);
   const supabase = await createServerClient();
 
-  const { data: current, error: readError } = await supabase
-    .from('shows')
-    .select('show_details')
-    .eq('id', parsed.showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const showDetails = {
-    ...(current.show_details as Record<string, unknown>),
+  await patchShowJsonColumn(supabase, parsed.showId, 'show_details', (current) => ({
+    ...current,
     website: parsed.website ?? '',
     phone: parsed.phone ?? '',
     contactEmail: parsed.contactEmail ?? '',
-  };
-
-  const { error } = await supabase
-    .from('shows')
-    .update({ show_details: showDetails })
-    .eq('id', parsed.showId);
-  if (error) throw new Error(error.message);
+  }));
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
@@ -605,23 +762,10 @@ export async function updatePrizeList(input: unknown): Promise<void> {
   const parsed = parseInput(updatePrizeListSchema, input);
   const supabase = await createServerClient();
 
-  const { data: current, error: readError } = await supabase
-    .from('shows')
-    .select('show_details')
-    .eq('id', parsed.showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const showDetails = {
-    ...(current.show_details as Record<string, unknown>),
+  await patchShowJsonColumn(supabase, parsed.showId, 'show_details', (current) => ({
+    ...current,
     prizeListUrl: parsed.prizeListUrl ?? '',
-  };
-
-  const { error } = await supabase
-    .from('shows')
-    .update({ show_details: showDetails })
-    .eq('id', parsed.showId);
-  if (error) throw new Error(error.message);
+  }));
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
@@ -630,11 +774,13 @@ export async function updateDocumentRequirements(input: unknown): Promise<void> 
   const parsed = parseInput(updateDocumentRequirementsSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({ document_requirements: parsed.requirements })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to edit this show.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
@@ -643,11 +789,13 @@ export async function updateMerchandise(input: unknown): Promise<void> {
   const parsed = parseInput(updateMerchandiseSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({ merchandise_enabled: parsed.enabled, merch_items: parsed.items })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to edit this show.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
@@ -656,23 +804,31 @@ export async function saveWaiverText(input: unknown): Promise<void> {
   const parsed = parseInput(saveWaiverTextSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('shows')
     .update({ waiver_text: parsed.waiverText })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to edit this waiver.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
 }
 
-export async function approveWaiver(showId: string, waiverText: string): Promise<void> {
+export async function approveWaiver(rawShowId: string, rawWaiverText: string): Promise<void> {
+  const { showId, waiverText } = parseInput(approveWaiverSchema, {
+    showId: rawShowId,
+    waiverText: rawWaiverText,
+  });
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('shows')
     .update({ waiver_approved_text: waiverText, waiver_approved_at: new Date().toISOString() })
-    .eq('id', showId);
+    .eq('id', showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to approve this waiver.");
 
   revalidatePath(`/dashboard/shows/${showId}`);
 }
@@ -757,15 +913,17 @@ export async function registerWaiverDocument(
     ? null
     : await extractDocumentText(await downloaded.arrayBuffer(), parsed.name);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({
       waiver_document_path: parsed.path,
       waiver_document_name: parsed.name,
       ...(extractedText !== null ? { waiver_text: extractedText } : {}),
     })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to edit this waiver.");
 
   if (existing?.waiver_document_path) {
     await supabase.storage.from(SHOW_DOCS_BUCKET).remove([existing.waiver_document_path]);
@@ -786,11 +944,13 @@ export async function removeWaiverDocument(input: unknown): Promise<void> {
     .single();
   if (readError) throw new Error(readError.message);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({ waiver_document_path: null, waiver_document_name: null })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to edit this waiver.");
 
   if (existing.waiver_document_path) {
     await supabase.storage.from(SHOW_DOCS_BUCKET).remove([existing.waiver_document_path]);
@@ -807,11 +967,13 @@ export async function updateTicketWindow(input: unknown): Promise<void> {
     ? `${parsed.ticketCloseDate}${parsed.ticketCloseTime ? ` ${parsed.ticketCloseTime}` : ''}`
     : '';
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('shows')
     .update({ ticket_open: parsed.ticketOpen, ticket_close: close })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to change this show's ticket window.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(DASHBOARD_PATH);
@@ -859,12 +1021,28 @@ export async function removeCatalogGroup(input: unknown): Promise<void> {
   const parsed = parseInput(addCatalogGroupSchema.pick({ showId: true, group: true }), input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  // Deleting a class cascades to its class_entries and their scores, so a
+  // level riders have already entered (and paid for) must never be wiped by
+  // unticking it — refuse and tell the organizer what to do instead.
+  const { data: groupClasses, error: readError } = await supabase
     .from('classes')
-    .delete()
+    .select('id')
     .eq('show_id', parsed.showId)
     .eq('group_name', parsed.group);
-  if (error) throw new Error(error.message);
+  if (readError) throw new Error(readError.message);
+  const classIds = groupClasses.map((c) => c.id);
+  if (classIds.length === 0) return;
+
+  const { blocked: enteredClassCount } = await deleteClassesIfUnentered(
+    supabase,
+    parsed.showId,
+    classIds,
+  );
+  if (enteredClassCount > 0) {
+    throw new UserFacingError(
+      `${String(enteredClassCount)} ${enteredClassCount === 1 ? 'class' : 'classes'} in ${parsed.group} ${enteredClassCount === 1 ? 'has' : 'have'} entries (scratched entries count too) — move them to another class first.`,
+    );
+  }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(SHOWS_PATH);
@@ -878,12 +1056,14 @@ export async function updateGroupLocation(input: unknown): Promise<void> {
   const location = parsed.location || null;
   const arena = await resolveArenaForLocation(supabase, parsed.showId, location);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('classes')
     .update({ location, arena })
     .eq('show_id', parsed.showId)
-    .eq('group_name', parsed.group);
+    .eq('group_name', parsed.group)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to change these classes.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(SCHEDULE_PATH);
@@ -895,12 +1075,14 @@ export async function updateGroupDivision(input: unknown): Promise<void> {
 
   const division = parsed.division || null;
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('classes')
     .update({ division })
     .eq('show_id', parsed.showId)
-    .eq('group_name', parsed.group);
+    .eq('group_name', parsed.group)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to change these classes.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(`/dashboard/shows/${parsed.showId}/test-builder`);
@@ -997,7 +1179,8 @@ export async function updateAddOn(input: unknown): Promise<void> {
   revalidatePath(`/dashboard/shows/${data.show_id}/rider-entries`);
 }
 
-export async function deleteAddOn(id: string): Promise<void> {
+export async function deleteAddOn(rawId: string): Promise<void> {
+  const { id } = parseInput(idArgSchema, { id: rawId });
   const supabase = await createServerClient();
 
   const { data, error: readError } = await supabase
@@ -1049,7 +1232,8 @@ export async function updateVendorItem(input: unknown): Promise<void> {
   revalidatePath(`/dashboard/shows/${data.show_id}/rider-entries`);
 }
 
-export async function deleteVendorItem(id: string): Promise<void> {
+export async function deleteVendorItem(rawId: string): Promise<void> {
+  const { id } = parseInput(idArgSchema, { id: rawId });
   const supabase = await createServerClient();
 
   const { data, error: readError } = await supabase
@@ -1065,14 +1249,10 @@ export async function deleteVendorItem(id: string): Promise<void> {
   revalidatePath(`/dashboard/shows/${data.show_id}/rider-entries`);
 }
 
-export interface StandardVendorSpaceRow {
-  id: string;
-  name: string;
-  price: number;
-  qty: number | null;
-}
-
-export async function loadStandardVendorSpaces(showId: string): Promise<StandardVendorSpaceRow[]> {
+export async function loadStandardVendorSpaces(
+  rawShowId: string,
+): Promise<StandardVendorSpaceRow[]> {
+  const { showId } = parseInput(showIdArgSchema, { showId: rawShowId });
   const supabase = await createServerClient();
 
   const { data: existing, error: readError } = await supabase
@@ -1127,7 +1307,8 @@ export async function updateQualType(input: unknown): Promise<void> {
   revalidatePath(`/dashboard/shows/${data.show_id}/rider-entries`);
 }
 
-export async function deleteQualType(id: string): Promise<void> {
+export async function deleteQualType(rawId: string): Promise<void> {
+  const { id } = parseInput(idArgSchema, { id: rawId });
   const supabase = await createServerClient();
 
   const { data, error: readError } = await supabase
@@ -1159,13 +1340,16 @@ export async function uploadShowBranding(input: unknown): Promise<void> {
   });
   if (uploadError) throw new Error(uploadError.message);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update(column === 'logo_path' ? { logo_path: path } : { show_image_path: path })
-    .eq('id', parsed.showId);
-  if (error) {
+    .eq('id', parsed.showId)
+    .select('id');
+  if (error || updatedRows.length === 0) {
+    // Don't leave an orphaned file behind a write that didn't land.
     await supabase.storage.from(bucket).remove([path]);
-    throw new Error(error.message);
+    if (error) throw new Error(error.message);
+    throw new UserFacingError("You don't have permission to edit this show.");
   }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/rider-entries`);
@@ -1185,13 +1369,16 @@ export async function uploadVendorMap(input: unknown): Promise<{ url: string | n
   });
   if (uploadError) throw new Error(uploadError.message);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({ vendor_map_path: path, vendor_map_url: null })
-    .eq('id', parsed.showId);
-  if (error) {
+    .eq('id', parsed.showId)
+    .select('id');
+  if (error || updatedRows.length === 0) {
+    // Don't leave an orphaned file behind a write that didn't land.
     await supabase.storage.from('vendor-maps').remove([path]);
-    throw new Error(error.message);
+    if (error) throw new Error(error.message);
+    throw new UserFacingError("You don't have permission to edit this show.");
   }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/rider-entries`);
@@ -1200,7 +1387,8 @@ export async function uploadVendorMap(input: unknown): Promise<{ url: string | n
   return { url: data?.signedUrl ?? null };
 }
 
-export async function removeVendorMap(showId: string): Promise<void> {
+export async function removeVendorMap(rawShowId: string): Promise<void> {
+  const { showId } = parseInput(showIdArgSchema, { showId: rawShowId });
   const supabase = await createServerClient();
 
   const { data: show, error: readError } = await supabase
@@ -1210,11 +1398,13 @@ export async function removeVendorMap(showId: string): Promise<void> {
     .single();
   if (readError) throw new Error(readError.message);
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({ vendor_map_path: null, vendor_map_url: null })
-    .eq('id', showId);
+    .eq('id', showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to edit this show.");
 
   if (show.vendor_map_path) {
     await supabase.storage.from('vendor-maps').remove([show.vendor_map_path]);
@@ -1239,8 +1429,13 @@ export async function updateClassReview(input: unknown): Promise<void> {
     ...(parsed.sponsor !== undefined ? { sponsor: parsed.sponsor } : {}),
   };
 
-  const { error } = await supabase.from('classes').update(patch).eq('id', parsed.classId);
+  const { data: updated, error } = await supabase
+    .from('classes')
+    .update(patch)
+    .eq('id', parsed.classId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to change this class.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
 }
@@ -1256,11 +1451,15 @@ export async function reorderClasses(input: unknown): Promise<void> {
         .from('classes')
         .update({ run_order: index })
         .eq('id', id)
-        .eq('show_id', parsed.showId),
+        .eq('show_id', parsed.showId)
+        .select('id'),
     ),
   );
   const failed = results.find((r) => r.error);
   if (failed?.error) throw new Error(failed.error.message);
+  if (results.some((r) => !r.data || r.data.length === 0)) {
+    throw new UserFacingError("You don't have permission to reorder these classes.");
+  }
 
   revalidatePath(`/dashboard/shows/${parsed.showId}`);
   revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
@@ -1270,17 +1469,14 @@ export async function removeClass(input: unknown): Promise<void> {
   const parsed = parseInput(removeClassSchema, input);
   const supabase = await createServerClient();
 
-  const { count: entryCount, error: entryError } = await supabase
-    .from('class_entries')
-    .select('id', { count: 'exact', head: true })
-    .eq('class_id', parsed.classId);
-  if (entryError) throw new Error(entryError.message);
-  if ((entryCount ?? 0) > 0) {
-    throw new Error('This class has entries on it and can no longer be removed.');
+  // Scoped to the show in the URL, so a class id from another show can't be
+  // removed through this one.
+  const { blocked } = await deleteClassesIfUnentered(supabase, parsed.showId, [parsed.classId]);
+  if (blocked > 0) {
+    throw new UserFacingError(
+      'This class has entries on it (scratched entries count too) and can no longer be removed.',
+    );
   }
-
-  const { error } = await supabase.from('classes').delete().eq('id', parsed.classId);
-  if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/schedule`);
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
@@ -1312,11 +1508,13 @@ export async function updateDocumentEvents(input: unknown): Promise<void> {
   const parsed = parseInput(updateDocumentEventsSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('documents')
     .update({ event_ids: parsed.eventIds })
-    .eq('id', parsed.id);
+    .eq('id', parsed.id)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to change this document.");
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/documents`);
 }
@@ -1416,7 +1614,8 @@ export async function saveTestTemplate(input: unknown): Promise<{ id: string }> 
   return { id: data.id };
 }
 
-export async function deleteTestTemplate(id: string): Promise<void> {
+export async function deleteTestTemplate(rawId: string): Promise<void> {
+  const { id } = parseInput(idArgSchema, { id: rawId });
   const supabase = await createServerClient();
   const { error } = await supabase.from('test_templates').delete().eq('id', id);
   if (error) throw new Error(error.message);
@@ -1483,11 +1682,13 @@ export async function saveShowExpenses(input: unknown): Promise<void> {
   const parsed = parseInput(saveShowExpensesSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('shows')
     .update({ expenses: parsed.expenses })
-    .eq('id', parsed.showId);
+    .eq('id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to edit this show.");
 
   revalidatePath('/dashboard/billing');
 }
@@ -1535,30 +1736,18 @@ export async function updateScheduleRules(input: unknown): Promise<void> {
   const parsed = parseInput(updateScheduleRulesSchema, input);
   const supabase = await createServerClient();
 
-  const { data: current, error: readError } = await supabase
-    .from('shows')
-    .select('schedule_prefs')
-    .eq('id', parsed.showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const next: Record<string, Json> = {
-    ...((current.schedule_prefs ?? {}) as Record<string, Json>),
-  };
-  if (parsed.hardRuleEnabled !== undefined) next.hardRuleEnabled = parsed.hardRuleEnabled;
-  if (parsed.hardRuleSameHorseMin !== undefined) {
-    next.hardRuleSameHorseMin = parsed.hardRuleSameHorseMin;
-  }
-  if (parsed.hardRuleDiffHorseMin !== undefined) {
-    next.hardRuleDiffHorseMin = parsed.hardRuleDiffHorseMin;
-  }
-  if (parsed.awardsByDivision !== undefined) next.awardsByDivision = parsed.awardsByDivision;
-
-  const { error } = await supabase
-    .from('shows')
-    .update({ schedule_prefs: next })
-    .eq('id', parsed.showId);
-  if (error) throw new Error(error.message);
+  await patchShowJsonColumn(supabase, parsed.showId, 'schedule_prefs', (current) => {
+    const next = { ...current };
+    if (parsed.hardRuleEnabled !== undefined) next.hardRuleEnabled = parsed.hardRuleEnabled;
+    if (parsed.hardRuleSameHorseMin !== undefined) {
+      next.hardRuleSameHorseMin = parsed.hardRuleSameHorseMin;
+    }
+    if (parsed.hardRuleDiffHorseMin !== undefined) {
+      next.hardRuleDiffHorseMin = parsed.hardRuleDiffHorseMin;
+    }
+    if (parsed.awardsByDivision !== undefined) next.awardsByDivision = parsed.awardsByDivision;
+    return next;
+  });
 
   revalidateSchedule(parsed.showId);
 }
@@ -1567,11 +1756,13 @@ export async function setClassDuration(input: unknown): Promise<void> {
   const parsed = parseInput(setClassDurationSchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('classes')
     .update({ min_per_ride: parsed.minutes, schedule_updated_at: new Date().toISOString() })
-    .eq('id', parsed.classId);
+    .eq('id', parsed.classId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(updated, "You don't have permission to change this class.");
 
   revalidateSchedule(parsed.showId);
 }
@@ -1594,11 +1785,23 @@ export async function moveClassToRingDay(input: unknown): Promise<void> {
     date = start.toISOString().slice(0, 10);
   }
 
-  const { error } = await supabase
+  // Keep class.arena mirroring the ring it now sits in, same as every other
+  // path that changes a class's location.
+  const arena = await resolveArenaForLocation(supabase, parsed.showId, parsed.ring);
+
+  const { data: moved, error } = await supabase
     .from('classes')
-    .update({ location: parsed.ring, date, schedule_updated_at: new Date().toISOString() })
-    .eq('id', parsed.classId);
+    .update({
+      location: parsed.ring,
+      arena,
+      date,
+      schedule_updated_at: new Date().toISOString(),
+    })
+    .eq('id', parsed.classId)
+    .eq('show_id', parsed.showId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(moved, 'That class could not be moved.');
 
   revalidateSchedule(parsed.showId);
 }
@@ -1607,11 +1810,13 @@ export async function scratchEntry(input: unknown): Promise<void> {
   const parsed = parseInput(scratchEntrySchema, input);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: scratched, error } = await supabase
     .from('class_entries')
     .update({ status: 'scratched', updated_at: new Date().toISOString() })
-    .eq('id', parsed.entryId);
+    .eq('id', parsed.entryId)
+    .select('id');
   if (error) throw new Error(error.message);
+  assertUpdated(scratched, "You don't have permission to scratch this entry.");
 
   revalidateSchedule(parsed.showId);
 }
@@ -1631,21 +1836,193 @@ export async function reorderRide(input: unknown): Promise<void> {
   const target = Math.max(0, Math.min(parsed.toIndex, ids.length));
   ids.splice(target, 0, parsed.entryId);
 
+  // ride_order has no unique index, so there's no need for the old
+  // park-at-10000-then-renumber double pass: write only the rows whose
+  // position actually changed, in parallel.
+  const currentOrder = new Map(entries.map((e) => [e.id, e.ride_order]));
   const now = new Date().toISOString();
-  for (const [index, id] of ids.entries()) {
-    const { error } = await supabase
-      .from('class_entries')
-      .update({ ride_order: 10_000 + index, updated_at: now })
-      .eq('id', id);
+  const changed = ids
+    .map((id, index) => ({ id, rideOrder: index + 1 }))
+    .filter(({ id, rideOrder }) => currentOrder.get(id) !== rideOrder);
+  const results = await Promise.all(
+    changed.map(({ id, rideOrder }) =>
+      supabase
+        .from('class_entries')
+        .update({ ride_order: rideOrder, updated_at: now })
+        .eq('id', id)
+        .eq('class_id', parsed.classId)
+        .select('id'),
+    ),
+  );
+  for (const { data, error } of results) {
     if (error) throw new Error(error.message);
-  }
-  for (const [index, id] of ids.entries()) {
-    const { error } = await supabase
-      .from('class_entries')
-      .update({ ride_order: index + 1, updated_at: now })
-      .eq('id', id);
-    if (error) throw new Error(error.message);
+    assertUpdated(data, "You don't have permission to change this running order.");
   }
 
   revalidateSchedule(parsed.showId);
+}
+
+// ── Select Events: per-test controls ─────────────────────────────────────
+// The Offered classes table shows one row per test; each of the test's
+// classes is that test in one division. These act on a test's class ids,
+// always re-scoped to the show so a forged id can't reach another show's
+// classes, and never delete a class riders have already entered.
+
+function revalidateSelectEvents(showId: string) {
+  revalidatePath(`/dashboard/shows/${showId}/select-events`);
+  revalidatePath(`/dashboard/shows/${showId}/schedule`);
+  revalidatePath(SHOWS_PATH);
+  revalidatePath(SCHEDULE_PATH);
+}
+
+async function entryCountFor(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  classIds: string[],
+): Promise<number> {
+  const { count, error } = await supabase
+    .from('class_entries')
+    .select('id', { count: 'exact', head: true })
+    .in('class_id', classIds);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+function labelFor(group: string | null, test: string, division: string | null): string {
+  const base = group ? `${group} — ${test}` : test;
+  return division ? `${base} — ${division}` : base;
+}
+
+export async function setTestDivision(input: unknown): Promise<void> {
+  const parsed = parseInput(setTestDivisionSchema, input);
+  const supabase = await createServerClient();
+
+  const [{ data: rows, error }, { data: divisions, error: divError }] = await Promise.all([
+    supabase
+      .from('classes')
+      .select(
+        'id, label, division, group_name, event, location, arena, fee, award_scope, qualifying, qual_types, score_format, catalog_id, governing_body',
+      )
+      .eq('show_id', parsed.showId)
+      .in('id', parsed.classIds),
+    supabase.from('divisions').select('name').eq('show_id', parsed.showId),
+  ]);
+  if (error) throw new Error(error.message);
+  if (divError) throw new Error(divError.message);
+  const first = rows[0];
+  if (!first) throw new Error('That test is no longer offered.');
+
+  const showDivisions = new Set(divisions.map((d) => d.name));
+  const parts = first.label.split(' — ');
+  const test =
+    first.group_name && parts[0] === first.group_name && parts[1] ? parts[1] : (parts[0] ?? '');
+  const inDivision = rows.find((r) => r.division === parsed.division);
+  const unassigned = rows.find((r) => !r.division || !showDivisions.has(r.division));
+
+  if (parsed.on) {
+    if (inDivision) return;
+    // A test added without a division holds one "unassigned" class — the
+    // first division picked claims it rather than leaving it orphaned.
+    if (unassigned && (await entryCountFor(supabase, [unassigned.id])) === 0) {
+      const { data: updatedRows, error: updError } = await supabase
+        .from('classes')
+        .update({
+          division: parsed.division,
+          label: labelFor(first.group_name, test, parsed.division),
+        })
+        .eq('id', unassigned.id)
+        .eq('show_id', parsed.showId)
+        .select('id');
+      if (updError) throw new Error(updError.message);
+      assertUpdated(updatedRows, "You don't have permission to change these classes.");
+    } else {
+      const { error: insError } = await supabase.from('classes').upsert(
+        {
+          show_id: parsed.showId,
+          label: labelFor(first.group_name, test, parsed.division),
+          division: parsed.division,
+          group_name: first.group_name,
+          event: first.event,
+          location: first.location,
+          arena: first.arena,
+          fee: first.fee,
+          award_scope: first.award_scope,
+          qualifying: first.qualifying,
+          qual_types: first.qual_types,
+          score_format: first.score_format,
+          catalog_id: first.catalog_id,
+          governing_body: first.governing_body,
+        },
+        { onConflict: 'show_id,label', ignoreDuplicates: true },
+      );
+      if (insError) throw new Error(insError.message);
+    }
+  } else {
+    if (!inDivision) return;
+    const enteredMessage = `Riders have entered ${test} (${parsed.division}) — scratched entries count too, so it can't be dropped.`;
+    if ((await entryCountFor(supabase, [inDivision.id])) > 0) {
+      throw new UserFacingError(enteredMessage);
+    }
+    if (rows.length === 1) {
+      // Last division off: keep the test offered, just without a division.
+      const { data: updatedRows, error: updError } = await supabase
+        .from('classes')
+        .update({ division: null, label: labelFor(first.group_name, test, null) })
+        .eq('id', inDivision.id)
+        .eq('show_id', parsed.showId)
+        .select('id');
+      if (updError) throw new Error(updError.message);
+      assertUpdated(updatedRows, "You don't have permission to change these classes.");
+    } else {
+      const { blocked } = await deleteClassesIfUnentered(supabase, parsed.showId, [inDivision.id]);
+      if (blocked > 0) throw new UserFacingError(enteredMessage);
+    }
+  }
+
+  revalidateSelectEvents(parsed.showId);
+}
+
+export async function updateTestFee(input: unknown): Promise<void> {
+  const parsed = parseInput(updateTestFeeSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: updatedRows, error } = await supabase
+    .from('classes')
+    .update({ fee: parsed.fee, price_edited: true })
+    .eq('show_id', parsed.showId)
+    .in('id', parsed.classIds)
+    .select('id');
+  if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to change these classes.");
+
+  revalidateSelectEvents(parsed.showId);
+}
+
+export async function setTestQualifying(input: unknown): Promise<void> {
+  const parsed = parseInput(setTestQualifyingSchema, input);
+  const supabase = await createServerClient();
+
+  const { data: updatedRows, error } = await supabase
+    .from('classes')
+    .update({ qualifying: parsed.qualifying })
+    .eq('show_id', parsed.showId)
+    .in('id', parsed.classIds)
+    .select('id');
+  if (error) throw new Error(error.message);
+  assertUpdated(updatedRows, "You don't have permission to change these classes.");
+
+  revalidateSelectEvents(parsed.showId);
+}
+
+export async function removeTestClasses(input: unknown): Promise<void> {
+  const parsed = parseInput(removeTestClassesSchema, input);
+  const supabase = await createServerClient();
+
+  const { blocked } = await deleteClassesIfUnentered(supabase, parsed.showId, parsed.classIds);
+  if (blocked > 0) {
+    throw new UserFacingError(
+      'Riders have entered this test (scratched entries count too) — it can no longer be removed.',
+    );
+  }
+
+  revalidateSelectEvents(parsed.showId);
 }

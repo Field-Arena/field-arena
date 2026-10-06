@@ -1,8 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { SchedulePrefs, ClassRow } from '@/modules/shows/data/setup-queries';
-import { useUpdateSchedulePrefs, useReorderClasses } from '@/modules/shows/hooks/use-show-mutations';
+import type { ClassRow, SchedulePrefs } from '@/modules/shows/types';
+import {
+  useUpdateSchedulePrefs,
+  useReorderClasses,
+} from '@/modules/shows/hooks/use-show-mutations';
 import { showDayDates } from '@/modules/shows/utils/show-day-dates';
 
 function sameList(a: readonly string[], b: readonly string[]) {

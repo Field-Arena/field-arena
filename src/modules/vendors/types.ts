@@ -23,6 +23,22 @@ export interface PricedVendorBooking {
   chargesEnabled: boolean;
 }
 
+/* What a booking was priced at when its Checkout Session was created
+ * (vendor_bookings.checkout_snapshot). Payment is matched and recorded against
+ * this — not against the catalog at payment time — so an organizer editing a
+ * price after checkout neither blocks nor re-prices the payment (H14). */
+export interface VendorCheckoutSnapshot {
+  sessionId: string;
+  total: number;
+  feeTotal: number;
+  currency: string;
+  items: VendorCheckoutLineItem[];
+  pricedAt: string;
+}
+
+// The parts of a pricing that are recorded when a booking is marked paid.
+export type VendorPaidPricing = Pick<PricedVendorBooking, 'total' | 'feeTotal' | 'items'>;
+
 export interface VendorCheckoutSessionResult {
   bookingId: string;
   sessionId: string;
@@ -40,6 +56,17 @@ export interface FinalizeVendorBookingResult {
   total: number;
   items: VendorCheckoutLineItem[];
 }
+
+/* The vendor came back from Stripe before the payment settled
+ * ('processing'), or the amount Stripe charged no longer matches the
+ * booking's price ('review'). Neither marks the booking paid. */
+export interface VendorCheckoutPendingResult {
+  ok: false;
+  reason: 'processing' | 'review';
+  bookingId: string;
+}
+
+export type ConfirmVendorCheckoutResult = FinalizeVendorBookingResult | VendorCheckoutPendingResult;
 
 export interface PublicVendorApplyShow {
   showId: string;
@@ -93,4 +120,23 @@ export interface BookableShow {
     qty: number | null;
     remaining: number | null;
   }[];
+}
+
+export interface VendorBookingRow {
+  id: string;
+  showId: string;
+  showName: string;
+  showDate: string | null;
+  orgName: string;
+  status: string;
+  amountTotal: number | null;
+  paidAt: string | null;
+  agreementSignedAt: string | null;
+
+  agreementSignedText: string | null;
+
+  vendorAgreementText: string | null;
+  items: { name: string; qty: number; price: number }[];
+  vendorDocumentRequirements: VendorDocumentRequirement[];
+  documentUploads: VendorDocumentUpload[];
 }

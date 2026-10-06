@@ -27,7 +27,7 @@ import { useCreateScoringSheet } from '@/modules/superadmin/hooks/use-catalog-mu
 import { FormField } from '@/modules/superadmin/ui/organizer-form-field';
 
 const SELECT =
-  'w-full rounded-lg border border-[#D7CFBB] bg-white px-3.5 py-3 text-[14px] text-[#16261F] focus-visible:border-gold focus-visible:outline-none';
+  'w-full rounded-lg border border-[#E7EAEE] bg-white px-3.5 py-3 text-[14px] text-[#101828] focus-visible:border-[#9FD3BA] focus-visible:outline-none';
 
 export function UploadSheetDialog() {
   const [open, setOpen] = useState(false);
@@ -58,11 +58,7 @@ export function UploadSheetDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className="bg-hunter-deep text-paper hover:bg-gold hover:text-hunter-deep inline-flex h-auto items-center gap-2 rounded-[9px] px-[18px] py-3 text-[13.5px] font-bold transition"
-        >
+        <Button type="button" variant="ghost" className="fa-btn fa-btn-primary h-auto">
           <UploadIcon className="size-[15px]" aria-hidden />
           Upload official sheet
         </Button>
@@ -70,11 +66,11 @@ export function UploadSheetDialog() {
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle className="font-[family-name:var(--font-nr)] text-[22px] font-medium text-[#16261F]">
+          <DialogTitle className="font-[family-name:var(--font-nr)] text-[22px] font-medium text-[#101828]">
             Upload an official sheet
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Creates a catalog <strong className="text-[#16261F]">stub</strong> from the source
+            Creates a catalog <strong className="text-[#101828]">stub</strong> from the source
             sheet. You then tag its scoring family and scaffold the criteria the renderer reads. The
             file isn&apos;t stored in this build — only its name is captured.
           </DialogDescription>

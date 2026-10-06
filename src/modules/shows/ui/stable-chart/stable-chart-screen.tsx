@@ -35,8 +35,7 @@ import { StableChartPrintView } from '@/modules/shows/ui/stable-chart/stable-cha
 import { StablingGroupsSidebar } from '@/modules/shows/ui/stable-chart/stabling-groups-sidebar';
 import { ArrivalsDeparturesPanel } from '@/modules/shows/ui/stable-chart/arrivals-departures-panel';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
-import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departures-queries';
+import type { ArrivalDepartureRow, StableChartPageData } from '@/modules/shows/types';
 
 export function StableChartScreen({
   data,
@@ -127,14 +126,14 @@ export function StableChartScreen({
   const published = optimisticPublished ?? actualPublished;
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4 flex flex-wrap items-center gap-2.5 print:hidden">
         <Link
           href={`/dashboard/horses?show=${publicId ?? showId}`}
           prefetch={false}
           className={ghostButtonClass}
         >
-          🐴 Back to Horses
+          ← Back to Horses
         </Link>
         {totalStalls > 0 && (
           <Button
@@ -170,7 +169,7 @@ export function StableChartScreen({
         )}
 
         {totalStalls > 0 && (
-          <span className="text-[13px] text-[#5A6B63]">
+          <span className="text-[13px] text-[#475467]">
             {occupied} occupied · {availableCount} available
             {reservedCount > 0 && ` · ${String(reservedCount)} reserved`}
             {tackCount > 0 && ` · ${String(tackCount)} tack`}
@@ -187,8 +186,12 @@ export function StableChartScreen({
           onClick={() => {
             setOptimisticPublished(!published);
             togglePublish.mutate(
-              { showId },
-              { onError: () => { setOptimisticPublished(null); } },
+              { showId, expectedStatus: published ? 'published' : 'draft' },
+              {
+                onError: () => {
+                  setOptimisticPublished(null);
+                },
+              },
             );
           }}
         >
@@ -218,7 +221,7 @@ export function StableChartScreen({
         <StablingGroupsSidebar groups={groups} />
 
         <Card className="mb-[18px] p-[18px_20px_20px] print:hidden">
-          <div className="mb-2.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
+          <div className="mb-2.5 text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
             Stables
           </div>
 
@@ -262,11 +265,21 @@ export function StableChartScreen({
               defaultValue={chart.stables.length}
               className={cn('h-auto', SM_INPUT)}
               onBlur={(event) => {
-                const count = Math.max(
-                  0,
-                  Math.min(MAX_STABLES, parseInt(event.target.value, 10) || 0),
-                );
-                if (count !== chart.stables.length) setCount.mutate({ showId, count });
+                const input = event.target;
+                const current = chart.stables.length;
+                const revert = () => {
+                  input.value = String(current);
+                };
+                // A cleared field means "no change", not "zero stables" —
+                // reading it as 0 used to wipe the whole chart.
+                if (input.value.trim() === '') {
+                  revert();
+                  return;
+                }
+                const count = Math.max(0, Math.min(MAX_STABLES, parseInt(input.value, 10) || 0));
+                if (count !== current) {
+                  setCount.mutate({ showId, count }, { onError: revert });
+                }
               }}
             />
           </div>
@@ -276,7 +289,7 @@ export function StableChartScreen({
           ))}
 
           {chart.stables.length === 0 && (
-            <p className="mt-2.5 text-[13px] text-[#7A8781] italic">
+            <p className="mt-2.5 text-[13px] text-[#8A94A3] italic">
               Set &ldquo;Number of stables&rdquo; above to get started.
             </p>
           )}

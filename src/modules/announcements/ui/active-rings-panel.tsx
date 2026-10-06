@@ -1,6 +1,6 @@
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import type { RingRow } from '@/modules/announcements/data/queries';
+import type { RingRow } from '@/modules/announcements/types';
 
 export function ActiveRingsPanel({ liveRings }: { liveRings: RingRow[] }) {
   return (
@@ -44,9 +44,9 @@ export function ActiveRingsPanel({ liveRings }: { liveRings: RingRow[] }) {
                 <div style={{ borderTop: '1px solid #E9EDEB', paddingTop: 8 }}>
                   <div className="now-eyebrow">Up next — rest of the running order</div>
                   {/* Legacy listed every remaining rider as its own queue row
-                    * (announcer.html:478), not a truncated strip of chips. An
-                    * announcer reads ahead to prep names, sponsors and horse
-                    * details, so the whole order has to be visible. */}
+                   * (announcer.html:478), not a truncated strip of chips. An
+                   * announcer reads ahead to prep names, sponsors and horse
+                   * details, so the whole order has to be visible. */}
                   <ol className="cards" style={{ marginTop: 6, paddingLeft: 0, listStyle: 'none' }}>
                     {ring.upNext.map((entry, i) => (
                       <li key={entry.num} className="queue-row">

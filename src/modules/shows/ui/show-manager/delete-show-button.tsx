@@ -13,7 +13,6 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
-import { DangerButton } from '@/shared/ui/organizer/buttons';
 import { useDeleteShow } from '@/modules/shows/hooks/use-show-mutations';
 
 /* A show still in setup deletes behind a plain confirmation. One that is
@@ -47,14 +46,16 @@ export function DeleteShowButton({
 
   return (
     <>
-      <DangerButton
+      <button
+        type="button"
+        className="fa-act fa-danger"
         disabled={isPending}
         onClick={() => {
           setOpen(true);
         }}
       >
         {isPending ? 'Deleting…' : 'Delete'}
-      </DangerButton>
+      </button>
 
       <Dialog
         open={open}
@@ -65,7 +66,7 @@ export function DeleteShowButton({
       >
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               Delete &ldquo;{showName}&rdquo;{orgName ? ` (${orgName})` : ''}?
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
@@ -92,7 +93,7 @@ export function DeleteShowButton({
                 }}
               />
               {typed.trim().length > 0 && !nameMatches && (
-                <p role="alert" className="text-[12.5px] text-[#B4432F]">
+                <p role="alert" className="text-[12.5px] text-[#B42318]">
                   The show name doesn&apos;t match yet — nothing will be deleted.
                 </p>
               )}

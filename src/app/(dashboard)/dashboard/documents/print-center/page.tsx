@@ -5,7 +5,7 @@ import { getTestPrintCounts } from '@/modules/shows/data/test-print-queries';
 import { getRingPacketData } from '@/modules/shows/data/ring-packet-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { PrintCenterScreen } from '@/modules/shows/ui/filing-cabinet/print-center-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Print Center — Field & Arena' };
 

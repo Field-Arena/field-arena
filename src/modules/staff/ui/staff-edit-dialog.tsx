@@ -27,10 +27,10 @@ import {
   useReassignStaffShow,
   useUpdateStaffDetails,
 } from '../hooks/use-user-directory-mutations';
-import { splitName } from '../utils';
+import { isOwnerOnlyPermission, splitName } from '../utils';
 import type { UserDirectoryRow } from '../types';
 import type { ChangeStaffRoleInput } from '../schemas';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import type { ShowListItem } from '@/modules/shows/types';
 
 function splitRowName(row: UserDirectoryRow): { firstName: string; lastName: string } {
   if (row.firstName || row.lastName)
@@ -40,15 +40,21 @@ function splitRowName(row: UserDirectoryRow): { firstName: string; lastName: str
 }
 
 const SELECT_CLASS =
-  'w-full rounded-lg border border-[#D9E1DD] bg-white px-3 py-2 text-[13.5px] text-ink-deep outline-none focus-visible:border-gold';
+  'w-full rounded-lg border border-[#E7EAEE] bg-white px-3 py-2 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]';
 
 export function StaffEditDialog({
   row,
   shows,
+  isOrgOwner,
+  isOwnRow,
   onClose,
 }: {
   row: UserDirectoryRow | null;
   shows: ShowListItem[];
+  /** Org owner / SuperAdmin — the only viewers who may change money permissions or roles. */
+  isOrgOwner: boolean;
+  /** The viewer's own staff row — its role and permissions are read-only. */
+  isOwnRow: boolean;
   onClose: () => void;
 }) {
   return (
@@ -59,7 +65,16 @@ export function StaffEditDialog({
       }}
     >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
-        {row && <StaffEditForm key={row.key} row={row} shows={shows} onClose={onClose} />}
+        {row && (
+          <StaffEditForm
+            key={row.key}
+            row={row}
+            shows={shows}
+            isOrgOwner={isOrgOwner}
+            isOwnRow={isOwnRow}
+            onClose={onClose}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -74,10 +89,14 @@ function emptyPermissions(): Record<PermissionKey, boolean> {
 function StaffEditForm({
   row,
   shows,
+  isOrgOwner,
+  isOwnRow,
   onClose,
 }: {
   row: UserDirectoryRow;
   shows: ShowListItem[];
+  isOrgOwner: boolean;
+  isOwnRow: boolean;
   onClose: () => void;
 }) {
   const [role, setRole] = useState(row.role);
@@ -91,6 +110,7 @@ function StaffEditForm({
   const [email, setEmail] = useState(row.email ?? '');
   const [phone, setPhone] = useState(row.phone ?? '');
   const [isSteward, setIsSteward] = useState(row.isSteward);
+  const [license, setLicense] = useState(row.license ?? '');
 
   const changeRole = useChangeStaffRole();
   const updatePermissions = useUpdateStaffPermissions({ onSuccess: onClose });
@@ -115,7 +135,7 @@ function StaffEditForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-hunter-deep font-serif text-xl">{row.name}</DialogTitle>
+        <DialogTitle className="font-serif text-xl text-[#101828]">{row.name}</DialogTitle>
         <DialogDescription>
           {row.role} on {row.showName}. Role and permission changes apply to this show only.
         </DialogDescription>
@@ -168,15 +188,33 @@ function StaffEditForm({
         />
       </div>
 
+      {role === 'Judge' && (
+        <div className="space-y-1.5">
+          <Label htmlFor="se-license">Licence / rating</Label>
+          <Input
+            id="se-license"
+            value={license}
+            maxLength={40}
+            placeholder={'e.g. USEF "S" or USDF "L"'}
+            onChange={(e) => {
+              setLicense(e.target.value);
+            }}
+          />
+          <p className="text-[12px] text-[#8A94A3]">
+            Shown under the judge&apos;s name in their workspace and on the panel list.
+          </p>
+        </div>
+      )}
+
       {role === 'Announcer' && (
-        <label className="text-ink-deep flex cursor-pointer items-center gap-3 rounded-lg border border-[#EDF0EE] px-3 py-2.5 text-[13.5px] transition-colors hover:bg-[#F5F7F6]">
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#EEF1F4] px-3 py-2.5 text-[13.5px] text-[#101828] transition-colors hover:bg-[#F5F7F8]">
           <input
             type="checkbox"
             checked={isSteward}
             onChange={(e) => {
               setIsSteward(e.target.checked);
             }}
-            className="accent-hunter-deep size-4"
+            className="size-4 accent-[#146A47]"
           />
           Steward
         </label>
@@ -194,7 +232,7 @@ function StaffEditForm({
           }
           target="_blank"
           rel="noreferrer"
-          className="text-ink-deep hover:border-gold inline-flex w-fit items-center gap-2 rounded-lg border border-[#EDF0EE] px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#F5F7F6]"
+          className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#EEF1F4] px-3 py-2 text-[12.5px] font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#F5F7F8]"
         >
           Experience as {role}
           <ExternalLinkIcon className="size-[13px]" aria-hidden />
@@ -207,7 +245,15 @@ function StaffEditForm({
           variant="outline"
           disabled={pending}
           onClick={() => {
-            updateDetails.mutate({ staffId: row.id, firstName, lastName, email, phone, isSteward });
+            updateDetails.mutate({
+              staffId: row.id,
+              firstName,
+              lastName,
+              email,
+              phone,
+              isSteward,
+              license,
+            });
           }}
         >
           {updateDetails.isPending && <Loader2Icon className="animate-spin" aria-hidden />}
@@ -221,7 +267,14 @@ function StaffEditForm({
           id="se-role"
           className={SELECT_CLASS}
           value={role}
-          disabled={changeRole.isPending}
+          disabled={changeRole.isPending || !isOrgOwner || isOwnRow}
+          title={
+            isOwnRow
+              ? "You can't change your own role."
+              : !isOrgOwner
+                ? 'Only the organization owner can change a role.'
+                : undefined
+          }
           onChange={(e) => {
             const next = e.target.value;
             setRole(next);
@@ -242,7 +295,7 @@ function StaffEditForm({
           id="se-show"
           className={SELECT_CLASS}
           value={showId}
-          disabled={reassignShow.isPending}
+          disabled={reassignShow.isPending || isOwnRow}
           onChange={(e) => {
             const next = e.target.value;
             setShowId(next);
@@ -258,21 +311,34 @@ function StaffEditForm({
       </div>
 
       <ul className="space-y-1.5">
-        {PERMISSION_KEYS.map((key) => (
-          <li key={key}>
-            <label className="text-ink-deep flex cursor-pointer items-center gap-3 rounded-lg border border-[#EDF0EE] px-3 py-2.5 text-[13.5px] transition-colors hover:bg-[#F5F7F6]">
-              <input
-                type="checkbox"
-                checked={draft[key]}
-                onChange={(event) => {
-                  setDraft((prev) => ({ ...prev, [key]: event.target.checked }));
-                }}
-                className="accent-hunter-deep size-4"
-              />
-              {PERMISSION_LABELS[key]}
-            </label>
-          </li>
-        ))}
+        {PERMISSION_KEYS.map((key) => {
+          const locked = isOwnRow || (!isOrgOwner && isOwnerOnlyPermission(key));
+          return (
+            <li key={key}>
+              <label
+                title={
+                  isOwnRow
+                    ? "You can't change your own permissions."
+                    : locked
+                      ? 'Only the organization owner can change this permission.'
+                      : undefined
+                }
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#EEF1F4] px-3 py-2.5 text-[13.5px] text-[#101828] transition-colors hover:bg-[#F5F7F8]"
+              >
+                <input
+                  type="checkbox"
+                  checked={draft[key]}
+                  disabled={locked}
+                  onChange={(event) => {
+                    setDraft((prev) => ({ ...prev, [key]: event.target.checked }));
+                  }}
+                  className="size-4 accent-[#146A47]"
+                />
+                {PERMISSION_LABELS[key]}
+              </label>
+            </li>
+          );
+        })}
       </ul>
 
       <DialogFooter className="items-center justify-between sm:justify-between">
@@ -282,7 +348,7 @@ function StaffEditForm({
           onClick={() => {
             setConfirmRemove(true);
           }}
-          className="text-[12.5px] font-semibold text-[#B4432F] hover:underline disabled:opacity-50"
+          className="text-[12.5px] font-semibold text-[#B42318] hover:underline disabled:opacity-50"
         >
           Remove from this show
         </button>
@@ -305,7 +371,7 @@ function StaffEditForm({
           </Button>
           <Button
             type="button"
-            disabled={pending}
+            disabled={pending || isOwnRow}
             onClick={() => {
               updatePermissions.mutate({ staffId: row.id, permissions: draft });
             }}

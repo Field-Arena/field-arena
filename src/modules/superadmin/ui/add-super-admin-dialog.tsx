@@ -20,9 +20,9 @@ import { addSuperAdminSchema, type AddSuperAdminInput } from '@/modules/superadm
 import { useAddSuperAdmin } from '@/modules/superadmin/hooks/use-superadmin-user-mutations';
 
 const FIELD =
-  'h-auto w-full rounded-[10px] border-line-strong bg-white px-3.5 py-2.5 text-[14px] text-hunter-deep ' +
-  'placeholder:text-[#9AA6A0] focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/[.16]';
-const LABEL = 'mb-2 block text-[11px] font-bold uppercase tracking-[.08em] text-hunter-deep';
+  'h-auto w-full rounded-[10px] border-[#D0D5DD] bg-white px-3.5 py-2.5 text-[14px] text-[#101828] ' +
+  'placeholder:text-[#8A94A3] focus-visible:border-[#9FD3BA] focus-visible:ring-[3px] focus-visible:ring-[#EAF5EF]';
+const LABEL = 'mb-2 block text-[11px] font-bold uppercase tracking-[.08em] text-[#101828]';
 
 export function AddSuperAdminDialog() {
   const [open, setOpen] = useState(false);
@@ -47,7 +47,7 @@ export function AddSuperAdminDialog() {
         <Button
           type="button"
           variant="ghost"
-          className="border-hunter-deep bg-hunter-deep h-auto rounded-lg border px-3.5 py-2 text-[13px] font-bold text-white transition hover:bg-transparent hover:brightness-110"
+          className="border-hunter-deep h-auto rounded-lg border bg-[#146A47] px-3.5 py-2 text-[13px] font-bold text-white transition hover:bg-transparent hover:brightness-110"
         >
           <span aria-hidden>＋</span> Add Super Admin
         </Button>
@@ -55,14 +55,14 @@ export function AddSuperAdminDialog() {
 
       <DialogContent
         showCloseButton={false}
-        className="border-line-strong gap-0 rounded-[20px] bg-white p-0 sm:max-w-[520px]"
+        className="gap-0 rounded-[20px] border-[#D0D5DD] bg-white p-0 sm:max-w-[520px]"
       >
         <DialogClose asChild>
           <Button
             type="button"
             variant="ghost"
             aria-label="Close"
-            className="bg-hunter-pale text-hunter-deep hover:bg-line-strong absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] p-0 transition-colors"
+            className="hover:bg-line-strong absolute top-5 right-5 grid size-9 place-items-center rounded-[10px] bg-[#EAF5EF] p-0 text-[#101828] transition-colors"
           >
             <XIcon className="size-[18px]" aria-hidden />
           </Button>
@@ -70,15 +70,15 @@ export function AddSuperAdminDialog() {
 
         <DialogHeader className="gap-0 px-8 pt-8 pb-6">
           <div className="mb-3.5 flex items-center gap-3">
-            <span aria-hidden className="bg-gold h-[3px] w-[26px]" />
-            <span className="text-gold text-[10.5px] font-bold tracking-[.18em] uppercase">
+            <span aria-hidden className="h-[3px] w-[26px] bg-[#146A47]" />
+            <span className="text-[10.5px] font-bold tracking-[.08em] text-[#146A47] uppercase">
               Full access
             </span>
           </div>
-          <DialogTitle className="text-hunter-deep font-[family-name:var(--font-nr)] text-[28px] leading-[1.1] font-medium tracking-[-.02em]">
+          <DialogTitle className="font-[family-name:var(--font-nr)] text-[28px] leading-[1.1] font-medium tracking-[-.02em] text-[#101828]">
             Add Super Admin
           </DialogTitle>
-          <DialogDescription className="text-fa-muted mt-2.5 text-[14.5px] leading-[1.6]">
+          <DialogDescription className="mt-2.5 text-[14.5px] leading-[1.6] text-[#475467]">
             Invite another person with full Super Admin access — impersonate any organizer,
             suspend/reactivate accounts, everything this account can do. They&apos;ll get an email
             to set a password and sign in.
@@ -93,7 +93,7 @@ export function AddSuperAdminDialog() {
           }}
           noValidate
         >
-          <div className="border-line grid gap-4 border-t px-8 py-6 sm:grid-cols-2">
+          <div className="grid gap-4 border-t border-[#E7EAEE] px-8 py-6 sm:grid-cols-2">
             <div>
               <Label htmlFor="asa-name" className={LABEL}>
                 Name
@@ -131,8 +131,10 @@ export function AddSuperAdminDialog() {
             </div>
           </div>
 
-          <div className="border-line bg-hunter-pale flex flex-wrap items-center justify-between gap-3 rounded-b-[20px] border-t px-8 py-5">
-            <span className="text-fa-muted text-[13px]">Access starts the moment they accept.</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-b-[20px] border-t border-[#E7EAEE] bg-[#EAF5EF] px-8 py-5">
+            <span className="text-[13px] text-[#475467]">
+              Access starts the moment they accept.
+            </span>
             <div className="flex items-center gap-2.5">
               <Button
                 type="button"
@@ -140,7 +142,7 @@ export function AddSuperAdminDialog() {
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="border-line-strong text-hunter-deep hover:border-hunter-deep h-auto rounded-[10px] border bg-white px-4 py-2.5 text-[13.5px] font-bold transition-colors hover:bg-transparent"
+                className="hover:border-hunter-deep h-auto rounded-[10px] border border-[#D0D5DD] bg-white px-4 py-2.5 text-[13.5px] font-bold text-[#101828] transition-colors hover:bg-transparent"
               >
                 Cancel
               </Button>
@@ -148,7 +150,7 @@ export function AddSuperAdminDialog() {
                 type="submit"
                 variant="ghost"
                 disabled={isPending}
-                className="bg-hunter-deep inline-flex h-auto items-center gap-2 rounded-[10px] px-4 py-2.5 text-[13.5px] font-bold text-white transition hover:bg-transparent hover:brightness-110 disabled:opacity-70"
+                className="inline-flex h-auto items-center gap-2 rounded-[10px] bg-[#146A47] px-4 py-2.5 text-[13.5px] font-bold text-white transition hover:bg-transparent hover:brightness-110 disabled:opacity-70"
               >
                 {isPending ? 'Sending…' : 'Send invite'}
                 {isPending ? (

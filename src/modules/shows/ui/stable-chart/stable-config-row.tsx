@@ -10,7 +10,7 @@ import {
   useGenerateStableStalls,
 } from '@/modules/shows/hooks/use-stable-chart-mutations';
 import { SM_LABEL, SM_ROW_INPUT, SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
-import type { StableChartStable } from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStable } from '@/modules/shows/types';
 
 export function StableConfigRow({ showId, stable }: { showId: string; stable: StableChartStable }) {
   const stallCountRef = useRef<HTMLInputElement>(null);
@@ -18,7 +18,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
   const generate = useGenerateStableStalls();
 
   return (
-    <div className="flex flex-wrap items-end gap-2.5 border-t border-[#EDF0EE] py-2.5 first:border-t-0">
+    <div className="flex flex-wrap items-end gap-2.5 border-t border-[#EEF1F4] py-2.5 first:border-t-0">
       <div className="min-w-[140px] flex-1">
         <Label className={SM_LABEL}>Stable name</Label>
         <Input

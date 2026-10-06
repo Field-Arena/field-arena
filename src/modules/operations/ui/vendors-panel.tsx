@@ -1,5 +1,5 @@
 'use client';
-import type { VendorRow } from '@/modules/operations/data/queries';
+import type { VendorRow } from '@/modules/operations/types';
 
 export function VendorsPanel({
   vendors,

@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
 import { VENDOR_SPACE_TEMPLATE } from '@/modules/shows/constants';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
-import type { RiderEntriesData } from '@/modules/shows/data/setup-queries';
+import type { RiderEntriesData } from '@/modules/shows/types';
 import {
   useCreateAddOn,
   useCreateQualType,

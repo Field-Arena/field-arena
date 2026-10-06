@@ -6,7 +6,7 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { defaultArenaFor, type CatalogCategory } from '@/modules/shows/constants';
-import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
+import type { SelectEventsData } from '@/modules/shows/types';
 import {
   useAddCatalogGroup,
   useRemoveCatalogGroup,
@@ -65,7 +65,11 @@ export function GroupRow({
     if (isSelected) {
       remove.mutate(
         { showId: data.showId, group },
-        { onError: () => { setOptimisticSelected(null); } },
+        {
+          onError: () => {
+            setOptimisticSelected(null);
+          },
+        },
       );
     } else {
       add.mutate(
@@ -78,7 +82,11 @@ export function GroupRow({
           fee: pickedDivisionFee ?? fee,
           location,
         },
-        { onError: () => { setOptimisticSelected(null); } },
+        {
+          onError: () => {
+            setOptimisticSelected(null);
+          },
+        },
       );
     }
   }
@@ -87,7 +95,7 @@ export function GroupRow({
     <div
       className={cn(
         'rounded-[10px] border bg-white transition-colors',
-        isSelected ? 'border-[#BEDDCB] bg-[#F6FBF8]' : 'border-[#EDF0EE]',
+        isSelected ? 'border-[#CFE9DB] bg-[#F6FBF8]' : 'border-[#EEF1F4]',
       )}
     >
       <div className="flex items-center gap-3 px-3.5 py-2.5">
@@ -99,7 +107,7 @@ export function GroupRow({
           }}
           aria-expanded={expanded}
           aria-label={expanded ? `Hide ${group} tests` : `Show ${group} tests`}
-          className="hover:text-forest h-auto flex-none rounded p-0.5 text-[#7A8781] transition-transform hover:bg-transparent"
+          className="h-auto flex-none rounded p-0.5 text-[#8A94A3] transition-transform hover:bg-transparent hover:text-[#146A47]"
         >
           <ChevronRightIcon
             className={cn('size-4 transition-transform', expanded && 'rotate-90')}
@@ -113,9 +121,9 @@ export function GroupRow({
             checked={isSelected}
             disabled={pending}
             onChange={toggle}
-            className="size-4 flex-none accent-[#1A5B3C]"
+            className="size-4 flex-none accent-[#146A47]"
           />
-          <span className="text-ink-deep truncate text-[13.5px] font-semibold">{group}</span>
+          <span className="truncate text-[13.5px] font-semibold text-[#101828]">{group}</span>
           {pending && <Loader2Icon className="size-3.5 flex-none animate-spin" aria-hidden />}
         </Label>
 
@@ -155,17 +163,17 @@ export function GroupRow({
           ))}
         </select>
 
-        <span className="w-[58px] flex-none text-right text-[12.5px] text-[#98A29D]">
+        <span className="w-[58px] flex-none text-right text-[12.5px] text-[#8A94A3]">
           {tests.length} tests
         </span>
       </div>
 
       {expanded && (
-        <div className="border-t border-[#EDF0EE] px-3.5 py-2.5">
-          <p className="mb-2 text-[11.5px] text-[#98A29D]">{defaultArenaFor(category, group)}</p>
+        <div className="border-t border-[#EEF1F4] px-3.5 py-2.5">
+          <p className="mb-2 text-[11.5px] text-[#8A94A3]">{defaultArenaFor(category, group)}</p>
           <ul className="flex flex-col gap-1">
             {tests.map((test) => (
-              <li key={test} className="text-[12.5px] text-[#5A6B63]">
+              <li key={test} className="text-[12.5px] text-[#475467]">
                 {test}
               </li>
             ))}

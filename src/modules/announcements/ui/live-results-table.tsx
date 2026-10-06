@@ -1,5 +1,5 @@
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import type { ResultRow } from '@/modules/announcements/data/queries';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
+import type { ResultRow } from '@/modules/announcements/types';
 
 export function LiveResultsTable({ results }: { results: ResultRow[] }) {
   if (results.length === 0) {

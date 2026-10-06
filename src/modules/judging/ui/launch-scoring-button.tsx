@@ -4,21 +4,18 @@ export function LaunchScoringButton({ active, classId }: { active: boolean; clas
   if (!active) {
     return (
       <span
-        className="flex-none rounded-[9px] bg-[#F1F4F3] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#B4BFB9]"
-        aria-hidden
+        className="fa-btn fa-btn-ghost cursor-not-allowed opacity-50"
+        aria-disabled
+        title="Scoring opens on the day of the class"
       >
-        Launch Scoring →
+        Launch scoring →
       </span>
     );
   }
 
   return (
-    <Link
-      href={`/dashboard/scoring/${classId}`}
-      prefetch={false}
-      className="hover:bg-gold flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#F5F7F6] transition-colors hover:text-[#0D2C23]"
-    >
-      Launch Scoring →
+    <Link href={`/dashboard/scoring/${classId}`} prefetch={false} className="fa-btn fa-btn-primary">
+      Launch scoring →
     </Link>
   );
 }

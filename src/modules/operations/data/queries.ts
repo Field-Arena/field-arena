@@ -1,20 +1,22 @@
 import 'server-only';
 import type { ScheduleClass, ScheduleEntry, PastShowResult } from '@/modules/operations/types';
-
-export type { ScheduleClass, ScheduleEntry };
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
 import { ORG_LEVEL_ROLES } from '@/modules/operations/constants';
 import { resolveOperationsPermissions } from '@/modules/operations/utils/resolve-operations-permissions';
-import { withSharedRank } from '@/modules/operations/utils/with-shared-rank';
-
-export interface OperationsShow {
-  id: string;
-  slug: string | null;
-  name: string;
-  dateLabel: string | null;
-}
+import { withSharedRank } from '@/shared/lib/with-shared-rank';
+import { overrideTestName } from '@/shared/lib/rank-placings';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
+import type {
+  HorseDirectoryRow,
+  OperationsShow,
+  RiderDirectoryRow,
+  ShowDocumentRow,
+  StablingData,
+  StablingStall,
+  VendorRow,
+} from '@/modules/operations/types';
 
 export async function listMyShows(): Promise<OperationsShow[]> {
   const profile = await getStaffProfile();
@@ -176,14 +178,6 @@ async function getRosterEntries(showId: string): Promise<RosterEntry[]> {
   });
 }
 
-export interface RiderDirectoryRow {
-  num: string;
-  name: string;
-  horse: string;
-  stable: string | null;
-  classNames: string[];
-}
-
 export async function listRidersDirectory(showId: string): Promise<RiderDirectoryRow[]> {
   const rows = await getRosterEntries(showId);
   const byNum = new Map<string, RiderDirectoryRow>();
@@ -206,14 +200,6 @@ export async function listRidersDirectory(showId: string): Promise<RiderDirector
   );
 }
 
-export interface HorseDirectoryRow {
-  key: string;
-  horseName: string;
-  riderName: string;
-  trainer: string | null;
-  stable: string | null;
-}
-
 export async function listHorsesDirectory(showId: string): Promise<HorseDirectoryRow[]> {
   const rows = await getRosterEntries(showId);
   const byHorse = new Map<string, HorseDirectoryRow>();
@@ -230,20 +216,6 @@ export async function listHorsesDirectory(showId: string): Promise<HorseDirector
     }
   }
   return [...byHorse.values()].sort((a, b) => a.horseName.localeCompare(b.horseName));
-}
-
-export interface StablingStall {
-  stable: string;
-  label: string;
-  horseName: string;
-  riderName: string;
-
-  num: string | null;
-}
-
-export interface StablingData {
-  published: boolean;
-  stalls: StablingStall[];
 }
 
 export async function listStabling(showId: string): Promise<StablingData> {
@@ -284,17 +256,6 @@ export async function listStabling(showId: string): Promise<StablingData> {
   return { published: true, stalls };
 }
 
-export interface VendorRow {
-  id: string;
-  name: string;
-  status: string;
-  productsOffered: string | null;
-  contact: string | null;
-  contactName: string | null;
-  phone: string | null;
-  itemCount: number;
-}
-
 export async function listVendors(showId: string): Promise<VendorRow[]> {
   const supabase = await createServerClient();
 
@@ -330,13 +291,6 @@ export async function listVendors(showId: string): Promise<VendorRow[]> {
     phone: b.phone,
     itemCount: countByBooking.get(b.id) ?? 0,
   }));
-}
-
-export interface ShowDocumentRow {
-  id: string;
-  name: string;
-
-  url: string | null;
 }
 
 export async function listShowDocuments(showId: string): Promise<ShowDocumentRow[]> {
@@ -384,7 +338,9 @@ export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
 
   const { data: entries, error: entryError } = await supabase
     .from('class_entries')
-    .select('class_id, num, rider, horse, final_pct, status, ride_order, draw, holding')
+    .select(
+      'class_id, num, rider, horse, final_pct, status, ride_order, draw, holding, collective_total, test_override',
+    )
     .in(
       'class_id',
       classes.map((c) => c.id),
@@ -415,6 +371,8 @@ export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
         draw: e.draw ?? i + 1,
         finalPctRaw: raw,
         finalPctNum: numeric,
+        ctot: e.collective_total,
+        testName: overrideTestName(e.test_override),
       };
     });
 
@@ -422,11 +380,7 @@ export async function listSchedule(showId: string): Promise<ScheduleClass[]> {
     const status: ScheduleClass['status'] =
       scoredCount === 0 ? 'upcoming' : scoredCount >= scheduleEntries.length ? 'done' : 'running';
 
-    const placings = withSharedRank(
-      scheduleEntries
-        .filter((e) => e.finalPctNum != null)
-        .sort((a, b) => (b.finalPctNum ?? 0) - (a.finalPctNum ?? 0)),
-    );
+    const placings = withSharedRank(scheduleEntries);
 
     return {
       id: cls.id,
@@ -466,15 +420,19 @@ export async function listPastShowResults(): Promise<PastShowResult[]> {
   if (staffRows.length === 0) return [];
 
   const showIds = [...new Set(staffRows.map((s) => s.show_id))];
-  const today = new Date().toISOString().slice(0, 10);
 
-  const { data: shows, error: showError } = await supabase
+  const { data: allShows, error: showError } = await supabase
     .from('shows')
-    .select('id, name, date_label, end_date, start_date')
+    .select('id, name, date_label, end_date, start_date, timezone, organizations(timezone)')
     .in('id', showIds)
-    .lt('end_date', today)
     .order('end_date', { ascending: false });
   if (showError) throw showError;
+  // "Finished" means the end date is before today at the show, not on the UTC server.
+  const shows = allShows.filter(
+    (s) =>
+      s.end_date !== null &&
+      s.end_date < todayInZone(resolveTimeZone(s.timezone, s.organizations.timezone)),
+  );
   if (shows.length === 0) return [];
 
   const results = await Promise.all(
@@ -505,11 +463,16 @@ export async function listPastShowResults(): Promise<PastShowResult[]> {
 export async function getHorseCounts(showId: string): Promise<{ today: number; total: number }> {
   const supabase = await createServerClient();
 
-  const { data: classes, error } = await supabase
-    .from('classes')
-    .select('id, date')
-    .eq('show_id', showId);
+  const [{ data: classes, error }, { data: show, error: showError }] = await Promise.all([
+    supabase.from('classes').select('id, date').eq('show_id', showId),
+    supabase
+      .from('shows')
+      .select('timezone, organizations(timezone)')
+      .eq('id', showId)
+      .maybeSingle(),
+  ]);
   if (error) throw error;
+  if (showError) throw showError;
   if (classes.length === 0) return { today: 0, total: 0 };
 
   const { data: entries, error: entryError } = await supabase
@@ -521,7 +484,8 @@ export async function getHorseCounts(showId: string): Promise<{ today: number; t
     );
   if (entryError) throw entryError;
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // Today at the show, not on the (UTC) server.
+  const todayIso = todayInZone(resolveTimeZone(show?.timezone, show?.organizations.timezone));
   const todayClassIds = new Set(classes.filter((c) => c.date === todayIso).map((c) => c.id));
 
   const total = new Set<string>();

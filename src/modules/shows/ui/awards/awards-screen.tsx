@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PrintDate } from '@/shared/ui/print-date';
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import type { ShowAwards } from '@/modules/shows/data/setup-queries';
+import type { ShowAwards } from '@/modules/shows/types';
 import { AwardsToolbar } from '@/modules/shows/ui/awards/awards-toolbar';
 import { AwardsReportBody } from '@/modules/shows/ui/awards/awards-report-body';
 
@@ -23,7 +23,7 @@ export function AwardsScreen({
   const groupedByLabel = awards.awardsByDivision ? 'Division' : 'Test';
 
   return (
-    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
       <div className="mb-4 print:hidden">
         <Link href="/dashboard" prefetch={false} className="mb-[18px] inline-flex">
           <GhostButton>
@@ -48,7 +48,7 @@ export function AwardsScreen({
       </div>
 
       {!awards.hasClasses ? (
-        <p className="text-[13.5px] text-[#7A8781]">No classes to show yet.</p>
+        <p className="text-[13.5px] text-[#8A94A3]">No classes to show yet.</p>
       ) : (
         <>
           <Card className="mb-3.5 flex flex-wrap items-end gap-[22px] p-[16px_20px_18px] print:hidden">

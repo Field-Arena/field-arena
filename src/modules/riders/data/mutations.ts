@@ -6,14 +6,18 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
+import { safeInternalPath } from '@/shared/lib/safe-internal-path';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import { run, parseInput, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import type { Database, Json } from '@/shared/types/database.types';
-import { HORSE_DOCUMENTS_BUCKET } from '@/modules/riders/constants';
+import { CHECKOUT_SESSION_TTL_SECONDS, HORSE_DOCUMENTS_BUCKET } from '@/modules/riders/constants';
 import {
   buildStripeLineItems,
   createOrderStripeCustomer,
   finalizeOrder,
+  readFulfilledOrder,
   itemsToJson,
+  markOrderForReview,
   priceCart,
   saveOffSessionCard,
 } from '@/modules/riders/data/checkout';
@@ -34,10 +38,9 @@ import {
 } from '@/modules/riders/schemas';
 import type {
   CheckoutSessionResult,
-  FinalizeOrderResult,
+  ConfirmCheckoutResult,
   HorseDocumentUpload,
   HorseRow,
-  OrderLineItem,
   OrderRow,
   RiderResendOutcome,
   RiderRow,
@@ -87,9 +90,7 @@ async function ensureRiderProfile(
  * — otherwise they lose the class selection they were about to make and have
  * to find their way back manually. Only ever trusts an internal path. */
 function safeRiderReturnTo(value?: string | null): string {
-  if (!value) return ROUTES.rider;
-  if (!value.startsWith('/') || value.startsWith('//')) return ROUTES.rider;
-  return value;
+  return safeInternalPath(value, ROUTES.rider);
 }
 
 export async function signUpRider(input: unknown, returnTo?: string): Promise<RiderSignUpOutcome> {
@@ -433,13 +434,24 @@ export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
   if (readError) throw readError;
   if (existing) return existing;
 
+  /* The signature is dated by the server, never the client: signed_at is the
+   * DB's now(), and signature_date is today's calendar date at the show
+   * (show zone → org zone → app default), so a rider can't backdate it. */
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('timezone, organizations(timezone)')
+    .eq('id', parsed.showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  const signatureDate = todayInZone(resolveTimeZone(show?.timezone, show?.organizations.timezone));
+
   const { data, error } = await supabase
     .from('waiver_signatures')
     .insert({
       rider_id: rider.id,
       show_id: parsed.showId,
       full_name: parsed.fullName,
-      signature_date: parsed.signatureDate,
+      signature_date: signatureDate,
     })
     .select()
     .single();
@@ -493,7 +505,9 @@ export async function createCheckoutSession(
       .single();
     if (orderError) throw orderError;
 
-    const stripeCustomerId = await createOrderStripeCustomer(rider);
+    const stripeCustomerId = await createOrderStripeCustomer(admin, rider);
+    // Stored up front so the next checkout attempt reuses this customer.
+    await admin.from('orders').update({ stripe_customer_id: stripeCustomerId }).eq('id', order.id);
     const stripe = getStripeClient();
     const returnPath = `/rider/shows/${parsed.showId}`;
 
@@ -514,6 +528,7 @@ export async function createCheckoutSession(
       cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
       metadata: { showId: parsed.showId, riderId: rider.id, orderId: order.id },
       payment_intent_data: paymentIntentData,
+      expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_SESSION_TTL_SECONDS,
     });
 
     const paymentIntentId =
@@ -539,7 +554,7 @@ export async function createCheckoutSession(
   });
 }
 
-export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOrderResult> {
+export async function confirmCheckoutSession(input: unknown): Promise<ConfirmCheckoutResult> {
   const parsed = parseInput(confirmCheckoutSessionSchema, input);
   const supabase = await createServerClient();
   const rider = await requireCurrentRiderProfile(supabase);
@@ -554,22 +569,9 @@ export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOr
   if (!order) throw new Error('Order not found.');
   if (order.rider_id !== rider.id) throw new Error('Not your order.');
 
-  if (order.status === 'paid') {
-    const { data: entries, error: entriesError } = await admin
-      .from('class_entries')
-      .select('*')
-      .eq('order_id', order.id);
-    if (entriesError) throw entriesError;
-    return {
-      ok: true,
-      alreadyFulfilled: true,
-      entries,
-      riderNumber: entries[0]?.num ?? null,
-      orderId: order.id,
-      total: order.amount_total,
-      items: (order.items ?? []) as unknown as OrderLineItem[],
-    };
-  }
+  // A paid order may still be mid-fulfilment in another process; this only
+  // reports it as confirmed once every entry exists (N8).
+  if (order.status === 'paid') return readFulfilledOrder(admin, order);
 
   const stripe = getStripeClient();
   const session = await stripe.checkout.sessions.retrieve(parsed.sessionId).catch(() => null);
@@ -577,23 +579,37 @@ export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOr
   if (session.metadata?.orderId !== order.id) {
     throw new Error('This Checkout Session does not match this order.');
   }
+  /* Runs during the return page's render: an unsettled payment (async
+   * methods, or landing here a beat before Stripe flips the session) is a
+   * normal state, not an error. The webhook fulfils it once it settles. */
   if (session.payment_status !== 'paid') {
-    throw new Error('Payment has not completed yet.');
+    return { ok: false, reason: 'processing', orderId: order.id };
+  }
+  if (order.status === 'failed') {
+    return { ok: false, reason: 'review', orderId: order.id };
   }
   if (session.amount_total !== Math.round(order.amount_total * 100)) {
-    throw new Error('Payment amount does not match this order.');
+    console.error(
+      '[riders] checkout amount mismatch for order',
+      order.id,
+      session.amount_total,
+      order.amount_total,
+    );
+    await markOrderForReview(admin, order.id);
+    return { ok: false, reason: 'review', orderId: order.id };
   }
 
-  if (session.payment_intent) {
-    const piId =
-      typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : session.payment_intent.id;
+  const piId = session.payment_intent
+    ? typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent.id
+    : null;
+  if (piId) {
     const paymentIntent = await stripe.paymentIntents.retrieve(piId).catch(() => null);
     if (paymentIntent) await saveOffSessionCard(admin, order.id, paymentIntent);
   }
 
-  return finalizeOrder(admin, order, rider);
+  return finalizeOrder(admin, order, rider, piId);
 }
 
 export async function saveStablingDates(input: unknown): Promise<OrderRow> {

@@ -11,7 +11,7 @@ import {
   SM_LABEL,
   SM_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
-import type { TicketWindowData } from '@/modules/shows/data/setup-queries';
+import type { TicketWindowData } from '@/modules/shows/types';
 
 export function TicketWindowCard({ data }: { data: TicketWindowData }) {
   const [open, setOpen] = useState(data.ticketOpen);

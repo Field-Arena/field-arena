@@ -34,7 +34,7 @@ export function ResendAllPendingInvites({ pendingCount }: { pendingCount: number
         onClick={() => {
           setOpen(true);
         }}
-        className="border-line-strong text-forest hover:border-gold inline-flex h-8 items-center gap-2 rounded-full border bg-white px-3.5 text-[12.5px] font-semibold transition-colors hover:bg-[#FFFCF2]"
+        className="inline-flex h-8 items-center gap-2 rounded-full border border-[#D0D5DD] bg-white px-3.5 text-[12.5px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
       >
         <MailIcon className="size-[14px]" aria-hidden />
         Resend invite (all pending)
@@ -43,7 +43,7 @@ export function ResendAllPendingInvites({ pendingCount }: { pendingCount: number
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               Resend {pendingCount} pending invite{plural}?
             </DialogTitle>
             <DialogDescription className="leading-relaxed">

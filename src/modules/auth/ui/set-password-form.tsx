@@ -8,7 +8,21 @@ import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/a
 import { setPasswordSchema, type SetPasswordInput } from '@/modules/auth/schemas';
 import { useSetPassword } from '@/modules/auth/hooks/use-auth-mutations';
 
-export function SetPasswordForm() {
+const COPY = {
+  invite: {
+    title: 'Set your password',
+    body: 'Choose a password for your account — you’ll use it to sign back in from now on.',
+    submit: 'Continue',
+  },
+  reset: {
+    title: 'Choose a new password',
+    body: 'Enter a new password for your account. Your old password stops working once you save.',
+    submit: 'Save new password',
+  },
+} as const;
+
+export function SetPasswordForm({ mode = 'invite' }: { mode?: 'invite' | 'reset' }) {
+  const copy = COPY[mode];
   const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<SetPasswordInput>({
@@ -25,11 +39,9 @@ export function SetPasswordForm() {
   return (
     <div className="[animation:fa-in_.22s_ease-out_both]">
       <h1 className="text-forest mb-2.5 font-[family-name:var(--font-nr)] text-[40px] leading-[1.04] font-medium tracking-[-.022em]">
-        Set your password
+        {copy.title}
       </h1>
-      <p className="text-fa-muted mb-[34px] text-[15.5px] leading-[1.58]">
-        Choose a password for your account — you&apos;ll use it to sign back in from now on.
-      </p>
+      <p className="text-fa-muted mb-[34px] text-[15.5px] leading-[1.58]">{copy.body}</p>
 
       <form
         noValidate
@@ -74,7 +86,7 @@ export function SetPasswordForm() {
 
         <div className="mt-7">
           <AuthSubmit pending={setPassword.isPending} pendingLabel="Setting password…">
-            Continue
+            {copy.submit}
           </AuthSubmit>
         </div>
       </form>

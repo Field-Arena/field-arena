@@ -1,28 +1,14 @@
 import 'server-only';
-import { getHorsesPageData, type HorsesPageData } from '@/modules/shows/data/horses-queries';
-import { getTestPrintCounts, type TestPrintPageData } from '@/modules/shows/data/test-print-queries';
-import { getRibbonCountReport, type RibbonCountPageData } from '@/modules/shows/data/ribbon-count-queries';
-import { getEntryLedgerPageData, type EntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
+import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
+import { getTestPrintCounts } from '@/modules/shows/data/test-print-queries';
+import { getRibbonCountReport } from '@/modules/shows/data/ribbon-count-queries';
+import { getEntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
 import { getMembershipLedgerPageData } from '@/modules/shows/data/membership-ledger-queries';
+import type { AssociationRevenueRow, QuickReportsPageData } from '@/modules/shows/types';
 
-export interface AssociationRevenueRow {
-  association: string;
-  entryCount: number;
-  fees: number;
-  amountPaid: number;
-}
-
-export interface QuickReportsPageData {
-  showId: string;
-  showName: string;
-  horses: HorsesPageData;
-  testPrint: TestPrintPageData;
-  ribbons: RibbonCountPageData;
-  ledger: EntryLedgerPageData;
-  byAssociation: AssociationRevenueRow[];
-}
-
-export async function getQuickReportsPageData(showId: string): Promise<QuickReportsPageData | null> {
+export async function getQuickReportsPageData(
+  showId: string,
+): Promise<QuickReportsPageData | null> {
   const [horses, testPrint, ribbons, ledger, membership] = await Promise.all([
     getHorsesPageData(showId, { includeUrls: false }),
     getTestPrintCounts(showId),

@@ -3,7 +3,7 @@ import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getDocumentsPageData } from '@/modules/shows/data/setup-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { DocumentsCard } from '@/modules/shows/ui/show-manager/documents-card';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Resources — Field & Arena' };
 

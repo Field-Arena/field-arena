@@ -12,7 +12,11 @@ export function SuperAdminPreviewNotice({ showName = null }: { showName?: string
       <div className="mb-6 rounded-[10px] border border-[#C6DECD] bg-[#EAF4EE] px-4 py-3 text-[13px] text-[#1F4A34]">
         <strong className="font-semibold">Previewing {showName} as SuperAdmin.</strong> Everything
         below is this show&rsquo;s real panel and entries, exactly as its judges and scribes see it.{' '}
-        <Link href="/dashboard/superadmin" prefetch={false} className="underline underline-offset-2">
+        <Link
+          href="/dashboard/superadmin"
+          prefetch={false}
+          className="underline underline-offset-2"
+        >
           Back to the console
         </Link>
         .

@@ -17,6 +17,7 @@ import {
   setMark,
   setRemark,
   skipRide,
+  startRide,
   submitScoresheet,
   toggleErrorAt,
   toggleScoringOpen,
@@ -28,6 +29,8 @@ import {
 } from '@/modules/scoring/data/mutations';
 import { enqueueScoringWrite } from '@/modules/scoring/hooks/use-mutation-queue';
 import { MAX_WRITE_RETRIES, WRITE_RETRY_MS } from '@/modules/scoring/constants';
+import type { PublishResultsInput } from '@/modules/scoring/schemas';
+import type { PublishResultsOutcome } from '@/modules/scoring/types';
 
 function queued<Input, Output>(action: (input: Input) => Promise<Output>) {
   return (input: Input) => enqueueScoringWrite(() => action(input));
@@ -198,12 +201,28 @@ export function useToggleScoringOpen() {
   });
 }
 
+async function publishWithConfirm(input: PublishResultsInput) {
+  const outcome = await publishResults(input);
+  if (outcome.published) return outcome;
+  const confirmed = window.confirm(
+    `${String(outcome.incomplete)} ride${outcome.incomplete === 1 ? " isn't" : "s aren't"} fully scored and signed yet. Publish results anyway?`,
+  );
+  if (!confirmed) return outcome;
+  return publishResults({ ...input, force: true });
+}
+
 export function usePublishResults() {
   return useMutation({
-    mutationFn: queued(publishResults),
+    mutationFn: queued(publishWithConfirm),
     ...toastedMutationOptions('Could not publish'),
-    onSuccess: () => toast.success('Results published'),
+    onSuccess: (outcome: PublishResultsOutcome) => {
+      if (outcome.published) toast.success('Results published');
+    },
   });
+}
+
+export function useStartRide() {
+  return useMutation({ mutationFn: queued(startRide), retry: false });
 }
 
 export function useUnpublishResults() {

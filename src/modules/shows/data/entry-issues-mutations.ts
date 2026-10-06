@@ -9,6 +9,7 @@ import {
   markEntryClearedSchema,
   updateShowEntryStatusSchema,
 } from '@/modules/shows/schemas';
+import { assertUpdated } from '@/modules/shows/data/assert-updated';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
 import { DOCUMENTS_PATH } from '@/modules/shows/constants';
 
@@ -54,7 +55,7 @@ export async function resolveIssue(input: unknown): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('entry_issues')
     .update({
       status: 'resolved',
@@ -62,8 +63,10 @@ export async function resolveIssue(input: unknown): Promise<void> {
       resolved_by: user?.id ?? null,
       resolution_note: parsed.resolutionNote ?? null,
     })
-    .eq('id', parsed.issueId);
+    .eq('id', parsed.issueId)
+    .select('id');
   if (error) throw error;
+  assertUpdated(updatedRows, "You don't have permission to resolve this issue.");
 
   revalidatePath(DOCUMENTS_PATH);
 }
@@ -77,7 +80,7 @@ export async function markEntryCleared(input: unknown): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('show_entries')
     .update({
       status: 'cleared',
@@ -86,8 +89,10 @@ export async function markEntryCleared(input: unknown): Promise<void> {
       updated_at: new Date().toISOString(),
     })
     .eq('id', parsed.showEntryId)
-    .eq('show_id', parsed.showId);
+    .eq('show_id', parsed.showId)
+    .select('id');
   if (error) throw error;
+  assertUpdated(updatedRows, "You don't have permission to change this entry.");
 
   revalidatePath(DOCUMENTS_PATH);
 }
@@ -97,12 +102,14 @@ export async function updateShowEntryStatus(input: unknown): Promise<void> {
   await assertCanManageEntryLedger(parsed.showId);
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from('show_entries')
     .update({ status: parsed.status, updated_at: new Date().toISOString() })
     .eq('id', parsed.showEntryId)
-    .eq('show_id', parsed.showId);
+    .eq('show_id', parsed.showId)
+    .select('id');
   if (error) throw error;
+  assertUpdated(updatedRows, "You don't have permission to change this entry.");
 
   revalidatePath(DOCUMENTS_PATH);
 }

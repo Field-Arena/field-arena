@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   title: 'Documents — SuperAdmin Console',
 };
 
-const NR = 'font-[family-name:var(--font-nr)]';
 
 export default async function PlatformDocumentsPage() {
   const [sheets, docs] = await Promise.all([listScoringCatalog(), listCatalogDocuments()]);
@@ -17,19 +16,14 @@ export default async function PlatformDocumentsPage() {
   return (
     <div className="space-y-7">
       <div className="max-w-[680px]">
-        <div className="text-gold mb-3 text-[10.5px] font-bold tracking-[0.18em] uppercase">
-          File store
-        </div>
-        <h1
-          className={`${NR} text-hunter-deep mb-2.5 text-[32px] leading-[1.06] font-medium tracking-[-.022em]`}
-        >
+        <h1 className="mb-2 font-[family-name:var(--fa-serif)] text-[29px] leading-tight font-semibold tracking-[-.5px] text-[#101828]">
           Documents
         </h1>
-        <p className="text-fa-muted text-[14.5px] leading-[1.6]">
+        <p className="text-[14.5px] leading-[1.6] text-[#475467]">
           Real files stored on the platform, organized into folders.{' '}
-          <strong className="text-hunter-deep font-semibold">Tests:</strong> attach the real PDF for
+          <strong className="font-semibold text-[#101828]">Tests:</strong> attach the real PDF for
           every official test the Scoring Catalog already lists.{' '}
-          <strong className="text-hunter-deep font-semibold">Documents:</strong> anything else —
+          <strong className="font-semibold text-[#101828]">Documents:</strong> anything else —
           waivers, glossaries, agreements.
         </p>
       </div>

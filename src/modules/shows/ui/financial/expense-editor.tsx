@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
-import type { ShowExpense } from '@/modules/shows/data/setup-queries';
+import type { ShowExpense } from '@/modules/shows/types';
 import { useSaveShowExpenses } from '@/modules/shows/hooks/use-expense-mutations';
 import { SM_ROW_INPUT, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 
@@ -38,7 +38,7 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
 
   return (
     <div>
-      <p className="mb-3 text-[12.5px] text-[#6E7C76]">
+      <p className="mb-3 text-[12.5px] text-[#8A94A3]">
         The most common horse-show cost lines, pre-filled — edit amounts, rename, or remove any that
         don&apos;t apply.
       </p>
@@ -82,7 +82,7 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
               onClick={() => {
                 commit(rows.filter((r) => r.id !== row.id));
               }}
-              className="h-auto flex-none rounded-[9px] border border-[#E4B5AC] bg-[#FDF0EE] px-3.5 py-2.5 text-[12.5px] font-semibold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-transparent"
+              className="h-auto flex-none rounded-[9px] border border-[#FBCFC9] bg-[#FDF0EE] px-3.5 py-2.5 text-[12.5px] font-semibold text-[#B42318] transition-colors hover:border-[#B42318] hover:bg-transparent"
             >
               Remove
             </Button>

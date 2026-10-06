@@ -7,12 +7,8 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateContact } from '@/modules/shows/hooks/use-show-mutations';
 import { CONTACT_FIELDS } from '@/modules/shows/constants';
-import {
-  SM_CARD_PAD,
-  SM_SECTION_HEAD,
-  SM_LABEL,
-  SM_INPUT,
-} from '@/modules/shows/ui/show-manager/tokens';
+import { SM_CARD_PAD, SM_LABEL, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import { SmHead } from './sm-head';
 
 export function ContactCard({
   showId,
@@ -40,7 +36,11 @@ export function ContactCard({
 
   return (
     <Card className={SM_CARD_PAD}>
-      <h2 className={SM_SECTION_HEAD}>Contact</h2>
+      <SmHead
+        icon="contact"
+        title="Contact"
+        sub="How riders reach you — shown on the ticket page"
+      />
       <div className="flex flex-col">
         {CONTACT_FIELDS.map((field, i) => {
           const isEditing = editing === field.key;
@@ -48,7 +48,7 @@ export function ContactCard({
             <div
               key={field.key}
               className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3.5 ${
-                i < CONTACT_FIELDS.length - 1 ? 'border-b border-[#EDF0EE]' : ''
+                i < CONTACT_FIELDS.length - 1 ? 'border-b border-[#EEF1F4]' : ''
               }`}
             >
               <div className="min-w-0">
@@ -65,8 +65,8 @@ export function ContactCard({
                     }}
                   />
                 ) : (
-                  <div className="text-ink-deep truncate text-[14.5px]">
-                    {values[field.key] || <span className="text-[#98A29D] italic">Not set</span>}
+                  <div className="truncate text-[14.5px] text-[#101828]">
+                    {values[field.key] || <span className="text-[#8A94A3] italic">Not set</span>}
                   </div>
                 )}
               </div>

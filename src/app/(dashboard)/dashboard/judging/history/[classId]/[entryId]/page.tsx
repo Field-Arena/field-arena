@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ensureClassShowParam } from '@/modules/shows/data/class-show-ref';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getEntryScorecard } from '@/modules/judging/data/queries';
@@ -10,20 +11,25 @@ export const metadata: Metadata = { title: 'Scorecard — Field & Arena' };
 
 export default async function HistoryScorecardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ classId: string; entryId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { classId, entryId } = await params;
+  // Keep the topbar show picker on this class's show, not the org default.
+  await ensureClassShowParam(
+    `/dashboard/judging/history/${classId}/${entryId}`,
+    classId,
+    await searchParams,
+  );
   const card = await getEntryScorecard(entryId);
   if (!card) notFound();
 
   return (
     <>
       <div className="mb-[22px]">
-        <Link
-          href={`/dashboard/judging/history/${classId}`}
-          className="hover:text-gold mb-2 inline-block text-[13px] font-semibold text-[#5A6B63]"
-        >
+        <Link href={`/dashboard/judging/history/${classId}`} className="fa-backlink !mb-2">
           ← Back to placings
         </Link>
         <ScreenTitle>
@@ -35,7 +41,7 @@ export default async function HistoryScorecardPage({
       </div>
 
       {!card.test ? (
-        <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
+        <Card className="p-[24px_20px] text-[13.5px] text-[#8A94A3]">
           No test definition on file for this ride.
         </Card>
       ) : (

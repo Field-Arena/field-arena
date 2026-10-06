@@ -1,5 +1,5 @@
 import { StatusBadge } from '@/shared/ui/status-badge';
-import type { AnnouncerShow } from '@/modules/announcements/data/queries';
+import type { AnnouncerShow } from '@/modules/announcements/types';
 
 /* Legacy's assignment cards carried a Today / Upcoming / Completed pill
  * (announcer.html:319 pillFor) — on a show day the announcer could see at a

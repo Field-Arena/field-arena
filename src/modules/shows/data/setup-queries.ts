@@ -1,19 +1,24 @@
 import 'server-only';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
+import { parseFinalPct } from '@/modules/shows/utils/parse-final-pct';
+import { rideTestCode } from '@/modules/shows/utils/schedule-level';
+import {
+  collectibleFeeForEntry,
+  isScratched,
+  type ChargeableOrder,
+} from '@/modules/shows/utils/charged-class-fee';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { splitTicketClose } from '@/shared/lib/format/ticket-close';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import {
   DEFAULT_SHOW_EXPENSES,
   PNL_CATEGORY_ORDER,
   DEFAULT_SCHEDULE_PREFS,
   UPPER_LEVELS,
-  SHOW_DOCS_BUCKET,
   type RibbonColor,
 } from '@/modules/shows/constants';
-import {
-  buildMasterSchedule,
-  type MasterSchedule,
-  type ScheduleEntry,
-} from '@/modules/shows/schedule-engine';
+import { SHOW_DOCS_BUCKET } from '@/shared/constants/storage';
+import { buildMasterSchedule, type ScheduleEntry } from '@/modules/shows/schedule-engine';
 import {
   buildAwardsReport,
   disciplineOf,
@@ -36,15 +41,54 @@ function sanitizeGoverningBodies(value: unknown): string[] {
   );
 }
 import {
+  additionalRefundedTotal,
   netCollected,
   SETTLED_ORDER_STATUS,
   SETTLED_BOOKING_STATUS,
 } from '@/shared/lib/sales-math';
-
-export interface ShowManagerHeader {
-  id: string;
-  name: string;
-}
+import type {
+  AssignedClassOption,
+  ClassRow,
+  CompletenessSection,
+  DivisionRow,
+  DocumentRequirement,
+  DocumentsPageData,
+  EntryListRow,
+  MasterScheduleData,
+  MerchItem,
+  PnlCategory,
+  PnlLineItem,
+  RiderDocumentInfo,
+  RiderEntriesData,
+  RiderListRow,
+  RingRow,
+  SalesCatalog,
+  SchedulePrefs,
+  ScheduleReviewClassRow,
+  ScheduleReviewData,
+  SelectEventsData,
+  ShowAwards,
+  ShowBilling,
+  ShowCompleteness,
+  ShowDocumentRow,
+  ShowEntries,
+  ShowExpense,
+  ShowManagerHeader,
+  ShowPnl,
+  ShowRiders,
+  ShowSetupDetail,
+  StaffRow,
+  TemplatePenalty,
+  TemplateScoringConfig,
+  TemplateSection,
+  TestBuilderPageData,
+  TestCatalogEntry,
+  TestTemplateCollective,
+  TestTemplateMovement,
+  TestTemplateRow,
+  TicketWindowData,
+  VenueOption,
+} from '@/modules/shows/types';
 
 /* Just enough to render the Show Manager shell's title/tab-strip from the
  * layout -- name only, not the full show record any individual tab needs.
@@ -61,24 +105,6 @@ export async function getShowManagerHeader(showId: string): Promise<ShowManagerH
   return data;
 }
 
-export interface ClassRow {
-  id: string;
-  label: string;
-  displayName: string | null;
-  division: string | null;
-  location: string | null;
-  fee: number;
-  judgesCount: number;
-  date: string | null;
-  time: string | null;
-  entryCount: number;
-  scoringOpen: boolean;
-  resultsPublished: boolean;
-  ribbonPlaces: number;
-  awardScope: string;
-  runOrder: number | null;
-}
-
 export async function listClasses(showId: string): Promise<ClassRow[]> {
   const supabase = await createServerClient();
 
@@ -93,14 +119,16 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
 
   if (data.length === 0) return [];
 
-  const { data: entries, error: entryError } = await supabase
-    .from('class_entries')
-    .select('class_id')
-    .in(
-      'class_id',
-      data.map((c) => c.id),
-    );
-  if (entryError) throw entryError;
+  const entries = await fetchAllRows(() =>
+    supabase
+      .from('class_entries')
+      .select('class_id')
+      .in(
+        'class_id',
+        data.map((c) => c.id),
+      )
+      .order('id'),
+  );
 
   const counts = new Map<string, number>();
   for (const entry of entries) {
@@ -124,14 +152,6 @@ export async function listClasses(showId: string): Promise<ClassRow[]> {
     awardScope: c.award_scope,
     runOrder: c.run_order,
   }));
-}
-
-export interface DivisionRow {
-  id: string;
-  name: string;
-  position: number;
-  classCount: number;
-  defaultFee: number | null;
 }
 
 export async function listDivisions(showId: string): Promise<DivisionRow[]> {
@@ -162,19 +182,6 @@ export async function listDivisions(showId: string): Promise<DivisionRow[]> {
   }));
 }
 
-export interface StaffRow {
-  id: string;
-  name: string;
-  role: string;
-  email: string | null;
-  phone: string | null;
-  status: string;
-  isSteward: boolean;
-  accepted: boolean;
-  canViewMoney: boolean;
-  canScratchSkipDq: boolean;
-}
-
 export async function listStaff(showId: string): Promise<StaffRow[]> {
   const supabase = await createServerClient();
 
@@ -201,23 +208,6 @@ export async function listStaff(showId: string): Promise<StaffRow[]> {
     canViewMoney: s.can_view_money ?? false,
     canScratchSkipDq: s.can_scratch_skip_dq ?? false,
   }));
-}
-
-export interface CatalogItem {
-  id: string;
-  name: string;
-  price: number;
-  enabled: boolean;
-  qty: number | null;
-}
-
-export interface SalesCatalog {
-  addOns: CatalogItem[];
-  qualTypes: CatalogItem[];
-  vendorItems: CatalogItem[];
-  merchItems: { id: string; name: string; price: number }[];
-  merchEnabled: boolean;
-  merchSalesTotal: number;
 }
 
 export async function getSalesCatalog(showId: string): Promise<SalesCatalog> {
@@ -277,16 +267,6 @@ export async function getSalesCatalog(showId: string): Promise<SalesCatalog> {
   };
 }
 
-export interface ShowDocumentRow {
-  id: string;
-  name: string;
-
-  url: string | null;
-  path: string;
-  eventIds: string[];
-  createdAt: string;
-}
-
 export async function listShowDocuments(showId: string): Promise<ShowDocumentRow[]> {
   const supabase = await createServerClient();
 
@@ -321,13 +301,6 @@ export async function listShowDocuments(showId: string): Promise<ShowDocumentRow
   }));
 }
 
-export interface DocumentsPageData {
-  showId: string;
-  showName: string;
-  documents: ShowDocumentRow[];
-  classes: { id: string; label: string }[];
-}
-
 export async function getDocumentsPageData(showId: string): Promise<DocumentsPageData | null> {
   const supabase = await createServerClient();
 
@@ -345,13 +318,6 @@ export async function getDocumentsPageData(showId: string): Promise<DocumentsPag
   };
 }
 
-export interface DocumentRequirement {
-  id: string;
-  label: string;
-  requiresExpiration?: boolean;
-  requiresApproval?: boolean;
-}
-
 export async function getDocumentRequirements(showId: string): Promise<DocumentRequirement[]> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
@@ -362,67 +328,6 @@ export async function getDocumentRequirements(showId: string): Promise<DocumentR
   if (error) throw error;
 
   return (data.document_requirements ?? []) as unknown as DocumentRequirement[];
-}
-
-export interface RingRow {
-  name: string;
-  size: 'standard' | 'small';
-}
-
-export interface SchedulePrefs {
-  perMin: number;
-  buffer: number;
-  upper: number;
-  end: string;
-  order: 'low' | 'high' | 'custom';
-  warmup: 'yes' | 'no';
-  lunch: boolean;
-  extraBreaks: number;
-  extraBreakMin: number;
-
-  hardRuleEnabled: boolean;
-  hardRuleSameHorseMin: number;
-  hardRuleDiffHorseMin: number;
-
-  awardsByDivision: boolean;
-}
-
-export interface MerchItem {
-  id: string;
-  name: string;
-  price: number;
-}
-
-export interface ShowSetupDetail {
-  id: string;
-  slug: string | null;
-  orgId: string;
-  name: string;
-  org: string | null;
-  showType: 'rated' | 'schooling';
-  startDate: string | null;
-  endDate: string | null;
-  timezone: string | null;
-  startingRiderNumber: number;
-  governingBodies: string[];
-  venueId: string | null;
-  venueName: string | null;
-  locations: RingRow[];
-  schedulePrefs: SchedulePrefs;
-
-  dayStartTimes: string[];
-  dayEndTimes: string[];
-  website: string | null;
-  phone: string | null;
-  contactEmail: string | null;
-  prizeListUrl: string | null;
-  documentRequirements: DocumentRequirement[];
-  merchandiseEnabled: boolean;
-  merchItems: MerchItem[];
-  waiverText: string | null;
-  waiverApprovedText: string | null;
-  waiverDocumentUrl: string | null;
-  waiverDocumentName: string | null;
 }
 
 /* Riders have no read access to the `documents` storage bucket (RLS there
@@ -491,12 +396,6 @@ export async function getShowSetupDetail(showId: string): Promise<ShowSetupDetai
   };
 }
 
-export interface VenueOption {
-  id: string;
-  name: string;
-  rings: RingRow[];
-}
-
 // Any organization's venue, not just the caller's own -- a venue isn't
 // exclusive to whoever created it (see 20260924120000_shared_venues.sql).
 // Show Setup's "Add stables from a saved location" picker uses this to let
@@ -534,18 +433,6 @@ export async function listSharedVenues(viewerOrgId: string): Promise<VenueOption
     name: v.name,
     rings: (v.rings ?? []) as unknown as RingRow[],
   }));
-}
-
-export interface CompletenessSection {
-  name: string;
-  ok: boolean;
-  items: { label: string; ok: boolean }[];
-}
-
-export interface ShowCompleteness {
-  sections: CompletenessSection[];
-
-  complete: boolean;
 }
 
 interface ShowCompletenessInput {
@@ -605,7 +492,9 @@ function computeShowCompleteness(input: ShowCompletenessInput): ShowCompleteness
     },
     {
       name: 'Required Documents',
-      items: [{ label: 'At least one requirement listed', ok: input.documentRequirementsCount > 0 }],
+      items: [
+        { label: 'At least one requirement listed', ok: input.documentRequirementsCount > 0 },
+      ],
       ok: input.documentRequirementsCount > 0,
     },
     {
@@ -763,30 +652,20 @@ export async function getShowCompleteness(showId: string): Promise<ShowCompleten
   return completeness;
 }
 
-export interface ShowBilling {
-  settledRevenue: number;
-  paidOrders: number;
-  entryValue: number;
-  vendorRevenue: number;
-  merchRevenue: number;
-  expenses: { id: string; label: string; amount: number }[];
-  expenseTotal: number;
-}
-
 export async function getShowBilling(showId: string): Promise<ShowBilling> {
   const supabase = await createServerClient();
 
   const [orders, show, merch, vendors, classes] = await Promise.all([
     supabase
       .from('orders')
-      .select('amount_total, additional_charges_total, refunded_amount')
+      .select('amount_total, additional_charges_total, additional_charges, refunded_amount')
       .eq('show_id', showId)
       .eq('status', SETTLED_ORDER_STATUS),
     supabase.from('shows').select('expenses').eq('id', showId).single(),
     supabase.from('merch_sales').select('total').eq('show_id', showId),
     supabase
       .from('vendor_bookings')
-      .select('amount_total, additional_charges_total, refunded_amount')
+      .select('amount_total, additional_charges_total, additional_charges, refunded_amount')
       .eq('show_id', showId)
       .eq('status', SETTLED_BOOKING_STATUS),
     supabase.from('classes').select('id, fee').eq('show_id', showId),
@@ -801,15 +680,34 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
   let entryValue = 0;
   if (classes.data.length > 0) {
     const feeByClass = new Map(classes.data.map((c) => [c.id, c.fee ?? 0]));
-    const { data: entries, error: entryError } = await supabase
-      .from('class_entries')
-      .select('class_id')
-      .in(
-        'class_id',
-        classes.data.map((c) => c.id),
-      );
-    if (entryError) throw entryError;
-    entryValue = entries.reduce((sum, e) => sum + (feeByClass.get(e.class_id) ?? 0), 0);
+    const entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id, horse_id, order_id, status')
+        .in(
+          'class_id',
+          classes.data.map((c) => c.id),
+        )
+        .order('id'),
+    );
+    const orderIds = [
+      ...new Set(entries.map((e) => e.order_id).filter((id): id is string => !!id)),
+    ];
+    const orderById = new Map<string, ChargeableOrder>();
+    for (let i = 0; i < orderIds.length; i += 200) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, status, items')
+        .in('id', orderIds.slice(i, i + 200));
+      if (error) throw error;
+      for (const o of data) orderById.set(o.id, o);
+    }
+    // Charged price (paid order line) else the current fee; scratched entries
+    // aren't collectible.
+    entryValue = entries.reduce(
+      (sum, e) => sum + collectibleFeeForEntry(e, feeByClass.get(e.class_id) ?? 0, orderById),
+      0,
+    );
   }
 
   const expenses = (show.data.expenses ?? []) as { id: string; label: string; amount: number }[];
@@ -822,6 +720,7 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
           amountTotal: o.amount_total,
           additionalChargesTotal: o.additional_charges_total,
           refundedAmount: o.refunded_amount,
+          additionalRefundedTotal: additionalRefundedTotal(o.additional_charges),
         }),
       0,
     ),
@@ -834,6 +733,7 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
           amountTotal: v.amount_total,
           additionalChargesTotal: v.additional_charges_total,
           refundedAmount: v.refunded_amount,
+          additionalRefundedTotal: additionalRefundedTotal(v.additional_charges),
         }),
       0,
     ),
@@ -841,36 +741,6 @@ export async function getShowBilling(showId: string): Promise<ShowBilling> {
     expenses,
     expenseTotal: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
   };
-}
-
-export interface SelectEventsDivisionOption {
-  id: string;
-  name: string;
-  defaultFee: number | null;
-}
-
-export interface SelectEventsData {
-  showId: string;
-  showName: string;
-
-  ringNames: string[];
-  divisions: SelectEventsDivisionOption[];
-
-  classes: {
-    id: string;
-    label: string;
-    division: string | null;
-    groupName: string | null;
-    fee: number;
-    location: string | null;
-  }[];
-}
-
-export interface TicketWindowData {
-  showId: string;
-  ticketOpen: string;
-  ticketCloseDate: string;
-  ticketCloseTime: string;
 }
 
 // Lives on Run Show, not Select Events -- scheduling when sales open/close
@@ -887,7 +757,7 @@ export async function getTicketWindowData(showId: string): Promise<TicketWindowD
   if (error) throw error;
   if (!data) return null;
 
-  const [closeDate = '', closeTime = ''] = (data.ticket_close ?? '').split(' ');
+  const { date: closeDate, time: closeTime } = splitTicketClose(data.ticket_close);
 
   return {
     showId: data.id,
@@ -904,7 +774,7 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
     supabase.from('shows').select('id, name, locations').eq('id', showId).maybeSingle(),
     supabase
       .from('classes')
-      .select('id, label, division, group_name, fee, location')
+      .select('id, label, division, group_name, fee, location, event, qualifying')
       .eq('show_id', showId)
       .order('label'),
     supabase
@@ -920,6 +790,23 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
 
   const rings = (show.data.locations ?? []) as unknown as RingRow[];
 
+  // Entry counts drive the Entries column and guard removals — a class with
+  // riders in it can't be dropped from here.
+  const entryCounts = new Map<string, number>();
+  if (classes.data.length > 0) {
+    const entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id')
+        .in(
+          'class_id',
+          classes.data.map((c) => c.id),
+        )
+        .order('id'),
+    );
+    for (const e of entries) entryCounts.set(e.class_id, (entryCounts.get(e.class_id) ?? 0) + 1);
+  }
+
   return {
     showId: show.data.id,
     showName: show.data.name,
@@ -932,37 +819,11 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
       groupName: c.group_name,
       fee: c.fee ?? 0,
       location: c.location,
+      event: c.event,
+      qualifying: c.qualifying ?? false,
+      entryCount: entryCounts.get(c.id) ?? 0,
     })),
   };
-}
-
-export interface CatalogListItem {
-  id: string;
-  name: string;
-  price: number;
-  // Only meaningful for add-ons (how many horse/tack stalls one unit
-  // grants) — undefined for qualifications and vendor spaces.
-  stalls?: number;
-  tack?: number;
-}
-
-export interface VendorSpaceItem extends CatalogListItem {
-  qty: number | null;
-}
-
-export interface RiderEntriesData {
-  showId: string;
-  showName: string;
-  published: boolean;
-
-  notPublishedReason: string | null;
-  logoUrl: string | null;
-  bannerUrl: string | null;
-
-  vendorMapUrl: string | null;
-  addOns: CatalogListItem[];
-  vendorSpaces: VendorSpaceItem[];
-  qualifications: CatalogListItem[];
 }
 
 export async function getRiderEntriesData(showId: string): Promise<RiderEntriesData | null> {
@@ -1049,36 +910,6 @@ export async function getRiderEntriesData(showId: string): Promise<RiderEntriesD
   };
 }
 
-export interface ScheduleReviewClassRow {
-  id: string;
-  event: string | null;
-  label: string;
-  displayName: string | null;
-  division: string | null;
-  location: string | null;
-  arena: string | null;
-  judgesCount: number;
-  fee: number;
-  platformFee: number;
-  entryCount: number;
-  sponsor: string | null;
-}
-
-export interface ScheduleReviewData {
-  showId: string;
-  showName: string;
-  classes: ScheduleReviewClassRow[];
-  rings: RingRow[];
-
-  feeModel: string;
-  totals: {
-    classCount: number;
-    entryCount: number;
-    grossFees: number;
-    platformFees: number;
-  };
-}
-
 export async function getScheduleReviewData(showId: string): Promise<ScheduleReviewData | null> {
   const supabase = await createServerClient();
 
@@ -1106,15 +937,22 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
 
   const classIds = classes.data.map((c) => c.id);
   let counts = new Map<string, number>();
+  // Scratched entries still show in the per-class count, but aren't money.
+  const activeCounts = new Map<string, number>();
   if (classIds.length > 0) {
-    const { data: entries, error: entryError } = await supabase
-      .from('class_entries')
-      .select('class_id')
-      .in('class_id', classIds);
-    if (entryError) throw entryError;
+    const entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id, status')
+        .in('class_id', classIds)
+        .order('id'),
+    );
     counts = new Map();
     for (const entry of entries) {
       counts.set(entry.class_id, (counts.get(entry.class_id) ?? 0) + 1);
+      if (!isScratched(entry)) {
+        activeCounts.set(entry.class_id, (activeCounts.get(entry.class_id) ?? 0) + 1);
+      }
     }
   }
 
@@ -1140,90 +978,19 @@ export async function getScheduleReviewData(showId: string): Promise<ScheduleRev
   const rings = (show.locations ?? []) as unknown as RingRow[];
 
   const totals = rows.reduce(
-    (acc, r) => ({
-      classCount: acc.classCount + 1,
-      entryCount: acc.entryCount + r.entryCount,
-      grossFees: acc.grossFees + r.fee * r.entryCount,
-      platformFees: acc.platformFees + r.platformFee * r.entryCount,
-    }),
+    (acc, r) => {
+      const collectible = activeCounts.get(r.id) ?? 0;
+      return {
+        classCount: acc.classCount + 1,
+        entryCount: acc.entryCount + r.entryCount,
+        grossFees: acc.grossFees + r.fee * collectible,
+        platformFees: acc.platformFees + r.platformFee * collectible,
+      };
+    },
     { classCount: 0, entryCount: 0, grossFees: 0, platformFees: 0 },
   );
 
   return { showId: show.id, showName: show.name, classes: rows, rings, feeModel, totals };
-}
-
-export interface TestTemplateMovement {
-  num: number;
-  text: string;
-  coef: number;
-}
-
-export interface TestTemplateCollective {
-  key: string;
-  label: string;
-  coef: number;
-}
-
-/* Score-sheet engine (phase 1) read shapes — mirror the jsonb columns added in
-   20260818120000_scoring_template_structure.sql. */
-export interface TemplateInstruction {
-  id: string;
-  marker: string;
-  instruction: string;
-  gait: string;
-  direction: string;
-}
-export interface TemplateItem {
-  id: string;
-  label: string;
-  directive: string;
-  maxScore: number;
-  coef: number;
-  required: boolean;
-  instructions: TemplateInstruction[];
-}
-export interface TemplateSection {
-  id: string;
-  name: string;
-  type: string;
-  subtotal: boolean;
-  items: TemplateItem[];
-}
-export interface TemplatePenalty {
-  id: string;
-  name: string;
-  penaltyType: string;
-  value: string;
-  repeat: boolean;
-  elimination: boolean;
-}
-export interface TemplateScoringConfig {
-  scoreType: string;
-  applyCoefficients: boolean;
-  finalDisplay: string;
-  formula: string;
-}
-
-export interface TestTemplateRow {
-  id: string;
-  name: string;
-  level: string | null;
-  sourceLabel: string | null;
-  movements: TestTemplateMovement[];
-  collectives: TestTemplateCollective[];
-  updatedAt: string;
-  // Score-sheet engine (phase 1) — the structured fields.
-  discipline: string | null;
-  sheetType: string | null;
-  governingBody: string | null;
-  versionYear: string | null;
-  arenaSize: string | null;
-  rideTime: string | null;
-  scoringMethod: string | null;
-  maxPoints: number | null;
-  sections: TemplateSection[];
-  penalties: TemplatePenalty[];
-  scoringConfig: TemplateScoringConfig | null;
 }
 
 export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[]> {
@@ -1258,32 +1025,6 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
     penalties: (t.penalties ?? []) as unknown as TemplatePenalty[],
     scoringConfig: (t.scoring_config ?? null) as unknown as TemplateScoringConfig | null,
   }));
-}
-
-export interface TestBuilderClassOption {
-  id: string;
-  label: string;
-}
-
-export interface SelectedClassOption {
-  id: string;
-  label: string;
-  division: string | null;
-  fee: number;
-  location: string | null;
-  hasTest: boolean;
-}
-
-/* The official test library (scoring_catalog, family='movement') — USEF/USDF
- * published tests an organizer can clone into their own editable library.
- * Distinct from `test_templates` (an org's own custom tests, see above). */
-export interface TestCatalogEntry {
-  id: string;
-  title: string;
-  level: string | null;
-  governingBody: string | null;
-  movements: TestTemplateMovement[];
-  collectives: TestTemplateCollective[];
 }
 
 function parseCatalogDef(def: unknown): {
@@ -1336,33 +1077,6 @@ export async function listTestCatalog(): Promise<TestCatalogEntry[]> {
       collectives,
     };
   });
-}
-
-export interface AssignedClassOption {
-  classId: string;
-  label: string;
-}
-
-export interface TestBuilderPageData {
-  showId: string;
-  showName: string;
-  orgId: string;
-  templates: TestTemplateRow[];
-  catalog: TestCatalogEntry[];
-  classes: TestBuilderClassOption[];
-  /** Every class on this show with its division/fee/location and whether it
-   * already has a test assigned -- moved here from Select Events so an
-   * organizer can see exactly which classes still need a test typed in. */
-  selectedClasses: SelectedClassOption[];
-  /** Classes currently using each template, keyed by template id (via
-   * class_tests.test_template_id). Carries classId so a class can be
-   * unassigned directly, not just overwritten by assigning a different
-   * test. A class_tests row with no test_template_id (pre-dates the
-   * column, or was never resolvable during backfill) simply isn't listed
-   * under any template here -- matching it by name instead was tried and
-   * removed: multiple templates can share a name, and it attached a class
-   * to every one of them at once instead of the one actually in use. */
-  assignedByTemplateId: Record<string, AssignedClassOption[]>;
 }
 
 export async function getTestBuilderPageData(showId: string): Promise<TestBuilderPageData | null> {
@@ -1426,43 +1140,6 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   };
 }
 
-export interface PnlLineItem {
-  label: string;
-  qty: number;
-  revenue: number;
-}
-
-export interface PnlSubcategory {
-  name: string;
-  subtotal: number;
-  items: PnlLineItem[];
-}
-
-export interface PnlCategory {
-  name: string;
-  subtotal: number;
-  subs: PnlSubcategory[];
-}
-
-export interface ShowExpense {
-  id: string;
-  label: string;
-  amount: number;
-}
-
-export interface ShowPnl {
-  showId: string;
-  showName: string;
-  categories: PnlCategory[];
-
-  revenueTotal: number;
-
-  breakdownTotal: number;
-  expenses: ShowExpense[];
-  expensesTotal: number;
-  net: number;
-}
-
 export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
   const supabase = await createServerClient();
 
@@ -1478,14 +1155,16 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
       supabase.from('classes').select('id').eq('show_id', showId),
       supabase
         .from('orders')
-        .select('id, status, items, amount_total, additional_charges_total, refunded_amount')
+        .select(
+          'id, status, items, amount_total, additional_charges_total, additional_charges, refunded_amount',
+        )
         .eq('show_id', showId),
       supabase.from('add_ons').select('id, name').eq('show_id', showId),
       supabase.from('vendor_items').select('id, name, price').eq('show_id', showId),
       supabase
         .from('vendor_bookings')
         .select(
-          'id, status, paid_at, amount_total, additional_charges_total, refunded_amount, vendor_booking_items(vendor_item_id, qty)',
+          'id, status, paid_at, amount_total, additional_charges_total, additional_charges, refunded_amount, vendor_booking_items(vendor_item_id, qty)',
         )
         .eq('show_id', showId),
       supabase.from('merch_sales').select('items, total').eq('show_id', showId),
@@ -1514,11 +1193,13 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
   const entryCounts = new Map<string, number>();
   const classIds = entries.data.map((c) => c.id);
   if (classIds.length > 0) {
-    const { data: rows, error: entryError } = await supabase
-      .from('class_entries')
-      .select('class_id, status, order_id')
-      .in('class_id', classIds);
-    if (entryError) throw entryError;
+    const rows = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id, status, order_id')
+        .in('class_id', classIds)
+        .order('id'),
+    );
 
     for (const entry of rows) {
       if (entry.status === 'scratched') continue;
@@ -1635,6 +1316,7 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
               amountTotal: o.amount_total,
               additionalChargesTotal: o.additional_charges_total,
               refundedAmount: o.refunded_amount,
+              additionalRefundedTotal: additionalRefundedTotal(o.additional_charges),
             })
           : sum,
       0,
@@ -1647,6 +1329,7 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
               amountTotal: b.amount_total,
               additionalChargesTotal: b.additional_charges_total,
               refundedAmount: b.refunded_amount,
+              additionalRefundedTotal: additionalRefundedTotal(b.additional_charges),
             })
           : sum,
       0,
@@ -1675,25 +1358,13 @@ export async function getShowPnl(showId: string): Promise<ShowPnl | null> {
   };
 }
 
-export interface MasterScheduleData {
-  showId: string;
-  showName: string;
-  startDate: string | null;
-  timezone: string | null;
-  schedule: MasterSchedule;
-
-  rings: string[];
-  judgesByClass: Record<string, string[]>;
-  finalPctByEntry: Record<string, string>;
-  rules: {
-    hardRuleEnabled: boolean;
-    hardRuleSameHorseMin: number;
-    hardRuleDiffHorseMin: number;
-    awardsByDivision: boolean;
-  };
-
-  published: boolean;
-  rideMinutesByClass: Record<string, number>;
+function showDayIndex(startDate: string | null, date: string | null): number | null {
+  if (!startDate || !date) return null;
+  const start = Date.parse(`${startDate}T00:00:00Z`);
+  const day = Date.parse(`${date.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(start) || Number.isNaN(day)) return null;
+  const index = Math.round((day - start) / 86_400_000);
+  return index >= 0 ? index : null;
 }
 
 export async function getMasterSchedule(showId: string): Promise<MasterScheduleData | null> {
@@ -1726,16 +1397,19 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
     horse_id: string | null;
     status: string | null;
     ride_order: number;
+    final_pct: string | null;
   }[] = [];
 
+  // One read serves both the running order and the scored percentages.
   if (classIds.length > 0) {
-    const { data, error } = await supabase
-      .from('class_entries')
-      .select('id, class_id, num, rider, horse, horse_id, status, ride_order')
-      .in('class_id', classIds)
-      .order('ride_order');
-    if (error) throw error;
-    entries = data;
+    entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('id, class_id, num, rider, horse, horse_id, status, ride_order, final_pct')
+        .in('class_id', classIds)
+        .order('ride_order')
+        .order('id'),
+    );
   }
 
   const byClass = new Map<string, ScheduleEntry[]>();
@@ -1755,19 +1429,14 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
     byClass.set(entry.class_id, list);
   }
 
-  const [panel, scored] = await Promise.all([
+  const panel =
     classIds.length > 0
-      ? supabase
+      ? await supabase
           .from('class_panel')
           .select('class_id, position, staff_assignments!class_panel_judge_staff_id_fkey(name)')
           .in('class_id', classIds)
-      : Promise.resolve({ data: [], error: null }),
-    classIds.length > 0
-      ? supabase.from('class_entries').select('id, final_pct').in('class_id', classIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+      : { data: [], error: null };
   if (panel.error) throw panel.error;
-  if (scored.error) throw scored.error;
 
   const judgesByClass = new Map<string, string[]>();
   for (const seat of panel.data) {
@@ -1779,7 +1448,7 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
   }
 
   const finalPctByEntry = new Map<string, string>();
-  for (const row of scored.data) {
+  for (const row of entries) {
     if (row.final_pct) finalPctByEntry.set(row.id, row.final_pct);
   }
 
@@ -1806,7 +1475,9 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
 
         discipline: c.event ?? '',
         ring: c.location,
-        pinnedDay: null,
+        // moveClassToRingDay pins a class by writing its calendar date;
+        // turn that back into the 0-based show day the engine expects.
+        pinnedDay: showDayIndex(show.start_date, c.date),
         minPerRide: c.min_per_ride,
         runOrder: c.run_order,
         order: byClass.get(c.id) ?? [],
@@ -1849,36 +1520,6 @@ export async function getMasterSchedule(showId: string): Promise<MasterScheduleD
   };
 }
 
-export interface ShowAwards {
-  showId: string;
-  showName: string;
-
-  dates: string;
-  venue: string;
-
-  disciplines: string[];
-
-  hasClasses: boolean;
-  report: AwardsReport;
-
-  printReport: AwardsReport;
-
-  printRibbonTotal: number;
-
-  awardsByDivision: boolean;
-
-  ribbonTotal: number;
-
-  /* "How many of each test do we need to print" — every entry needs its own
-   * scoresheet before it's ridden, unlike ribbons which only count entries
-   * that end up placed. Keyed by resolved test name: a Test of Choice
-   * entry's own test_override, or the class's single assigned test
-   * (class_tests.name) for every other class. */
-  testTally: Record<string, number>;
-
-  testTotal: number;
-}
-
 export async function getShowAwards(
   showId: string,
   discipline: string,
@@ -1918,12 +1559,13 @@ export async function getShowAwards(
   }[] = [];
 
   if (classIds.length > 0) {
-    const { data, error } = await supabase
-      .from('class_entries')
-      .select('class_id, num, rider, horse, final_pct, collective_total, division, test_override')
-      .in('class_id', classIds);
-    if (error) throw error;
-    entries = data;
+    entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id, num, rider, horse, final_pct, collective_total, division, test_override')
+        .in('class_id', classIds)
+        .order('id'),
+    );
   }
 
   const classTestNameById = new Map<string, string>();
@@ -1956,7 +1598,7 @@ export async function getShowAwards(
       name: entry.rider ?? '',
       horse: entry.horse ?? '',
 
-      pct: entry.final_pct == null ? null : Number(entry.final_pct),
+      pct: parseFinalPct(entry.final_pct),
       ctot: entry.collective_total,
       division: entry.division,
     });
@@ -2000,42 +1642,6 @@ export async function getShowAwards(
     testTally,
     testTotal,
   };
-}
-
-export interface RiderDocumentInfo {
-  horseName: string;
-  label: string;
-  verified: boolean;
-  expirationDate: string | null;
-}
-
-export interface RiderListRow {
-  num: string;
-  name: string;
-  horse: string;
-
-  classes: string[];
-
-  total: number;
-
-  /* Cross-show tracking: this rider's uploaded horse documents (Coggins,
-   * vaccination records, etc.) regardless of which show they were uploaded
-   * for — documents belong to the horse, not the show — plus the names of
-   * other shows with this same organization this rider has entered before.
-   * Both are absent (empty array) rather than missing when there's nothing
-   * to show, so the UI never has to special-case undefined. */
-  documents: RiderDocumentInfo[];
-  pastShows: string[];
-}
-
-export interface ShowRiders {
-  showId: string;
-  showName: string;
-  startDate: string | null;
-  riders: RiderListRow[];
-
-  onSiteByDay: Record<number, string[]>;
-  totalDays: number;
 }
 
 interface HorseDocumentUpload {
@@ -2082,11 +1688,13 @@ async function attachRiderDocumentHistory({
 
   const pastShowNamesByRider = new Map<string, Set<string>>();
   if (allRiderIds.length > 0 && orgId) {
-    const { data: pastEntries, error: entriesError } = await supabase
-      .from('class_entries')
-      .select('rider_id, class_id')
-      .in('rider_id', allRiderIds);
-    if (entriesError) throw entriesError;
+    const pastEntries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('rider_id, class_id')
+        .in('rider_id', allRiderIds)
+        .order('id'),
+    );
 
     const pastClassIds = [...new Set(pastEntries.map((e) => e.class_id))];
     const { data: pastClasses, error: classesError } =
@@ -2169,15 +1777,37 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
     horse: string | null;
     rider_id: string | null;
     horse_id: string | null;
+    order_id: string | null;
+    status: string | null;
   }[] = [];
   if (classIds.length > 0) {
-    const { data, error } = await supabase
-      .from('class_entries')
-      .select('class_id, num, rider, horse, rider_id, horse_id')
-      .in('class_id', classIds);
-    if (error) throw error;
-    entries = data;
+    entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id, num, rider, horse, rider_id, horse_id, order_id, status')
+        .in('class_id', classIds)
+        .order('id'),
+    );
   }
+
+  const orderIds = [...new Set(entries.map((e) => e.order_id).filter((id): id is string => !!id))];
+  const ordersById = new Map<string, { status: string; amount: number; refunded: number }>();
+  if (orderIds.length > 0) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id, status, amount_total, refunded_amount')
+      .in('id', orderIds);
+    if (error) throw error;
+    for (const o of data) {
+      ordersById.set(o.id, {
+        status: o.status ?? 'pending',
+        amount: o.amount_total,
+        refunded: o.refunded_amount ?? 0,
+      });
+    }
+  }
+  const orderIdsByNum = new Map<string, Set<string>>();
+  const unorderedFeeByNum = new Map<string, number>();
 
   const riderIdsByNum = new Map<string, Set<string>>();
   const horseIdsByNum = new Map<string, Set<string>>();
@@ -2192,10 +1822,26 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
       total: 0,
       documents: [],
       pastShows: [],
+      horses: [],
+      classCodes: [],
+      payment: 'pending' as const,
+      outstanding: 0,
+      refunded: 0,
     };
+    const scratched = entry.status === 'scratched';
     if (cls) {
       row.classes.push(cls.display_name ?? cls.label);
-      row.total += cls.fee ?? 0;
+      row.classCodes.push({ code: rideTestCode(cls.label), scratched });
+      if (!scratched) row.total += cls.fee ?? 0;
+      if (!entry.order_id && !scratched) {
+        unorderedFeeByNum.set(entry.num, (unorderedFeeByNum.get(entry.num) ?? 0) + (cls.fee ?? 0));
+      }
+    }
+    if (entry.horse && !row.horses.includes(entry.horse)) row.horses.push(entry.horse);
+    if (entry.order_id) {
+      const set = orderIdsByNum.get(entry.num) ?? new Set<string>();
+      set.add(entry.order_id);
+      orderIdsByNum.set(entry.num, set);
     }
     byNum.set(entry.num, row);
     if (entry.rider_id) {
@@ -2208,6 +1854,23 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
       set.add(entry.horse_id);
       horseIdsByNum.set(entry.num, set);
     }
+  }
+
+  for (const [num, row] of byNum) {
+    const orders = [...(orderIdsByNum.get(num) ?? [])]
+      .map((id) => ordersById.get(id))
+      .filter((o): o is NonNullable<typeof o> => !!o);
+    const unpaidOrders = orders
+      .filter((o) => o.status !== 'paid')
+      .reduce((sum, o) => sum + o.amount, 0);
+    row.refunded = orders.reduce((sum, o) => sum + o.refunded, 0);
+    row.outstanding = unpaidOrders + (unorderedFeeByNum.get(num) ?? 0);
+    row.payment =
+      row.classCodes.length > 0 && row.classCodes.every((c) => c.scratched)
+        ? 'scratched'
+        : row.outstanding > 0
+          ? 'pending'
+          : 'paid';
   }
 
   await attachRiderDocumentHistory({
@@ -2242,21 +1905,6 @@ export async function getShowRiders(showId: string): Promise<ShowRiders | null> 
   };
 }
 
-export interface EntryListRow {
-  cls: string;
-  fee: number;
-  rider: string;
-  num: string;
-  horse: string;
-}
-
-export interface ShowEntries {
-  showId: string;
-  showName: string;
-  entries: EntryListRow[];
-  classes: string[];
-}
-
 export async function getShowEntries(showId: string): Promise<ShowEntries | null> {
   const supabase = await createServerClient();
 
@@ -2279,12 +1927,13 @@ export async function getShowEntries(showId: string): Promise<ShowEntries | null
 
   let rows: { class_id: string; num: string; rider: string | null; horse: string | null }[] = [];
   if (classIds.length > 0) {
-    const { data, error } = await supabase
-      .from('class_entries')
-      .select('class_id, num, rider, horse')
-      .in('class_id', classIds);
-    if (error) throw error;
-    rows = data;
+    rows = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('class_id, num, rider, horse')
+        .in('class_id', classIds)
+        .order('id'),
+    );
   }
 
   const entries: EntryListRow[] = [];

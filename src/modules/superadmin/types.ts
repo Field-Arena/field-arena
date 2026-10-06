@@ -24,6 +24,7 @@ export interface OrganizationSummary {
   suspended: boolean;
   isDemo: boolean;
   deletedAt: string | null;
+  createdAt: string;
   feeModel: string;
   showCount: number;
   entryCount: number;
@@ -239,4 +240,23 @@ export interface IndependentTestTemplate {
   orgId: string;
   orgName: string;
   createdAt: string;
+}
+
+export interface ActionFailure {
+  ok: false;
+  error: string;
+}
+
+export type CreateOrganizationResult = { ok: true; id: string; name: string } | ActionFailure;
+
+export type AddSuperAdminResult = { ok: true; email: string } | ActionFailure;
+
+export interface CalendlyLead {
+  orgName: string | null;
+  contactName: string | null;
+  email: string | null;
+  website: string | null;
+  showsPerYear: number | null;
+  calendlyEventUri: string | null;
+  demoAt: string | null;
 }

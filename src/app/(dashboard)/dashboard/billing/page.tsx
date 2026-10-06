@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowPnl } from '@/modules/shows/data/setup-queries';
-import type { StripeConnectStatus } from '@/modules/shows/data/queries';
+import type { StripeConnectStatus } from '@/modules/shows/types';
 import { getOrgBilling, getStripeConnectStatus } from '@/modules/shows/data/queries';
-import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
 import { BillingBlocks } from '@/modules/shows/ui/financial/billing-blocks';
 import { PnlPanel } from '@/modules/shows/ui/financial/pnl-panel';
 import { PnlPrintReport } from '@/modules/shows/ui/financial/pnl-print-report';

@@ -26,18 +26,16 @@ export function ErrorOfCoursePanel({
     .sort((a, b) => a - b);
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-xl border border-[#E9EDEB] bg-white p-[14px_18px]">
-      <span className="text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
-        Errors of course
-      </span>
-      <span className="text-ink-deep text-[15px] font-bold">{errors}</span>
+    <div className="flex flex-wrap items-center gap-4">
+      <span className="text-[13px] font-semibold text-[var(--fa-ink)]">Errors of course</span>
+      <span className="text-[15px] font-bold text-[#101828]">{errors}</span>
       {movements.length > 0 && (
-        <span className="text-[12.5px] text-[#7A8781]">
+        <span className="text-[12.5px] text-[#8A94A3]">
           at movement{movements.length > 1 ? 's' : ''} {movements.join(', ')}
         </span>
       )}
       <span
-        className={`text-[13px] font-semibold ${deduction === 'ELIM' ? 'text-[#B23A3A]' : 'text-[#5A6B63]'}`}
+        className={`text-[13px] font-semibold ${deduction === 'ELIM' ? 'text-[#B23A3A]' : 'text-[#475467]'}`}
       >
         {label}
       </span>

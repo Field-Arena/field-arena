@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { env } from '@/shared/lib/env';
-import { parseInput } from '@/shared/lib/action-result';
+import { parseInput, UserFacingError } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
 import {
   addManualHorseSchema,
@@ -12,21 +12,43 @@ import {
   reviewHorseDocumentSchema,
 } from '@/modules/shows/schemas';
 import { HORSES_PATH, DOCUMENTS_PATH } from '@/modules/shows/constants';
-import type { ManualHorseEntry } from '@/modules/shows/data/horses-queries';
-import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
+import type { DocumentRequirement, ManualHorseEntry } from '@/modules/shows/types';
+
+type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
+
+// Patches one requirement's upload inside horses.document_uploads in a single
+// UPDATE (patch_horse_document_upload) instead of read-modify-write, so a
+// rider uploading another document at the same moment isn't overwritten.
+// Keys whose value is undefined are removed, matching what JSON.stringify
+// did to them in the old whole-array write.
+async function patchHorseDocumentUpload(
+  supabase: SupabaseClient,
+  horseId: string,
+  requirementId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const set: Record<string, unknown> = {};
+  const unset: string[] = [];
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) unset.push(key);
+    else set[key] = value;
+  }
+  const { data, error } = await supabase.rpc('patch_horse_document_upload', {
+    p_horse_id: horseId,
+    p_requirement_id: requirementId,
+    p_set: set as Json,
+    p_unset: unset,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) {
+    throw new UserFacingError("You don't have permission to review this horse's documents.");
+  }
+}
 
 export async function addManualHorse(input: unknown): Promise<{ id: string }> {
   const parsed = parseInput(addManualHorseSchema, input);
   const supabase = await createServerClient();
 
-  const { data: show, error: readError } = await supabase
-    .from('shows')
-    .select('manual_horses')
-    .eq('id', parsed.showId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const current = (show.manual_horses ?? []) as unknown as ManualHorseEntry[];
   const entry: ManualHorseEntry = {
     id: crypto.randomUUID(),
     riderName: parsed.riderName,
@@ -35,11 +57,13 @@ export async function addManualHorse(input: unknown): Promise<{ id: string }> {
     addedAt: new Date().toISOString(),
   };
 
-  const { error } = await supabase
-    .from('shows')
-    .update({ manual_horses: [...current, entry] as unknown as Json })
-    .eq('id', parsed.showId);
+  // Appended in SQL so two horses added at once both survive.
+  const { data, error } = await supabase.rpc('append_show_manual_horse', {
+    p_show_id: parsed.showId,
+    p_entry: entry as unknown as Json,
+  });
   if (error) throw new Error(error.message);
+  if (!data) throw new UserFacingError("You don't have permission to add horses here.");
 
   revalidatePath(HORSES_PATH);
   return { id: entry.id };
@@ -49,46 +73,20 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
   const parsed = parseInput(verifyHorseDocumentSchema, input);
   const supabase = await createServerClient();
 
-  const { data: horse, error: readError } = await supabase
-    .from('horses')
-    .select('document_uploads')
-    .eq('id', parsed.horseId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const uploads = (horse.document_uploads ?? []) as {
-    requirementId?: string;
-    verified?: boolean;
-    status?: string;
-    expirationDate?: string | null;
-  }[];
   /* Legacy allowed an organizer to correct a rider-entered expiry typo through
    * this same route, patching only the fields present in the body
-   * (verify-horse-document, api/rider/[resource].js). Spreading the parsed
+   * (verify-horse-document, api/rider/[resource].js). Including the parsed
    * fields conditionally keeps that: a verified-only call leaves the stored
    * date alone, and a date-only correction leaves verification alone.
    * `status` is kept in sync with `verified` so the newer review workflow
    * (reviewHorseDocument) reads a consistent status for rows only ever
    * touched through this older checkbox route. */
-  const next = uploads.map((u) =>
-    u.requirementId === parsed.requirementId
-      ? {
-          ...u,
-          ...(parsed.verified !== undefined
-            ? { verified: parsed.verified, status: parsed.verified ? 'approved' : 'pending' }
-            : {}),
-          ...(parsed.expirationDate !== undefined
-            ? { expirationDate: parsed.expirationDate }
-            : {}),
-        }
-      : u,
-  );
-
-  const { error } = await supabase
-    .from('horses')
-    .update({ document_uploads: next })
-    .eq('id', parsed.horseId);
-  if (error) throw new Error(error.message);
+  await patchHorseDocumentUpload(supabase, parsed.horseId, parsed.requirementId, {
+    ...(parsed.verified !== undefined
+      ? { verified: parsed.verified, status: parsed.verified ? 'approved' : 'pending' }
+      : {}),
+    ...(parsed.expirationDate !== undefined ? { expirationDate: parsed.expirationDate } : {}),
+  });
 
   revalidatePath(HORSES_PATH);
   revalidatePath(DOCUMENTS_PATH);
@@ -98,47 +96,20 @@ export async function reviewHorseDocument(input: unknown): Promise<void> {
   const parsed = parseInput(reviewHorseDocumentSchema, input);
   const supabase = await createServerClient();
 
-  const { data: horse, error: readError } = await supabase
-    .from('horses')
-    .select('document_uploads')
-    .eq('id', parsed.horseId)
-    .single();
-  if (readError) throw new Error(readError.message);
-
-  const uploads = (horse.document_uploads ?? []) as {
-    requirementId?: string;
-    verified?: boolean;
-    status?: string;
-    rejectionReason?: string;
-    rejectionNote?: string;
-    replacementRequestedAt?: string;
-    reviewedAt?: string;
-  }[];
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const now = new Date().toISOString();
 
-  const next = uploads.map((u) => {
-    if (u.requirementId !== parsed.requirementId) return u;
-    return {
-      ...u,
-      status: parsed.status,
-      verified: parsed.status === 'approved',
-      rejectionReason: parsed.status === 'rejected' ? parsed.rejectionReason : undefined,
-      rejectionNote: parsed.status === 'rejected' ? parsed.rejectionNote : undefined,
-      replacementRequestedAt: parsed.status === 'replacement_requested' ? now : undefined,
-      reviewedAt: now,
-      reviewedBy: user?.id,
-    };
+  await patchHorseDocumentUpload(supabase, parsed.horseId, parsed.requirementId, {
+    status: parsed.status,
+    verified: parsed.status === 'approved',
+    rejectionReason: parsed.status === 'rejected' ? parsed.rejectionReason : undefined,
+    rejectionNote: parsed.status === 'rejected' ? parsed.rejectionNote : undefined,
+    replacementRequestedAt: parsed.status === 'replacement_requested' ? now : undefined,
+    reviewedAt: now,
+    reviewedBy: user?.id,
   });
-
-  const { error } = await supabase
-    .from('horses')
-    .update({ document_uploads: next })
-    .eq('id', parsed.horseId);
-  if (error) throw new Error(error.message);
 
   revalidatePath(HORSES_PATH);
   revalidatePath(DOCUMENTS_PATH);

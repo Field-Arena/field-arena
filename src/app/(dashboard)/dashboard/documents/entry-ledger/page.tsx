@@ -4,7 +4,7 @@ import { getEntryLedgerPageData } from '@/modules/shows/data/entry-ledger-querie
 import { listAvailableBridleNumbers } from '@/modules/shows/data/bridle-number-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { EntryLedgerScreen } from '@/modules/shows/ui/filing-cabinet/entry-ledger-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Entry Ledger — Field & Arena' };
 

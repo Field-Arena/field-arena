@@ -63,11 +63,7 @@ export function AddOrganizerDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className="bg-gold text-hunter-deep hover:bg-gold-light inline-flex h-auto items-center gap-2 rounded-[9px] px-4 py-[11px] text-[13.5px] font-bold transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)]"
-        >
+        <Button type="button" variant="ghost" className="fa-btn fa-btn-primary h-auto">
           <PlusIcon className="size-[15px]" aria-hidden />
           Add organizer
         </Button>
@@ -77,7 +73,7 @@ export function AddOrganizerDialog() {
         showCloseButton={false}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="max-h-[90vh] w-full max-w-[92vw] gap-0 overflow-y-auto rounded-2xl border-[#E9EDEB] bg-[#F5F7F6] p-0 shadow-[0_40px_90px_rgba(9,26,21,.42)] sm:max-w-[620px]"
+        className="max-h-[90vh] w-full max-w-[92vw] gap-0 overflow-y-auto rounded-2xl border-[#E7EAEE] bg-[#F5F7F8] p-0 shadow-[0_40px_90px_rgba(9,26,21,.42)] sm:max-w-[620px]"
       >
         <Button
           type="button"
@@ -86,27 +82,27 @@ export function AddOrganizerDialog() {
             setOpen(false);
           }}
           aria-label="Close"
-          className="hover:border-hunter-deep hover:bg-hunter-deep hover:text-paper absolute top-6 right-6 grid size-8 place-items-center rounded-[10px] border border-[#E9EDEB] bg-[#EAF4EE] p-0 text-[#5A6B63] transition-colors"
+          className="hover:border-hunter-deep absolute top-6 right-6 grid size-8 place-items-center rounded-[10px] border border-[#E7EAEE] bg-[#EAF5EF] p-0 text-[#475467] transition-colors hover:bg-[#146A47] hover:text-white"
         >
           <XIcon className="size-[14px]" aria-hidden />
         </Button>
 
-        <div className="border-b border-[#E9EDEB] px-8 pt-7 pb-[22px]">
+        <div className="border-b border-[#E7EAEE] px-8 pt-7 pb-[22px]">
           <div className="mb-3.5 flex items-center gap-3">
-            <span aria-hidden className="bg-gold h-[3px] w-6" />
-            <span className="text-hunter-deep text-[10px] font-bold tracking-[.18em] uppercase">
+            <span aria-hidden className="h-[3px] w-6 bg-[#146A47]" />
+            <span className="text-[10px] font-bold tracking-[.08em] text-[#101828] uppercase">
               New client
             </span>
           </div>
           <DialogTitle
             id={titleId}
-            className="text-hunter-deep mb-2 font-[family-name:var(--font-nr)] text-[30px] leading-[1.06] font-medium tracking-[-.022em]"
+            className="mb-2 font-[family-name:var(--font-nr)] text-[30px] leading-[1.06] font-medium tracking-[-.022em] text-[#101828]"
           >
             Add organizer
           </DialogTitle>
           <DialogDescription
             id={descriptionId}
-            className="text-fa-muted max-w-[460px] text-[13.5px] leading-[1.58]"
+            className="max-w-[460px] text-[13.5px] leading-[1.58] text-[#475467]"
           >
             They&apos;ll get an email to set a password, then fill in disciplines, venues, and team
             themselves.
@@ -173,11 +169,11 @@ export function AddOrganizerDialog() {
               ))}
             </div>
 
-            <div className="border-t border-[#EEF2EF] pt-[22px]">
-              <p className="text-hunter-deep mb-1 text-[11px] font-bold tracking-[.12em] uppercase">
+            <div className="border-t border-[#EEF1F4] pt-[22px]">
+              <p className="mb-1 text-[11px] font-bold tracking-[.08em] text-[#101828] uppercase">
                 Governing body certification
               </p>
-              <p className="text-fa-muted-2 mb-3 text-[12.5px]">
+              <p className="mb-3 text-[12.5px] text-[#8A94A3]">
                 Optional — sets which rule sets and membership checks their shows can use.
               </p>
               <div className="flex flex-wrap gap-[9px]">
@@ -194,13 +190,16 @@ export function AddOrganizerDialog() {
                       className={cn(
                         'inline-flex h-auto items-center gap-2 rounded-full border px-[15px] py-[9px] text-[13px] font-bold transition-colors hover:bg-transparent',
                         on
-                          ? 'border-hunter-deep bg-hunter-deep text-white'
-                          : 'border-[#D7E0DA] bg-white text-[#5A6B63]',
+                          ? 'border-hunter-deep bg-[#146A47] text-white'
+                          : 'border-[#E7EAEE] bg-white text-[#475467]',
                       )}
                     >
                       <span
                         aria-hidden
-                        className={cn('size-1.5 rounded-full', on ? 'bg-gold' : 'bg-[#C4CDC8]')}
+                        className={cn(
+                          'size-1.5 rounded-full',
+                          on ? 'bg-[#146A47]' : 'bg-[#C3CAD3]',
+                        )}
                       />
                       {body}
                     </Button>
@@ -210,8 +209,8 @@ export function AddOrganizerDialog() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 border-t border-[#E9EDEB] bg-[#EAF4EE] px-8 py-[18px]">
-            <span className="mr-auto text-[12.5px] whitespace-nowrap text-[#5A6B63]">
+          <div className="flex items-center gap-3 border-t border-[#E7EAEE] bg-[#EAF5EF] px-8 py-[18px]">
+            <span className="mr-auto text-[12.5px] whitespace-nowrap text-[#475467]">
               Invite expires in {INVITE_TTL_DAYS} days.
             </span>
             <Button
@@ -220,7 +219,7 @@ export function AddOrganizerDialog() {
               onClick={() => {
                 setOpen(false);
               }}
-              className="text-hunter-deep hover:border-gold h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-[18px] py-[11px] text-[13.5px] font-semibold transition-colors hover:bg-transparent"
+              className="h-auto rounded-[9px] border border-[#E7EAEE] bg-white px-[18px] py-[11px] text-[13.5px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-transparent"
             >
               Cancel
             </Button>
@@ -228,7 +227,7 @@ export function AddOrganizerDialog() {
               type="submit"
               variant="ghost"
               disabled={isPending}
-              className="bg-gold text-hunter-deep hover:bg-gold-light inline-flex h-auto items-center gap-[9px] rounded-[9px] px-5 py-3 text-[13.5px] font-bold whitespace-nowrap transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
+              className="inline-flex h-auto items-center gap-[9px] rounded-[9px] bg-[#146A47] px-5 py-3 text-[13.5px] font-bold whitespace-nowrap text-white transition hover:bg-[#0E5537] hover:shadow-[0_8px_24px_rgba(201,162,39,.26)] disabled:opacity-60"
             >
               {isPending ? (
                 <Loader2Icon className="size-[14px] animate-spin" aria-hidden />

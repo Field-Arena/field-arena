@@ -13,6 +13,7 @@ import {
   TableCaption,
 } from '@/shared/ui/shadcn/table';
 import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
+import { OrgAvatar } from '@/shared/ui/organizer/org-avatar';
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { formatTimestamp } from '@/shared/lib/format/date';
@@ -54,7 +55,7 @@ export const STATUS_LABEL: Record<SaleRow['status'], string> = {
 };
 
 const HEAD_CELL_CLASS =
-  'h-auto px-3 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
+  'h-auto px-3 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase';
 
 const COLUMNS: { key: string; label: string; align?: 'right' }[] = [
   { key: 'customer', label: 'Customer' },
@@ -141,7 +142,7 @@ export function EventSalesScreen({
 
   return (
     <div id="event-sales-root">
-      <div className="mb-4 flex items-start gap-3 rounded-[10px] border border-[#BFE0F5] bg-[#EAF4FC] px-4 py-3.5 text-[13px] text-[#1F3A5F]">
+      <div className="mb-5 flex items-start gap-3 rounded-[12px] border border-[#CFE3F5] bg-[var(--fa-sky-tint)] px-4 py-3.5 text-[13px] text-[#0B4F87]">
         <StatusBadge tone={isLive ? 'info' : 'neutral'} className="mt-0.5 flex-none">
           {isLive ? 'LIVE' : 'TEST MODE'}
         </StatusBadge>
@@ -155,7 +156,7 @@ export function EventSalesScreen({
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="text-ink-deep min-w-0 flex-1 truncate text-[13.5px] font-semibold">
+        <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-[#101828]">
           {showName}
         </span>
         <Input
@@ -165,7 +166,7 @@ export function EventSalesScreen({
             setPage(0);
           }}
           placeholder="Search name, show, date, total, status…"
-          className="h-auto min-w-[260px] flex-[2_1_260px] rounded-[10px] border-[#D9E1DD] px-3.5 py-2.5 text-sm outline-none focus-visible:ring-0"
+          className="h-auto min-w-[260px] flex-[2_1_260px] rounded-[10px] border-[#E7EAEE] px-3.5 py-2.5 text-sm outline-none focus-visible:ring-0"
         />
         <select
           value={typeFilter}
@@ -173,14 +174,14 @@ export function EventSalesScreen({
             setTypeFilter(e.target.value as 'all' | SaleRow['type']);
             setPage(0);
           }}
-          className="rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
+          className="rounded-[10px] border border-[#E7EAEE] px-3 py-2.5 text-sm"
           aria-label="Filter by type"
         >
           <option value="all">All types</option>
           <option value="Rider">Rider</option>
           <option value="Vendor">Vendor</option>
         </select>
-        <span className="text-[13px] text-[#98A29D]">
+        <span className="text-[13px] text-[#8A94A3]">
           {filtered.length} record{filtered.length === 1 ? '' : 's'}
         </span>
       </div>
@@ -190,7 +191,7 @@ export function EventSalesScreen({
           <div className="stat" key={tile.label}>
             <div className="stat-label">{tile.label}</div>
             <div className="stat-value">{tile.value}</div>
-            <div className="mt-1 text-[11.5px] text-[#98A29D]">{tile.sub}</div>
+            <div className="mt-1 text-[11.5px] text-[#8A94A3]">{tile.sub}</div>
           </div>
         ))}
       </div>
@@ -226,9 +227,9 @@ export function EventSalesScreen({
               a.remove();
               URL.revokeObjectURL(url);
             }}
-            className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
+            className="fa-btn fa-btn-ghost h-auto"
           >
-            ⬇ Export Contact List
+            Export contact list
           </Button>
         )}
         <Button
@@ -237,13 +238,13 @@ export function EventSalesScreen({
           onClick={() => {
             window.print();
           }}
-          className="text-forest hover:border-gold h-auto gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold transition-colors hover:bg-transparent"
+          className="fa-btn fa-btn-ghost h-auto"
         >
-          🖨 Print / Export PDF
+          Print / export PDF
         </Button>
       </div>
 
-      <div id="print-report" className="overflow-hidden rounded-[12px] border border-[#E9EDEB]">
+      <div id="print-report" className="fa-card">
         {viewMode === 'product' && (
           <div className="p-[16px_18px]">
             <ByProductView rows={rows} canViewMoney={canViewMoney} />
@@ -262,7 +263,7 @@ export function EventSalesScreen({
                   Paid rider entries and vendor purchases
                 </TableCaption>
                 <TableHeader>
-                  <TableRow className="border-b border-[#E9EDEB] bg-[#FAFAF6] hover:bg-transparent">
+                  <TableRow className="border-b border-[#E7EAEE] bg-[#FBFCFD] hover:bg-transparent">
                     {COLUMNS.map((col) => (
                       <TableHead
                         key={col.key}
@@ -287,7 +288,7 @@ export function EventSalesScreen({
                     <TableRow className="hover:bg-transparent">
                       <TableCell
                         colSpan={canRefund ? 7 : 6}
-                        className="px-4 py-10 text-center text-[13px] whitespace-normal text-[#98A29D]"
+                        className="px-4 py-10 text-center text-[13px] whitespace-normal text-[#8A94A3]"
                       >
                         No sales match this filter yet.
                       </TableCell>
@@ -299,10 +300,17 @@ export function EventSalesScreen({
                         onClick={() => {
                           setInvoiceTarget(row);
                         }}
-                        className="cursor-pointer border-b border-[#EEF2F0] hover:bg-[#FAFAF6]"
+                        className="cursor-pointer border-b border-[#EEF1F4] hover:bg-[#FBFCFD]"
                       >
-                        <TableCell className="text-ink-deep px-3 py-2.5 font-semibold whitespace-normal">
-                          {row.customer}
+                        <TableCell className="px-3 py-2.5 font-semibold whitespace-normal text-[#101828]">
+                          <span className="flex items-center gap-2.5">
+                            <OrgAvatar
+                              name={row.customer}
+                              size={30}
+                              className="rounded-[9px] text-[11px]"
+                            />
+                            {row.customer}
+                          </span>
                         </TableCell>
                         <TableCell className="px-3 py-2.5 whitespace-normal">{row.type}</TableCell>
                         <TableCell className="px-3 py-2.5 whitespace-normal">
@@ -322,6 +330,11 @@ export function EventSalesScreen({
                           <StatusBadge tone={STATUS_TONE[row.status]}>
                             {STATUS_LABEL[row.status]}
                           </StatusBadge>
+                          {row.reviewReason && (
+                            <span title={row.reviewReason} className="ml-1.5">
+                              <StatusBadge tone="danger">Needs review</StatusBadge>
+                            </span>
+                          )}
                         </TableCell>
                         {canRefund && (
                           <TableCell
@@ -334,11 +347,11 @@ export function EventSalesScreen({
                               <Button
                                 type="button"
                                 variant="ghost"
-                                disabled={row.maxRefundable <= 0}
+                                disabled={!row.hasRefundableBalance}
                                 onClick={() => {
                                   setRefundTarget(row);
                                 }}
-                                className="h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold text-[#B4432F] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#C7B9B5] disabled:no-underline disabled:opacity-100"
+                                className="h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold text-[#B42318] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#C7B9B5] disabled:no-underline disabled:opacity-100"
                               >
                                 Refund
                               </Button>
@@ -350,7 +363,7 @@ export function EventSalesScreen({
                                 onClick={() => {
                                   setChargeTarget(row);
                                 }}
-                                className="text-forest h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B7C0BB] disabled:no-underline disabled:opacity-100"
+                                className="h-auto rounded-none px-0 py-0 text-[12.5px] font-semibold text-[#101828] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B7C0BB] disabled:no-underline disabled:opacity-100"
                               >
                                 Charge more
                               </Button>
@@ -365,7 +378,7 @@ export function EventSalesScreen({
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 border-t border-[#E9EDEB] px-4 py-3.5">
+              <div className="flex items-center justify-center gap-4 border-t border-[#E7EAEE] px-4 py-3.5">
                 <Button
                   type="button"
                   variant="ghost"
@@ -373,11 +386,11 @@ export function EventSalesScreen({
                   onClick={() => {
                     setPage((p) => Math.max(0, p - 1));
                   }}
-                  className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
+                  className="h-auto rounded-[9px] border border-[#E7EAEE] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#101828] hover:bg-transparent disabled:opacity-40"
                 >
                   ← Previous
                 </Button>
-                <span className="text-[13px] text-[#6E7C76]">
+                <span className="text-[13px] text-[#8A94A3]">
                   Page {clampedPage + 1} of {totalPages}
                 </span>
                 <Button
@@ -387,7 +400,7 @@ export function EventSalesScreen({
                   onClick={() => {
                     setPage((p) => Math.min(totalPages - 1, p + 1));
                   }}
-                  className="text-forest h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2 text-[13px] font-semibold hover:bg-transparent disabled:opacity-40"
+                  className="h-auto rounded-[9px] border border-[#E7EAEE] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#101828] hover:bg-transparent disabled:opacity-40"
                 >
                   Next →
                 </Button>
@@ -419,6 +432,7 @@ export function EventSalesScreen({
         <RefundDialog
           showId={showId}
           sale={refundTarget}
+          canViewMoney={canViewMoney}
           onClose={() => {
             setRefundTarget(null);
           }}

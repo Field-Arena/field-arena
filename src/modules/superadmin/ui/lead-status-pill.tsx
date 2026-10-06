@@ -1,7 +1,7 @@
 import { LEAD_PILL, LEAD_STATUSES } from '@/modules/superadmin/constants';
 
 const LABELS = new Map<string, string>(LEAD_STATUSES.map((s) => [s.value, s.label]));
-const FALLBACK = { bg: '#EDF5F1', fg: '#5A6B63', dot: '#9AA6A0' };
+const FALLBACK = { bg: '#EAF5EF', fg: '#475467', dot: '#8A94A3' };
 
 export function LeadStatusPill({
   status,

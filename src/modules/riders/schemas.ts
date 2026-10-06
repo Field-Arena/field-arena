@@ -116,7 +116,6 @@ export type HorseDocumentDeleteInput = z.infer<typeof horseDocumentDeleteSchema>
 export const waiverSignSchema = z.object({
   showId: z.uuid(),
   fullName: z.string().trim().min(1, 'Your typed full legal name is required'),
-  signatureDate: z.string().trim().min(1, 'A signature date is required'),
 });
 
 export type WaiverSignInput = z.infer<typeof waiverSignSchema>;

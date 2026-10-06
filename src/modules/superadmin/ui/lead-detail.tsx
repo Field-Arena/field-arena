@@ -13,7 +13,7 @@ export function LeadDetail({ lead }: { lead: LeadRow }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-8">
         <div className="max-w-[700px]">
-          <h1 className="text-hunter-deep mb-3 font-[family-name:var(--font-nr)] text-[32px] leading-[1.06] font-medium tracking-[-.022em]">
+          <h1 className="mb-2 font-[family-name:var(--fa-serif)] text-[29px] leading-tight font-semibold tracking-[-.5px] text-[#101828]">
             {lead.org_name}
           </h1>
           <LeadStatusPill status={lead.status} size="md" />
@@ -21,7 +21,7 @@ export function LeadDetail({ lead }: { lead: LeadRow }) {
         <Link
           href="/dashboard/superadmin/sales"
           prefetch={false}
-          className="text-hunter-deep hover:border-gold inline-flex items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors"
+          className="inline-flex items-center gap-2 rounded-[9px] border border-[#E7EAEE] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1]"
         >
           <ArrowLeftIcon className="size-[14px]" aria-hidden />
           Back to funnel

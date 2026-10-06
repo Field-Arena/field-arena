@@ -4,8 +4,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { safeInternalPath } from '@/shared/lib/safe-internal-path';
 
-const PREVIEW_ROLE_COOKIE = 'fa_preview_role';
+import { PREVIEW_ROLE_COOKIE } from '@/shared/constants/view-as';
 
 const MAX_AGE_SECONDS = 60 * 60 * 8;
 
@@ -52,9 +53,7 @@ export async function setPreviewRole(
 }
 
 function safeReturnTo(value: string | undefined): string {
-  if (!value) return '/dashboard';
-  if (!value.startsWith('/') || value.startsWith('//')) return '/dashboard';
-  return value;
+  return safeInternalPath(value, '/dashboard');
 }
 
 export async function getPreviewingAsShowAdmin(): Promise<boolean> {
