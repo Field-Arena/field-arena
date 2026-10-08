@@ -40,7 +40,6 @@ export default async function JudgingPage() {
 
   const today = assignments.filter((a) => classifyAssignment(a) === 'today');
   const upcoming = assignments.filter((a) => classifyAssignment(a) === 'upcoming');
-  const upcomingCount = today.length + upcoming.length;
 
   return (
     <section>
@@ -51,7 +50,7 @@ export default async function JudgingPage() {
         </div>
         <span className="fa-badge fa-live !px-3.5 !py-2 !text-[12.5px]">
           <span className="fa-dot" />
-          {roleLabel} · {upcomingCount} upcoming assignment{upcomingCount === 1 ? '' : 's'}
+          {roleLabel} · {today.length} today · {upcoming.length} upcoming
         </span>
       </div>
 

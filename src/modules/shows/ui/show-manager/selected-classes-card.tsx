@@ -22,14 +22,15 @@ export function SelectedClassesCard({ classes }: { classes: SelectedClassOption[
     else byDivision.set(key, [cls]);
   }
   const groups = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const needingTest = classes.filter((c) => !c.hasTest).length;
+  const needingTest = classes.filter((c) => c.testStatus === 'none').length;
 
   return (
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Selected Classes</h2>
       <p className={SM_NOTE}>
-        Every class on this show, its division and fee, and whether it still needs a test typed in
-        below.
+        Every class on this show, its division and fee, and its test. Classes added from an official
+        test use that test&apos;s scoresheet automatically; only custom and independent classes need
+        a test built below.
         {classes.length > 0 &&
           (needingTest > 0
             ? ` ${String(needingTest)} of ${String(classes.length)} still ${needingTest === 1 ? 'needs' : 'need'} a test.`
@@ -94,11 +95,13 @@ export function SelectedClassesCard({ classes }: { classes: SelectedClassOption[
                       {formatMoney(cls.fee)}
                     </TableCell>
                     <TableCell className="px-2.5 py-2 text-right whitespace-normal">
-                      {cls.hasTest ? (
+                      {cls.testStatus === 'official' ? (
                         <span className="fa-badge fa-live">
                           <span className="fa-dot" />
-                          Assigned
+                          Official test
                         </span>
+                      ) : cls.testStatus === 'custom' ? (
+                        <span className="fa-badge fa-pass">Custom test</span>
                       ) : (
                         <span className="fa-badge fa-red">
                           <span className="fa-dot" />

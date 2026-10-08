@@ -1,6 +1,7 @@
 import 'server-only';
 import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
 import { parseFinalPct } from '@/modules/shows/utils/parse-final-pct';
+import { hasSheetContent } from '@/modules/shows/utils/has-sheet-content';
 import { rideTestCode } from '@/modules/shows/utils/schedule-level';
 import {
   collectibleFeeForEntry,
@@ -47,6 +48,7 @@ import {
   SETTLED_BOOKING_STATUS,
 } from '@/shared/lib/sales-math';
 import type {
+  ClassTestStatus,
   AssignedClassOption,
   ClassRow,
   CompletenessSection,
@@ -774,7 +776,9 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
     supabase.from('shows').select('id, name, locations').eq('id', showId).maybeSingle(),
     supabase
       .from('classes')
-      .select('id, label, division, group_name, fee, location, event, qualifying')
+      .select(
+        'id, label, division, group_name, fee, location, event, governing_body, display_name, qualifying',
+      )
       .eq('show_id', showId)
       .order('label'),
     supabase
@@ -820,6 +824,8 @@ export async function getSelectEventsData(showId: string): Promise<SelectEventsD
       fee: c.fee ?? 0,
       location: c.location,
       event: c.event,
+      governingBody: c.governing_body,
+      displayName: c.display_name,
       qualifying: c.qualifying ?? false,
       entryCount: entryCounts.get(c.id) ?? 0,
     })),
@@ -1095,22 +1101,47 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
     listTestCatalog(),
     supabase
       .from('classes')
-      .select('id, label, division, fee, location')
+      .select('id, label, division, fee, location, catalog_id')
       .eq('show_id', showId)
       .order('label'),
   ]);
   if (classesRes.error) throw classesRes.error;
 
   const classIds = classesRes.data.map((c) => c.id);
-  const classTestsRes = classIds.length
-    ? await supabase
-        .from('class_tests')
-        .select('class_id, name, test_template_id')
-        .in('class_id', classIds)
-    : { data: [], error: null };
+  const catalogIds = [
+    ...new Set(classesRes.data.map((c) => c.catalog_id).filter((id): id is string => !!id)),
+  ];
+  const [classTestsRes, linkedSheetsRes] = await Promise.all([
+    classIds.length
+      ? supabase
+          .from('class_tests')
+          .select('class_id, name, test_template_id')
+          .in('class_id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+    catalogIds.length
+      ? supabase.from('scoring_catalog').select('id, def').in('id', catalogIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (classTestsRes.error) throw classTestsRes.error;
+  if (linkedSheetsRes.error) throw linkedSheetsRes.error;
 
   const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
+  const classIdsWithTemplate = new Set(
+    classTestsRes.data.filter((row) => row.test_template_id).map((row) => row.class_id),
+  );
+  const scorableSheetIds = new Set(
+    linkedSheetsRes.data.filter((row) => hasSheetContent(row.def)).map((row) => row.id),
+  );
+  // Same precedence scoring uses: a Test Builder test (class_tests) wins over
+  // the class's official catalog sheet. A class_tests row with no template is
+  // either startRide's frozen copy of the catalog sheet (still the official
+  // test) or a test typed in on the scoring page (custom).
+  const testStatusFor = (c: { id: string; catalog_id: string | null }): ClassTestStatus => {
+    if (classIdsWithTemplate.has(c.id)) return 'custom';
+    if (c.catalog_id && scorableSheetIds.has(c.catalog_id)) return 'official';
+    if (classIdsWithTest.has(c.id)) return 'custom';
+    return 'none';
+  };
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
   const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
   for (const row of classTestsRes.data) {
@@ -1134,7 +1165,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
       division: c.division,
       fee: c.fee ?? 0,
       location: c.location,
-      hasTest: classIdsWithTest.has(c.id),
+      testStatus: testStatusFor(c),
     })),
     assignedByTemplateId,
   };

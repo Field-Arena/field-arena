@@ -1,3 +1,4 @@
+import { riderClassName } from '@/shared/lib/format/class-name';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { getTicketWindowStatus } from '@/modules/riders/utils/get-ticket-window-status';
 import { parseTicketWindow } from '@/modules/riders/utils/parse-ticket-window';
@@ -42,7 +43,11 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
           {classes.map((cls) => {
             const isFull = cls.cap != null && cls.entryCount >= cls.cap;
 
-            const classLabel = (cls.display_name?.trim() ?? '') || cls.label;
+            const classLabel = riderClassName({
+              label: cls.label,
+              displayName: cls.display_name,
+              division: cls.division,
+            });
             const subtitle = classSubtitle({
               label: cls.label,
               displayName: cls.display_name,
@@ -51,21 +56,19 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
             return (
               <div
                 key={cls.id}
-                className="border-line flex items-center justify-between rounded-lg border px-3 py-2"
+                className="border-line flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
               >
-                <div>
-                  <div className="text-forest text-sm font-medium">
-                    {classLabel}
-                    {cls.division ? ` (${cls.division})` : ''}
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-forest text-sm font-medium">{classLabel}</div>
+                  {cls.division && <div className="text-fa-muted text-xs">{cls.division}</div>}
                   {subtitle && <div className="text-fa-muted text-xs italic">{subtitle}</div>}
                   <div className="text-fa-muted text-xs">
                     {[cls.date, cls.time, cls.arena].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   {isFull && <Badge variant="destructive">Full</Badge>}
-                  <span className="text-forest text-sm font-semibold">
+                  <span className="text-forest text-sm font-semibold whitespace-nowrap">
                     {cls.fee != null ? `$${cls.fee.toFixed(2)}` : '—'}
                   </span>
                 </div>

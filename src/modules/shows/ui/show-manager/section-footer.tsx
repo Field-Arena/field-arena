@@ -9,8 +9,12 @@ export function SectionFooter({
   showId,
   blockedReason,
   previewUrl,
+  inCard = false,
 }: {
   currentTab: ShowManagerTab;
+  /** Render as the last row of the section's own card (prototype footer:
+   * "Saved automatically" left, Continue right) instead of a separate card. */
+  inCard?: boolean;
 
   showId?: string;
   blockedReason?: string | null;
@@ -30,6 +34,29 @@ export function SectionFooter({
         </p>
         <Link href="/dashboard" prefetch={false} className={cn(ghostButtonClass, 'ml-auto')}>
           Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  if (inCard) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--fa-line-soft)] px-5 py-3.5">
+        <div className="min-w-0">
+          <span className="fa-autosave-inline">
+            <span className="fa-as-dot" />
+            Saved automatically
+          </span>
+          <p className="m-0 mt-0.5 text-[11.5px] text-[var(--fa-ink-3)]">{section.nextNote}</p>
+          {blockedReason && (
+            <p className="m-0 mt-0.5 text-[11.5px] text-[var(--fa-amber)]">{blockedReason}</p>
+          )}
+        </div>
+        <Link
+          href={`/dashboard/shows/${showId ?? ''}${next.path}`}
+          className="fa-btn fa-btn-primary"
+        >
+          Continue to {next.label} →
         </Link>
       </div>
     );

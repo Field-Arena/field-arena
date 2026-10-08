@@ -25,6 +25,7 @@ FILES=(
   20261005121000_stable_toggle_precondition.sql
   20261006120000_catalog_usdf_score_type.sql
   20261006121000_catalog_add_rgd_freestyle.sql
+  20261006130000_link_classes_to_catalog.sql
 )
 
 echo "Project: $REF"

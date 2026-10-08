@@ -1,5 +1,6 @@
 'use client';
 
+import { riderClassName } from '@/shared/lib/format/class-name';
 import { useEntryCartStore } from '@/modules/riders/store';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import type { ClassWithCapacity, QualTypeRow } from '@/modules/riders/types';
@@ -51,20 +52,24 @@ export function ClassPicker({
                 }}
                 className="flex h-auto w-full items-center justify-between gap-3 rounded-none px-3 py-2 text-left hover:bg-transparent disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <div>
+                <div className="min-w-0 flex-1 whitespace-normal">
                   <div className="text-forest text-sm font-medium">
-                    {(cls.display_name?.trim() ?? '') || cls.label}
-                    {cls.division ? ` (${cls.division})` : ''}
+                    {riderClassName({
+                      label: cls.label,
+                      displayName: cls.display_name,
+                      division: cls.division,
+                    })}
                   </div>
+                  {cls.division && <div className="text-fa-muted text-xs">{cls.division}</div>}
                   {subtitle && <div className="text-fa-muted text-xs italic">{subtitle}</div>}
                   <div className="text-fa-muted text-xs">
                     {[cls.date, cls.time, cls.arena].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   {isFull && <Badge variant="destructive">Full</Badge>}
                   {isSelected && <Badge>Selected</Badge>}
-                  <span className="text-forest text-sm font-semibold">
+                  <span className="text-forest text-sm font-semibold whitespace-nowrap">
                     {cls.fee != null ? `$${cls.fee.toFixed(2)}` : '—'}
                   </span>
                 </div>

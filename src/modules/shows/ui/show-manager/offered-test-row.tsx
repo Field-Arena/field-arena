@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { OfferedTest } from '@/modules/shows/offered-classes';
+import { divisionShort, type OfferedTest } from '@/modules/shows/offered-classes';
+import { levelStyle } from '@/modules/shows/test-catalog';
 import {
   useRemoveTestClasses,
   useSetTestDivision,
@@ -9,17 +10,7 @@ import {
   useUpdateTestFee,
 } from '@/modules/shows/hooks/use-select-events-mutations';
 import { sanitizeDecimalInput } from '@/shared/lib/format/number-input';
-
-/** Short labels for the division toggles ("Adult Amateur" → "AA"). */
-function divisionShort(name: string): string {
-  const words = name.split(/\s+/).filter(Boolean);
-  if (words.length === 1) return name.length <= 5 ? name : name.slice(0, 4);
-  return words
-    .filter((w) => !/^rider$/i.test(w) || words.length === 1)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('')
-    .replace(/^J$/, 'Jr');
-}
+import { LevelPill } from '@/modules/shows/ui/show-manager/level-pill';
 
 export function OfferedTestRow({
   showId,
@@ -42,6 +33,7 @@ export function OfferedTestRow({
   const updateFee = useUpdateTestFee();
   const setQualifying = useSetTestQualifying();
   const remove = useRemoveTestClasses();
+  const level = levelStyle(test.level);
 
   function commitFee() {
     const next = Number(fee);
@@ -58,19 +50,17 @@ export function OfferedTestRow({
       <td>
         <div className="fa-oc-name">
           <b>{test.test}</b>
-        </div>
-        <div className="fa-oc-sub">
-          {test.group && (
-            <span className="text-[11.5px] font-semibold text-[var(--fa-sky)]">{test.group}</span>
-          )}
-          <span className="fa-tag-usef">{test.code}</span>
+          <div className="fa-oc-sub">
+            {test.level !== 'other' && <LevelPill name={level.name} color={level.color} />}
+            <span className="fa-tag-usef">{test.code}</span>
+          </div>
         </div>
       </td>
       <td>
         {divisions.length === 0 ? (
           <span className="text-[12px] text-[var(--fa-ink-3)]">No divisions</span>
         ) : (
-          <div className="fa-divsel inline-flex">
+          <div className="fa-divsel">
             {divisions.map((d) => {
               const on = test.divisionsOn.includes(d);
               return (
@@ -93,67 +83,70 @@ export function OfferedTestRow({
         )}
       </td>
       <td>
-        <div className="fa-field !gap-1">
-          <div className="fa-prefix-input fa-pi-sm w-fit">
-            <span>$</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={fee}
-              aria-label={`Price for ${test.test}`}
-              onChange={(e) => {
-                setFee(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
-              }}
-              onBlur={commitFee}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-              }}
-            />
-          </div>
-          {test.feeMixed && (
-            <span className="text-[10.5px] text-[var(--fa-amber)]">varies by division</span>
-          )}
-        </div>
+        <span className="fa-prefix-input fa-pi-sm inline-flex items-center">
+          <span>$</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={fee}
+            aria-label={`Price for ${test.test}`}
+            className="rounded-[6px] border border-[var(--fa-line)] bg-[var(--fa-surface)] text-[var(--fa-ink)] outline-none focus:border-[#9fd3ba]"
+            onChange={(e) => {
+              setFee(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
+            }}
+            onBlur={commitFee}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
+            }}
+          />
+        </span>
+        {test.feeMixed && (
+          <div className="mt-0.5 text-[10.5px] text-[var(--fa-amber)]">varies by division</div>
+        )}
       </td>
       <td className="text-center">
-        <button
-          type="button"
-          className={`fa-qual-ic mx-auto ${test.qualifying ? 'fa-on' : ''}`}
-          title={test.qualifying ? 'Qualifying — click to unmark' : 'Mark as qualifying'}
-          aria-pressed={test.qualifying}
-          disabled={setQualifying.isPending}
-          onClick={() => {
-            setQualifying.mutate({ showId, classIds, qualifying: !test.qualifying });
-          }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill={test.qualifying ? 'currentColor' : 'none'}
-            stroke="currentColor"
-            strokeWidth="1.7"
-            aria-hidden
+        <span className="fa-qbox">
+          <button
+            type="button"
+            className={`fa-qual-ic ${test.qualifying ? 'fa-on' : ''}`}
+            title={
+              test.qualifying ? 'Qualifying ride — click to remove' : 'Mark as qualifying ride'
+            }
+            aria-pressed={test.qualifying}
+            disabled={setQualifying.isPending}
+            onClick={() => {
+              setQualifying.mutate({ showId, classIds, qualifying: !test.qualifying });
+            }}
           >
-            <path
-              strokeLinejoin="round"
-              d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z"
-            />
-          </svg>
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              fill={test.qualifying ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden
+            >
+              <path
+                strokeLinejoin="round"
+                d="M12 2.6l2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.98l-5.8 3.06 1.1-6.46-4.69-4.58 6.49-.94z"
+              />
+            </svg>
+          </button>
+        </span>
       </td>
       <td className="fa-num">{test.entries > 0 ? test.entries : '—'}</td>
       <td className="text-right">
         <button
           type="button"
           className="fa-row-x"
-          title={test.entries > 0 ? 'Riders have entered — cannot remove' : `Remove ${test.test}`}
+          title={test.entries > 0 ? 'Riders have entered — cannot remove' : 'Remove class'}
           aria-label={`Remove ${test.test}`}
           disabled={remove.isPending || test.entries > 0}
           onClick={() => {
             remove.mutate({ showId, classIds, name: test.test });
           }}
         >
-          <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+          <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
       </td>

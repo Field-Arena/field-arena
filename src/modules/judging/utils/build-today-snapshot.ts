@@ -41,7 +41,8 @@ export function buildTodaySnapshot(
   const byRing = new Map<string, AssignmentRow[]>();
   for (const a of assignments) {
     if (!todayClassIds.has(a.classId)) continue;
-    const ring = a.ring ?? 'Ring not set';
+    // No ring yet means the show office hasn't put the class in a ring.
+    const ring = a.ring ?? 'Ring not assigned yet';
     byRing.set(ring, [...(byRing.get(ring) ?? []), a]);
   }
   const ringSummaries: RingSummary[] = [...byRing.entries()].map(([ring, rows]) => {

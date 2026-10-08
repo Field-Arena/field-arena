@@ -401,6 +401,10 @@ export interface SelectEventsData {
     fee: number;
     location: string | null;
     event: string | null;
+    /** classes.governing_body — set on seeded/imported classes. */
+    governingBody: string | null;
+    /** Rider-facing name (Test of Choice classes carry one). */
+    displayName: string | null;
     qualifying: boolean;
     entryCount: number;
   }[];
@@ -561,8 +565,13 @@ export interface SelectedClassOption {
   division: string | null;
   fee: number;
   location: string | null;
-  hasTest: boolean;
+  /** 'custom' — a Test Builder test is assigned (class_tests, wins over the
+   * catalog); 'official' — linked to an official Scoring Catalog sheet with
+   * something to score; 'none' — neither, so it still needs a test. */
+  testStatus: ClassTestStatus;
 }
+
+export type ClassTestStatus = 'official' | 'custom' | 'none';
 
 /* The official test library (scoring_catalog, family='movement') — USEF/USDF
  * published tests an organizer can clone into their own editable library.

@@ -183,6 +183,63 @@ export const EVENT_SOURCE_BUTTONS = [
   '+ Add Custom Class',
 ] as const;
 
+// ── Select Events catalog (governing bodies + level pills) ──────────────
+// Body order and colours follow the redesign prototype (events.js BODY/ORDER).
+export const GOVERNING_BODIES = ['FEI', 'USEF/USDF', 'USDF', 'USEF'] as const;
+export type GoverningBody = (typeof GOVERNING_BODIES)[number];
+
+export const BODY_COLORS: Record<GoverningBody, string> = {
+  FEI: '#c0367a',
+  'USEF/USDF': '#0b6bb8',
+  USDF: '#15794f',
+  USEF: '#b45309',
+};
+
+/** Offered-class groups that aren't a governing body, shown after them. */
+export const EXTRA_CLASS_GROUPS = [
+  { key: 'Independent', color: '#5b5bd6' },
+  { key: 'Test of Choice', color: '#0f8a8a' },
+  { key: 'Custom', color: '#475467' },
+  { key: 'Other', color: '#8a94a3' },
+] as const;
+export type ExtraClassGroup = (typeof EXTRA_CLASS_GROUPS)[number]['key'];
+
+/** Which catalog categories belong to which body. FEI comes from FM_SETS. */
+export const CATALOG_CATEGORY_BODY: Record<CatalogCategory, GoverningBody> = {
+  'Introductory through Fourth Level': 'USEF/USDF',
+  'Freestyle / Pas de Deux / Quadrille': 'USDF',
+  'Sport Horse': 'USDF',
+  'Dressage Seat Equitation': 'USDF',
+  'Developing Horse / Young Horse': 'USEF',
+};
+
+/** Level pills, in display/sort order (prototype events.js LVL map). */
+export const CATALOG_LEVELS = [
+  { key: 'intro', name: 'Introductory', color: '#0b6bb8' },
+  { key: 'training', name: 'Training', color: '#15794f' },
+  { key: 'first', name: 'First', color: '#5b5bd6' },
+  { key: 'second', name: 'Second', color: '#b45309' },
+  { key: 'third', name: 'Third', color: '#0f8a8a' },
+  { key: 'fourth', name: 'Fourth', color: '#b45309' },
+  { key: 'fei', name: 'FEI', color: '#c0367a' },
+  { key: 'freestyle', name: 'Freestyle', color: '#c0367a' },
+  { key: 'young', name: 'Young Horse', color: '#7a5cff' },
+  { key: 'developing', name: 'Developing', color: '#7a5cff' },
+  { key: 'sporthorse', name: 'Sport Horse', color: '#7a5cff' },
+  { key: 'equitation', name: 'Equitation', color: '#7a5cff' },
+  { key: 'western', name: 'Western', color: '#7a5cff' },
+  { key: 'other', name: 'Other', color: '#8a94a3' },
+] as const;
+export type CatalogLevelKey = (typeof CATALOG_LEVELS)[number]['key'];
+
+/** Division toggles read Open · AA · Jr in the prototype; anything else
+ * follows in the show's own order. */
+export const DIVISION_DISPLAY_ORDER = [
+  /^open/i,
+  /adult|amateur|\baa\b/i,
+  /junior|young rider|\bjr\b/i,
+];
+
 export const QUAL_TYPE_PRESETS = [
   { body: 'FEI', price: 20 },
   { body: 'USDF', price: 20 },

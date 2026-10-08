@@ -24,7 +24,10 @@ export function AssignmentCard({
   completed?: boolean;
 }) {
   const time = formatClassTime(assignment.classTime);
-  const seatLabel = [assignment.ring, assignment.position ? `at ${assignment.position}` : null]
+  const seatLabel = [
+    assignment.ring ?? 'Ring not assigned yet',
+    assignment.position ? `at ${assignment.position}` : null,
+  ]
     .filter(Boolean)
     .join(' · ');
   const when = completed ? WHEN_META.history : WHEN_META[variant];

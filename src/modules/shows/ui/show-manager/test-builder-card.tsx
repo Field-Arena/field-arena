@@ -1058,6 +1058,11 @@ export function TestBuilderCard({
     <>
       <Card className={SM_CARD_PAD}>
         <h2 className={SM_SECTION_HEAD}>Test Builder</h2>
+        <p className={SM_NOTE}>
+          Classes added from an official USEF/USDF or FEI test already use that test&apos;s
+          scoresheet — nothing to do here. Use Test Builder for custom and independent classes, or
+          to replace an official test with your own (an assigned test always wins).
+        </p>
         <p className={`${SM_NOTE} font-semibold`}>Type your test below.</p>
         <ol className={`${SM_NOTE} mb-4 list-decimal space-y-1 pl-5`}>
           <li>

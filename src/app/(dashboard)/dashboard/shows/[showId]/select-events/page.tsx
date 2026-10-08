@@ -26,17 +26,20 @@ export default async function SelectEventsPage({
   }
 
   return (
-    <>
-      <SelectEventsPicker data={data} />
-      <SectionFooter
-        currentTab="Select Events"
-        showId={showId}
-        blockedReason={
-          data.classes.length === 0
-            ? "You haven't selected any events yet — riders won't have anything to register for."
-            : null
-        }
-      />
-    </>
+    <SelectEventsPicker
+      data={data}
+      footer={
+        <SectionFooter
+          inCard
+          currentTab="Select Events"
+          showId={showId}
+          blockedReason={
+            data.classes.length === 0
+              ? "You haven't selected any events yet — riders won't have anything to register for."
+              : null
+          }
+        />
+      }
+    />
   );
 }

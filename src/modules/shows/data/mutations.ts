@@ -67,6 +67,7 @@ import {
 } from '@/modules/shows/schemas';
 import { patchShowJsonColumn } from '@/modules/shows/data/show-json-column';
 import { assertUpdated } from '@/modules/shows/data/assert-updated';
+import { resolveOfficialSheetIds } from '@/modules/shows/data/official-sheets';
 import {
   VENDOR_SPACE_TEMPLATE,
   DASHBOARD_PATH,
@@ -990,7 +991,10 @@ export async function addCatalogGroup(input: unknown): Promise<{ added: number }
       : `${parsed.group} — ${test}`;
 
   const location = parsed.location || null;
-  const arena = await resolveArenaForLocation(supabase, parsed.showId, location);
+  const [arena, sheetIds] = await Promise.all([
+    resolveArenaForLocation(supabase, parsed.showId, location),
+    resolveOfficialSheetIds(supabase, parsed.group, parsed.tests),
+  ]);
 
   const rows = parsed.tests.map((test) => ({
     show_id: parsed.showId,
@@ -1001,6 +1005,10 @@ export async function addCatalogGroup(input: unknown): Promise<{ added: number }
     location,
     arena,
     fee: parsed.fee,
+    // Official tests score straight from their catalog sheet (legacy
+    // catalogId) — no Test Builder step. A Test Builder assignment
+    // (class_tests) still wins over it.
+    catalog_id: sheetIds.get(test) ?? null,
 
     award_scope: 'group' as const,
   }));
@@ -1935,6 +1943,12 @@ export async function setTestDivision(input: unknown): Promise<void> {
       if (updError) throw new Error(updError.message);
       assertUpdated(updatedRows, "You don't have permission to change these classes.");
     } else {
+      // Older classes predate the catalog link — resolve it for the new
+      // division's class rather than copying a null across.
+      const catalogId =
+        first.catalog_id ??
+        (await resolveOfficialSheetIds(supabase, first.group_name, [test])).get(test) ??
+        null;
       const { error: insError } = await supabase.from('classes').upsert(
         {
           show_id: parsed.showId,
@@ -1949,7 +1963,7 @@ export async function setTestDivision(input: unknown): Promise<void> {
           qualifying: first.qualifying,
           qual_types: first.qual_types,
           score_format: first.score_format,
-          catalog_id: first.catalog_id,
+          catalog_id: catalogId,
           governing_body: first.governing_body,
         },
         { onConflict: 'show_id,label', ignoreDuplicates: true },
