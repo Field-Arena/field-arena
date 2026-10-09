@@ -43,11 +43,17 @@ export function StableChartScreen({
   arrivals,
   showEndDate,
   publicId,
+  from = null,
 }: {
   data: StableChartPageData;
   arrivals: ArrivalDepartureRow[];
   showEndDate: string | null;
   publicId?: string;
+  /** Where the user came from (?from=…). The back button only appears for
+   * the Horses screen, which is a sibling page; from Show Manager setup it
+   * offers a way back to the Venue section instead of "Back to Horses",
+   * which made no sense there. */
+  from?: 'horses' | 'setup' | null;
 }) {
   const { showId, showName, chart, savedLocations, groups } = data;
 
@@ -129,13 +135,24 @@ export function StableChartScreen({
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-4 flex flex-wrap items-center gap-2.5 print:hidden">
-        <Link
-          href={`/dashboard/horses?show=${publicId ?? showId}`}
-          prefetch={false}
-          className={ghostButtonClass}
-        >
-          🐴 Back to Horses
-        </Link>
+        {from === 'horses' && (
+          <Link
+            href={`/dashboard/horses?show=${publicId ?? showId}`}
+            prefetch={false}
+            className={ghostButtonClass}
+          >
+            🐴 Back to Horses
+          </Link>
+        )}
+        {from === 'setup' && (
+          <Link
+            href={`/dashboard/shows/${publicId ?? showId}#venue`}
+            prefetch={false}
+            className={ghostButtonClass}
+          >
+            ← Back to Show Manager
+          </Link>
+        )}
         {totalStalls > 0 && (
           <Button
             type="button"
@@ -188,7 +205,11 @@ export function StableChartScreen({
             setOptimisticPublished(!published);
             togglePublish.mutate(
               { showId },
-              { onError: () => { setOptimisticPublished(null); } },
+              {
+                onError: () => {
+                  setOptimisticPublished(null);
+                },
+              },
             );
           }}
         >

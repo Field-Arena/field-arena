@@ -253,6 +253,8 @@ const documentRequirementSchema = z.object({
   label: z.string().trim().min(1).max(160),
   requiresExpiration: z.boolean().optional(),
   requiresApproval: z.boolean().optional(),
+  kind: z.enum(['sign', 'upload']).optional(),
+  text: z.string().trim().max(20000).optional(),
 });
 
 export const updateDocumentRequirementsSchema = z.object({

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
+import { DocumentViewerDialog } from '@/shared/ui/organizer/document-viewer-dialog';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -126,16 +127,7 @@ export function DocumentsCard({
                     <span className="text-[12px] text-[#98A29D]">
                       {formatTimestamp(doc.createdAt)}
                     </span>
-                    {doc.url && (
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-forest text-[13px] font-semibold underline underline-offset-2"
-                      >
-                        View
-                      </a>
-                    )}
+                    {doc.url && <DocumentViewerDialog url={doc.url} name={doc.name} />}
                     <Button
                       type="button"
                       variant="ghost"

@@ -6,17 +6,20 @@ import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
 import {
   resendRiderSignUpCode,
+  signInRider,
   signOutRider,
   signUpRider,
   verifyRiderSignUpCode,
 } from '@/modules/riders/data/mutations';
 import type {
   RiderResendCodeInput,
+  RiderSignInInput,
   RiderSignUpInput,
   RiderVerifyInput,
 } from '@/modules/riders/schemas';
 import type {
   RiderResendOutcome,
+  RiderSignInOutcome,
   RiderSignUpOutcome,
   RiderVerifyOutcome,
 } from '@/modules/riders/types';
@@ -64,6 +67,31 @@ export function useVerifyRiderSignUpCode(returnTo?: string) {
       toast.success('Email confirmed.');
       router.refresh();
       router.push(outcome.redirectTo);
+    },
+  });
+}
+
+export function useSignInRider(options?: {
+  onVerifyNeeded?: (email: string) => void;
+  returnTo?: string;
+}) {
+  const router = useRouter();
+
+  return useMutation<RiderSignInOutcome, Error, RiderSignInInput>({
+    mutationFn: (input) => signInRider(input, options?.returnTo),
+    onSuccess: (outcome) => {
+      switch (outcome.status) {
+        case 'verify':
+          toast.success('Confirm your email first — we sent you a new code.');
+          options?.onVerifyNeeded?.(outcome.email);
+          return;
+        case 'error':
+          return;
+        default:
+          toast.success('Signed in.');
+          router.refresh();
+          router.push(outcome.redirectTo);
+      }
     },
   });
 }

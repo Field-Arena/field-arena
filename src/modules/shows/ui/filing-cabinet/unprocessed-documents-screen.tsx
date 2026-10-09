@@ -2,6 +2,7 @@
 
 import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import { StatusBadge } from '@/shared/ui/status-badge';
+import { DocumentViewerDialog } from '@/shared/ui/organizer/document-viewer-dialog';
 import type { HorsesPageData } from '@/modules/shows/data/horses-queries';
 import { DocumentReviewDialog } from '@/modules/shows/ui/filing-cabinet/document-review-dialog';
 
@@ -10,7 +11,10 @@ export function UnprocessedDocumentsScreen({ data }: { data: HorsesPageData }) {
 
   const pendingRows = rows
     .filter((r) => r.horseId && r.documents.some((d) => d.uploaded && d.status === 'pending'))
-    .map((r) => ({ ...r, documents: r.documents.filter((d) => d.uploaded && d.status === 'pending') }));
+    .map((r) => ({
+      ...r,
+      documents: r.documents.filter((d) => d.uploaded && d.status === 'pending'),
+    }));
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
@@ -38,9 +42,7 @@ export function UnprocessedDocumentsScreen({ data }: { data: HorsesPageData }) {
                   <span className="font-semibold">{row.horseName}</span>
                   <span className="ml-2 text-[12.5px] text-[#7A8781]">{row.riderLabel}</span>
                 </div>
-                <StatusBadge tone="warn">
-                  {row.documents.length} awaiting review
-                </StatusBadge>
+                <StatusBadge tone="warn">{row.documents.length} awaiting review</StatusBadge>
               </div>
               <div className="flex flex-col gap-2">
                 {row.documents.map((doc) => (
@@ -51,14 +53,12 @@ export function UnprocessedDocumentsScreen({ data }: { data: HorsesPageData }) {
                     <span className="text-[13px] font-semibold">{doc.label}</span>
                     <div className="flex items-center gap-2">
                       {doc.url && (
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[12.5px] font-semibold text-[#2E5FA8] underline"
-                        >
-                          View
-                        </a>
+                        <DocumentViewerDialog
+                          url={doc.url}
+                          name={`${row.horseName} — ${doc.label}`}
+                          backLabel="Back to Unprocessed Documents"
+                          triggerClassName="text-[12.5px] text-[#2E5FA8]"
+                        />
                       )}
                       {row.horseId && (
                         <DocumentReviewDialog

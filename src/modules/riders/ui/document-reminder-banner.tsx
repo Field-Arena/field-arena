@@ -45,7 +45,7 @@ export function DocumentReminderBanner({
     >
       <span>
         📋 You still have <b>{missing}</b> document{missing === 1 ? '' : 's'} outstanding for your
-        horse{horses.length === 1 ? '' : 's'} — upload before the show.
+        horse{horses.length === 1 ? '' : 's'} — upload or sign them before the show.
       </span>
       <button
         type="button"

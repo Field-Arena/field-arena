@@ -114,7 +114,7 @@ export function HorsesScreen({
         </div>
         <div className="flex flex-none items-center gap-2.5">
           <Link
-            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}`}
+            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}&from=horses`}
             prefetch={false}
             className={ghostButtonClass}
           >

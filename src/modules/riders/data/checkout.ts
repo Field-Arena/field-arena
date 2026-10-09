@@ -1,6 +1,6 @@
 import 'server-only';
 import type Stripe from 'stripe';
-import { getStripeClient } from '@/shared/lib/stripe';
+import { getStripeClient, reusablePaymentMethodId } from '@/shared/lib/stripe';
 import { calcPlatformFee, calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { env } from '@/shared/lib/env';
 import { UserFacingError } from '@/shared/lib/action-result';
@@ -171,6 +171,7 @@ export async function priceCart(
       unitPrice: amount,
       amount,
       ...(line.testChoice ? { testChoice: line.testChoice } : {}),
+      ...(line.division ? { division: line.division } : {}),
     });
     for (const qualTypeId of line.qualTypeIds ?? []) {
       const qual = qualById.get(qualTypeId);
@@ -295,10 +296,11 @@ export async function saveOffSessionCard(
   if (!paymentIntent.customer || !paymentIntent.payment_method) return;
   const stripeCustomerId =
     typeof paymentIntent.customer === 'string' ? paymentIntent.customer : paymentIntent.customer.id;
-  const stripePaymentMethodId =
-    typeof paymentIntent.payment_method === 'string'
-      ? paymentIntent.payment_method
-      : paymentIntent.payment_method.id;
+  // Only cards (incl. Apple Pay / Google Pay) and Link can be charged again
+  // off-session. A Klarna payment saves nothing, so "charge more" says there is
+  // no saved card instead of failing at Stripe.
+  const stripePaymentMethodId = await reusablePaymentMethodId(paymentIntent);
+  if (!stripePaymentMethodId) return;
   await admin
     .from('orders')
     .update({
@@ -528,7 +530,8 @@ async function finalizeClaimedOrder(
         order_id: order.id,
         ride_order: nextOrderByClass.get(classId) ?? 0,
         status: 'scheduled',
-        division: divisionCode,
+        // Chosen per class at entry; older orders fall back to the profile.
+        division: item.division ?? divisionCode,
         correction: overCap
           ? "Created over this class's rider cap — two checkouts likely raced for the last slot. Needs organizer review."
           : null,

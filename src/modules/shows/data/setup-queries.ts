@@ -347,6 +347,10 @@ export interface DocumentRequirement {
   label: string;
   requiresExpiration?: boolean;
   requiresApproval?: boolean;
+  /** 'sign' = riders sign it on the site; 'upload' = they upload a file. */
+  kind?: 'sign' | 'upload';
+  /** Wording riders read and sign, when kind is 'sign'. */
+  text?: string;
 }
 
 export async function getDocumentRequirements(showId: string): Promise<DocumentRequirement[]> {
@@ -602,7 +606,9 @@ function computeShowCompleteness(input: ShowCompletenessInput): ShowCompleteness
     },
     {
       name: 'Required Documents',
-      items: [{ label: 'At least one requirement listed', ok: input.documentRequirementsCount > 0 }],
+      items: [
+        { label: 'At least one requirement listed', ok: input.documentRequirementsCount > 0 },
+      ],
       ok: input.documentRequirementsCount > 0,
     },
     {

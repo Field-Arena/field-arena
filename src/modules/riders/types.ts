@@ -1,6 +1,7 @@
 import type { Database } from '@/shared/types/database.types';
 import type {
   CLASS_ENTRY_STATUSES,
+  ENTRY_DIVISION_CODES,
   ORDER_LINE_ITEM_KINDS,
   ORDER_STATUSES,
   RIDER_CATEGORIES,
@@ -34,6 +35,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type ClassEntryStatus = (typeof CLASS_ENTRY_STATUSES)[number];
 export type RiderCategory = (typeof RIDER_CATEGORIES)[number];
 export type OrderLineItemKind = (typeof ORDER_LINE_ITEM_KINDS)[number];
+export type EntryDivisionCode = (typeof ENTRY_DIVISION_CODES)[number];
 
 export interface OrderLineItem {
   kind: OrderLineItemKind;
@@ -47,6 +49,10 @@ export interface OrderLineItem {
   // Test of Choice: the scoring_catalog title this rider picked for this
   // class entry. Only ever set on a `class_entry` item.
   testChoice?: string;
+  // The rider division (J/Y/A/O) the rider chose for this class entry. Absent
+  // on orders placed before division moved from the rider profile to entry —
+  // finalizeOrder then falls back to the profile's legacy category.
+  division?: EntryDivisionCode;
 }
 
 export interface ClassWithCapacity extends ClassRow {
@@ -86,9 +92,14 @@ export type RiderSignUpOutcome =
 export type RiderVerifyOutcome =
   { status: 'done'; redirectTo: string } | { status: 'error'; message: string };
 
+export type RiderSignInOutcome =
+  | { status: 'done'; redirectTo: string }
+  | { status: 'verify'; email: string }
+  | { status: 'error'; message: string };
+
 export type RiderResendOutcome = { status: 'sent' } | { status: 'error'; message: string };
 
-export type RiderSignUpStep = 'account' | 'verify';
+export type RiderSignUpStep = 'account' | 'signin' | 'verify';
 
 export interface HorseDocumentUpload {
   requirementId: string;
@@ -97,6 +108,13 @@ export interface HorseDocumentUpload {
   path: string;
   expirationDate: string | null;
   verified: boolean;
+
+  /* Set when the rider signed this requirement on the site instead of
+   * uploading a file. `path` then points at the generated signed-record PDF,
+   * so the organizer's existing document review opens it like any upload. */
+  method?: 'upload' | 'e-sign';
+  signedName?: string;
+  signedAt?: string;
 }
 
 export interface HorseDocumentUploadWithUrl extends HorseDocumentUpload {
@@ -122,6 +140,12 @@ export interface DocumentRequirement {
   label: string;
   requiresExpiration?: boolean;
   requiresApproval?: boolean;
+
+  /* Optional, organizer-set: 'sign' = an agreement riders e-sign on the site,
+   * 'upload' = a file riders upload. When absent it is inferred from the
+   * label (see isSignableRequirement). `text` is the agreement wording. */
+  kind?: 'upload' | 'sign';
+  text?: string;
 }
 
 export interface EntryCartLine {
@@ -231,4 +255,18 @@ export interface RiderScorecard {
   horse: string | null;
   finalPct: string | null;
   cards: RiderScorecardCard[];
+}
+
+export type RiderPortalShowStatus = 'entered' | 'in_progress' | 'not_started';
+
+/** One show on the rider portal home (see listRiderPortalShows). */
+export interface RiderPortalShow {
+  showId: string;
+  showSlug: string | null;
+  showName: string;
+  dateLabel: string | null;
+  venueName: string | null;
+  startDate: string | null;
+  status: RiderPortalShowStatus;
+  riderNumber: string | null;
 }

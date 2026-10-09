@@ -19,6 +19,133 @@
   font-family: var(--sans);
 }
 
+/* ── Workspace legibility: type + contrast (client feedback) ──────────────
+   The client found the workspace too light and asked for roughly double the
+   contrast and a blockier, typewriter-like face. Done centrally here rather
+   than file by file:
+
+   Scope. `body:has(.dash)` — .dash is the organizer/staff shell
+   (OrganizerShell), and keying on <body> rather than .dash itself also covers
+   dialogs, popovers and toasts, which Radix portals out to <body>. The
+   marketing site, rider portal and SuperAdmin console never render .dash, so
+   none of this reaches them.
+
+   Fonts. Courier Prime (a typewriter face drawn for on-screen reading) for
+   headings and the big stat numbers — that is where the typewriter feel reads
+   as intended. Body copy, labels, tables and inputs use IBM Plex Sans at
+   weight 500: squarer and heavier than Inter, but proportional. Courier
+   everywhere was tried and rejected: a monospace face roughly doubles line
+   lengths and breaks dense tables, and at the 9.5–11px of the uppercase
+   labels its small x-height made them harder to read, not easier. Both load in src/app/layout.tsx. The
+   components bind their faces through --font-nr / --font-ar / --font-fraunces
+   / --font-inter / --serif / --sans, so re-pointing those variables here
+   re-fonts every screen without touching the components.
+
+   Colour. The token-driven greys (text-fa-muted, text-fa-muted-2,
+   text-ink-lead, text-muted-foreground, var(--fa-muted) …) are re-pointed the
+   same way. Most components, though, hard-code their greys as Tailwind
+   arbitrary values (text-[#5A6B63], text-[#98A29D] …), so those classes are
+   remapped below onto three darker tiers. The remap sits in Tailwind's
+   `utilities` layer at the same specificity as the class it replaces, so
+   hover:/focus:/disabled: variants (higher specificity) still win, exactly as
+   they did before. Greys that only ever sit on the dark green rail/sidebar are
+   deliberately left out of the remap.
+
+     --ws-text        body text, near-ink
+     --ws-text-2      was #5A6B63 / #6E7C76 — secondary copy, hints, labels
+     --ws-text-3      was #7A8781 / #98A29D — fine print, timestamps, empty states
+     --ws-text-faint  was #B4BFB9 / #C4CDC8 — zero values, disabled tabs
+     --ws-placeholder input placeholders, kept clearly lighter than typed text */
+body:has(.dash) {
+  --ws-type: var(--font-courier-prime), 'Courier Prime', 'Courier New', Courier, monospace;
+  --ws-body: var(--font-plex-sans), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --ws-text: #111813;
+  --ws-text-2: #232d28;
+  --ws-text-3: #37423c;
+  --ws-text-faint: #7a847f;
+  --ws-placeholder: #66706b;
+
+  /* Font variables the components already use. */
+  --font-nr: var(--ws-type);
+  --font-fraunces: var(--ws-type);
+  --font-serif: var(--ws-type);
+  --serif: var(--ws-type);
+  --font-ar: var(--ws-body);
+  --font-inter: var(--ws-body);
+  --font-sans: var(--ws-body);
+  --sans: var(--ws-body);
+
+  /* Colour tokens the components already use. */
+  --ink: var(--ws-text);
+  --color-ink: var(--ws-text);
+  --color-ink-deep: var(--ws-text);
+  --fa-muted: var(--ws-text-2);
+  --color-fa-muted: var(--ws-text-2);
+  --color-ink-lead: var(--ws-text-2);
+  --color-ink-soft: var(--ws-text-2);
+  --muted-foreground: var(--ws-text-2);
+  --color-fa-muted-2: var(--ws-text-3);
+
+  color: var(--ws-text);
+  font-family: var(--ws-body);
+  font-weight: 500;
+}
+
+body:has(.dash) ::placeholder {
+  color: var(--ws-placeholder);
+  opacity: 1;
+}
+
+@layer base {
+  /* Headings default to the typewriter face. In the base layer so a heading
+     that names its own face with a utility class still gets it. (ScreenTitle
+     asks for font-[Newsreader,serif], which tailwind-merge drops as a
+     font-weight conflict — so screen titles rely on this rule.) */
+  :where(body:has(.dash)) :is(h1, h2, h3) {
+    font-family: var(--ws-type);
+  }
+}
+
+@layer utilities {
+  /* Newsreader requested by literal family name (font-[Newsreader,serif]) —
+     no variable to re-point, so it is remapped directly. */
+  :where(body:has(.dash)) .font-\[Newsreader\,serif\] {
+    font-family: var(--ws-type);
+  }
+
+  :where(body:has(.dash)) :is(.text-\[\#16261F\]) {
+    color: var(--ws-text);
+  }
+
+  :where(body:has(.dash))
+    :is(
+      .text-\[\#5A6B63\],
+      .text-\[\#6E7C76\],
+      .text-\[\#48574F\],
+      .text-\[\#7C8A84\],
+      .text-\[\#3D4A44\]
+    ) {
+    color: var(--ws-text-2);
+  }
+
+  :where(body:has(.dash))
+    :is(
+      .text-\[\#7A8781\],
+      .text-\[\#98A29D\],
+      .text-\[\#9AA6A0\],
+      .text-\[\#8A968F\],
+      .text-\[\#8A8275\],
+      .text-\[\#7A6A5C\]
+    ) {
+    color: var(--ws-text-3);
+  }
+
+  :where(body:has(.dash)) :is(.text-\[\#B4BFB9\], .text-\[\#C4CDC8\], .text-\[\#B8C2BD\]) {
+    color: var(--ws-text-faint);
+  }
+}
+
 /* Role rail */
 .dash-rail {
   background: var(--hunter-deep);
@@ -53,7 +180,7 @@
 .dash-rail-label {
   font-size: 8px;
   letter-spacing: 0.12em;
-  color: #7f8f84;
+  color: #b9c9bf;
   margin-bottom: 14px;
 }
 .dash-rail-btn {
@@ -62,7 +189,7 @@
   border-radius: 11px;
   display: grid;
   place-items: center;
-  color: #8ba093;
+  color: #b5c7bc;
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -107,13 +234,13 @@
 .dash-side-sub {
   font-size: 10.5px;
   letter-spacing: 0.14em;
-  color: #9db5a8;
+  color: #d3e2d9;
   margin-top: 4px;
 }
 .dash-side-heading {
   font-size: 10px;
   letter-spacing: 0.16em;
-  color: #8aa89a;
+  color: #c6d9ce;
   margin: 26px 0 8px;
 }
 .dash-select {
@@ -138,7 +265,7 @@
   gap: 12px;
   padding: 11px 13px;
   border-radius: 11px;
-  color: #cfe0d6;
+  color: #eef5f1;
   font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
@@ -161,14 +288,14 @@
 .dash-nav-item svg {
   width: 18px;
   height: 18px;
-  color: #a9c3b6;
+  color: #cfe0d6;
   flex: none;
 }
 .dash-side-foot {
   margin-top: auto;
   padding-top: 24px;
   font-size: 12px;
-  color: #93a89b;
+  color: #cbdad1;
 }
 .dash-side-foot b {
   display: block;

@@ -46,7 +46,9 @@ export function ProfileTab({ rider }: { rider: RiderRow }) {
         <div>
           <div style={legacyBlockTitleStyle}>Rider</div>
           <FixedRow label="Name" value={name} />
-          <FixedRow label="Category" value={rider.category ?? '—'} />
+          {/* Legacy profile category — only shown when an older account has one;
+           * division is now chosen per class at entry. */}
+          {rider.category && <FixedRow label="Category" value={rider.category} />}
           <FixedRow label="Date of birth" value={rider.dob ?? '—'} />
           {credentials && <FixedRow label="Credentials" value={credentials} />}
           <FixedRow label="Email" value={rider.email} />

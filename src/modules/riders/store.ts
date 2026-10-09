@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { EntryDivisionCode } from '@/modules/riders/types';
 
 interface EntryCartState {
   selectedClassIds: Set<string>;
@@ -15,12 +16,23 @@ interface EntryCartState {
    * tells those apart, since it only renders when test_options is non-empty. */
   testChoices: Record<string, string>;
 
+  /* The rider division (J/Y/A/O) chosen for each selected class. A newly
+   * selected class starts on the last division the rider picked, so a rider
+   * who always rides Adult Amateur only chooses it once. */
+  divisionChoices: Record<string, EntryDivisionCode>;
+  lastDivision: EntryDivisionCode | null;
+
   /* Trainer/barn name, "stable with" request, and notes — captured once per
    * cart, not per add-on line, and only required when the cart includes a
    * stalls/tack-granting add-on (see cartNeedsStablingDetails). */
   stablingDetails: { trainerName: string; stableWith: string; notes: string };
 
-  toggleClass: (classId: string) => void;
+  toggleClass: (
+    classId: string,
+    defaults?: { horseId?: string | null; division?: EntryDivisionCode | null },
+  ) => void;
+  setDivision: (classId: string, division: EntryDivisionCode) => void;
+  fillEmptyHorseSlots: (horseId: string) => void;
   toggleQualification: (classId: string, qualTypeId: string) => void;
   setAddOnQuantity: (addOnId: string, qty: number) => void;
   setClassHorse: (classId: string, slotIndex: number, horseId: string | null) => void;
@@ -37,28 +49,62 @@ const INITIAL_STATE = {
   classHorseAssignments: {} as Record<string, (string | null)[]>,
   addOnQuantities: {} as Record<string, number>,
   testChoices: {} as Record<string, string>,
+  divisionChoices: {} as Record<string, EntryDivisionCode>,
+  lastDivision: null as EntryDivisionCode | null,
   stablingDetails: { trainerName: '', stableWith: '', notes: '' },
 };
 
 export const useEntryCartStore = create<EntryCartState>((set) => ({
   ...INITIAL_STATE,
 
-  toggleClass: (classId) => {
+  toggleClass: (classId, defaults) => {
     set((state) => {
       const selectedClassIds = new Set(state.selectedClassIds);
       const classHorseAssignments = { ...state.classHorseAssignments };
       const qualSelections = { ...state.qualSelections };
       const testChoices = { ...state.testChoices };
+      const divisionChoices = { ...state.divisionChoices };
       if (selectedClassIds.has(classId)) {
         selectedClassIds.delete(classId);
         Reflect.deleteProperty(classHorseAssignments, classId);
         Reflect.deleteProperty(qualSelections, classId);
         Reflect.deleteProperty(testChoices, classId);
+        Reflect.deleteProperty(divisionChoices, classId);
       } else {
         selectedClassIds.add(classId);
-        classHorseAssignments[classId] = [null];
+        // A rider with exactly one horse never has to choose it per class.
+        classHorseAssignments[classId] = [defaults?.horseId ?? null];
+        const division = state.lastDivision ?? defaults?.division ?? null;
+        if (division) divisionChoices[classId] = division;
       }
-      return { selectedClassIds, classHorseAssignments, qualSelections, testChoices };
+      return {
+        selectedClassIds,
+        classHorseAssignments,
+        qualSelections,
+        testChoices,
+        divisionChoices,
+      };
+    });
+  },
+
+  setDivision: (classId, division) => {
+    set((state) => ({
+      divisionChoices: { ...state.divisionChoices, [classId]: division },
+      lastDivision: division,
+    }));
+  },
+
+  fillEmptyHorseSlots: (horseId) => {
+    set((state) => {
+      let changed = false;
+      const classHorseAssignments = { ...state.classHorseAssignments };
+      for (const classId of state.selectedClassIds) {
+        const slots = classHorseAssignments[classId] ?? [null];
+        if (slots.some(Boolean)) continue;
+        classHorseAssignments[classId] = [horseId];
+        changed = true;
+      }
+      return changed ? { classHorseAssignments } : {};
     });
   },
 

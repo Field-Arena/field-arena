@@ -205,7 +205,7 @@ export function VenueCard({
             a saved venue&rsquo;s stable layout instead of building one from scratch.
           </p>
           <Link
-            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}`}
+            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}&from=setup`}
             prefetch={false}
             className={primaryButtonClass + ' rounded-[9px]'}
           >
