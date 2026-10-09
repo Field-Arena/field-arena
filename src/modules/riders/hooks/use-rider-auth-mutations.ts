@@ -24,13 +24,20 @@ import type {
   RiderVerifyOutcome,
 } from '@/modules/riders/types';
 
+/* After sign-up, code verification or sign-in the session cookie is new, and
+ * the rider usually returns to the page they're already on (the show's entry
+ * page). router.push to the same URL is a no-op and router.refresh can run
+ * before the cookie is picked up, so the page kept showing the sign-in card
+ * until a manual reload. A full navigation always renders the signed-in view. */
+function goToSignedInPage(url: string) {
+  window.location.assign(url);
+}
+
 export function useSignUpRider(options?: {
   onVerifyNeeded?: (email: string) => void;
   onAlreadyRegistered?: () => void;
   returnTo?: string;
 }) {
-  const router = useRouter();
-
   return useMutation<RiderSignUpOutcome, Error, RiderSignUpInput>({
     mutationFn: (input) => signUpRider(input, options?.returnTo),
     onSuccess: (outcome) => {
@@ -47,16 +54,13 @@ export function useSignUpRider(options?: {
           return;
         default:
           toast.success('Account created.');
-          router.refresh();
-          router.push(outcome.redirectTo);
+          goToSignedInPage(outcome.redirectTo);
       }
     },
   });
 }
 
 export function useVerifyRiderSignUpCode(returnTo?: string) {
-  const router = useRouter();
-
   return useMutation<RiderVerifyOutcome, Error, RiderVerifyInput>({
     mutationFn: (input) => verifyRiderSignUpCode(input, returnTo),
     onSuccess: (outcome) => {
@@ -65,8 +69,7 @@ export function useVerifyRiderSignUpCode(returnTo?: string) {
         return;
       }
       toast.success('Email confirmed.');
-      router.refresh();
-      router.push(outcome.redirectTo);
+      goToSignedInPage(outcome.redirectTo);
     },
   });
 }
@@ -75,8 +78,6 @@ export function useSignInRider(options?: {
   onVerifyNeeded?: (email: string) => void;
   returnTo?: string;
 }) {
-  const router = useRouter();
-
   return useMutation<RiderSignInOutcome, Error, RiderSignInInput>({
     mutationFn: (input) => signInRider(input, options?.returnTo),
     onSuccess: (outcome) => {
@@ -89,8 +90,7 @@ export function useSignInRider(options?: {
           return;
         default:
           toast.success('Signed in.');
-          router.refresh();
-          router.push(outcome.redirectTo);
+          goToSignedInPage(outcome.redirectTo);
       }
     },
   });
