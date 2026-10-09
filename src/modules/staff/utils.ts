@@ -163,3 +163,27 @@ export function staffCsvFilename(showName: string): string {
     .replace(/(^-|-$)/g, '');
   return `field-and-arena-staff-${slug || 'show'}.csv`;
 }
+
+/* "Active" shows for the dashboard's Upcoming shows card: published, not
+ * finished, and still running or yet to start — ordered by how soon they
+ * run, so a show happening today comes first, then the next one up.
+ * Drafts and shows whose last day has passed are left out. */
+export function selectUpcomingShows<
+  T extends { published: boolean; stage: string; startDate: string | null; endDate: string | null },
+>(shows: T[], todayIso: string): T[] {
+  return shows
+    .filter((s) => s.published && s.stage !== 'complete' && s.startDate !== null)
+    .filter((s) => (s.endDate ?? s.startDate ?? '') >= todayIso)
+    .sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? ''));
+}
+
+/* Today's date (YYYY-MM-DD) in the shows' home time zone, so a show running
+ * today in Georgia still counts as "today" late in the US evening. */
+export function todayIsoInZone(timeZone = 'America/New_York', now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}

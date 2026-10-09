@@ -6,8 +6,10 @@ import {
   getShowInventory,
   getShowStage,
   getShowStats,
+  listShowsForPicker,
 } from '@/modules/shows/data/queries';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { selectUpcomingShows, todayIsoInZone } from '@/modules/staff/utils';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 
 export default async function DashboardPage({
@@ -26,11 +28,17 @@ export default async function DashboardPage({
     }
   }
 
+  const pickerShows = context.orgId ? await listShowsForPicker(context.orgId) : [];
+  const todayIso = todayIsoInZone();
+  const upcomingShows = selectUpcomingShows(pickerShows, todayIso);
+
   if (!context.currentShow) {
     return (
       <DashboardOverview
         orgName={context.orgName}
         shows={context.shows}
+        upcomingShows={upcomingShows}
+        todayIso={todayIso}
         currentShow={null}
         stats={null}
         inventory={[]}
@@ -58,6 +66,8 @@ export default async function DashboardPage({
     <DashboardOverview
       orgName={context.orgName}
       shows={context.shows}
+      upcomingShows={upcomingShows}
+      todayIso={todayIso}
       currentShow={context.currentShow}
       stats={stats}
       inventory={inventory}
