@@ -1,5 +1,12 @@
 import type { Metadata } from 'next';
-import { Archivo, Fraunces, Inter, Newsreader } from 'next/font/google';
+import {
+  Archivo,
+  Courier_Prime,
+  Fraunces,
+  IBM_Plex_Sans,
+  Inter,
+  Newsreader,
+} from 'next/font/google';
 import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import { QueryProvider } from '@/providers/query-provider';
@@ -31,6 +38,24 @@ const archivo = Archivo({
   weight: ['400', '500', '600', '700'],
 });
 
+// Organizer/staff workspace faces only (see src/app/(dashboard)/dashboard.css).
+// preload:false — the @font-face is declared everywhere but the files are only
+// fetched where something uses them, so the marketing site and rider portal
+// never download them.
+const courierPrime = Courier_Prime({
+  variable: '--font-courier-prime',
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  preload: false,
+});
+
+const plexSans = IBM_Plex_Sans({
+  variable: '--font-plex-sans',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: 'Field & Arena — Run the whole show, not six of them',
   description:
@@ -46,7 +71,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${inter.variable} ${fraunces.variable} ${newsreader.variable} ${archivo.variable}`}
+      className={`${inter.variable} ${fraunces.variable} ${newsreader.variable} ${archivo.variable} ${courierPrime.variable} ${plexSans.variable}`}
     >
       <body suppressHydrationWarning className="antialiased">
         <NextTopLoader

@@ -13,13 +13,17 @@ import type {
   AttentionItem,
   InventoryRow,
   ShowListItem,
+  ShowPickerSummary,
   ShowStats,
 } from '@/modules/shows/data/queries';
 import { AttentionCard } from './attention-card';
+import { UpcomingShowsCard } from './upcoming-shows-card';
 
 export function DashboardOverview({
   orgName,
   shows,
+  upcomingShows,
+  todayIso,
   currentShow,
   stats,
   inventory,
@@ -30,6 +34,8 @@ export function DashboardOverview({
 }: {
   orgName: string;
   shows: ShowListItem[];
+  upcomingShows: ShowPickerSummary[];
+  todayIso: string;
   currentShow: ShowListItem | null;
   stats: ShowStats | null;
   inventory: InventoryRow[];
@@ -65,6 +71,12 @@ export function DashboardOverview({
         <ScreenTitle className="mb-1.5">Dashboard</ScreenTitle>
         <p className="text-[13.5px] text-[#5A6B63]">Everything across your shows, in one place.</p>
       </div>
+
+      <UpcomingShowsCard
+        shows={upcomingShows}
+        currentShowId={currentShow.id}
+        todayIso={todayIso}
+      />
 
       <Eyebrow className="mb-2.5 block">Show lifecycle</Eyebrow>
       <Card className="mb-[18px] flex flex-wrap items-center gap-2.5 p-[14px_18px]">

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { UploadIcon, XIcon } from 'lucide-react';
 import { Card } from '@/shared/ui/organizer/card';
+import { DocumentViewerDialog } from '@/shared/ui/organizer/document-viewer-dialog';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { IconCheck } from '@/shared/ui/organizer/icons';
 import { Textarea } from '@/shared/ui/shadcn/textarea';
@@ -52,8 +53,11 @@ export function WaiverCard({
         The text riders must scroll through and sign before entering. Use {'{{SHOW_NAME}}'},{' '}
         {'{{SHOW_DATES}}'}, and {'{{ORGANIZER_NAME}}'} as placeholders — they&rsquo;re filled in
         automatically. Pre-filled with a default draft below — edit it, replace it with your own, or
-        leave it as-is. This is not legal advice — have your waiver reviewed by an attorney before
-        relying on it.
+        leave it as-is.{' '}
+        <strong className="text-ink-deep font-semibold">
+          Your waiver must follow the laws of the state where the show is hosted.
+        </strong>{' '}
+        This is not legal advice — have your waiver reviewed by an attorney before relying on it.
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[8px] bg-[#F6F8F6] p-3">
@@ -62,14 +66,11 @@ export function WaiverCard({
         </span>
         {waiverDocumentUrl && waiverDocumentName ? (
           <>
-            <a
-              href={waiverDocumentUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-forest text-[13px] font-semibold underline underline-offset-2"
-            >
-              {waiverDocumentName}
-            </a>
+            <DocumentViewerDialog
+              url={waiverDocumentUrl}
+              name={waiverDocumentName}
+              triggerLabel={waiverDocumentName}
+            />
             <GhostButton
               disabled={remove.isPending}
               onClick={() => {
@@ -107,10 +108,10 @@ export function WaiverCard({
       </div>
       <p className={SM_NOTE + ' mb-4'}>
         Can&rsquo;t paste a long formatted document (like a USEF form) into the text box below and
-        keep it readable? Upload a PDF, Word (.docx), or .txt file instead — its text fills the
-        box below automatically, and riders will also see a link to the original file alongside
-        the typed text when they sign. A scanned or photographed document has no text to pull
-        from, so it will attach but won&rsquo;t fill the box.
+        keep it readable? Upload a PDF, Word (.docx), or .txt file instead — its text fills the box
+        below automatically, and riders will also see a link to the original file alongside the
+        typed text when they sign. A scanned or photographed document has no text to pull from, so
+        it will attach but won&rsquo;t fill the box.
       </p>
 
       <div className={`mb-3 text-sm ${approved ? 'text-[#2E7048]' : 'text-status-danger'}`}>

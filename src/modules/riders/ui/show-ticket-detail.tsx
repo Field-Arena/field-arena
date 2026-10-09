@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
+import { anyClassFlaggedQualifying, isClassRated } from '@/modules/riders/utils/class-rated-status';
+import { RatedBadge } from '@/modules/riders/ui/rated-badge';
 import { getTicketWindowStatus } from '@/modules/riders/utils/get-ticket-window-status';
 import { parseTicketWindow } from '@/modules/riders/utils/parse-ticket-window';
 import type { PublicShowDetail } from '@/modules/riders/types';
@@ -11,8 +14,17 @@ const TICKET_WINDOW_MESSAGE: Record<ReturnType<typeof getTicketWindowStatus>, st
   open: null,
 };
 
-export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
+/** `children` renders right under the show heading, above the class list —
+ * where the sign-up / sign-in card goes for a rider who isn't signed in yet. */
+export function ShowTicketDetail({
+  detail,
+  children,
+}: {
+  detail: PublicShowDetail;
+  children?: ReactNode;
+}) {
   const { show, classes, addOns, qualTypes } = detail;
+  const anyClassFlagged = anyClassFlaggedQualifying(classes);
   const windowStatus = getTicketWindowStatus(parseTicketWindow(show));
   const windowMessage = TICKET_WINDOW_MESSAGE[windowStatus];
 
@@ -30,6 +42,8 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
           <CardContent className="pt-4 text-sm text-amber-900">{windowMessage}</CardContent>
         </Card>
       )}
+
+      {children}
 
       <Card>
         <CardHeader>
@@ -54,9 +68,14 @@ export function ShowTicketDetail({ detail }: { detail: PublicShowDetail }) {
                 className="border-line flex items-center justify-between rounded-lg border px-3 py-2"
               >
                 <div>
-                  <div className="text-forest text-sm font-medium">
-                    {classLabel}
-                    {cls.division ? ` (${cls.division})` : ''}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-forest text-sm font-medium">
+                      {classLabel}
+                      {cls.division ? ` (${cls.division})` : ''}
+                    </span>
+                    <RatedBadge
+                      rated={isClassRated(cls, { showType: show.show_type, anyClassFlagged })}
+                    />
                   </div>
                   {subtitle && <div className="text-fa-muted text-xs italic">{subtitle}</div>}
                   <div className="text-fa-muted text-xs">

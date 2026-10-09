@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStripeClient } from '@/shared/lib/stripe';
+import { getStripeClient, SAVE_FOR_CHARGE_MORE } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { run, parseInput, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
@@ -17,6 +17,13 @@ import {
   priceCart,
   saveOffSessionCard,
 } from '@/modules/riders/data/checkout';
+import { generateSignedDocumentPdf } from '@/modules/riders/data/signed-document-pdf';
+import { parseDocumentRequirements } from '@/modules/riders/utils/parse-document-requirements';
+import {
+  isSignableRequirement,
+  signableRequirementText,
+} from '@/modules/riders/utils/is-signable-requirement';
+import { todayInTimeZone } from '@/modules/riders/utils/today-in-time-zone';
 import {
   confirmCheckoutSessionSchema,
   createCheckoutSessionSchema,
@@ -25,8 +32,10 @@ import {
   horseDocumentDeleteSchema,
   horseDocumentUploadFieldsSchema,
   horseUpdateSchema,
+  requiredDocumentSignSchema,
   riderProfileUpdateSchema,
   riderResendCodeSchema,
+  riderSignInSchema,
   riderSignUpSchema,
   riderVerifySchema,
   stablingSaveSchema,
@@ -41,6 +50,7 @@ import type {
   OrderRow,
   RiderResendOutcome,
   RiderRow,
+  RiderSignInOutcome,
   RiderSignUpOutcome,
   RiderVerifyOutcome,
   WaiverSignatureRow,
@@ -156,6 +166,69 @@ export async function resendRiderSignUpCode(input: unknown): Promise<RiderResend
   const { error } = attempt.value;
   if (error) return { status: 'error', message: error.message };
   return { status: 'sent' };
+}
+
+/** Sign-in for a rider who already has an account, started from the rider
+ * portal or a show's entry page. Lands them back on `returnTo` (the show they
+ * were entering) instead of the generic portal home. An account whose email
+ * was never confirmed gets a fresh code and goes to the verify step. */
+export async function signInRider(input: unknown, returnTo?: string): Promise<RiderSignInOutcome> {
+  const { email, password } = parseInput(riderSignInSchema, input);
+  const target = safeRiderReturnTo(returnTo);
+
+  const supabase = await createServerClient();
+  const attempt = await withMailTransport(() =>
+    supabase.auth.signInWithPassword({ email, password }),
+  );
+  if (!attempt.ok) return { status: 'error', message: attempt.message };
+
+  const { data, error } = attempt.value;
+  if (error) {
+    if (/not confirmed/i.test(error.message)) {
+      const resent = await withMailTransport(() =>
+        supabase.auth.resend({
+          type: 'signup',
+          email,
+          options: {
+            emailRedirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(target)}`,
+          },
+        }),
+      );
+      if (resent.ok && !resent.value.error) return { status: 'verify', email };
+      return {
+        status: 'error',
+        message: 'Your email is not confirmed yet. Use the code from your sign-up email.',
+      };
+    }
+    if (/invalid login credentials/i.test(error.message)) {
+      return {
+        status: 'error',
+        message: 'That email and password do not match. Check them and try again.',
+      };
+    }
+    return { status: 'error', message: error.message };
+  }
+
+  const { data: staff, error: staffError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', data.user.id)
+    .maybeSingle();
+  if (staffError) throw staffError;
+  if (staff) {
+    // Staff and rider identities are kept apart (staff-XOR-rider trigger), so
+    // a staff login can't enter classes — say so instead of half-signing in.
+    await supabase.auth.signOut();
+    return {
+      status: 'error',
+      message:
+        'This email belongs to a show staff account, which cannot enter classes. Create a rider account with a different email.',
+    };
+  }
+
+  await ensureRiderProfile(supabase, data.user);
+  revalidatePath('/', 'layout');
+  return { status: 'done', redirectTo: target };
 }
 
 export async function signOutRider(): Promise<void> {
@@ -409,6 +482,16 @@ export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
   const supabase = await createServerClient();
   const rider = await requireCurrentRider(supabase);
 
+  /* The date on the signature is the server's "today" in the show's time
+   * zone — never a date the rider typed, so it can't be back- or post-dated. */
+  const { data: showRow, error: showError } = await supabase
+    .from('shows')
+    .select('timezone')
+    .eq('id', parsed.showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  const signatureDate = todayInTimeZone(showRow?.timezone);
+
   /* Nothing else in the app ever collects a rider's own first/last name —
    * the waiver's typed signature is the first real name text a rider ever
    * provides. Backfill it onto their profile the first time they sign,
@@ -439,7 +522,7 @@ export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
       rider_id: rider.id,
       show_id: parsed.showId,
       full_name: parsed.fullName,
-      signature_date: parsed.signatureDate,
+      signature_date: signatureDate,
     })
     .select()
     .single();
@@ -459,6 +542,95 @@ export async function signWaiver(input: unknown): Promise<WaiverSignatureRow> {
 
   revalidatePath(`/rider/shows/${parsed.showId}`);
   return data;
+}
+
+/** E-signs an organizer-required document that is an agreement (see
+ * isSignableRequirement) instead of making the rider upload a signed copy.
+ *
+ * Required documents are tracked per horse (horses.document_uploads), so one
+ * signature is filed on every horse on the rider's account that doesn't have
+ * this requirement yet. Each gets a generated PDF record — the exact wording,
+ * typed name and server timestamp — at the same storage path an upload would
+ * use, so the organizer reviews and approves it exactly like an upload. No
+ * schema change: document_uploads is jsonb and the extra keys are additive. */
+export async function signRequiredDocument(input: unknown): Promise<{ signedHorseCount: number }> {
+  const parsed = parseInput(requiredDocumentSignSchema, input);
+  const supabase = await createServerClient();
+  const rider = await requireCurrentRider(supabase);
+
+  const { data: show, error: showError } = await supabase
+    .from('shows')
+    .select('id, name, timezone, document_requirements')
+    .eq('id', parsed.showId)
+    .maybeSingle();
+  if (showError) throw showError;
+  if (!show) throw new UserFacingError('Show not found.');
+
+  const requirement = parseDocumentRequirements(show.document_requirements).find(
+    (req) => req.id === parsed.requirementId,
+  );
+  if (!requirement || !isSignableRequirement(requirement)) {
+    throw new UserFacingError('This document is uploaded, not signed on the site.');
+  }
+
+  const { data: horses, error: horsesError } = await supabase
+    .from('horses')
+    .select('id, name, document_uploads')
+    .eq('rider_id', rider.id);
+  if (horsesError) throw horsesError;
+  if (horses.length === 0) {
+    throw new UserFacingError('Add your horse first — the signed form is filed with its papers.');
+  }
+
+  const signedAt = new Date();
+  const signedAtIso = signedAt.toISOString();
+  const signedDate = todayInTimeZone(show.timezone, signedAt);
+  const agreementText = signableRequirementText(requirement, show.name);
+
+  let signedHorseCount = 0;
+  for (const horse of horses) {
+    const uploads = (horse.document_uploads ?? []) as unknown as HorseDocumentUpload[];
+    if (uploads.some((u) => u.requirementId === requirement.id)) continue;
+
+    const pdf = await generateSignedDocumentPdf({
+      title: requirement.label,
+      showName: show.name,
+      agreementText,
+      signedName: parsed.fullName,
+      signedAtIso,
+      signedDate,
+      riderEmail: rider.email,
+      horseName: horse.name,
+    });
+    const path = `${rider.id}/${horse.id}/${requirement.id}`;
+    const { error: uploadError } = await supabase.storage
+      .from(HORSE_DOCUMENTS_BUCKET)
+      .upload(path, pdf, { upsert: true, contentType: 'application/pdf' });
+    if (uploadError) throw uploadError;
+
+    const nextUploads: HorseDocumentUpload[] = [
+      ...uploads,
+      {
+        requirementId: requirement.id,
+        label: requirement.label,
+        path,
+        expirationDate: null,
+        verified: false,
+        method: 'e-sign',
+        signedName: parsed.fullName,
+        signedAt: signedAtIso,
+      },
+    ];
+    const { error } = await supabase
+      .from('horses')
+      .update({ document_uploads: nextUploads as unknown as Json })
+      .eq('id', horse.id);
+    if (error) throw error;
+    signedHorseCount += 1;
+  }
+
+  revalidatePath(ROUTES.rider);
+  return { signedHorseCount };
 }
 
 export async function createCheckoutSession(
@@ -499,7 +671,7 @@ export async function createCheckoutSession(
 
     const paymentIntentData: NonNullable<
       import('stripe').Stripe.Checkout.SessionCreateParams['payment_intent_data']
-    > = { setup_future_usage: 'off_session' };
+    > = {};
 
     if (priced.chargesEnabled && priced.stripeConnectAccountId) {
       paymentIntentData.application_fee_amount = Math.round(priced.feeTotal * 100);
@@ -514,6 +686,11 @@ export async function createCheckoutSession(
       cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
       metadata: { showId: parsed.showId, riderId: rider.id, orderId: order.id },
       payment_intent_data: paymentIntentData,
+      // No payment_method_types: the Stripe Dashboard decides which methods show
+      // (card, Apple Pay / Google Pay, Klarna, ...). Card saving for "charge more"
+      // is set per method, not on payment_intent_data — a PaymentIntent-level
+      // setup_future_usage hides Klarna, which cannot be saved for reuse.
+      payment_method_options: SAVE_FOR_CHARGE_MORE,
     });
 
     const paymentIntentId =

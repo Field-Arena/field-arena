@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { ROUTES } from '@/shared/constants/routes';
 import { getCurrentRiderProfile, listRiderShowLinks } from '@/modules/riders/data/queries';
 
 const HUNTER_DEEP = '#1F3A2E';
@@ -50,12 +52,29 @@ export default async function RiderLayout({ children }: { children: React.ReactN
           </div>
         </div>
         {name && (
-          <div style={{ fontSize: 13, color: '#CBD8D0', textAlign: 'right' }}>
-            Signed in as{' '}
-            <b style={{ color: '#fff', display: 'block', fontSize: 14 }}>
-              {name}
-              {riderNumber && ` · Rider #${riderNumber}`}
-            </b>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <Link
+              href={ROUTES.rider}
+              prefetch={false}
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: 8,
+                padding: '7px 12px',
+                textDecoration: 'none',
+              }}
+            >
+              My shows
+            </Link>
+            <div style={{ fontSize: 13, color: '#CBD8D0', textAlign: 'right' }}>
+              Signed in as{' '}
+              <b style={{ color: '#fff', display: 'block', fontSize: 14 }}>
+                {name}
+                {riderNumber && ` · Rider #${riderNumber}`}
+              </b>
+            </div>
           </div>
         )}
       </header>

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { ROUTES } from '@/shared/constants/routes';
+import { RiderAuthForm } from '@/modules/riders/ui/rider-auth-form';
+import { RememberShowVisit } from '@/modules/riders/ui/remember-show-visit';
 import {
   getCurrentRiderProfile,
   getKnownTrainerNames,
@@ -18,6 +20,7 @@ import { parseDocumentRequirements } from '@/modules/riders/utils/parse-document
 import { ShowTicketDetail } from '@/modules/riders/ui/show-ticket-detail';
 import { WaiverForm } from '@/modules/riders/ui/waiver-form';
 import { fillWaiverPlaceholders } from '@/modules/riders/utils/fill-waiver-placeholders';
+import { todayInTimeZone } from '@/modules/riders/utils/today-in-time-zone';
 import { WAIVER_TEXT_DEFAULT } from '@/modules/shows/schemas';
 import { RiderDetailsForm } from '@/modules/riders/ui/rider-details-form';
 import { HorseManager } from '@/modules/riders/ui/horse-manager';
@@ -48,16 +51,17 @@ export default async function RiderShowPage({
   if (!detail) notFound();
 
   if (!rider) {
-    const signInHref = `${ROUTES.rider}?next=${encodeURIComponent(`/rider/shows/${showId}`)}`;
+    /* Sign-up / sign-in happens right here, on the show's own page, and
+     * returns to it — so a rider who pressed "Enter this show" lands back in
+     * this show's entry flow, not in a portal with no show attached. */
     return (
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-12">
-        <ShowTicketDetail detail={detail} />
-        <div className="border-line bg-mint text-forest rounded-lg border p-4 text-sm">
-          <Link href={signInHref} className="font-semibold underline underline-offset-2">
-            Sign in or create an account
-          </Link>{' '}
-          to enter classes at this show.
-        </div>
+        <RememberShowVisit showId={id} />
+        <ShowTicketDetail detail={detail}>
+          <div className="border-line rounded-2xl border bg-white p-6 sm:p-8">
+            <RiderAuthForm returnTo={`/rider/shows/${showId}`} showName={detail.show.name} />
+          </div>
+        </ShowTicketDetail>
       </main>
     );
   }
@@ -86,18 +90,21 @@ export default async function RiderShowPage({
       getRiderRingSchedule(id),
     ]);
     return (
-      <RiderShowDashboard
-        rider={rider}
-        show={detail.show}
-        venueAddress={detail.venueAddress}
-        classes={detail.classes}
-        addOns={detail.addOns}
-        entries={entries}
-        orders={orders}
-        horses={horses}
-        documentRequirements={documentRequirements}
-        ringSchedule={ringSchedule}
-      />
+      <>
+        <RememberShowVisit showId={id} />
+        <RiderShowDashboard
+          rider={rider}
+          show={detail.show}
+          venueAddress={detail.venueAddress}
+          classes={detail.classes}
+          addOns={detail.addOns}
+          entries={entries}
+          orders={orders}
+          horses={horses}
+          documentRequirements={documentRequirements}
+          ringSchedule={ringSchedule}
+        />
+      </>
     );
   }
 
@@ -129,7 +136,16 @@ export default async function RiderShowPage({
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-6 py-12">
+      <RememberShowVisit showId={id} />
+      <Link
+        href={ROUTES.rider}
+        prefetch={false}
+        className="text-fa-muted hover:text-forest text-[13px] font-medium"
+      >
+        ← My shows
+      </Link>
       <div>
+        <p className="text-fa-muted text-xs font-bold tracking-[.1em] uppercase">Your entry for</p>
         <h1 className="text-forest text-2xl font-semibold">{detail.show.name}</h1>
         <p className="text-fa-muted text-sm">
           {[detail.show.date_label, detail.show.venue_name].filter(Boolean).join(' · ')}
@@ -148,13 +164,26 @@ export default async function RiderShowPage({
         existingSignature={waiverSignature}
         waiverDocumentUrl={detail.waiverDocumentUrl}
         waiverDocumentName={detail.show.waiver_document_name}
+        todayDate={todayInTimeZone(detail.show.timezone)}
       />
 
       <RiderDetailsForm rider={rider} />
 
-      <HorseManager horses={horses} documentRequirements={documentRequirements} />
+      <HorseManager
+        horses={horses}
+        documentRequirements={documentRequirements}
+        showId={id}
+        showName={detail.show.name}
+        riderName={[rider.first_name, rider.last_name].filter(Boolean).join(' ')}
+      />
 
-      <ClassPicker classes={detail.classes} qualTypes={detail.qualTypes} />
+      <ClassPicker
+        classes={detail.classes}
+        qualTypes={detail.qualTypes}
+        horses={horses}
+        showType={detail.show.show_type}
+        riderCategory={rider.category}
+      />
 
       <AddOnPicker addOns={detail.addOns} />
 
@@ -171,8 +200,13 @@ export default async function RiderShowPage({
         classes={detail.classes}
         addOns={detail.addOns}
         qualTypes={detail.qualTypes}
+        horses={horses}
+        showType={detail.show.show_type}
         feeModel={detail.feeModel}
-        waiverSatisfied={organizerWaiverText.length === 0 || !!waiverSignature}
+        /* Legacy required the waiver signed before continuing whatever text it
+         * showed (rider.html goStepReal n===3) — the release presented above is
+         * always signed on the site before paying. */
+        waiverSatisfied={!!waiverSignature}
       />
     </main>
   );

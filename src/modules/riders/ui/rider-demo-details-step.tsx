@@ -13,12 +13,6 @@ export function RiderDemoDetailsStep({ onNext }: { onNext: () => void }) {
         <CardContent className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
           <div>
             <div className="text-fa-muted text-xs font-bold tracking-[.1em] uppercase">
-              Category
-            </div>
-            <div className="text-forest mt-1">Adult Amateur</div>
-          </div>
-          <div>
-            <div className="text-fa-muted text-xs font-bold tracking-[.1em] uppercase">
               Date of birth
             </div>
             <div className="text-forest mt-1">1994-03-12</div>

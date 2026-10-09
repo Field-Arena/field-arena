@@ -291,6 +291,7 @@ export async function listIncompleteShowsForOrg(orgId: string): Promise<Incomple
 }
 
 export interface ShowPickerSummary extends IncompleteShowSummary {
+  endDate: string | null;
   published: boolean;
 
   stage: string;
@@ -301,7 +302,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, slug, name, date_label, start_date, venue_name, published, runner_state')
+    .select('id, slug, name, date_label, start_date, end_date, venue_name, published, runner_state')
     .eq('org_id', orgId)
     .order('start_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
@@ -336,6 +337,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
       name: s.name,
       dateLabel: s.date_label,
       startDate: s.start_date,
+      endDate: s.end_date,
       venueName: s.venue_name,
       published: s.published ?? false,
       stage,
@@ -627,7 +629,9 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
 
   function resolveRiderName(e: { rider: string | null; rider_id: string | null }): string {
     const riderRow = e.rider_id ? riderById.get(e.rider_id) : undefined;
-    const fromAccount = riderRow ? [riderRow.first_name, riderRow.last_name].filter(Boolean).join(' ') : '';
+    const fromAccount = riderRow
+      ? [riderRow.first_name, riderRow.last_name].filter(Boolean).join(' ')
+      : '';
     return [fromAccount, e.rider, riderRow?.email].find((v) => v?.trim()) ?? '—';
   }
 
@@ -700,10 +704,7 @@ export async function getShowAttention(showId: string): Promise<AttentionItem[]>
   const supabase = await createServerClient();
 
   // Neither query depends on the other's result -- both only need showId.
-  const [
-    { data: show, error },
-    { data: classes, error: classesError },
-  ] = await Promise.all([
+  const [{ data: show, error }, { data: classes, error: classesError }] = await Promise.all([
     supabase
       .from('shows')
       .select('id, name, published, ticket_close, runner_state, waiver_text, waiver_approved_text')

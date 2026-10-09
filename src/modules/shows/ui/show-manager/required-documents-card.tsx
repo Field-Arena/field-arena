@@ -48,7 +48,8 @@ export function RequiredDocumentsCard({
       <h2 className={SM_SECTION_HEAD}>Required Documents</h2>
       <p className={SM_NOTE}>
         Documentation riders need on file for this show — Coggins, vaccination records, whatever
-        this show requires. This defines the list riders see when uploading.
+        this show requires. Tick “Riders sign this on the site” for agreements like a hold harmless,
+        and type the wording riders read and sign.
       </p>
 
       {rows.length === 0 ? (
@@ -96,6 +97,21 @@ export function RequiredDocumentsCard({
                 />
                 Requires staff approval
               </Label>
+              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+                <input
+                  type="checkbox"
+                  checked={doc.kind === 'sign'}
+                  className="size-3.5 accent-[#1A5B3C]"
+                  onChange={(e) => {
+                    commit(
+                      rows.map((d) =>
+                        d.id === doc.id ? { ...d, kind: e.target.checked ? 'sign' : 'upload' } : d,
+                      ),
+                    );
+                  }}
+                />
+                Riders sign this on the site
+              </Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -106,6 +122,23 @@ export function RequiredDocumentsCard({
               >
                 Remove
               </Button>
+              {doc.kind === 'sign' && (
+                <textarea
+                  value={doc.text ?? ''}
+                  rows={4}
+                  maxLength={20000}
+                  placeholder="Click here to type the wording riders read and sign (e.g. the full hold harmless agreement)…"
+                  className="w-full basis-full rounded-md border border-[#D5DDD8] px-3 py-2 text-[13px]"
+                  onChange={(e) => {
+                    setRows(
+                      rows.map((d) => (d.id === doc.id ? { ...d, text: e.target.value } : d)),
+                    );
+                  }}
+                  onBlur={() => {
+                    commit(rows);
+                  }}
+                />
+              )}
             </div>
           ))}
         </div>

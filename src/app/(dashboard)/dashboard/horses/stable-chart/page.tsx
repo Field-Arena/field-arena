@@ -15,9 +15,9 @@ export const metadata: Metadata = { title: 'Stable Chart — Field & Arena' };
 export default async function StableChartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ show?: string }>;
+  searchParams: Promise<{ show?: string; from?: string }>;
 }) {
-  const { show: requestedShowId } = await searchParams;
+  const { show: requestedShowId, from } = await searchParams;
   const context = await getOrganizerContext(requestedShowId);
 
   if (!context.currentShow) {
@@ -60,6 +60,7 @@ export default async function StableChartPage({
         arrivals={arrivals}
         showEndDate={context.currentShow.endDate}
         publicId={context.currentShow.slug ?? context.currentShow.id}
+        from={from === 'horses' || from === 'setup' ? from : null}
       />
     </div>
   );

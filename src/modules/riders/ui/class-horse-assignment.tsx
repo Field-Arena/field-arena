@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useEntryCartStore } from '@/modules/riders/store';
 import type { ClassWithCapacity, HorseWithDocumentUrls } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
@@ -17,9 +18,35 @@ export function ClassHorseAssignment({
   const setClassHorse = useEntryCartStore((state) => state.setClassHorse);
   const addClassHorseSlot = useEntryCartStore((state) => state.addClassHorseSlot);
   const removeClassHorseSlot = useEntryCartStore((state) => state.removeClassHorseSlot);
+  const fillEmptyHorseSlots = useEntryCartStore((state) => state.fillEmptyHorseSlots);
+
+  /* A rider with exactly one horse rides it in every class — fill it in for
+   * any class picked before that horse was added, so there is nothing to
+   * choose here. */
+  const onlyHorseId = horses.length === 1 ? (horses[0]?.id ?? null) : null;
+  useEffect(() => {
+    if (onlyHorseId) fillEmptyHorseSlots(onlyHorseId);
+  }, [onlyHorseId, selectedClassIds, fillEmptyHorseSlots]);
 
   const selected = classes.filter((cls) => selectedClassIds.has(cls.id));
   if (selected.length === 0) return null;
+
+  const onlyHorse = horses.length === 1 ? horses[0] : undefined;
+  if (onlyHorse) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Your horse</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-forest text-sm">
+            ✓ You&apos;re riding <b>{onlyHorse.name}</b> in every class you picked. Add another
+            horse above if you want to ride a different one.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

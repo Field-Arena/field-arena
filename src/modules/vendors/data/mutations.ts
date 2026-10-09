@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type Stripe from 'stripe';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStripeClient } from '@/shared/lib/stripe';
+import { getStripeClient, SAVE_FOR_CHARGE_MORE } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import { getStaffProfile } from '@/modules/auth/data/queries';
@@ -519,9 +519,7 @@ export async function createVendorCheckoutSession(
   const returnPath = VENDOR_DASHBOARD_PATH;
 
   const paymentIntentData: NonNullable<Stripe.Checkout.SessionCreateParams['payment_intent_data']> =
-    {
-      setup_future_usage: 'off_session',
-    };
+    {};
 
   if (priced.chargesEnabled && priced.stripeConnectAccountId) {
     paymentIntentData.application_fee_amount = Math.round(priced.feeTotal * 100);
@@ -537,6 +535,11 @@ export async function createVendorCheckoutSession(
 
     metadata: { bookingId: booking.id, showId: booking.show_id },
     payment_intent_data: paymentIntentData,
+    // No payment_method_types: the Stripe Dashboard decides which methods show
+    // (card, Apple Pay / Google Pay, Klarna, ...). Card saving for "charge more"
+    // is set per method, not on payment_intent_data — a PaymentIntent-level
+    // setup_future_usage hides Klarna, which cannot be saved for reuse.
+    payment_method_options: SAVE_FOR_CHARGE_MORE,
   });
 
   const paymentIntentId =
