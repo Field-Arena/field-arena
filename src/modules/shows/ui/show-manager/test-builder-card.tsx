@@ -312,6 +312,7 @@ export function TestBuilderCard({
   classes,
   assignedByTemplateId,
   assignedByTemplateName,
+  showId,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
@@ -319,6 +320,9 @@ export function TestBuilderCard({
   classes: TestBuilderClassOption[];
   assignedByTemplateId: Record<string, AssignedClassOption[]>;
   assignedByTemplateName: Record<string, AssignedClassOption[]>;
+  /** The show's slug or id from the URL — the footer's "Continue to Results"
+   * link needs it, or it pointed at /dashboard/shows//results ("Show not found"). */
+  showId: string;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openInstr, setOpenInstr] = useState<Record<string, boolean>>({});
@@ -1041,16 +1045,18 @@ export function TestBuilderCard({
             Click <strong>+ New Test</strong> to start blank, or find one in the official catalog
             below to clone instead of typing it from scratch.
           </li>
-          <li>Fill in the name, level, and discipline, then add each scored item as its own row.</li>
           <li>
-            Click <strong>Save test</strong> — it&apos;s added to your library below, ready to
-            reuse on any show.
+            Fill in the name, level, and discipline, then add each scored item as its own row.
           </li>
           <li>
-            Pick a class from the dropdown next to a saved test and click <strong>Assign</strong>{' '}
-            to put it to use. Assigned the wrong one? Click the <strong>×</strong> next to the
-            class name under &ldquo;Currently used by&rdquo; to remove it, then assign the right
-            test instead.
+            Click <strong>Save test</strong> — it&apos;s added to your library below, ready to reuse
+            on any show.
+          </li>
+          <li>
+            Pick a class from the dropdown next to a saved test and click <strong>Assign</strong> to
+            put it to use. Assigned the wrong one? Click the <strong>×</strong> next to the class
+            name under &ldquo;Currently used by&rdquo; to remove it, then assign the right test
+            instead.
           </li>
         </ol>
 
@@ -1080,7 +1086,7 @@ export function TestBuilderCard({
                 className={cn(
                   'h-auto rounded-full border px-2.5 py-1 text-[12px] font-semibold hover:bg-transparent',
                   catalogLevel === level
-                    ? 'border-[#1A5B3C] text-forest'
+                    ? 'text-forest border-[#1A5B3C]'
                     : 'border-[#E9EDEB] text-[#5A6B63] hover:border-[#C9A227]',
                 )}
               >
@@ -1255,7 +1261,7 @@ export function TestBuilderCard({
         )}
       </Card>
 
-      <SectionFooter currentTab="Test Builder" />
+      <SectionFooter currentTab="Test Builder" showId={showId} />
     </>
   );
 }

@@ -42,7 +42,7 @@ export function SectionFooter({
         )}
       </div>
       <Link
-        href={`/dashboard/shows/${showId ?? ''}${next.path}`}
+        href={showId ? `/dashboard/shows/${showId}${next.path}` : '/dashboard/shows'}
         className={cn(SM_GREEN_BTN, 'ml-auto')}
       >
         Continue to {next.label} →
