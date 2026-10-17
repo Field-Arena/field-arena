@@ -13,6 +13,7 @@ interface CalendlyPayload {
   uri?: string;
   questions_and_answers?: CalendlyQuestion[];
   scheduled_event?: { start_time?: string };
+  text_reminder_number?: string | null;
 }
 interface CalendlyWebhookBody {
   event?: string;
@@ -25,6 +26,11 @@ function answerFor(qanda: CalendlyQuestion[], matchers: string[]): string | null
     return matchers.some((m) => q.includes(m));
   });
   return hit ? (hit.answer ?? '').trim() : null;
+}
+
+/* Empty answers are stored as null, not ''. */
+function blankToNull(value: string | null | undefined): string | null {
+  return value === undefined || value === null || value === '' ? null : value;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -57,6 +63,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const qanda = payload.questions_and_answers ?? [];
   const orgName = answerFor(qanda, ['organization', 'company', 'business']);
   const website = answerFor(qanda, ['website']);
+  const phone =
+    answerFor(qanda, ['phone', 'mobile', 'cell']) ?? payload.text_reminder_number ?? null;
+  // "City, ST" in one answer, or separate city / state questions.
+  const location = answerFor(qanda, ['location', 'where are you', 'based']);
+  const [locCity, locState] = (location ?? '').split(',').map((part) => part.trim());
+  const city = answerFor(qanda, ['city', 'town']) ?? blankToNull(locCity);
+  const state = answerFor(qanda, ['state', 'province']) ?? blankToNull(locState);
   const showsPerYearRaw = answerFor(qanda, [
     'how many shows',
     'shows per year',
@@ -69,6 +82,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     contactName: payload.name ?? null,
     email: payload.email ?? null,
     website: website,
+    phone: blankToNull(phone),
+    city,
+    state,
     showsPerYear: showsPerYear !== null && Number.isFinite(showsPerYear) ? showsPerYear : null,
     calendlyEventUri: payload.event ?? payload.uri ?? null,
     demoAt: payload.scheduled_event?.start_time ?? null,
