@@ -1,15 +1,18 @@
 import { redirect } from 'next/navigation';
 import { DashboardOverview } from '@/modules/staff/ui/dashboard-overview';
+import { DashboardHome } from '@/modules/staff/ui/dashboard-home';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import {
-  getShowAttention,
   getShowInventory,
   getShowStage,
   getShowStats,
   listShowsForPicker,
 } from '@/modules/shows/data/queries';
+import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { selectUpcomingShows, todayIsoInZone } from '@/modules/staff/utils';
+import { todayIsoInZone } from '@/modules/staff/utils';
+import { daysUntilShow, pickCurrentShows } from '@/modules/shows/utils/current-shows';
+import { toDashboardShowRows } from '@/modules/shows/utils/dashboard-show-rows';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 
 export default async function DashboardPage({
@@ -28,34 +31,33 @@ export default async function DashboardPage({
     }
   }
 
-  const pickerShows = context.orgId ? await listShowsForPicker(context.orgId) : [];
-  const todayIso = todayIsoInZone();
-  const upcomingShows = selectUpcomingShows(pickerShows, todayIso);
+  const dashboardShows = context.orgId
+    ? toDashboardShowRows(await listShowsForPicker(context.orgId))
+    : [];
+  const today = todayIsoInZone();
 
-  if (!context.currentShow) {
-    return (
-      <DashboardOverview
-        orgName={context.orgName}
-        shows={context.shows}
-        upcomingShows={upcomingShows}
-        todayIso={todayIso}
-        currentShow={null}
-        stats={null}
-        inventory={[]}
-        stage="setup"
-        rings={[]}
-        canViewMoney={context.canViewMoney}
-      />
+  // No show picked: the home view — the current shows and their to-dos.
+  if (!requestedShowId || !context.currentShow) {
+    const current = pickCurrentShows(dashboardShows, today);
+    const homeShows = await Promise.all(
+      current.map(async (show) => {
+        const daysOut = daysUntilShow(show, today);
+        const { todos, documents } = await getShowTodos(show, daysOut);
+        return { show, daysOut, todos, documents };
+      }),
     );
+    return <DashboardHome orgName={context.orgName} shows={homeShows} />;
   }
 
+  const currentShow = context.currentShow;
+  const daysOut = daysUntilShow(currentShow, today);
   const supabase = await createServerClient();
-  const [stats, inventory, stage, attention, { data: showRow }] = await Promise.all([
-    getShowStats(context.currentShow.id),
-    getShowInventory(context.currentShow.id),
-    getShowStage(context.currentShow.id),
-    getShowAttention(context.currentShow.id),
-    supabase.from('shows').select('locations').eq('id', context.currentShow.id).single(),
+  const [stats, inventory, stage, { todos, documents }, { data: showRow }] = await Promise.all([
+    getShowStats(currentShow.id),
+    getShowInventory(currentShow.id),
+    getShowStage(currentShow.id),
+    getShowTodos(currentShow, daysOut),
+    supabase.from('shows').select('locations').eq('id', currentShow.id).single(),
   ]);
 
   const rings = ((showRow?.locations ?? []) as { name?: string; num?: number }[])
@@ -66,14 +68,13 @@ export default async function DashboardPage({
     <DashboardOverview
       orgName={context.orgName}
       shows={context.shows}
-      upcomingShows={upcomingShows}
-      todayIso={todayIso}
-      currentShow={context.currentShow}
+      currentShow={currentShow}
       stats={stats}
       inventory={inventory}
       stage={stage}
       rings={rings}
-      attention={attention}
+      todos={todos}
+      documents={documents}
       canViewMoney={context.canViewMoney}
     />
   );

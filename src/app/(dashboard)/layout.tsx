@@ -10,6 +10,8 @@ import { getSelectedOrg, getOrganizationName } from '@/modules/staff/data/org-se
 import { getUserWorkspaceRoles } from '@/modules/staff/data/workspace-roles';
 import { getRailRole } from '@/shared/lib/rail-role';
 import { listOrganizerOptions } from '@/modules/superadmin/data/queries';
+import { listShowsForPicker } from '@/modules/shows/data/queries';
+import { toDashboardShowRows } from '@/modules/shows/utils/dashboard-show-rows';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -89,6 +91,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const availableRoles =
     role === 'SuperAdmin' || impersonating ? [] : await getUserWorkspaceRoles(profile);
 
+  // The show tabs need the org's shows. A tab strip is a convenience: if the
+  // list can't be loaded the workspace still renders, just without tabs.
+  const shellOrgId = impersonating ?? selectedOrgId;
+  const shellShows =
+    (shellRole === 'Organizer' || shellRole === 'ShowAdmin') && shellOrgId
+      ? toDashboardShowRows(await listShowsForPicker(shellOrgId).catch(() => []))
+      : [];
+
   return (
     <OrganizerShell
       profile={profile}
@@ -100,6 +110,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       selectedOrgId={selectedOrgId}
       memberOrgs={memberOrgs}
       availableRoles={availableRoles}
+      shows={shellShows}
     >
       {children}
     </OrganizerShell>
