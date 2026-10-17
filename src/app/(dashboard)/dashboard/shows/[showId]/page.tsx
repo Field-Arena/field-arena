@@ -7,7 +7,6 @@ import {
   listStaff,
   completenessFromLoadedShow,
 } from '@/modules/shows/data/setup-queries';
-import { ReadinessMeter } from '@/modules/shows/ui/show-manager/readiness-meter';
 import { ShowDetailsCard } from '@/modules/shows/ui/show-manager/show-details-card';
 import { VenueCard } from '@/modules/shows/ui/show-manager/venue-card';
 import { ContactCard } from '@/modules/shows/ui/show-manager/contact-card';
@@ -50,7 +49,6 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
 
   return (
     <>
-      <ReadinessMeter completeness={completeness} />
       <ShareShowLink
         url={`${env.siteUrl}/show/${show.slug ?? show.id}`}
         browseUrl={`${env.siteUrl}${ROUTES.browseShows}`}
@@ -100,7 +98,7 @@ export default async function ShowManagerPage({ params }: { params: Promise<{ sh
         showId={showId}
         blockedReason={
           nextIncompleteSection
-            ? `${nextIncompleteSection.name} still needs attention — see Setup Readiness above.`
+            ? `${nextIncompleteSection.name} still needs attention — see Needs you above.`
             : null
         }
       />

@@ -4,6 +4,7 @@ import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowManagerVitals } from '@/modules/shows/data/queries';
+import { getShowManagerOverview } from '@/modules/shows/data/show-manager-overview';
 
 /* Renders the Show Manager shell (title, tab strip, lifecycle, stats) once
  * per show instead of once per tab -- previously every one of the 8 tab
@@ -32,20 +33,27 @@ export default async function ShowManagerLayout({
     );
   }
 
-  const [context, vitals] = await Promise.all([
+  const [context, vitals, overview] = await Promise.all([
     getOrganizerContext(header.id),
     getShowManagerVitals(header.id),
+    getShowManagerOverview(header.id),
   ]);
+
+  if (!overview) {
+    return (
+      <EmptyPanel
+        title="Show not found"
+        note="This show doesn't exist, or you don't have access to it."
+      />
+    );
+  }
 
   return (
     <ShowManagerShell
       showId={showId}
-      showName={header.name}
-      orgName={context.orgName}
       shows={context.shows}
-      stats={vitals.stats}
       stage={vitals.stage}
-      canViewMoney={context.canViewMoney}
+      overview={overview}
     >
       {children}
     </ShowManagerShell>

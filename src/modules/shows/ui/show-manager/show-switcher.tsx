@@ -1,8 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { GhostButton } from '@/shared/ui/organizer/buttons';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
 export function ShowSwitcher({
@@ -15,34 +13,24 @@ export function ShowSwitcher({
   tabPath: string;
 }) {
   const router = useRouter();
-  const [pending, setPending] = useState<string | null>(null);
+  const current = shows.find((s) => s.id === currentShowId || s.slug === currentShowId);
 
+  // Picking a show opens it straight away -- no separate Switch button.
   return (
-    <div className="contents">
-      <select
-        value={pending ?? currentShowId}
-        onChange={(e) => {
-          setPending(e.target.value);
-        }}
-        className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
-        aria-label="Select show"
-      >
-        {shows.map((show) => (
-          <option key={show.id} value={show.slug ?? show.id}>
-            {show.name}
-            {show.dateLabel ? ` (${show.dateLabel})` : ''}
-          </option>
-        ))}
-      </select>
-      <GhostButton
-        type="button"
-        disabled={!pending || pending === currentShowId}
-        onClick={() => {
-          if (pending) router.push(`/dashboard/shows/${pending}${tabPath}`);
-        }}
-      >
-        Switch
-      </GhostButton>
-    </div>
+    <select
+      value={current ? (current.slug ?? current.id) : currentShowId}
+      onChange={(e) => {
+        router.push(`/dashboard/shows/${e.target.value}${tabPath}`);
+      }}
+      className="text-ink-deep max-w-full min-w-0 flex-[0_1_380px] rounded-[10px] border-2 border-[#C9D3CE] bg-white px-3 py-2 text-[14px] font-semibold"
+      aria-label="Go to another show"
+    >
+      {shows.map((show) => (
+        <option key={show.id} value={show.slug ?? show.id}>
+          {show.name}
+          {show.dateLabel ? ` (${show.dateLabel})` : ''}
+        </option>
+      ))}
+    </select>
   );
 }
