@@ -56,8 +56,15 @@
      --ws-text-3      was #7A8781 / #98A29D — fine print, timestamps, empty states
      --ws-text-faint  was #B4BFB9 / #C4CDC8 — zero values, disabled tabs
      --ws-placeholder input placeholders, kept clearly lighter than typed text */
+/* Headlines are Fraunces (owner's call, replacing the earlier Courier Prime).
+   next/font sets --font-fraunces on <html>; it's captured there because the
+   block below re-points --font-fraunces itself at --ws-type, and reading it
+   back on the same element would be circular. */
+html {
+  --ws-fraunces: var(--font-fraunces);
+}
 body:has(.dash) {
-  --ws-type: var(--font-courier-prime), 'Courier Prime', 'Courier New', Courier, monospace;
+  --ws-type: var(--ws-fraunces), 'Fraunces', Georgia, 'Times New Roman', serif;
   --ws-body: var(--font-plex-sans), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
 
   --ws-text: #111813;

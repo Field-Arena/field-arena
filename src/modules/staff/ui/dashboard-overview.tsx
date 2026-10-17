@@ -13,6 +13,7 @@ import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data
 import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
 import { TodoList } from './todo-list';
 import { DocumentStatusChips } from './document-status-chips';
+import { STAGE_LABEL, whenLabel } from './dashboard-home';
 
 export function DashboardOverview({
   orgName,
@@ -24,6 +25,7 @@ export function DashboardOverview({
   rings,
   todos = [],
   documents = null,
+  daysOut = null,
   canViewMoney,
 }: {
   orgName: string;
@@ -36,6 +38,7 @@ export function DashboardOverview({
 
   todos?: DashboardTodo[];
   documents?: ShowDocumentSummary | null;
+  daysOut?: number | null;
   canViewMoney: boolean;
 }) {
   const currentIndex = SHOW_STAGES.findIndex((s) => s.key === stage);
@@ -60,17 +63,43 @@ export function DashboardOverview({
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <div className="mb-5">
-        <ScreenTitle className="mb-1.5">{currentShow.name}</ScreenTitle>
-        <p className="text-[13.5px] text-[#5A6B63]">
-          {[currentShow.dateLabel, currentShow.venueName].filter(Boolean).join(' · ') ||
-            'No dates set yet'}
+      <div className="mb-6">
+        <h1 className="m-0 text-[32px] leading-tight font-extrabold text-[#0D2C23]">
+          {currentShow.name}
+        </h1>
+        <p className="mt-1.5 mb-0 text-[16px] font-semibold text-[#16261F]">
+          {[
+            currentShow.dateLabel,
+            currentShow.venueName,
+            STAGE_LABEL[stage] ?? stage,
+            whenLabel(daysOut),
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'No dates set yet'}
         </p>
       </div>
 
-      <div className="fa-aside-card mb-[18px]">
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-          <h4 className="m-0">To-do</h4>
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        {[
+          { label: 'Entries', value: stats.entries },
+          { label: 'Horses', value: stats.horses },
+          { label: 'Open to-dos', value: todos.length },
+        ].map((tile) => (
+          <div
+            key={tile.label}
+            className="rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white px-5 py-4"
+          >
+            <div className="text-[14px] font-bold text-[#5A6B63]">{tile.label}</div>
+            <div className="mt-1 text-[32px] leading-none font-extrabold text-[#0D2C23]">
+              {tile.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-8 rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white p-5">
+        <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="m-0 text-[22px] font-extrabold text-[#0D2C23]">To-do</h2>
           {documents && <DocumentStatusChips documents={documents} />}
         </div>
         <TodoList todos={todos} />
