@@ -9,40 +9,33 @@ import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/o
 import { DashIcon } from '@/shared/ui/dash-icon';
 import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
-import type {
-  AttentionItem,
-  InventoryRow,
-  ShowListItem,
-  ShowPickerSummary,
-  ShowStats,
-} from '@/modules/shows/data/queries';
-import { AttentionCard } from './attention-card';
-import { UpcomingShowsCard } from './upcoming-shows-card';
+import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
+import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
+import { TodoList } from './todo-list';
+import { DocumentStatusChips } from './document-status-chips';
 
 export function DashboardOverview({
   orgName,
   shows,
-  upcomingShows,
-  todayIso,
   currentShow,
   stats,
   inventory,
   stage,
   rings,
-  attention = [],
+  todos = [],
+  documents = null,
   canViewMoney,
 }: {
   orgName: string;
   shows: ShowListItem[];
-  upcomingShows: ShowPickerSummary[];
-  todayIso: string;
   currentShow: ShowListItem | null;
   stats: ShowStats | null;
   inventory: InventoryRow[];
   stage: string;
   rings: string[];
 
-  attention?: AttentionItem[];
+  todos?: DashboardTodo[];
+  documents?: ShowDocumentSummary | null;
   canViewMoney: boolean;
 }) {
   const currentIndex = SHOW_STAGES.findIndex((s) => s.key === stage);
@@ -68,15 +61,20 @@ export function DashboardOverview({
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <div className="mb-5">
-        <ScreenTitle className="mb-1.5">Dashboard</ScreenTitle>
-        <p className="text-[13.5px] text-[#5A6B63]">Everything across your shows, in one place.</p>
+        <ScreenTitle className="mb-1.5">{currentShow.name}</ScreenTitle>
+        <p className="text-[13.5px] text-[#5A6B63]">
+          {[currentShow.dateLabel, currentShow.venueName].filter(Boolean).join(' · ') ||
+            'No dates set yet'}
+        </p>
       </div>
 
-      <UpcomingShowsCard
-        shows={upcomingShows}
-        currentShowId={currentShow.id}
-        todayIso={todayIso}
-      />
+      <div className="fa-aside-card mb-[18px]">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+          <h4 className="m-0">To-do</h4>
+          {documents && <DocumentStatusChips documents={documents} />}
+        </div>
+        <TodoList todos={todos} />
+      </div>
 
       <Eyebrow className="mb-2.5 block">Show lifecycle</Eyebrow>
       <Card className="mb-[18px] flex flex-wrap items-center gap-2.5 p-[14px_18px]">
@@ -100,8 +98,6 @@ export function DashboardOverview({
           </span>
         ))}
       </Card>
-
-      <AttentionCard items={attention} />
 
       <Card className="mb-[18px] p-[16px_18px_18px]">
         <div className="mb-3.5 flex flex-wrap items-center gap-3">

@@ -24,6 +24,8 @@ import {
   ROLE_WORKSPACES,
   type RoleWorkspace,
 } from '@/shared/constants/role-workspaces';
+import { ShowTabs } from './show-tabs';
+import type { DashboardShowRow } from '@/modules/shows/types';
 
 export function OrganizerShell({
   children,
@@ -36,6 +38,7 @@ export function OrganizerShell({
   selectedOrgId = null,
   memberOrgs = [],
   availableRoles = [],
+  shows = [],
 }: {
   children: ReactNode;
   profile: StaffProfile;
@@ -53,6 +56,8 @@ export function OrganizerShell({
   memberOrgs?: MemberOrg[];
 
   availableRoles?: string[];
+  /** The org's shows, for the show tabs (Organizer/Show Admin only). */
+  shows?: DashboardShowRow[];
 }) {
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
@@ -341,6 +346,9 @@ export function OrganizerShell({
           <span className="dash-badge">{activeRailRole}</span>
           <span className="dash-topbar-note">{activeWorkspace.hint}</span>
         </header>
+        {(activeRailRole === 'Organizer' || activeRailRole === 'ShowAdmin') && shows.length > 0 && (
+          <ShowTabs shows={shows} />
+        )}
         <main className="dash-content">{children}</main>
       </div>
     </div>

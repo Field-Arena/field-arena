@@ -724,3 +724,93 @@ body:has(.dash) ::placeholder {
     padding: 0;
   }
 }
+
+/* ── Show tabs, home and to-do list (feat/dashboard-show-tabs) ──────────────
+   The new dashboard pieces are written against the redesign's fa-* tokens
+   (dev branch). On this branch those tokens don't exist yet, so they're
+   mapped onto the current organizer palette here. */
+.dash {
+  --fa-ink: #16261f;
+  --fa-ink-2: #5a6b63;
+  --fa-ink-3: #7a8781;
+  --fa-line: #e9edeb;
+  --fa-line-soft: #edf0ee;
+  --fa-surface: #ffffff;
+  --fa-brand: #1a5b3c;
+  --fa-emerald: #1a5b3c;
+  --fa-emerald-tint: #e9f4ee;
+  --fa-red: #b4432f;
+  --fa-red-tint: #fdeeeb;
+  --fa-amber: #8a6d14;
+  --fa-amber-tint: #fcf3e4;
+  --fa-shadow-md: 0 2px 4px rgba(16, 40, 32, 0.05), 0 16px 34px -18px rgba(16, 40, 32, 0.2);
+}
+.dash .fa-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dash .fa-page-head h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--fa-ink);
+}
+.dash .fa-page-head p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fa-ink-2);
+}
+.dash .fa-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash .fa-aside-card,
+.dash .fa-mini-card {
+  background: #fff;
+  border: 1px solid var(--fa-line-soft);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow:
+    0 1px 2px rgba(16, 40, 32, 0.04),
+    0 10px 26px -16px rgba(16, 40, 32, 0.14);
+  color: var(--fa-ink);
+}
+.dash .fa-aside-card h4,
+.dash .fa-mini-card h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fa-ink);
+}
+.dash .fa-mini-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fa-ink-2);
+}
+.dash .fa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9px;
+  border: 1px solid var(--fa-line);
+  background: #fff;
+  color: var(--fa-ink);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dash .fa-btn:hover {
+  border-color: #c9d3ce;
+  background: #f8faf9;
+}
+.dash .fa-btn-sm {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
