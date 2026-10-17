@@ -14,6 +14,7 @@ import { ScheduleClashesCard } from '@/modules/shows/ui/schedule/schedule-clashe
 import { PublishScheduleButton } from '@/modules/shows/ui/schedule/publish-schedule-button';
 import { DayButton } from '@/modules/shows/ui/schedule/day-button';
 import { RingSchedule } from '@/modules/shows/ui/schedule/ring-schedule';
+import { RunningOrderView } from '@/modules/shows/ui/schedule/running-order-view';
 import { riderDayFlags } from '@/modules/shows/utils/rider-day-flags';
 import { dayDate } from '@/modules/shows/utils/day-date';
 
@@ -22,11 +23,42 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
 
   const totalDays = Math.max(1, ...schedule.arenas.flatMap((a) => a.items.map((it) => it.day + 1)));
   const [filterDay, setFilterDay] = useState<number | null>(null);
+  // Running order is the everyday view; the ring editor is where rides are
+  // reordered, timed, moved and scratched.
+  const [view, setView] = useState<'order' | 'edit'>('order');
   const flags = riderDayFlags(schedule.arenas);
 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2.5 print:hidden">
+        <div
+          role="tablist"
+          aria-label="Schedule view"
+          className="inline-flex rounded-[10px] border-2 border-[#C9D3CE] bg-white p-0.5"
+        >
+          {(
+            [
+              ['order', 'Running order'],
+              ['edit', 'Edit by ring'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => {
+                setView(key);
+              }}
+              className={`cursor-pointer rounded-[8px] px-3.5 py-1.5 text-[13.5px] font-bold ${
+                view === key ? 'bg-[#1A5B3C] text-white' : 'text-[#16261F]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <Button
           type="button"
           variant="ghost"
@@ -71,11 +103,13 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
         </span>
       </div>
 
-      <div className="print:hidden">
-        <ScheduleClashesCard schedule={schedule} />
-        <ScheduleRulesCard data={data} />
-        <ScheduleKeyCard />
-      </div>
+      {view === 'edit' && (
+        <div className="print:hidden">
+          <ScheduleClashesCard schedule={schedule} />
+          <ScheduleRulesCard data={data} />
+          <ScheduleKeyCard />
+        </div>
+      )}
 
       {totalDays > 1 && (
         <div className="mb-4 flex flex-wrap gap-1.5 print:hidden">
@@ -101,16 +135,20 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
         </div>
       )}
 
-      {schedule.arenas.map((arena) => (
-        <RingSchedule
-          key={arena.ring}
-          arena={arena}
-          data={data}
-          filterDay={filterDay}
-          totalDays={totalDays}
-          flags={flags}
-        />
-      ))}
+      {view === 'order' ? (
+        <RunningOrderView data={data} filterDay={filterDay} />
+      ) : (
+        schedule.arenas.map((arena) => (
+          <RingSchedule
+            key={arena.ring}
+            arena={arena}
+            data={data}
+            filterDay={filterDay}
+            totalDays={totalDays}
+            flags={flags}
+          />
+        ))
+      )}
     </div>
   );
 }
