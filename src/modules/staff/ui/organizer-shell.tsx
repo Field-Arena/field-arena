@@ -24,6 +24,7 @@ import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
 import { useDismiss } from '@/shared/hooks/use-dismiss';
 import { ImpersonationBanner } from './impersonation-banner';
+import { ShowTabs } from './show-tabs';
 import { useSignOut } from '@/modules/auth/public';
 import type { StaffProfile } from '@/shared/types/auth';
 import type { DashboardShowRow } from '@/modules/shows/types';
@@ -592,26 +593,6 @@ export function OrganizerShell({
             </div>
           )}
 
-          {isOrganizerWorkspace && shows.length > 0 && (
-            <div className="fa-org-switch">
-              <span className="fa-lab">Show</span>
-              <select
-                aria-label="Focused show"
-                value={focusedShow?.slug ?? focusedShow?.id ?? ''}
-                onChange={(e) => {
-                  pickShow(e.target.value);
-                }}
-              >
-                {shows.map((show) => (
-                  <option key={show.id} value={show.slug ?? show.id}>
-                    {show.dateLabel ? `${show.name} · ${show.dateLabel}` : show.name}
-                  </option>
-                ))}
-                <option value="__new">+ New Show…</option>
-              </select>
-            </div>
-          )}
-
           <button
             type="button"
             className="fa-icon-btn"
@@ -652,6 +633,9 @@ export function OrganizerShell({
             )}
           </div>
         </header>
+        {isOrganizerWorkspace && shows.length > 0 && (
+          <ShowTabs shows={shows} focusedShowId={focusedShow?.id ?? null} onPickShow={pickShow} />
+        )}
         <main className="fa-content">{children}</main>
       </div>
     </div>

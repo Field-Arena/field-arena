@@ -214,7 +214,7 @@ export async function listDashboardShows(orgId: string): Promise<DashboardShowRo
 
   const { data: shows, error } = await supabase
     .from('shows')
-    .select('id, slug, name, date_label, published, runner_state')
+    .select('id, slug, name, date_label, start_date, end_date, published, runner_state')
     .eq('org_id', orgId)
     .order('start_date', { ascending: false });
   if (error) throw error;
@@ -275,6 +275,8 @@ export async function listDashboardShows(orgId: string): Promise<DashboardShowRo
       slug: show.slug,
       name: show.name,
       dateLabel: show.date_label,
+      startDate: show.start_date,
+      endDate: show.end_date,
       stage,
       riderCount: ridersByShow.get(show.id)?.size ?? 0,
     };

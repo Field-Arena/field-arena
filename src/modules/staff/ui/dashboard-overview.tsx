@@ -5,14 +5,16 @@ import { formatMoney } from '@/shared/lib/format/currency';
 import { formatRelative } from '@/shared/lib/format/date';
 import type {
   ActivityItem,
-  AttentionItem,
   DashboardReadiness,
+  DashboardTodo,
+  ShowDocumentSummary,
   DashboardShowRow,
   InventoryRow,
   ShowListItem,
   ShowStats,
 } from '@/modules/shows/types';
-import { AttentionCards } from './attention-card';
+import { TodoList } from './todo-list';
+import { DocumentStatusChips } from './document-status-chips';
 import { DashboardShowsTable } from './dashboard-shows-table';
 import { DashboardReadinessCard } from './dashboard-readiness-card';
 
@@ -28,7 +30,6 @@ const CalendarIcon = () => (
 
 export function DashboardOverview({
   orgName,
-  shows,
   dashboardShows,
   currentShow,
   stats,
@@ -36,12 +37,12 @@ export function DashboardOverview({
   stage,
   readiness,
   rings,
-  attention = [],
+  todos = [],
+  documents = null,
   activity = [],
   canViewMoney,
 }: {
   orgName: string;
-  shows: ShowListItem[];
   dashboardShows: DashboardShowRow[];
   currentShow: ShowListItem | null;
   stats: ShowStats | null;
@@ -49,7 +50,8 @@ export function DashboardOverview({
   stage: string;
   readiness: DashboardReadiness | null;
   rings: string[];
-  attention?: AttentionItem[];
+  todos?: DashboardTodo[];
+  documents?: ShowDocumentSummary | null;
   activity?: ActivityItem[];
   canViewMoney: boolean;
 }) {
@@ -74,17 +76,16 @@ export function DashboardOverview({
     );
   }
 
-  const incompleteCount = shows.filter((s) => !s.published).length;
   const showRef = currentShow.slug ?? currentShow.id;
 
   return (
     <section>
       <div className="fa-page-head">
         <div>
-          <h2>Dashboard</h2>
+          <h2>{currentShow.name}</h2>
           <p>
-            Everything across your shows in one place. Focused show: <b>{currentShow.name}</b>
-            {currentShow.dateLabel && ` · ${currentShow.dateLabel}`}.
+            {[currentShow.dateLabel, currentShow.venueName].filter(Boolean).join(' · ') ||
+              'No dates set yet'}
           </p>
         </div>
         <div className="fa-head-actions">
@@ -100,7 +101,13 @@ export function DashboardOverview({
         </div>
       </div>
 
-      <AttentionCards items={attention} incompleteCount={incompleteCount} />
+      <div className="fa-aside-card mb-6">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+          <h4 className="m-0">To-do</h4>
+          {documents && <DocumentStatusChips documents={documents} />}
+        </div>
+        <TodoList todos={todos} />
+      </div>
 
       <div className="mb-6">
         <ShowStatsRow stats={stats} canViewMoney={canViewMoney} showId={showRef} />
