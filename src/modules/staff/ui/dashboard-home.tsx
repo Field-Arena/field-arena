@@ -97,11 +97,22 @@ function TicketRow({ tickets }: { tickets: TicketSales }) {
   );
 }
 
-/* "Waivers approved 89% · 80 of 90" with a bar, red until complete. */
+/* Owner's colour scale for how much of a requirement is approved:
+ * 50% or less red, 51–75% yellow, 76–90% light green, over 90% dark green.
+ * Text uses a darker shade of each so it stays readable on white. */
+export function approvalTone(pct: number | null): { text: string; bar: string } {
+  if (pct === null) return { text: 'text-[#5A6B63]', bar: 'bg-[#EDF0EE]' };
+  if (pct <= 50) return { text: 'text-[#B4432F]', bar: 'bg-[#B4432F]' };
+  if (pct <= 75) return { text: 'text-[#9A6B00]', bar: 'bg-[#E0A800]' };
+  if (pct <= 90) return { text: 'text-[#3E8E5A]', bar: 'bg-[#6CC08B]' };
+  return { text: 'text-[#1A5B3C]', bar: 'bg-[#1A5B3C]' };
+}
+
+/* "Waivers approved 89% · 80 of 90" with a bar, coloured by approvalTone. */
 function ApprovalStat({ label, done, total }: { label: string; done: number; total: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : null;
-  const complete = pct === 100;
-  const color = pct === null ? 'text-[#5A6B63]' : complete ? 'text-[#1A5B3C]' : 'text-[#B4432F]';
+  const tone = approvalTone(pct);
+  const color = tone.text;
   return (
     <div>
       <div className="text-[12.5px] font-semibold text-[#5A6B63]">{label}</div>
@@ -113,10 +124,7 @@ function ApprovalStat({ label, done, total }: { label: string; done: number; tot
       </div>
       <div className="mt-1.5 h-[7px] rounded bg-[#EDF0EE]">
         {pct !== null && (
-          <i
-            className={`block h-[7px] rounded ${complete ? 'bg-[#1A5B3C]' : 'bg-[#B4432F]'}`}
-            style={{ width: `${String(pct)}%` }}
-          />
+          <i className={`block h-[7px] rounded ${tone.bar}`} style={{ width: `${String(pct)}%` }} />
         )}
       </div>
     </div>

@@ -10,7 +10,7 @@ import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data
 import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
 import { TodoList } from './todo-list';
 import { DocumentStatusChips } from './document-status-chips';
-import { STAGE_LABEL, whenLabel } from './dashboard-home';
+import { STAGE_LABEL, approvalTone, whenLabel } from './dashboard-home';
 
 export function DashboardOverview({
   orgName,
@@ -120,7 +120,9 @@ export function DashboardOverview({
               ].map((c) => (
                 <span
                   key={c.label}
-                  className={c.done < c.total ? 'text-[#B4432F]' : 'text-[#1A5B3C]'}
+                  className={
+                    approvalTone(c.total > 0 ? Math.round((c.done / c.total) * 100) : null).text
+                  }
                 >
                   {c.label} {c.done}/{c.total}
                 </span>
