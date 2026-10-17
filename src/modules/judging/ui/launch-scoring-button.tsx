@@ -1,13 +1,12 @@
 import Link from 'next/link';
+import { cn } from '@/shared/lib/utils';
+import { FA_BTN, FA_BTN_PRIMARY } from '@/shared/ui/organizer/fa-page';
 
 export function LaunchScoringButton({ active, classId }: { active: boolean; classId: string }) {
   if (!active) {
     return (
-      <span
-        className="flex-none rounded-[9px] bg-[#F1F4F3] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#B4BFB9]"
-        aria-hidden
-      >
-        Launch Scoring →
+      <span className={cn(FA_BTN, 'flex-none cursor-not-allowed opacity-50')} aria-hidden>
+        Launch scoring
       </span>
     );
   }
@@ -16,9 +15,9 @@ export function LaunchScoringButton({ active, classId }: { active: boolean; clas
     <Link
       href={`/dashboard/scoring/${classId}`}
       prefetch={false}
-      className="hover:bg-gold flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#F5F7F6] transition-colors hover:text-[#0D2C23]"
+      className={cn(FA_BTN_PRIMARY, 'flex-none')}
     >
-      Launch Scoring →
+      Launch scoring →
     </Link>
   );
 }

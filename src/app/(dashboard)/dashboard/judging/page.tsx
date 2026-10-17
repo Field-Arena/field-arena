@@ -11,11 +11,20 @@ import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel
 import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
 import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
 import { isAssignmentComplete } from '@/modules/judging/utils/is-assignment-complete';
-import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
+import { todayRingLabel } from '@/modules/judging/utils/today-ring-label';
+import { PanelPopoverButton } from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
-import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
-import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
+import { formatDateShort } from '@/shared/lib/format/date';
+import { LiveClock } from '@/shared/ui/organizer/live-clock';
+import {
+  EmptyState,
+  FA_BTN,
+  PageHeader,
+  SectionLabel,
+  StatBox,
+  StatGrid,
+} from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
@@ -42,50 +51,63 @@ export default async function JudgingPage() {
 
   const today = assignments.filter((a) => classifyAssignment(a, todayIso) === 'today');
   const upcoming = assignments.filter((a) => classifyAssignment(a, todayIso) === 'upcoming');
-  const upcomingCount = today.length + upcoming.length;
+  const completedCount = assignments.filter(
+    (a) => classifyAssignment(a, todayIso) === 'history',
+  ).length;
+  const nextUpcoming = upcoming[0];
+  const nextUpcomingDate = nextUpcoming
+    ? formatDateShort(nextUpcoming.classDate) || formatDateShort(nextUpcoming.showDate)
+    : '';
 
   return (
     <>
-      <div className="mb-[22px] flex flex-wrap items-start justify-between gap-5">
-        <div>
-          <ScreenTitle>My Assignments</ScreenTitle>
-          <ScreenLede className="mb-0">
-            Today&apos;s ring times and every show you&apos;re on the panel for.
-          </ScreenLede>
-        </div>
-        <StatusPill bg="#FFFFFF" border="#E9EDEB" fg="#16261F" icon={<GoldDot />}>
-          {roleLabel} · {upcomingCount} upcoming assignment{upcomingCount === 1 ? '' : 's'}
-        </StatusPill>
-      </div>
+      <PageHeader
+        eyebrow={
+          <>
+            {roleLabel} · <LiveClock /> · Today&apos;s ring times and every show you&apos;re on the
+            panel for
+          </>
+        }
+        title="My Assignments"
+        actions={
+          <>
+            <PanelPopoverButton contacts={contacts} />
+            {today.length > 0 && (
+              <Link href="/dashboard/judging/results" prefetch={false} className={FA_BTN}>
+                🏆 View results
+              </Link>
+            )}
+          </>
+        }
+      />
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
-      <JudgingStatusCard rings={rings} contacts={contacts} assignmentsToday={assignmentsToday} />
-
-      {today.length > 0 && (
-        <Link
-          href="/dashboard/judging/results"
-          className="hover:text-gold mb-3.5 inline-block text-[13px] font-semibold text-[#5A6B63]"
-        >
-          🏆 View Results
-        </Link>
-      )}
+      <StatGrid cols={3}>
+        <StatBox
+          label="Today"
+          value={`${String(today.length)} class${today.length === 1 ? '' : 'es'}`}
+          note={todayRingLabel(rings, assignmentsToday)}
+        />
+        <StatBox
+          label="Upcoming"
+          value={upcoming.length}
+          note={nextUpcomingDate ? `next: ${nextUpcomingDate}` : 'nothing scheduled yet'}
+        />
+        <StatBox label="Completed" value={completedCount} note="on this platform" />
+      </StatGrid>
 
       {assignments.length === 0 ? (
-        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
-          You are not on any class panel. An organizer assigns a {roleLabel.toLowerCase()} to a
-          class from ShowManager, and it appears here once they do.
-        </Card>
+        <EmptyState
+          title="You are not on any class panel"
+          note={`An organizer assigns a ${roleLabel.toLowerCase()} to a class from ShowManager, and it appears here once they do.`}
+        />
       ) : (
         <>
-          <h3 className="text-ink-deep mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold">
-            Today&apos;s Ring Times
-          </h3>
-          <div className="mb-8 flex flex-col gap-3">
+          <SectionLabel>Today</SectionLabel>
+          <div className="mb-2 flex flex-col gap-2.5">
             {today.length === 0 ? (
-              <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
-                Nothing on the panel for you today.
-              </Card>
+              <EmptyState title="Nothing on the panel for you today." />
             ) : (
               today.map((a) => (
                 <AssignmentCard
@@ -98,14 +120,10 @@ export default async function JudgingPage() {
             )}
           </div>
 
-          <h3 className="text-ink-deep mb-3.5 font-[Newsreader,serif] text-[19px] font-semibold">
-            Upcoming
-          </h3>
-          <div className="flex flex-col gap-3">
+          <SectionLabel>Upcoming</SectionLabel>
+          <div className="flex flex-col gap-2.5">
             {upcoming.length === 0 ? (
-              <Card className="p-[24px_20px] text-[13.5px] text-[#7A8781]">
-                Nothing else scheduled yet.
-              </Card>
+              <EmptyState title="Nothing else scheduled yet." />
             ) : (
               upcoming.map((a) => (
                 <AssignmentCard
@@ -120,8 +138,4 @@ export default async function JudgingPage() {
       )}
     </>
   );
-}
-
-function GoldDot() {
-  return <span className="bg-gold size-2 rounded-full" />;
 }

@@ -53,10 +53,12 @@ function DocCell({
   doc,
   showId,
   horseId,
+  readOnly,
 }: {
   doc: HorseDocumentStatus | undefined;
   showId: string;
   horseId: string | null;
+  readOnly: boolean;
 }) {
   const review = useReviewHorseDocument();
   if (!doc) return <span className="text-[12px] text-[#98A29D]">Not required</span>;
@@ -108,7 +110,7 @@ function DocCell({
               View
             </a>
           )}
-          {horseId && (
+          {horseId && !readOnly && (
             <>
               <button
                 type="button"
@@ -280,10 +282,13 @@ export function HorsesScreen({
   data,
   stableChartSummary,
   publicId,
+  readOnly = false,
 }: {
   data: HorsesPageData;
   stableChartSummary: StableChartSummary | null;
   publicId?: string;
+  /** Show staff view: hides adding horses, document review, reminders and the stable-chart editor link. */
+  readOnly?: boolean;
 }) {
   const { showId, showName, requirements, rows } = data;
   const [filter, setFilter] = useState<Filter>('all');
@@ -380,26 +385,28 @@ export function HorsesScreen({
           </div>
           <h1 className="mt-1 mb-0 text-[30px] font-bold">Horses</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}&from=horses`}
-            prefetch={false}
-            className="inline-flex h-10 items-center rounded-[9px] border-2 border-[#1A5B3C] bg-white px-3.5 text-[13.5px] font-bold text-[#1A5B3C] no-underline"
-          >
-            🏠 Stable chart
-          </Link>
-          <AddHorseDialog showId={showId} />
-          <button
-            type="button"
-            disabled={queue.length === 0}
-            onClick={() => {
-              setReviewing(true);
-            }}
-            className="inline-flex h-10 cursor-pointer items-center rounded-[9px] border-2 border-[#1A5B3C] bg-[#1A5B3C] px-3.5 text-[13.5px] font-bold text-white disabled:cursor-default disabled:opacity-50"
-          >
-            Review documents ({queue.length})
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/dashboard/horses/stable-chart?show=${publicId ?? showId}&from=horses`}
+              prefetch={false}
+              className="inline-flex h-10 items-center rounded-[9px] border-2 border-[#1A5B3C] bg-white px-3.5 text-[13.5px] font-bold text-[#1A5B3C] no-underline"
+            >
+              🏠 Stable chart
+            </Link>
+            <AddHorseDialog showId={showId} />
+            <button
+              type="button"
+              disabled={queue.length === 0}
+              onClick={() => {
+                setReviewing(true);
+              }}
+              className="inline-flex h-10 cursor-pointer items-center rounded-[9px] border-2 border-[#1A5B3C] bg-[#1A5B3C] px-3.5 text-[13.5px] font-bold text-white disabled:cursor-default disabled:opacity-50"
+            >
+              Review documents ({queue.length})
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="my-4 grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -556,6 +563,7 @@ export function HorsesScreen({
                             doc={row.documents.find((d) => d.requirementId === r.id)}
                             showId={showId}
                             horseId={row.horseId}
+                            readOnly={readOnly}
                           />
                         </td>
                       ))
@@ -590,7 +598,7 @@ export function HorsesScreen({
                               '—'
                             )}
                           </span>
-                          {missing > 0 && row.horseId && row.riderEmail && (
+                          {!readOnly && missing > 0 && row.horseId && row.riderEmail && (
                             <button
                               type="button"
                               disabled={remind.isPending}
@@ -615,10 +623,10 @@ export function HorsesScreen({
       </div>
       <p className="mt-2.5 text-[12.5px] font-semibold text-[#5A6B63]">
         Horses that need you sort to the top. Click a horse to see farrier, height and rider email.
-        “Review documents” steps through every waiting document one at a time.
+        {!readOnly && ' “Review documents” steps through every waiting document one at a time.'}
       </p>
 
-      {reviewing && (
+      {reviewing && !readOnly && (
         <ReviewQueue
           queue={queue}
           showId={showId}

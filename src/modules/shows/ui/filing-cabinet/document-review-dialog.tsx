@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { FA_BTN_SMALL } from '@/shared/ui/organizer/fa-page';
 import { Textarea } from '@/shared/ui/shadcn/textarea';
 import { Label } from '@/shared/ui/shadcn/label';
 import {
@@ -58,9 +59,9 @@ export function DocumentReviewDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <GhostButton type="button" className="h-8 px-2.5 py-0 text-[12px]">
+        <button type="button" className={FA_BTN_SMALL}>
           Review
-        </GhostButton>
+        </button>
       </DialogTrigger>
 
       <DialogContent className={modalContentClass} showCloseButton={false}>
@@ -70,7 +71,9 @@ export function DocumentReviewDialog({
             {doc.label} — {horseName}
           </DialogTitle>
           <DialogDescription>
-            {doc.url ? 'Open the file, then approve, reject, or ask for a replacement.' : 'No file on record.'}
+            {doc.url
+              ? 'Open the file, then approve, reject, or ask for a replacement.'
+              : 'No file on record.'}
           </DialogDescription>
           <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
@@ -92,7 +95,12 @@ export function DocumentReviewDialog({
 
           <div className="space-y-1.5">
             <Label>Reason (if rejecting)</Label>
-            <Select value={reason} onValueChange={(v) => { setReason(v as typeof reason); }}>
+            <Select
+              value={reason}
+              onValueChange={(v) => {
+                setReason(v as typeof reason);
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -108,7 +116,13 @@ export function DocumentReviewDialog({
 
           <div className="space-y-1.5">
             <Label>Note to the entrant (optional, required for &ldquo;Other&rdquo;)</Label>
-            <Textarea value={note} onChange={(e) => { setNote(e.target.value); }} rows={3} />
+            <Textarea
+              value={note}
+              onChange={(e) => {
+                setNote(e.target.value);
+              }}
+              rows={3}
+            />
           </div>
         </div>
 
@@ -117,7 +131,12 @@ export function DocumentReviewDialog({
             type="button"
             disabled={isPending}
             onClick={() => {
-              mutate({ showId, horseId, requirementId: doc.requirementId, status: 'replacement_requested' });
+              mutate({
+                showId,
+                horseId,
+                requirementId: doc.requirementId,
+                status: 'replacement_requested',
+              });
             }}
           >
             Request replacement

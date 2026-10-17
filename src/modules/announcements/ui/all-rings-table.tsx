@@ -1,38 +1,52 @@
-import { StatusBadge } from '@/shared/ui/status-badge';
+import { cn } from '@/shared/lib/utils';
+import {
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+  Pill,
+  SectionLabel,
+} from '@/shared/ui/organizer/fa-page';
 import type { RingRow } from '@/modules/announcements/data/queries';
 
 export function AllRingsTable({ rings }: { rings: RingRow[] }) {
   return (
     <>
-      <h2 className="show-detail-title" style={{ marginTop: 26 }}>
-        All rings
-      </h2>
-      <div style={{ overflowX: 'auto', marginTop: 10 }}>
-        <table>
+      <SectionLabel className="mt-6">All rings</SectionLabel>
+      <div className={FA_TABLE_WRAP}>
+        <table className={FA_TABLE}>
           <caption className="sr-only">Every class and its ring state</caption>
           <thead>
-            <tr>
-              <th scope="col">Class</th>
-              <th scope="col">Ring</th>
-              <th scope="col" className="r">
+            <tr className={FA_THEAD_ROW}>
+              <th scope="col" className={FA_TH}>
+                Class
+              </th>
+              <th scope="col" className={FA_TH}>
+                Ring
+              </th>
+              <th scope="col" className={cn(FA_TH, 'text-right')}>
                 Rides
               </th>
-              <th scope="col">State</th>
+              <th scope="col" className={FA_TH}>
+                State
+              </th>
             </tr>
           </thead>
           <tbody>
             {rings.map((ring) => (
-              <tr key={ring.classId}>
-                <td>
-                  <strong>{ring.className}</strong>
-                </td>
-                <td>{ring.ring ?? '—'}</td>
-                <td className="r">{ring.entryCount}</td>
-                <td>
+              <tr key={ring.classId} className={FA_TR}>
+                <td className={cn(FA_TD, 'font-bold text-[#0D2C23]')}>{ring.className}</td>
+                <td className={FA_TD}>{ring.ring ?? '—'}</td>
+                <td className={cn(FA_TD, 'text-right')}>{ring.entryCount}</td>
+                <td className={FA_TD}>
                   {ring.scoringOpen ? (
-                    <StatusBadge tone="warn">Live</StatusBadge>
+                    <Pill tone="green" live>
+                      Live
+                    </Pill>
                   ) : (
-                    <StatusBadge tone="neutral">Not started</StatusBadge>
+                    <Pill tone="grey">Not started</Pill>
                   )}
                 </td>
               </tr>

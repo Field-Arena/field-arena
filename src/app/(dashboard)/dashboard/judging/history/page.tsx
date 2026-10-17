@@ -13,7 +13,7 @@ import { classifyAssignment } from '@/modules/judging/utils/classify-assignment'
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
-import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
+import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'History — Field & Arena' };
 
@@ -37,12 +37,10 @@ export default async function JudgingHistoryPage() {
 
   return (
     <>
-      <div className="mb-[22px]">
-        <ScreenTitle>History</ScreenTitle>
-        <ScreenLede className="mb-0">
-          Classes you&apos;ve completed — your record on this platform.
-        </ScreenLede>
-      </div>
+      <PageHeader
+        eyebrow="Classes you've completed — your record on this platform"
+        title="History"
+      />
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
@@ -53,16 +51,14 @@ export default async function JudgingHistoryPage() {
       />
 
       {history.length === 0 ? (
-        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
-          No completed assignments yet.
-        </Card>
+        <EmptyState title="No completed assignments yet." />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {history.map((a) => (
             <Link
               key={`${a.classId}-${a.seatId}`}
               href={`/dashboard/judging/history/${a.classId}`}
-              className="block"
+              className="block rounded-[16px] no-underline transition-shadow hover:shadow-[0_0_0_3px_#E9F4EE]"
             >
               <AssignmentCard assignment={a} variant="history" />
             </Link>

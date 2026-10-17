@@ -1,17 +1,24 @@
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
-import { StatusPill } from '@/shared/ui/organizer/status-pill';
 import { formatDateShort } from '@/shared/lib/format/date';
+import {
+  CardTitle,
+  FA_BTN,
+  FA_MUTED,
+  FaCard,
+  Pill,
+  type PillTone,
+} from '@/shared/ui/organizer/fa-page';
 import type { AssignmentRow } from '@/modules/judging/data/queries';
 import { formatClassTime } from '@/modules/judging/utils/format-class-time';
 import { USDF_TEST_SHEETS_URL } from '@/modules/judging/constants';
 import { LaunchScoringButton } from '@/modules/judging/ui/launch-scoring-button';
 
-const WHEN_META = {
-  today: { label: 'Today', bg: '#FBF0D8', fg: '#8A6D14' },
-  upcoming: { label: 'Upcoming', bg: '#E6EFF6', fg: '#37637F' },
-  history: { label: 'Completed', bg: '#DCEFE1', fg: '#2E7D46' },
-} as const;
+const WHEN_META: Record<'today' | 'upcoming' | 'history', { label: string; tone: PillTone }> = {
+  today: { label: 'Today', tone: 'green' },
+  upcoming: { label: 'Upcoming', tone: 'grey' },
+  history: { label: 'Completed', tone: 'blue' },
+};
 
 export function AssignmentCard({
   assignment,
@@ -25,7 +32,12 @@ export function AssignmentCard({
   completed?: boolean;
 }) {
   const time = formatClassTime(assignment.classTime);
-  const seatLabel = [assignment.ring, assignment.position ? `at ${assignment.position}` : null]
+  const roleLabel = assignment.seatRole === 'judge' ? 'Judge' : 'Scribe';
+  const meta = [
+    assignment.showName,
+    assignment.ring,
+    assignment.position ? `${roleLabel} at ${assignment.position}` : roleLabel,
+  ]
     .filter(Boolean)
     .join(' · ');
   const when = completed ? WHEN_META.history : WHEN_META[variant];
@@ -34,75 +46,63 @@ export function AssignmentCard({
     formatDateShort(assignment.classDate) ||
     formatDateShort(assignment.showDate) ||
     (assignment.showDate ?? '');
-  const dateTime = variant === 'today' ? time : [dateLabel, time].filter(Boolean).join(' · ');
+  const rides = `${String(assignment.entryCount)} ride${assignment.entryCount === 1 ? '' : 's'}`;
+  const bigLabel = variant === 'today' ? (time ?? '—') : dateLabel || '—';
+  const subLabel = variant === 'today' ? rides : [time, rides].filter(Boolean).join(' · ');
 
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-center gap-5 rounded-xl border bg-white p-[18px_20px]',
-        'shadow-[0_1px_2px_rgba(16,40,32,.03)]',
-        variant === 'today' ? 'border-l-gold border-l-4 border-[#E9EDEB]' : 'border-[#E9EDEB]',
-      )}
+    <FaCard
+      tone={variant === 'today' && !completed ? 'live' : 'default'}
+      className="flex flex-wrap items-center gap-x-[18px] gap-y-3"
     >
-      <div className="min-w-[260px] flex-1">
-        <div className="text-ink-deep mb-1.5 font-[Newsreader,serif] text-lg font-semibold">
-          {dateTime ? `${dateTime} · ` : ''}
-          {assignment.classLabel}
-        </div>
-        <div className="mb-0.5 text-[13.5px] text-[#5A6B63]">
-          {assignment.showName}
-          {seatLabel ? ` · ${seatLabel}` : ''}
-        </div>
-        {assignment.partnerName && (
-          <div className="mb-[7px] text-[13.5px] text-[#5A6B63]">
-            With {assignment.partnerName} ({assignment.partnerRole === 'judge' ? 'Judge' : 'Scribe'}
-            )
-          </div>
-        )}
-        <div className="text-[13.5px] text-[#5A6B63]">
-          Test sheet:{' '}
+      <div className="min-w-[110px] flex-none">
+        <div className="text-[24px] leading-tight font-bold text-[#0D2C23]">{bigLabel}</div>
+        <div className={FA_MUTED}>{subLabel}</div>
+      </div>
+
+      <div className="min-w-[220px] flex-1">
+        <CardTitle className="text-[19px]">{assignment.classLabel}</CardTitle>
+        <div className={FA_MUTED}>{meta}</div>
+        <div className={FA_MUTED}>
+          {assignment.partnerName && (
+            <>
+              With {assignment.partnerName} (
+              {assignment.partnerRole === 'judge' ? 'Judge' : 'Scribe'}) ·{' '}
+            </>
+          )}
           {variant === 'history' ? (
             // The whole history card is wrapped in a <Link>; a nested <a> here
             // is invalid HTML and causes a hydration mismatch.
-            <span className="text-ink-deep font-bold">{assignment.classLabel}</span>
+            <span>Test sheet: {assignment.classLabel}</span>
           ) : (
             <a
               href={USDF_TEST_SHEETS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ink-deep hover:text-gold font-bold underline decoration-[#B4BFB9]"
+              className="text-[#0D2C23] underline decoration-[#B4BFB9] underline-offset-2 hover:text-[#1A5B3C]"
             >
-              {assignment.classLabel} ↗
+              Test sheet ↗
             </a>
           )}
         </div>
       </div>
 
-      <StatusPill
-        bg="#EAF1EC"
-        border="#EAF1EC"
-        fg="#3F5C4C"
-        className="flex-none text-[11px] tracking-[.1em]"
-      >
-        {assignment.seatRole === 'judge' ? 'JUDGE' : 'SCRIBE'}
-      </StatusPill>
-
-      <StatusPill bg={when.bg} border={when.bg} fg={when.fg} className="flex-none">
+      <Pill tone={when.tone} className="flex-none">
         {when.label}
-      </StatusPill>
+      </Pill>
 
       {variant !== 'history' &&
         (completed ? (
           <Link
             href="/dashboard/judging/results"
             prefetch={false}
-            className="hover:bg-gold flex-none rounded-[9px] bg-[#1D4A38] px-5 py-[13px] text-[13.5px] font-bold whitespace-nowrap text-[#F5F7F6] transition-colors hover:text-[#0D2C23]"
+            className={cn(FA_BTN, 'flex-none')}
           >
             View results →
           </Link>
         ) : (
           <LaunchScoringButton active={variant === 'today'} classId={assignment.classId} />
         ))}
-    </div>
+    </FaCard>
   );
 }

@@ -11,7 +11,7 @@ import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { PanelContactCard } from '@/modules/judging/ui/panel-contact-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
-import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
+import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Panel & Contacts — Field & Arena' };
 
@@ -33,10 +33,7 @@ export default async function JudgingPanelPage() {
 
   return (
     <>
-      <div className="mb-[22px]">
-        <ScreenTitle>Panel & Contacts</ScreenTitle>
-        <ScreenLede className="mb-0">Who else is on the panel with you.</ScreenLede>
-      </div>
+      <PageHeader eyebrow="Who else is on the panel with you" title="Panel & Contacts" />
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
@@ -47,11 +44,9 @@ export default async function JudgingPanelPage() {
       />
 
       {contacts.length === 0 ? (
-        <Card className="p-[60px_20px] text-center text-[14.5px] text-[#7A8781]">
-          No one else on your panels yet.
-        </Card>
+        <EmptyState title="No one else on your panels yet." />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {contacts.map((c) => (
             <PanelContactCard key={`${c.staffId}-${c.showName}-${c.role}`} contact={c} />
           ))}

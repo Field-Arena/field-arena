@@ -1,8 +1,8 @@
 'use client';
 
 import { Loader2Icon } from 'lucide-react';
-import { Button } from '@/shared/ui/shadcn/button';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { FA_BTN_PRIMARY } from '@/shared/ui/organizer/fa-page';
 import { useCreateVendorCheckoutSession } from '@/modules/vendors/hooks/use-vendor-checkout-mutations';
 
 export function VendorPayButton({
@@ -15,18 +15,18 @@ export function VendorPayButton({
   const { mutate, isPending } = useCreateVendorCheckoutSession();
 
   return (
-    <Button
+    <button
       type="button"
-      size="sm"
+      className={FA_BTN_PRIMARY}
       disabled={isPending}
       onClick={() => {
         mutate({ bookingId });
       }}
     >
-      {isPending && <Loader2Icon className="animate-spin" aria-hidden />}
+      {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
       {isPending
         ? 'Redirecting…'
         : `Pay now${amountDue !== null ? ` — ${formatMoney(amountDue)}` : ''}`}
-    </Button>
+    </button>
   );
 }

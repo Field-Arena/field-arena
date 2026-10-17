@@ -12,7 +12,7 @@ export function ByRiderView({ rows, canViewMoney }: { rows: SaleRow[]; canViewMo
 
   if (riders.length === 0) {
     return (
-      <p className="px-1 py-8 text-center text-[13px] text-[#98A29D]">
+      <p className="px-1 py-8 text-center text-[13px] text-[#5A6B63]">
         No paid rider entries yet for this show.
       </p>
     );

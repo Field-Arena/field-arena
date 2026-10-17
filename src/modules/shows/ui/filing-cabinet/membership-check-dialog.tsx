@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { FA_BTN_SMALL } from '@/shared/ui/organizer/fa-page';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Textarea } from '@/shared/ui/shadcn/textarea';
@@ -31,10 +32,19 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { MEMBERSHIP_FLAGS, MEMBERSHIP_FLAG_LABELS } from '@/modules/shows/constants';
-import type { MembershipLedgerRow, MembershipFlag } from '@/modules/shows/data/membership-ledger-queries';
+import type {
+  MembershipLedgerRow,
+  MembershipFlag,
+} from '@/modules/shows/data/membership-ledger-queries';
 import { useUpdateMembershipCheck } from '@/modules/shows/hooks/use-membership-ledger-mutations';
 
-export function MembershipCheckDialog({ showId, row }: { showId: string; row: MembershipLedgerRow }) {
+export function MembershipCheckDialog({
+  showId,
+  row,
+}: {
+  showId: string;
+  row: MembershipLedgerRow;
+}) {
   const [open, setOpen] = useState(false);
   const [association, setAssociation] = useState(row.association ?? '');
   const [riderNum, setRiderNum] = useState(row.riderMembershipNumber ?? '');
@@ -63,9 +73,9 @@ export function MembershipCheckDialog({ showId, row }: { showId: string; row: Me
       }}
     >
       <DialogTrigger asChild>
-        <GhostButton type="button" className="h-8 px-2.5 py-0 text-[12px]">
+        <button type="button" className={FA_BTN_SMALL}>
           Edit
-        </GhostButton>
+        </button>
       </DialogTrigger>
 
       <DialogContent className={modalContentClass} showCloseButton={false}>
@@ -87,25 +97,47 @@ export function MembershipCheckDialog({ showId, row }: { showId: string; row: Me
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Association</Label>
-              <Input value={association} onChange={(e) => { setAssociation(e.target.value); }} />
+              <Input
+                value={association}
+                onChange={(e) => {
+                  setAssociation(e.target.value);
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Rider membership #</Label>
-              <Input value={riderNum} onChange={(e) => { setRiderNum(e.target.value); }} />
+              <Input
+                value={riderNum}
+                onChange={(e) => {
+                  setRiderNum(e.target.value);
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Horse registration #</Label>
-              <Input value={horseNum} onChange={(e) => { setHorseNum(e.target.value); }} />
+              <Input
+                value={horseNum}
+                onChange={(e) => {
+                  setHorseNum(e.target.value);
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Owner membership #</Label>
-              <Input value={ownerNum} onChange={(e) => { setOwnerNum(e.target.value); }} />
+              <Input
+                value={ownerNum}
+                onChange={(e) => {
+                  setOwnerNum(e.target.value);
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Membership status</Label>
               <Select
                 value={membershipStatus}
-                onValueChange={(v) => { setMembershipStatus(v as typeof membershipStatus); }}
+                onValueChange={(v) => {
+                  setMembershipStatus(v as typeof membershipStatus);
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -121,7 +153,9 @@ export function MembershipCheckDialog({ showId, row }: { showId: string; row: Me
               <Label>Horse registration status</Label>
               <Select
                 value={horseRegStatus}
-                onValueChange={(v) => { setHorseRegStatus(v as typeof horseRegStatus); }}
+                onValueChange={(v) => {
+                  setHorseRegStatus(v as typeof horseRegStatus);
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -156,7 +190,13 @@ export function MembershipCheckDialog({ showId, row }: { showId: string; row: Me
 
           <div className="space-y-1.5">
             <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => { setNotes(e.target.value); }} rows={3} />
+            <Textarea
+              value={notes}
+              onChange={(e) => {
+                setNotes(e.target.value);
+              }}
+              rows={3}
+            />
           </div>
         </div>
 

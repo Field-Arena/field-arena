@@ -1,15 +1,12 @@
 'use client';
 
 import { useRef } from 'react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { Input } from '@/shared/ui/shadcn/input';
-import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
+import { FA_BTN_SMALL, FA_INPUT, FA_MUTED } from '@/shared/ui/organizer/fa-page';
 import {
   useUpdateStableField,
   useGenerateStableStalls,
 } from '@/modules/shows/hooks/use-stable-chart-mutations';
-import { SM_LABEL, SM_ROW_INPUT, SM_GREEN_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import type { StableChartStable } from '@/modules/shows/data/stable-chart-queries';
 
 export function StableConfigRow({ showId, stable }: { showId: string; stable: StableChartStable }) {
@@ -20,11 +17,11 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
   return (
     <div className="flex flex-wrap items-end gap-2.5 border-t border-[#EDF0EE] py-2.5 first:border-t-0">
       <div className="min-w-[140px] flex-1">
-        <Label className={SM_LABEL}>Stable name</Label>
-        <Input
+        <label className={cn(FA_MUTED, 'mb-1 block')}>Stable name</label>
+        <input
           key={`${stable.id}-name`}
           defaultValue={stable.name}
-          className={cn('h-auto', SM_ROW_INPUT, 'focus-visible:ring-0')}
+          className={cn(FA_INPUT, 'w-full py-1.5')}
           onBlur={(event) => {
             const value = event.target.value.trim();
             if (value && value !== stable.name) {
@@ -35,14 +32,14 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
       </div>
 
       <div className="w-[120px]">
-        <Label className={SM_LABEL}>Stalls in this stable</Label>
-        <Input
+        <label className={cn(FA_MUTED, 'mb-1 block')}>Stalls in this stable</label>
+        <input
           key={`${stable.id}-count`}
           ref={stallCountRef}
           type="number"
           min={0}
           defaultValue={stable.stallCount}
-          className={cn('h-auto', SM_ROW_INPUT, 'focus-visible:ring-0')}
+          className={cn(FA_INPUT, 'w-full py-1.5')}
           onBlur={(event) => {
             const value = Math.max(0, parseInt(event.target.value, 10) || 0);
             if (value !== stable.stallCount) {
@@ -53,13 +50,13 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
       </div>
 
       <div className="w-[120px]">
-        <Label className={SM_LABEL}>Rows in this stable</Label>
-        <Input
+        <label className={cn(FA_MUTED, 'mb-1 block')}>Rows in this stable</label>
+        <input
           key={`${stable.id}-rows`}
           type="number"
           min={1}
           defaultValue={stable.rowCount}
-          className={cn('h-auto', SM_ROW_INPUT, 'focus-visible:ring-0')}
+          className={cn(FA_INPUT, 'w-full py-1.5')}
           onBlur={(event) => {
             const value = Math.max(1, parseInt(event.target.value, 10) || 1);
             if (value !== stable.rowCount) {
@@ -69,11 +66,10 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
         />
       </div>
 
-      <Button
+      <button
         type="button"
-        variant="ghost"
         disabled={generate.isPending}
-        className={cn('h-auto', SM_GREEN_BTN)}
+        className={cn(FA_BTN_SMALL, 'mb-1')}
         onClick={() => {
           const raw = stallCountRef.current?.value ?? String(stable.stallCount);
           const stallCount = Math.max(0, parseInt(raw, 10) || 0);
@@ -81,7 +77,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
         }}
       >
         {stable.stalls.length ? 'Update stalls' : 'Generate stalls'}
-      </Button>
+      </button>
     </div>
   );
 }

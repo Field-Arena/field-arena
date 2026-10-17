@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { FA_BTN_SMALL } from '@/shared/ui/organizer/fa-page';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import {
@@ -68,9 +69,9 @@ export function BridleNumberAssignDialog({
       }}
     >
       <DialogTrigger asChild>
-        <GhostButton type="button" className="h-8 px-2.5 py-0 text-[13px]">
+        <button type="button" className={FA_BTN_SMALL}>
           {currentNumber ?? 'Assign'}
-        </GhostButton>
+        </button>
       </DialogTrigger>
 
       <DialogContent className={modalContentClass} showCloseButton={false}>

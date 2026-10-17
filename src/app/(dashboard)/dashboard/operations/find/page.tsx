@@ -7,7 +7,9 @@ import {
   listVendors,
 } from '@/modules/operations/data/queries';
 import { FindPanel } from '@/modules/operations/ui/find-panel';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { OPS_WRAP, OpsNoShows } from '@/modules/operations/ui/ops-page';
+import { PageHeader } from '@/shared/ui/organizer/fa-page';
+import { FaShowSelect } from '@/shared/ui/organizer/fa-show-select';
 
 export const metadata: Metadata = { title: 'Find — Field & Arena' };
 
@@ -19,27 +21,10 @@ export default async function OperationsFindPage({
   const { show: requestedShowId } = await searchParams;
   const shows = await listMyShows();
   const currentShow =
-    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
-    shows[0] ??
-    null;
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null;
 
   if (!currentShow) {
-    return (
-      <>
-        <div className="dash-head">
-          <div>
-            <h1>Find</h1>
-            <p>Look up a rider, horse, or vendor.</p>
-          </div>
-        </div>
-        <div className="dash-card">
-          <EmptyPanel
-            title="No shows assigned"
-            note="You are not staffed on any show yet. An organizer adds show staff from ShowManager."
-          />
-        </div>
-      </>
-    );
+    return <OpsNoShows eyebrow="Look up a rider, horse, or vendor" title="Find" />;
   }
 
   const [riders, horses, permissions] = await Promise.all([
@@ -51,46 +36,18 @@ export default async function OperationsFindPage({
   const vendors = permissions.canViewMoney ? await listVendors(currentShow.id) : [];
 
   return (
-    <>
-      <div className="dash-head">
-        <div>
-          <h1>Find</h1>
-          <p>Look up a rider, horse, or vendor.</p>
-        </div>
-      </div>
-
-      <div className="dash-card">
-        <div className="showbar">
-          <span className="showbar-org">{currentShow.name}</span>
-          {shows.length > 1 && (
-            <form method="get" className="contents">
-              <select
-                name="show"
-                defaultValue={currentShow.slug ?? currentShow.id}
-                className="dash-select"
-                style={{ maxWidth: 380 }}
-                aria-label="Select show"
-              >
-                {shows.map((show) => (
-                  <option key={show.id} value={show.slug ?? show.id}>
-                    {show.name}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="dash-btn dash-btn-outline">
-                Switch
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-
+    <div className={OPS_WRAP}>
+      <PageHeader
+        eyebrow={`Look up a rider, horse, or vendor · ${currentShow.name}`}
+        title="Find"
+        actions={<FaShowSelect shows={shows} currentRef={currentShow.slug ?? currentShow.id} />}
+      />
       <FindPanel
         riders={riders}
         horses={horses}
         vendors={vendors}
         canViewVendors={permissions.canViewMoney}
       />
-    </>
+    </div>
   );
 }

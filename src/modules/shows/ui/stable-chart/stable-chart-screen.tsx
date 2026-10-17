@@ -3,14 +3,20 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
-import { StatusPill } from '@/shared/ui/organizer/status-pill';
-import { ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
-import { Button } from '@/shared/ui/shadcn/button';
-import { Input } from '@/shared/ui/shadcn/input';
-import { Label } from '@/shared/ui/shadcn/label';
-import { IconPrinter } from '@/shared/ui/organizer/icons';
-import { fa } from '@/shared/lib/organizer-theme';
+import { PrinterIcon } from 'lucide-react';
+import {
+  CardTitle,
+  FA_BTN,
+  FA_BTN_PRIMARY,
+  FA_INPUT,
+  FA_MUTED,
+  FA_SELECT,
+  FaCard,
+  PageHeader,
+  Pill,
+  StatBox,
+  StatGrid,
+} from '@/shared/ui/organizer/fa-page';
 import { cn } from '@/shared/lib/utils';
 import {
   parseStallDndId,
@@ -19,7 +25,6 @@ import {
   parseStableDropId,
 } from '@/modules/shows/utils/stall-dnd-id';
 import { MAX_STABLES } from '@/modules/shows/constants';
-import { SM_LABEL, SM_INPUT, SM_SELECT } from '@/modules/shows/ui/show-manager/tokens';
 import {
   useSetStableCount,
   useToggleStableChartStatus,
@@ -134,126 +139,130 @@ export function StableChartScreen({
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <div className="mb-4 flex flex-wrap items-center gap-2.5 print:hidden">
-        {from === 'horses' && (
-          <Link
-            href={`/dashboard/horses?show=${publicId ?? showId}`}
-            prefetch={false}
-            className={ghostButtonClass}
-          >
-            🐴 Back to Horses
-          </Link>
-        )}
-        {from === 'setup' && (
-          <Link
-            href={`/dashboard/shows/${publicId ?? showId}#venue`}
-            prefetch={false}
-            className={ghostButtonClass}
-          >
-            ← Back to Show Manager
-          </Link>
-        )}
-        {totalStalls > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            className={cn('h-auto', ghostButtonClass)}
-            onClick={() => {
-              window.print();
-            }}
-          >
-            <IconPrinter size={14} /> Print
-          </Button>
-        )}
-      </div>
-
-      <div className="mb-5 print:hidden">
-        <ScreenTitle className="mb-1.5">Stable Chart — {showName}</ScreenTitle>
-        <ScreenLede className="mb-0">
-          Set the stables and stalls below, click any stall to rename it, then approve to publish
-          the chart.
-        </ScreenLede>
-      </div>
-
-      <div className="mb-5 flex flex-wrap items-center gap-3.5 print:hidden">
-        {published ? (
-          <StatusPill bg={fa.greenTint} border={fa.greenLine} fg={fa.green}>
-            ✓ Published — visible to everyone
-          </StatusPill>
-        ) : (
-          <StatusPill bg={fa.goldTint} border={fa.goldLine} fg={fa.goldFg}>
-            Draft — not published yet
-          </StatusPill>
-        )}
-
-        {totalStalls > 0 && (
-          <span className="text-[13px] text-[#5A6B63]">
-            {occupied} occupied · {availableCount} available
-            {reservedCount > 0 && ` · ${String(reservedCount)} reserved`}
-            {tackCount > 0 && ` · ${String(tackCount)} tack`}
-            {holdCount > 0 && ` · ${String(holdCount)} hold`}
-            {closedCount > 0 && ` · ${String(closedCount)} unusable`} · {totalStalls} total stalls
+      <PageHeader
+        className="print:hidden"
+        eyebrow={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {showName} · set the stables, click a stall to rename it, then approve to publish
+            {published ? (
+              <Pill tone="green">✓ Published — visible to everyone</Pill>
+            ) : (
+              <Pill tone="yellow">Draft — not published yet</Pill>
+            )}
           </span>
-        )}
+        }
+        title="Stable chart"
+        actions={
+          <>
+            {from === 'horses' && (
+              <Link
+                href={`/dashboard/horses?show=${publicId ?? showId}`}
+                prefetch={false}
+                className={FA_BTN}
+              >
+                🐴 Back to Horses
+              </Link>
+            )}
+            {from === 'setup' && (
+              <Link
+                href={`/dashboard/shows/${publicId ?? showId}#venue`}
+                prefetch={false}
+                className={FA_BTN}
+              >
+                ← Back to Show Manager
+              </Link>
+            )}
+            {totalStalls > 0 && (
+              <button
+                type="button"
+                className={FA_BTN}
+                onClick={() => {
+                  window.print();
+                }}
+              >
+                <PrinterIcon className="size-4" aria-hidden /> Print
+              </button>
+            )}
+            {totalStalls > 0 && (
+              <button
+                type="button"
+                disabled={autoAssign.isPending}
+                className={FA_BTN}
+                onClick={() => {
+                  autoAssign.mutate({ showId });
+                }}
+              >
+                {autoAssign.isPending ? 'Assigning…' : 'Auto-assign horses to empty stalls'}
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={togglePublish.isPending}
+              className={published ? FA_BTN : FA_BTN_PRIMARY}
+              onClick={() => {
+                setOptimisticPublished(!published);
+                togglePublish.mutate(
+                  { showId },
+                  {
+                    onError: () => {
+                      setOptimisticPublished(null);
+                    },
+                  },
+                );
+              }}
+            >
+              {published ? 'Unpublish' : '✓ Approve & publish'}
+            </button>
+          </>
+        }
+      />
 
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={togglePublish.isPending}
-          className={cn('h-auto', primaryButtonClass)}
-          onClick={() => {
-            setOptimisticPublished(!published);
-            togglePublish.mutate(
-              { showId },
-              {
-                onError: () => {
-                  setOptimisticPublished(null);
-                },
-              },
-            );
-          }}
-        >
-          {published ? 'Unpublish' : '✓ Approve & Publish'}
-        </Button>
+      {totalStalls > 0 && (
+        <div className="print:hidden">
+          <StatGrid cols={4}>
+            <StatBox
+              label="Stalls"
+              value={totalStalls}
+              note={`${String(chart.stables.length)} stables`}
+            />
+            <StatBox label="Occupied" value={occupied} tone="green" />
+            <StatBox label="Available" value={availableCount} />
+            <StatBox
+              label="Held back"
+              value={reservedCount + tackCount + holdCount + closedCount}
+              tone={closedCount > 0 ? 'red' : 'default'}
+              note={[
+                `${String(reservedCount)} reserved`,
+                `${String(tackCount)} tack`,
+                `${String(holdCount)} hold`,
+                `${String(closedCount)} unusable`,
+              ].join(' · ')}
+            />
+          </StatGrid>
+        </div>
+      )}
 
-        {totalStalls > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={autoAssign.isPending}
-            className={cn('h-auto', ghostButtonClass)}
-            onClick={() => {
-              autoAssign.mutate({ showId });
-            }}
-          >
-            {autoAssign.isPending ? 'Assigning…' : 'Auto-assign horses to empty stalls'}
-          </Button>
-        )}
-      </div>
-
-      <div className="mb-5">
+      <div className="mb-4">
         <ArrivalsDeparturesPanel rows={arrivals} showEndDate={showEndDate} />
       </div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <StablingGroupsSidebar groups={groups} />
 
-        <Card className="mb-[18px] p-[18px_20px_20px] print:hidden">
-          <div className="mb-2.5 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
-            Stables
-          </div>
+        <FaCard className="mb-4 print:hidden">
+          <CardTitle className="mb-3">Stables</CardTitle>
 
           {savedLocations.length > 0 && (
             <div className="mb-2.5 max-w-[340px]">
-              <Label htmlFor="sc-saved-location" className={SM_LABEL}>
+              <label htmlFor="sc-saved-location" className={cn(FA_MUTED, 'mb-1 block')}>
                 Add stables from a saved location
-              </Label>
+              </label>
               <select
                 id="sc-saved-location"
                 ref={savedLocationSelectRef}
                 defaultValue=""
                 disabled={applySavedLocation.isPending}
-                className={SM_SELECT}
+                className={cn(FA_SELECT, 'w-full')}
                 onChange={(event) => {
                   const venueId = event.target.value;
                   if (savedLocationSelectRef.current) savedLocationSelectRef.current.value = '';
@@ -271,17 +280,17 @@ export function StableChartScreen({
           )}
 
           <div className="mb-3.5 w-[160px]">
-            <Label htmlFor="sc-stable-count" className={SM_LABEL}>
+            <label htmlFor="sc-stable-count" className={cn(FA_MUTED, 'mb-1 block')}>
               Number of stables
-            </Label>
-            <Input
+            </label>
+            <input
               id="sc-stable-count"
               ref={stableCountRef}
               type="number"
               min={0}
               max={MAX_STABLES}
               defaultValue={chart.stables.length}
-              className={cn('h-auto', SM_INPUT)}
+              className={cn(FA_INPUT, 'w-full')}
               onBlur={(event) => {
                 const count = Math.max(
                   0,
@@ -297,11 +306,11 @@ export function StableChartScreen({
           ))}
 
           {chart.stables.length === 0 && (
-            <p className="mt-2.5 text-[13px] text-[#7A8781] italic">
+            <p className="mt-2.5 text-[13px] font-semibold text-[#5A6B63]">
               Set &ldquo;Number of stables&rdquo; above to get started.
             </p>
           )}
-        </Card>
+        </FaCard>
 
         {totalStalls > 0 &&
           chart.stables.map((stable) => {

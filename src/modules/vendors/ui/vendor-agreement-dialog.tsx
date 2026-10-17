@@ -11,9 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
-import { Button } from '@/shared/ui/shadcn/button';
-import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { FA_BTN, FA_BTN_PRIMARY, FA_BTN_SMALL, FA_INPUT } from '@/shared/ui/organizer/fa-page';
 import { useSignVendorAgreement } from '@/modules/vendors/hooks/use-vendor-mutations';
 
 const DEFAULT_AGREEMENT_TEXT =
@@ -43,14 +42,14 @@ export function VendorAgreementDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button type="button" size="sm" variant="outline">
+        <button type="button" className={FA_BTN_SMALL}>
           Sign booth agreement
-        </Button>
+        </button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">
+          <DialogTitle className="font-[family-name:var(--ws-fraunces)] text-[22px] font-bold text-[#0D2C23]">
             Vendor booth agreement
           </DialogTitle>
           <DialogDescription>{showName}</DialogDescription>
@@ -78,7 +77,8 @@ export function VendorAgreementDialog({
         >
           <div className="space-y-1.5">
             <Label htmlFor="va-agree-name">Type your full legal name to sign</Label>
-            <Input
+            <input
+              className={`${FA_INPUT} w-full`}
               id="va-agree-name"
               required
               placeholder="Jane Smith"
@@ -90,19 +90,23 @@ export function VendorAgreementDialog({
           </div>
 
           <DialogFooter>
-            <Button
+            <button
               type="button"
-              variant="outline"
+              className={FA_BTN}
               onClick={() => {
                 setOpen(false);
               }}
             >
               Cancel
-            </Button>
-            <Button type="submit" disabled={isPending || !fullName.trim()}>
-              {isPending && <Loader2Icon className="animate-spin" aria-hidden />}
+            </button>
+            <button
+              type="submit"
+              className={FA_BTN_PRIMARY}
+              disabled={isPending || !fullName.trim()}
+            >
+              {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
               {isPending ? 'Signing…' : 'Sign & continue'}
-            </Button>
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>
