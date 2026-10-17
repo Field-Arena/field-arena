@@ -7,7 +7,10 @@ import { fmtTime, type ScheduleRide } from '@/modules/shows/schedule-engine';
 import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
 import { dayDate } from '@/modules/shows/utils/day-date';
 
-interface RideRow { ride: ScheduleRide; ring: string }
+interface RideRow {
+  ride: ScheduleRide;
+  ring: string;
+}
 type Status = 'scored' | 'in-ring' | 'on-deck' | 'scratched' | 'waiting';
 
 const STATUS: Record<Status, { label: string; className: string }> = {
@@ -123,7 +126,15 @@ export function RunningOrderView({
 
   return (
     <div>
-      <div className="mb-3.5 flex flex-wrap items-center gap-2">
+      <p className="mt-0 mb-3 rounded-[10px] bg-[#EEF3FB] px-3.5 py-2 text-[13px] font-semibold text-[#2F5D8F] print:hidden">
+        To drag rides into a new order, change ride times, move a test to another ring or day, or
+        scratch a ride, switch to <b>✥ Drag &amp; drop editor</b> at the top.
+      </p>
+      <h2 className="mt-0 mb-2 hidden text-[20px] font-bold print:block">
+        {data.showName} — Running order
+        {filterDay == null ? '' : ` · ${dayDate(data.startDate, filterDay)}`}
+      </h2>
+      <div className="mb-3.5 flex flex-wrap items-center gap-2 print:hidden">
         <button
           type="button"
           className={chip(ring === null)}
@@ -159,7 +170,7 @@ export function RunningOrderView({
         </label>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+      <div className="grid gap-4 xl:grid-cols-[1fr_300px] print:block">
         <div className="overflow-hidden rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white">
           <div className="grid grid-cols-[70px_70px_64px_1fr_1fr_130px] gap-2.5 bg-[#F5F7F6] px-3.5 py-2 text-[11px] font-extrabold tracking-[.06em] text-[#5A6B63] uppercase">
             <span>Time</span>
@@ -193,7 +204,7 @@ export function RunningOrderView({
                     href={`/dashboard/score-sheets?show=${data.showId}&class=${g.cls}`}
                     prefetch={false}
                     target="_blank"
-                    className="inline-flex items-center gap-1.5 rounded-[8px] border-2 border-[#1A5B3C] bg-white px-3 py-1 text-[12.5px] font-bold text-[#1A5B3C] no-underline hover:bg-[#1A5B3C] hover:text-white"
+                    className="inline-flex items-center gap-1.5 rounded-[8px] border-2 border-[#1A5B3C] bg-white px-3 py-1 text-[12.5px] font-bold text-[#1A5B3C] no-underline hover:bg-[#1A5B3C] hover:text-white print:hidden"
                   >
                     <FileTextIcon className="size-3.5" aria-hidden />
                     Print {count}
@@ -232,7 +243,7 @@ export function RunningOrderView({
           })}
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 print:hidden">
           <div className="rounded-[14px] border-[1.5px] border-[#C9D3CE] bg-white px-4 py-3">
             <h4 className="m-0 mb-1.5 text-[16px] font-bold text-[#0D2C23]">
               {filterDay == null ? 'Show at a glance' : dayDate(data.startDate, filterDay)}
@@ -259,7 +270,7 @@ export function RunningOrderView({
               {conflictsWaited > 0 ? (
                 <div className="text-[#B4432F]">
                   ! {conflictsWaited} ride{conflictsWaited === 1 ? '' : 's'} moved later to respect
-                  rest gaps — see Edit by ring
+                  rest gaps — see the Drag &amp; drop editor
                 </div>
               ) : (
                 <div className="text-[#1A5B3C]">✓ Every rest gap is met</div>

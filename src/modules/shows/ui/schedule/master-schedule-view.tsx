@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { FileTextIcon, PrinterIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -18,6 +18,43 @@ import { RunningOrderView } from '@/modules/shows/ui/schedule/running-order-view
 import { riderDayFlags } from '@/modules/shows/utils/rider-day-flags';
 import { dayDate } from '@/modules/shows/utils/day-date';
 
+type ScheduleView = 'order' | 'edit';
+const VIEW_KEY = 'fa-schedule-view';
+const VIEW_EVENT = 'fa-schedule-view-change';
+let memoryView: ScheduleView = 'order';
+
+function readView(): ScheduleView {
+  try {
+    const stored = window.localStorage.getItem(VIEW_KEY);
+    if (stored === 'edit' || stored === 'order') return stored;
+  } catch {
+    // Storage blocked: use the in-memory choice.
+  }
+  return memoryView;
+}
+
+function writeView(next: ScheduleView) {
+  memoryView = next;
+  try {
+    window.localStorage.setItem(VIEW_KEY, next);
+  } catch {
+    // Storage blocked: the in-memory choice still applies for this visit.
+  }
+  window.dispatchEvent(new Event(VIEW_EVENT));
+}
+
+function subscribeView(onChange: () => void) {
+  const handler = () => {
+    onChange();
+  };
+  window.addEventListener(VIEW_EVENT, handler);
+  window.addEventListener('storage', handler);
+  return () => {
+    window.removeEventListener(VIEW_EVENT, handler);
+    window.removeEventListener('storage', handler);
+  };
+}
+
 export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
   const { schedule } = data;
 
@@ -25,7 +62,11 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
   const [filterDay, setFilterDay] = useState<number | null>(null);
   // Running order is the everyday view; the ring editor is where rides are
   // reordered, timed, moved and scratched.
-  const [view, setView] = useState<'order' | 'edit'>('order');
+  // Opens on whichever view this organizer used last. Read through
+  // useSyncExternalStore so the server render (always the running order)
+  // and the browser agree, then the stored choice applies.
+  const view = useSyncExternalStore(subscribeView, readView, () => 'order' as const);
+  const setView = writeView;
   const flags = riderDayFlags(schedule.arenas);
 
   return (
@@ -39,7 +80,7 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
           {(
             [
               ['order', 'Running order'],
-              ['edit', 'Edit by ring'],
+              ['edit', '✥ Drag & drop editor'],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -135,20 +176,24 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
         </div>
       )}
 
-      {view === 'order' ? (
-        <RunningOrderView data={data} filterDay={filterDay} />
-      ) : (
-        schedule.arenas.map((arena) => (
-          <RingSchedule
-            key={arena.ring}
-            arena={arena}
-            data={data}
-            filterDay={filterDay}
-            totalDays={totalDays}
-            flags={flags}
-          />
-        ))
-      )}
+      {/* The dashboard's print rule hides everything except [data-print-report]
+          (see dashboard.css), so the schedule body has to opt in to print. */}
+      <div data-print-report>
+        {view === 'order' ? (
+          <RunningOrderView data={data} filterDay={filterDay} />
+        ) : (
+          schedule.arenas.map((arena) => (
+            <RingSchedule
+              key={arena.ring}
+              arena={arena}
+              data={data}
+              filterDay={filterDay}
+              totalDays={totalDays}
+              flags={flags}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
