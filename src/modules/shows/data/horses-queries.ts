@@ -82,6 +82,8 @@ export interface HorseRow {
    * distinct name seen so the organizer can see who, not just how many. */
   isMultiEntry: boolean;
   riders: string[];
+  /** Entry (back) numbers this horse is entered under, sorted. */
+  entryNumbers: string[];
 }
 
 export interface HorsesPageData {
@@ -118,13 +120,14 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
     classes: number;
     horseId: string | null;
     riderNames: Set<string>;
+    nums: Set<string>;
   }
   const byHorse = new Map<string, Group>();
 
   if (classes.length > 0) {
     const { data: entries, error } = await supabase
       .from('class_entries')
-      .select('horse, rider, horse_id, rider_id')
+      .select('horse, rider, horse_id, rider_id, num')
       .in(
         'class_id',
         classes.map((c) => c.id),
@@ -146,6 +149,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         existing.horseId ??= entry.horse_id;
         existing.riderId ??= entry.rider_id;
         if (entry.rider) existing.riderNames.add(entry.rider);
+        if (entry.num) existing.nums.add(entry.num);
       } else {
         byHorse.set(key, {
           name: entry.horse,
@@ -154,6 +158,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
           classes: 1,
           horseId: entry.horse_id,
           riderNames: new Set(entry.rider ? [entry.rider] : []),
+          nums: new Set(entry.num ? [entry.num] : []),
         });
       }
     }
@@ -295,6 +300,9 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         cogginsExpired,
         isMultiEntry,
         riders,
+        entryNumbers: [...group.nums].sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true }),
+        ),
       };
     }),
     ...manualHorses.map(async (mh): Promise<HorseRow> => {
@@ -320,6 +328,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         cogginsExpired,
         isMultiEntry: false,
         riders: mh.riderName ? [mh.riderName] : [],
+        entryNumbers: [],
       };
     }),
   ]);
