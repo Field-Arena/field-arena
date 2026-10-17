@@ -7,7 +7,8 @@
 --   Demo · Winter Schooling Show     Dec 5      tickets not on sale yet (open Oct 28)
 --
 -- 90 demo riders (auth users with NO password + @fieldarena-demo.test emails,
--- so they can never sign in), one horse each, 75–85 riders entered per show,
+-- so they can never sign in), one horse each, 80–85 riders entered in each
+-- show that's on sale (the not-yet-on-sale show has none),
 -- a paid order per rider per show, waivers and Coggins in a mix of states.
 
 begin;
@@ -94,7 +95,7 @@ select s.k, s.id as show_id, r.n, r.id as rider_id, r.horse_id, r.first_name || 
   md5('devmin-demo:order:' || s.k || ':' || r.n)::uuid as order_id, c.id as class_id, c.fee,
   row_number() over (partition by c.id order by r.n) as ride_order
 from _dm_show s
-join _dm_rider r on r.n between s.lo and s.hi
+join _dm_rider r on r.n between s.lo and s.hi and s.k <> 3  -- show 3 isn't on sale yet: no entries
 join _dm_class c on c.k = s.k and (c.n = 1 + (r.n % 6) or (r.n % 3 = 0 and c.n = 1 + ((r.n * 5 + 2) % 6) and 1 + ((r.n * 5 + 2) % 6) <> 1 + (r.n % 6)));
 
 insert into public.orders (id, rider_id, show_id, amount_total, fee_total, status, items, created_at, paid_at)
@@ -111,7 +112,7 @@ from _dm_entry e on conflict (id) do nothing;
 -- Waivers: show 1 every 11th unsigned, show 2 every 13th, show 3 every other rider.
 insert into public.waiver_signatures (id, rider_id, show_id, full_name, signature_date)
 select md5('devmin-demo:waiver:' || s.k || ':' || r.n)::uuid, r.id, s.id, r.first_name || ' ' || r.last_name, '2026-10-10'
-from _dm_show s join _dm_rider r on r.n between s.lo and s.hi
+from _dm_show s join _dm_rider r on r.n between s.lo and s.hi and s.k <> 3
 where not ((s.k = 1 and r.n % 11 = 0) or (s.k = 2 and r.n % 13 = 0) or (s.k = 3 and r.n % 2 = 1))
 on conflict (id) do nothing;
 
