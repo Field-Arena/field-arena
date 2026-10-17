@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { PrinterIcon } from 'lucide-react';
+import Link from 'next/link';
+import { FileTextIcon, PrinterIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
 import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
@@ -37,6 +38,30 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
           <PrinterIcon className="size-4" aria-hidden />
           Print schedule
         </Button>
+
+        {(() => {
+          const sheetCount = schedule.arenas
+            .flatMap((a) => a.items)
+            .filter(
+              (it) =>
+                it.type === 'ride' &&
+                it.status !== 'scratched' &&
+                (filterDay == null || it.day === filterDay),
+            ).length;
+          const dayParam = filterDay == null ? '' : `&day=${String(filterDay)}`;
+          return (
+            <Link
+              href={`/dashboard/score-sheets?show=${data.showId}${dayParam}`}
+              prefetch={false}
+              target="_blank"
+              className="inline-flex h-10 items-center gap-2 rounded-[9px] border-2 border-[#1A5B3C] bg-[#1A5B3C] px-4 text-[14px] font-bold text-white no-underline"
+            >
+              <FileTextIcon className="size-4" aria-hidden />
+              Print all score sheets
+              {filterDay == null ? '' : ` for Day ${String(filterDay + 1)}`} ({sheetCount})
+            </Link>
+          );
+        })()}
 
         <PublishScheduleButton showId={data.showId} published={data.published} />
 

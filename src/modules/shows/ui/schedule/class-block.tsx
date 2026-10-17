@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { FileTextIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
@@ -39,6 +41,10 @@ export function ClassBlock({
   const [dragging, setDragging] = useState<string | null>(null);
 
   const judges = data.judgesByClass[block.cls] ?? [];
+  // Every unscratched ride in this test, across all days it runs.
+  const classSheetCount = data.schedule.arenas
+    .flatMap((a) => a.items)
+    .filter((it) => it.type === 'ride' && it.cls === block.cls && it.status !== 'scratched').length;
   const minutes = data.rideMinutesByClass[block.cls] ?? 0;
 
   return (
@@ -53,6 +59,15 @@ export function ClassBlock({
         </span>
 
         <span className="flex flex-wrap items-center gap-2 print:hidden">
+          <Link
+            href={`/dashboard/score-sheets?show=${data.showId}&class=${block.cls}`}
+            prefetch={false}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-[7px] border-2 border-[#1A5B3C] bg-white px-2.5 py-1 text-[12.5px] font-bold text-[#1A5B3C] no-underline hover:bg-[#1A5B3C] hover:text-white"
+          >
+            <FileTextIcon className="size-3.5" aria-hidden />
+            Print {classSheetCount} sheet{classSheetCount === 1 ? '' : 's'}
+          </Link>
           <Label className="flex items-center gap-1 text-[11.5px] text-[#7A8781]">
             Ride time
             <Input
