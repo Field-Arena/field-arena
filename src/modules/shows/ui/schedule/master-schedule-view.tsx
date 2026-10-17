@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import Link from 'next/link';
 import { FileTextIcon, PrinterIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -66,7 +66,14 @@ function subscribeChoice(onChange: () => void) {
 const viewChoice = storedChoice<ScheduleView>('fa-schedule-view', ['order', 'edit'], 'order');
 const rulesChoice = storedChoice<RulesShown>('fa-schedule-rules', ['shown', 'hidden'], 'hidden');
 
-export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
+export function MasterScheduleView({
+  data,
+  preferences,
+}: {
+  data: MasterScheduleData;
+  /** Pacing/order/day-time preferences, shown with the rules. */
+  preferences?: ReactNode;
+}) {
   const { schedule } = data;
 
   const totalDays = Math.max(1, ...schedule.arenas.flatMap((a) => a.items.map((it) => it.day + 1)));
@@ -172,6 +179,7 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
         {view === 'edit' && <ScheduleClashesCard schedule={schedule} />}
         {rules === 'shown' && (
           <div id="schedule-rules">
+            {preferences}
             <ScheduleRulesCard data={data} />
             {view === 'edit' && <ScheduleKeyCard />}
           </div>
