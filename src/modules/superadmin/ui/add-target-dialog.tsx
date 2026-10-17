@@ -35,6 +35,8 @@ export function AddTargetDialog() {
       email: '',
       phone: '',
       website: '',
+      city: '',
+      state: '',
       showsPerYear: '',
     },
   });
@@ -58,7 +60,7 @@ export function AddTargetDialog() {
   ];
   const GRID_FIELDS: {
     id: string;
-    name: 'contactName' | 'email' | 'phone' | 'website';
+    name: 'contactName' | 'email' | 'phone' | 'website' | 'city' | 'state';
     label: string;
     placeholder: string;
     type?: string;
@@ -73,6 +75,8 @@ export function AddTargetDialog() {
     },
     { id: 'at-phone', name: 'phone', label: 'Phone', placeholder: '(404) 555-0134' },
     { id: 'at-website', name: 'website', label: 'Website', placeholder: 'example.com' },
+    { id: 'at-city', name: 'city', label: 'City', placeholder: 'Aiken' },
+    { id: 'at-state', name: 'state', label: 'State', placeholder: 'SC' },
   ];
 
   function renderField(f: {
@@ -114,7 +118,7 @@ export function AddTargetDialog() {
           className="bg-gold text-hunter-deep hover:bg-gold-light inline-flex h-auto items-center gap-2 rounded-[9px] px-4 py-[11px] text-[13.5px] font-bold transition hover:shadow-[0_8px_24px_rgba(201,162,39,.26)]"
         >
           <PlusIcon className="size-[15px]" aria-hidden />
-          Add Target
+          Add contact
         </Button>
       </DialogTrigger>
 
@@ -141,7 +145,7 @@ export function AddTargetDialog() {
             </span>
           </div>
           <DialogTitle className="text-hunter-deep font-[family-name:var(--font-nr)] text-[28px] leading-[1.1] font-medium tracking-[-.02em]">
-            Add Target
+            Add contact
           </DialogTitle>
           <DialogDescription className="text-fa-muted mt-2.5 text-[14.5px] leading-[1.6]">
             Add an organization to the sales target list. Leads booked through Calendly are added
