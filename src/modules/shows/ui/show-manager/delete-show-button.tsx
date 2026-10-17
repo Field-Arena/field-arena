@@ -27,11 +27,13 @@ export function DeleteShowButton({
   showName,
   orgName,
   requireNameConfirmation = false,
+  triggerClassName,
 }: {
   showId: string;
   showName: string;
   orgName?: string | null;
   requireNameConfirmation?: boolean;
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -48,6 +50,7 @@ export function DeleteShowButton({
   return (
     <>
       <DangerButton
+        className={triggerClassName}
         disabled={isPending}
         onClick={() => {
           setOpen(true);

@@ -1,8 +1,7 @@
 'use client';
 
 import { useDroppable } from '@dnd-kit/core';
-import { Card } from '@/shared/ui/organizer/card';
-import { fa } from '@/shared/lib/organizer-theme';
+import { CardTitle, FaCard } from '@/shared/ui/organizer/fa-page';
 import { splitStallsIntoRows } from '@/modules/shows/utils/split-stalls-into-rows';
 import { buildStableDropId } from '@/modules/shows/utils/stall-dnd-id';
 import { StallBox } from '@/modules/shows/ui/stable-chart/stall-box';
@@ -24,14 +23,19 @@ export function StableDropCard({
   const rows = splitStallsIntoRows(stable.stalls, stable.rowCount);
 
   return (
-    <div ref={setNodeRef} className="print:hidden">
-      <Card
-        className="mb-4 p-[18px_20px_20px]"
-        style={isOver ? { outline: `2px dashed ${fa.gold}`, outlineOffset: 2 } : undefined}
-      >
-        <div className="mb-3 text-[10px] font-bold tracking-[.14em] text-[#6E7C76] uppercase">
-          {stable.name} — {stable.stalls.length} stalls
-        </div>
+    <div
+      ref={setNodeRef}
+      className={`mb-4 rounded-[16px] print:hidden ${
+        isOver ? 'outline-2 outline-offset-2 outline-[#1A5B3C] outline-dashed' : ''
+      }`}
+    >
+      <FaCard>
+        <CardTitle className="mb-3 text-[17px]">
+          {stable.name}{' '}
+          <span className="text-[13px] font-semibold text-[#5A6B63]">
+            · {stable.stalls.length} stalls
+          </span>
+        </CardTitle>
         {rows.map((rowStalls, i) => (
           <div key={`${stable.id}-row-${String(i)}`} className="mb-2 flex flex-wrap gap-2">
             {rowStalls.map((stall) => (
@@ -45,7 +49,7 @@ export function StableDropCard({
             ))}
           </div>
         ))}
-      </Card>
+      </FaCard>
     </div>
   );
 }

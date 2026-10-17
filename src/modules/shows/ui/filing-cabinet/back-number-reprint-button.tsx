@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Loader2Icon, PrinterIcon } from 'lucide-react';
-import { GhostButton } from '@/shared/ui/organizer/buttons';
+import { FA_BTN_SMALL } from '@/shared/ui/organizer/fa-page';
 import { downloadBackNumberCards } from '@/modules/shows/utils/download-back-number-cards';
 
-export function BackNumberReprintButton({ showId, showEntryId }: { showId: string; showEntryId: string }) {
+export function BackNumberReprintButton({
+  showId,
+  showEntryId,
+}: {
+  showId: string;
+  showEntryId: string;
+}) {
   const [pending, setPending] = useState(false);
 
   async function reprint() {
@@ -21,11 +27,12 @@ export function BackNumberReprintButton({ showId, showEntryId }: { showId: strin
   }
 
   return (
-    <GhostButton
+    <button
       type="button"
-      className="h-7 px-2 py-0"
+      className={`${FA_BTN_SMALL} px-2`}
       disabled={pending}
       title="Reprint this rider's back number card"
+      aria-label="Reprint back number card"
       onClick={(e) => {
         e.stopPropagation();
         void reprint();
@@ -36,6 +43,6 @@ export function BackNumberReprintButton({ showId, showEntryId }: { showId: strin
       ) : (
         <PrinterIcon className="size-3.5" aria-hidden />
       )}
-    </GhostButton>
+    </button>
   );
 }

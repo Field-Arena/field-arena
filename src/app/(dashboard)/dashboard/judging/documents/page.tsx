@@ -11,7 +11,16 @@ import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot
 import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { JUDGING_REFERENCE_DOCS } from '@/modules/judging/constants';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
-import { ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
+import {
+  FA_MUTED,
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+  PageHeader,
+} from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
@@ -33,12 +42,10 @@ export default async function JudgingDocumentsPage() {
 
   return (
     <>
-      <div className="mb-[22px]">
-        <ScreenTitle>Documents</ScreenTitle>
-        <ScreenLede className="mb-0">
-          Test sheets and rule references for your upcoming classes.
-        </ScreenLede>
-      </div>
+      <PageHeader
+        eyebrow="Test sheets and rule references for your upcoming classes"
+        title="Documents"
+      />
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
@@ -48,26 +55,35 @@ export default async function JudgingDocumentsPage() {
         assignmentsToday={snapshot.assignmentsToday}
       />
 
-      <div className="flex flex-col gap-3">
-        {JUDGING_REFERENCE_DOCS.map((doc) => (
-          <a
-            key={doc.name}
-            href={doc.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:border-gold flex items-center gap-5 rounded-xl border border-[#E9EDEB] bg-white p-[18px_20px] transition-colors"
-          >
-            <span className="text-ink-deep min-w-0 flex-1 font-[Newsreader,serif] text-lg font-semibold">
-              {doc.name} ↗
-            </span>
-            <span className="flex-none text-[13px] whitespace-nowrap text-[#7A8781]">
-              {doc.detail}
-            </span>
-          </a>
-        ))}
+      <div className={FA_TABLE_WRAP}>
+        <table className={FA_TABLE}>
+          <thead>
+            <tr className={FA_THEAD_ROW}>
+              <th className={FA_TH}>Document</th>
+              <th className={FA_TH}>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {JUDGING_REFERENCE_DOCS.map((doc) => (
+              <tr key={doc.name} className={FA_TR}>
+                <td className={FA_TD}>
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#0D2C23] underline decoration-[#B4BFB9] underline-offset-2 hover:text-[#1A5B3C]"
+                  >
+                    {doc.name} ↗
+                  </a>
+                </td>
+                <td className={`${FA_TD} text-[#5A6B63]`}>{doc.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <p className="mt-4 text-[13px] leading-[1.55] text-[#7A8781]">
+      <p className={`mt-3 leading-[1.55] ${FA_MUTED}`}>
         General references that apply to every class. The test sheet for a specific class is on that
         class in My Assignments.
       </p>

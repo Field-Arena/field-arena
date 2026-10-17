@@ -20,17 +20,23 @@ export function FilingCabinetShell({
   return (
     <WorkspacePage
       title="Documents"
-      description="The filing cabinet — entry ledger, membership checks, document review, issues, numbering, and printing, all reading the same records as the rest of the show."
+      description="The filing cabinet — entries, memberships, document review, issues, numbering and printing, all from the same records as the rest of the show"
       orgName={orgName}
       shows={shows}
       currentShow={currentShow}
     >
-      <FilingCabinetTabs
-        activeKey={activeKey}
-        showId={currentShow ? (currentShow.slug ?? currentShow.id) : null}
-      />
+      <div className="print:hidden">
+        <FilingCabinetTabs
+          activeKey={activeKey}
+          showId={currentShow ? (currentShow.slug ?? currentShow.id) : null}
+        />
+      </div>
 
-      {currentShow ? children : <EmptyPanel title="No shows yet" note="The filing cabinet is configured per show." />}
+      {currentShow ? (
+        children
+      ) : (
+        <EmptyPanel title="No shows yet" note="The filing cabinet is configured per show." />
+      )}
     </WorkspacePage>
   );
 }

@@ -1,19 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { ScreenTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/shared/ui/shadcn/table';
+  Chip,
+  ChipRow,
+  EmptyState,
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+} from '@/shared/ui/organizer/fa-page';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
 import type { QuickReportsPageData } from '@/modules/shows/data/quick-reports-queries';
+import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 
 type Section = 'horses' | 'documents' | 'tests' | 'ribbons' | 'balances' | 'association';
 
@@ -31,31 +33,29 @@ export function QuickReportsScreen({ data }: { data: QuickReportsPageData }) {
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
-      <ScreenTitle className="mb-1.5">Quick Reports</ScreenTitle>
-      <ScreenLede className="mb-5">
-        Live snapshots for {data.showName} — pulled straight from the same records used
-        everywhere else, not a separate spreadsheet.
-      </ScreenLede>
+      <CabinetSectionHead
+        title="Quick reports"
+        lede={
+          <>
+            Live snapshots for {data.showName} — pulled straight from the same records used
+            everywhere else, not a separate spreadsheet.
+          </>
+        }
+      />
 
-      <div className="mb-[22px] flex flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-[#E9EDEB] bg-[#F4F7F5] p-1">
+      <ChipRow>
         {SECTIONS.map((s) => (
-          <button
+          <Chip
             key={s.key}
-            type="button"
+            active={section === s.key}
             onClick={() => {
               setSection(s.key);
             }}
-            className={cn(
-              'flex-none rounded-full px-3.5 py-[9px] text-[13.5px] font-medium whitespace-nowrap transition-colors',
-              section === s.key
-                ? 'bg-forest font-bold text-white shadow-sm'
-                : 'text-[#6E7C76] hover:bg-white hover:text-[#2B3B33]',
-            )}
           >
             {s.label}
-          </button>
+          </Chip>
         ))}
-      </div>
+      </ChipRow>
 
       {section === 'horses' && <HorsesSection data={data} />}
       {section === 'documents' && <DocumentsSection data={data} />}
@@ -67,81 +67,101 @@ export function QuickReportsScreen({ data }: { data: QuickReportsPageData }) {
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <Card className="p-[18px_20px_20px]">
-      <p className="py-8 text-center text-[13.5px] text-[#7A8781] italic">{children}</p>
-    </Card>
-  );
+function Empty({ children }: { children: string }) {
+  return <EmptyState title={children} />;
 }
 
 function HorsesSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.horses.rows;
   if (rows.length === 0) return <Empty>No horses entered yet.</Empty>;
   return (
-    <Card className="overflow-x-auto p-0">
-      <Table>
-        <TableCaption className="sr-only">Horses entered in {data.showName}</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Horse</TableHead>
-            <TableHead scope="col">Rider(s)</TableHead>
-            <TableHead scope="col">Classes</TableHead>
-            <TableHead scope="col">Height</TableHead>
-            <TableHead scope="col">Farrier</TableHead>
-            <TableHead scope="col">Shared</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className={FA_TABLE_WRAP}>
+      <table className={FA_TABLE}>
+        <caption className="sr-only">Horses entered in {data.showName}</caption>
+        <thead>
+          <tr className={FA_THEAD_ROW}>
+            <th scope="col" className={FA_TH}>
+              Horse
+            </th>
+            <th scope="col" className={FA_TH}>
+              Rider(s)
+            </th>
+            <th scope="col" className={FA_TH}>
+              Classes
+            </th>
+            <th scope="col" className={FA_TH}>
+              Height
+            </th>
+            <th scope="col" className={FA_TH}>
+              Farrier
+            </th>
+            <th scope="col" className={FA_TH}>
+              Shared
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map((row) => (
-            <TableRow key={row.key}>
-              <TableCell className="font-semibold">{row.horseName}</TableCell>
-              <TableCell>{row.riders.length > 0 ? row.riders.join(', ') : row.riderLabel}</TableCell>
-              <TableCell>{row.classesCount}</TableCell>
-              <TableCell>{row.height ?? '—'}</TableCell>
-              <TableCell>{row.farrier ?? '—'}</TableCell>
-              <TableCell>{row.isMultiEntry ? 'Yes' : '—'}</TableCell>
-            </TableRow>
+            <tr key={row.key} className={FA_TR}>
+              <td className={cn(FA_TD, 'font-bold')}>{row.horseName}</td>
+              <td className={FA_TD}>
+                {row.riders.length > 0 ? row.riders.join(', ') : row.riderLabel}
+              </td>
+              <td className={FA_TD}>{row.classesCount}</td>
+              <td className={FA_TD}>{row.height ?? '—'}</td>
+              <td className={FA_TD}>{row.farrier ?? '—'}</td>
+              <td className={FA_TD}>{row.isMultiEntry ? 'Yes' : '—'}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-    </Card>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 function DocumentsSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.horses.rows.flatMap((horse) =>
-    horse.documents
-      .filter((doc) => doc.status !== 'approved')
-      .map((doc) => ({ horse, doc })),
+    horse.documents.filter((doc) => doc.status !== 'approved').map((doc) => ({ horse, doc })),
   );
   if (rows.length === 0) return <Empty>Nothing outstanding — every document is processed.</Empty>;
   return (
-    <Card className="overflow-x-auto p-0">
-      <Table>
-        <TableCaption className="sr-only">Unprocessed documents for {data.showName}</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Horse</TableHead>
-            <TableHead scope="col">Rider(s)</TableHead>
-            <TableHead scope="col">Item</TableHead>
-            <TableHead scope="col">Status</TableHead>
-            <TableHead scope="col">Reason</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className={FA_TABLE_WRAP}>
+      <table className={FA_TABLE}>
+        <caption className="sr-only">Unprocessed documents for {data.showName}</caption>
+        <thead>
+          <tr className={FA_THEAD_ROW}>
+            <th scope="col" className={FA_TH}>
+              Horse
+            </th>
+            <th scope="col" className={FA_TH}>
+              Rider(s)
+            </th>
+            <th scope="col" className={FA_TH}>
+              Item
+            </th>
+            <th scope="col" className={FA_TH}>
+              Status
+            </th>
+            <th scope="col" className={FA_TH}>
+              Reason
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map(({ horse, doc }) => (
-            <TableRow key={`${horse.key}-${doc.requirementId}`}>
-              <TableCell className="font-semibold">{horse.horseName}</TableCell>
-              <TableCell>{horse.riders.length > 0 ? horse.riders.join(', ') : horse.riderLabel}</TableCell>
-              <TableCell>{doc.label}</TableCell>
-              <TableCell className="capitalize">{doc.status.replace('_', ' ')}</TableCell>
-              <TableCell>{doc.rejectionNote ?? doc.rejectionReason ?? '—'}</TableCell>
-            </TableRow>
+            <tr key={`${horse.key}-${doc.requirementId}`} className={FA_TR}>
+              <td className={cn(FA_TD, 'font-bold')}>{horse.horseName}</td>
+              <td className={FA_TD}>
+                {horse.riders.length > 0 ? horse.riders.join(', ') : horse.riderLabel}
+              </td>
+              <td className={FA_TD}>{doc.label}</td>
+              <td className={cn(FA_TD, 'capitalize')}>{doc.status.replace('_', ' ')}</td>
+              <td className={FA_TD}>{doc.rejectionNote ?? doc.rejectionReason ?? '—'}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-    </Card>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -149,34 +169,44 @@ function TestsSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.testPrint.rows;
   if (rows.length === 0) return <Empty>No classes yet.</Empty>;
   return (
-    <Card className="overflow-x-auto p-0">
-      <Table>
-        <TableCaption className="sr-only">Test copy counts for {data.showName}</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Class</TableHead>
-            <TableHead scope="col">Test</TableHead>
-            <TableHead scope="col">Rides</TableHead>
-            <TableHead scope="col">Judges</TableHead>
-            <TableHead scope="col">Copies needed</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className={FA_TABLE_WRAP}>
+      <table className={FA_TABLE}>
+        <caption className="sr-only">Test copy counts for {data.showName}</caption>
+        <thead>
+          <tr className={FA_THEAD_ROW}>
+            <th scope="col" className={FA_TH}>
+              Class
+            </th>
+            <th scope="col" className={FA_TH}>
+              Test
+            </th>
+            <th scope="col" className={FA_TH}>
+              Rides
+            </th>
+            <th scope="col" className={FA_TH}>
+              Judges
+            </th>
+            <th scope="col" className={FA_TH}>
+              Copies needed
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map((row) => (
-            <TableRow key={row.classId}>
-              <TableCell className="font-semibold">{row.classLabel}</TableCell>
-              <TableCell>
+            <tr key={row.classId} className={FA_TR}>
+              <td className={cn(FA_TD, 'font-bold')}>{row.classLabel}</td>
+              <td className={FA_TD}>
                 {row.testName ?? '—'}
                 {row.testEdition ? ` (${row.testEdition})` : ''}
-              </TableCell>
-              <TableCell>{row.rideCount}</TableCell>
-              <TableCell>{row.judgeCount}</TableCell>
-              <TableCell className="font-semibold">{row.totalCopies}</TableCell>
-            </TableRow>
+              </td>
+              <td className={FA_TD}>{row.rideCount}</td>
+              <td className={FA_TD}>{row.judgeCount}</td>
+              <td className={cn(FA_TD, 'font-bold')}>{row.totalCopies}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-    </Card>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -184,31 +214,41 @@ function RibbonsSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.ribbons.rows;
   if (rows.length === 0) return <Empty>No classes yet.</Empty>;
   return (
-    <Card className="overflow-x-auto p-0">
-      <Table>
-        <TableCaption className="sr-only">Ribbon counts for {data.showName}</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Group</TableHead>
-            <TableHead scope="col">Classes</TableHead>
-            <TableHead scope="col">Entries</TableHead>
-            <TableHead scope="col">Places</TableHead>
-            <TableHead scope="col">Ribbon sets</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className={FA_TABLE_WRAP}>
+      <table className={FA_TABLE}>
+        <caption className="sr-only">Ribbon counts for {data.showName}</caption>
+        <thead>
+          <tr className={FA_THEAD_ROW}>
+            <th scope="col" className={FA_TH}>
+              Group
+            </th>
+            <th scope="col" className={FA_TH}>
+              Classes
+            </th>
+            <th scope="col" className={FA_TH}>
+              Entries
+            </th>
+            <th scope="col" className={FA_TH}>
+              Places
+            </th>
+            <th scope="col" className={FA_TH}>
+              Ribbon sets
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map((row) => (
-            <TableRow key={row.unitLabel}>
-              <TableCell className="font-semibold">{row.unitLabel}</TableCell>
-              <TableCell>{row.classLabels.join(', ')}</TableCell>
-              <TableCell>{row.entryCount}</TableCell>
-              <TableCell>1st–{ordinal(row.ribbonPlaces)}</TableCell>
-              <TableCell className="font-semibold">{row.ribbonSets}</TableCell>
-            </TableRow>
+            <tr key={row.unitLabel} className={FA_TR}>
+              <td className={cn(FA_TD, 'font-bold')}>{row.unitLabel}</td>
+              <td className={FA_TD}>{row.classLabels.join(', ')}</td>
+              <td className={FA_TD}>{row.entryCount}</td>
+              <td className={FA_TD}>1st–{ordinal(row.ribbonPlaces)}</td>
+              <td className={cn(FA_TD, 'font-bold')}>{row.ribbonSets}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-    </Card>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -216,31 +256,41 @@ function BalancesSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.ledger.rows.filter((row) => row.balance > 0);
   if (rows.length === 0) return <Empty>No outstanding balances.</Empty>;
   return (
-    <Card className="overflow-x-auto p-0">
-      <Table>
-        <TableCaption className="sr-only">Outstanding entrant balances for {data.showName}</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Entry #</TableHead>
-            <TableHead scope="col">Rider</TableHead>
-            <TableHead scope="col">Fees</TableHead>
-            <TableHead scope="col">Paid</TableHead>
-            <TableHead scope="col">Balance</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className={FA_TABLE_WRAP}>
+      <table className={FA_TABLE}>
+        <caption className="sr-only">Outstanding entrant balances for {data.showName}</caption>
+        <thead>
+          <tr className={FA_THEAD_ROW}>
+            <th scope="col" className={FA_TH}>
+              Entry #
+            </th>
+            <th scope="col" className={FA_TH}>
+              Rider
+            </th>
+            <th scope="col" className={FA_TH}>
+              Fees
+            </th>
+            <th scope="col" className={FA_TH}>
+              Paid
+            </th>
+            <th scope="col" className={FA_TH}>
+              Balance
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map((row) => (
-            <TableRow key={row.showEntryId}>
-              <TableCell>{row.entryNumber}</TableCell>
-              <TableCell className="font-semibold">{row.riderName}</TableCell>
-              <TableCell>{formatMoney(row.fees)}</TableCell>
-              <TableCell>{formatMoney(row.amountPaid)}</TableCell>
-              <TableCell className="font-semibold">{formatMoney(row.balance)}</TableCell>
-            </TableRow>
+            <tr key={row.showEntryId} className={FA_TR}>
+              <td className={FA_TD}>{row.entryNumber}</td>
+              <td className={cn(FA_TD, 'font-bold')}>{row.riderName}</td>
+              <td className={FA_TD}>{formatMoney(row.fees)}</td>
+              <td className={FA_TD}>{formatMoney(row.amountPaid)}</td>
+              <td className={cn(FA_TD, 'font-bold')}>{formatMoney(row.balance)}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-    </Card>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -248,29 +298,37 @@ function AssociationSection({ data }: { data: QuickReportsPageData }) {
   const rows = data.byAssociation;
   if (rows.length === 0) return <Empty>No entries yet.</Empty>;
   return (
-    <Card className="overflow-x-auto p-0">
-      <Table>
-        <TableCaption className="sr-only">Revenue by association for {data.showName}</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Association</TableHead>
-            <TableHead scope="col">Entries</TableHead>
-            <TableHead scope="col">Fees</TableHead>
-            <TableHead scope="col">Paid</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <div className={FA_TABLE_WRAP}>
+      <table className={FA_TABLE}>
+        <caption className="sr-only">Revenue by association for {data.showName}</caption>
+        <thead>
+          <tr className={FA_THEAD_ROW}>
+            <th scope="col" className={FA_TH}>
+              Association
+            </th>
+            <th scope="col" className={FA_TH}>
+              Entries
+            </th>
+            <th scope="col" className={FA_TH}>
+              Fees
+            </th>
+            <th scope="col" className={FA_TH}>
+              Paid
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {rows.map((row) => (
-            <TableRow key={row.association}>
-              <TableCell className="font-semibold">{row.association}</TableCell>
-              <TableCell>{row.entryCount}</TableCell>
-              <TableCell>{formatMoney(row.fees)}</TableCell>
-              <TableCell>{formatMoney(row.amountPaid)}</TableCell>
-            </TableRow>
+            <tr key={row.association} className={FA_TR}>
+              <td className={cn(FA_TD, 'font-bold')}>{row.association}</td>
+              <td className={FA_TD}>{row.entryCount}</td>
+              <td className={FA_TD}>{formatMoney(row.fees)}</td>
+              <td className={FA_TD}>{formatMoney(row.amountPaid)}</td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
-    </Card>
+        </tbody>
+      </table>
+    </div>
   );
 }
 

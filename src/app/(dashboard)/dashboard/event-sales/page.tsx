@@ -20,7 +20,7 @@ export default async function EventSalesPage({
     return (
       <WorkspacePage
         title="Event Sales"
-        description="Rider entries and add-ons."
+        description="Rider entries and add-ons"
         orgName={context.orgName}
         showPicker={false}
       >
@@ -39,22 +39,16 @@ export default async function EventSalesPage({
   const stats = computeSalesStats(rows);
 
   return (
-    <WorkspacePage
-      title="Event Sales"
-      description="Rider entries and add-ons."
-      orgName={context.orgName}
+    <EventSalesScreen
       shows={context.shows}
-      currentShow={context.currentShow}
-    >
-      <EventSalesScreen
-        showId={context.currentShow.id}
-        showName={context.currentShow.name}
-        isLive={isStripeLive()}
-        canRefund={canRefund}
-        canViewMoney={context.canViewMoney}
-        rows={rows}
-        stats={stats}
-      />
-    </WorkspacePage>
+      currentRef={context.currentShow.slug ?? context.currentShow.id}
+      showId={context.currentShow.id}
+      showName={context.currentShow.name}
+      isLive={isStripeLive()}
+      canRefund={canRefund}
+      canViewMoney={context.canViewMoney}
+      rows={rows}
+      stats={stats}
+    />
   );
 }

@@ -2,6 +2,7 @@
 import type { ChangeEvent } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
 import { useUploadShowDocument } from '@/modules/operations/hooks/use-document-mutations';
+import { FA_BTN_PRIMARY } from '@/shared/ui/organizer/fa-page';
 
 export function DocumentUploadButton({ showId }: { showId: string }) {
   const { mutate, isPending } = useUploadShowDocument();
@@ -22,7 +23,7 @@ export function DocumentUploadButton({ showId }: { showId: string }) {
   }
 
   return (
-    <label className="dash-btn dash-btn-dark" style={{ cursor: 'pointer', display: 'inline-flex' }}>
+    <label className={FA_BTN_PRIMARY}>
       {isPending ? 'Uploading…' : '+ Upload PDF'}
       <Input
         type="file"

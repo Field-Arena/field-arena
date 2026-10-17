@@ -1,69 +1,72 @@
 import Link from 'next/link';
 import type { DashboardShowRow } from '@/modules/shows/types';
+import {
+  CardTitle,
+  EmptyState,
+  FA_BTN_SMALL,
+  FA_MUTED,
+  FaCard,
+  PageHeader,
+} from '@/shared/ui/organizer/fa-page';
 
 /** Finished shows collect here, most recent first, each with a way back
  * into its dashboard, results and awards. */
 export function CompletedShows({ shows }: { shows: DashboardShowRow[] }) {
   return (
-    <section>
-      <div className="fa-page-head">
-        <div>
-          <h2>Completed shows</h2>
-          <p>Shows that have ended or published their results.</p>
-        </div>
-      </div>
+    <section className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <PageHeader
+        eyebrow="Shows that have ended or published their results"
+        title="Completed shows"
+      />
 
       {shows.length === 0 ? (
-        <div className="fa-mini-card">
-          <h4>No completed shows yet</h4>
-          <p>Once a show ends, it moves here so your current shows stay up front.</p>
-        </div>
+        <EmptyState
+          title="No completed shows yet"
+          note="Once a show ends, it moves here so your current shows stay up front."
+        />
       ) : (
-        <div className="fa-aside-card">
-          <ul className="m-0 list-none p-0">
-            {shows.map((show) => {
-              const ref = show.slug ?? show.id;
-              return (
-                <li
-                  key={show.id}
-                  className="flex flex-wrap items-center gap-3 border-b border-[var(--fa-line-soft)] py-3 last:border-b-0"
-                >
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
+          {shows.map((show) => {
+            const ref = show.slug ?? show.id;
+            return (
+              <li key={show.id}>
+                <FaCard className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/dashboard?show=${ref}`}
                       prefetch={false}
-                      className="text-[14px] font-semibold text-[var(--fa-ink)] no-underline hover:text-[var(--fa-brand)]"
+                      className="no-underline hover:underline"
                     >
-                      {show.name}
+                      <CardTitle>{show.name}</CardTitle>
                     </Link>
-                    <div className="text-[12.5px] text-[var(--fa-ink-3)]">
+                    <p className={FA_MUTED}>
                       {[
                         show.dateLabel,
                         show.riderCount === null ? null : `${String(show.riderCount)} riders`,
                       ]
                         .filter(Boolean)
                         .join(' · ')}
-                    </div>
+                    </p>
                   </div>
                   <Link
                     href={`/dashboard/shows/${ref}/results`}
                     prefetch={false}
-                    className="fa-btn fa-btn-ghost fa-btn-sm"
+                    className={FA_BTN_SMALL}
                   >
                     Results
                   </Link>
                   <Link
                     href={`/dashboard/awards?show=${ref}`}
                     prefetch={false}
-                    className="fa-btn fa-btn-ghost fa-btn-sm"
+                    className={FA_BTN_SMALL}
                   >
                     Awards
                   </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                </FaCard>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

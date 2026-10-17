@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/ui/shadcn/table';
-import { Card } from '@/shared/ui/organizer/card';
+import { FA_TABLE_WRAP } from '@/shared/ui/organizer/fa-page';
 
 export interface ScorecardCollective {
   key: string;
@@ -62,22 +62,22 @@ export function CollectivesMarksTable({
 
   const collectiveRow = (c: ScorecardCollective) => (
     <TableRow key={c.key} className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
-      <TableCell className="p-2 whitespace-normal">{c.label}</TableCell>
-      <TableCell className="p-2 whitespace-normal">{c.coef}</TableCell>
-      <TableCell className="text-ink-deep p-2 text-right font-mono font-semibold whitespace-normal">
+      <TableCell className="px-3 py-2 whitespace-normal">{c.label}</TableCell>
+      <TableCell className="px-3 py-2 whitespace-normal">{c.coef}</TableCell>
+      <TableCell className="text-ink-deep px-3 py-2 text-right font-mono font-semibold whitespace-normal">
         {marks[c.key] ?? '—'}
       </TableCell>
     </TableRow>
   );
 
   return (
-    <Card className="overflow-x-auto p-[16px_18px]">
+    <div className={FA_TABLE_WRAP}>
       <Table className="min-w-[320px] border-collapse text-[13.5px]">
         <TableHeader className="[&_tr]:border-0">
-          <TableRow className="text-left text-[11px] tracking-[.08em] text-[#7A8781] uppercase hover:bg-transparent">
-            <TableHead className="h-auto p-2">Category</TableHead>
-            <TableHead className="h-auto p-2">Coef</TableHead>
-            <TableHead className="h-auto p-2 text-right">Mark</TableHead>
+          <TableRow className="bg-[#F5F7F6] text-left text-[11px] tracking-[.06em] text-[#5A6B63] uppercase hover:bg-[#F5F7F6]">
+            <TableHead className="h-auto px-3 py-2.5 font-bold">Category</TableHead>
+            <TableHead className="h-auto px-3 py-2.5 font-bold">Coef</TableHead>
+            <TableHead className="h-auto px-3 py-2.5 text-right font-bold">Mark</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -87,7 +87,7 @@ export function CollectivesMarksTable({
                   <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
                     <TableCell
                       colSpan={3}
-                      className="p-2 pt-3 text-[11px] font-semibold tracking-[.08em] text-[#7A8781] uppercase"
+                      className="px-3 py-2 pt-3 text-[11px] font-semibold tracking-[.08em] text-[#7A8781] uppercase"
                     >
                       {group.section}
                     </TableCell>
@@ -96,11 +96,11 @@ export function CollectivesMarksTable({
                   <TableRow className="border-t border-b-0 border-[#E9EDEB] hover:bg-transparent">
                     <TableCell
                       colSpan={2}
-                      className="p-2 text-right text-[12px] font-semibold text-[#7A8781]"
+                      className="px-3 py-2 text-right text-[12px] font-semibold text-[#7A8781]"
                     >
                       Section subtotal
                     </TableCell>
-                    <TableCell className="p-2 text-right font-mono font-semibold text-[#7A8781]">
+                    <TableCell className="px-3 py-2 text-right font-mono font-semibold text-[#7A8781]">
                       {sectionSubtotal(group.items, marks)} / {sectionMax(group.items)}
                     </TableCell>
                   </TableRow>
@@ -109,6 +109,6 @@ export function CollectivesMarksTable({
             : collectives.map(collectiveRow)}
         </TableBody>
       </Table>
-    </Card>
+    </div>
   );
 }

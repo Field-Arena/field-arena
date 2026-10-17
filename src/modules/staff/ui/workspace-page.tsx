@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import type { ShowListItem } from '@/modules/shows/data/queries';
-import { ShowPickerCombobox } from './show-picker-combobox';
+import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
+import { FaShowSelect } from '@/shared/ui/organizer/fa-show-select';
 
 export function WorkspacePage({
   title,
   description,
-  orgName,
   shows,
   currentShow,
   showPicker = true,
@@ -21,36 +21,34 @@ export function WorkspacePage({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const picker =
+    showPicker && shows && shows.length > 0 && currentShow ? (
+      <FaShowSelect shows={shows} currentRef={currentShow.slug ?? currentShow.id} />
+    ) : null;
+
   return (
-    <>
-      <div className="dash-head">
-        <div>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div>
-        {actions}
-      </div>
-
-      <div className="dash-card">
-        <div className="showbar">
-          <span className="showbar-org">{orgName}</span>
-
-          {showPicker && shows && shows.length > 0 && currentShow && (
-            <ShowPickerCombobox shows={shows} currentShow={currentShow} />
-          )}
-        </div>
-
-        {children}
-      </div>
-    </>
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <PageHeader
+        eyebrow={description}
+        title={title}
+        actions={
+          actions === undefined && picker === null ? undefined : (
+            <>
+              {actions}
+              {picker}
+            </>
+          )
+        }
+      />
+      {children}
+    </div>
   );
 }
 
 export function EmptyPanel({ title, note }: { title: string; note: string }) {
   return (
-    <div className="placeholder-panel" style={{ marginTop: 14 }}>
-      <span className="ph-title">{title}</span>
-      <p className="ph-note">{note}</p>
+    <div className="mt-3.5">
+      <EmptyState title={title} note={note} />
     </div>
   );
 }

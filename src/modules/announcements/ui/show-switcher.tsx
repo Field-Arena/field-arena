@@ -1,4 +1,5 @@
-import { StatusBadge } from '@/shared/ui/status-badge';
+import { FA_MUTED, Pill } from '@/shared/ui/organizer/fa-page';
+import { FaShowSelect } from '@/shared/ui/organizer/fa-show-select';
 import type { AnnouncerShow } from '@/modules/announcements/data/queries';
 
 /* Legacy's assignment cards carried a Today / Upcoming / Completed pill
@@ -6,10 +7,16 @@ import type { AnnouncerShow } from '@/modules/announcements/data/queries';
  * glance that the board in front of them was the show actually running. The
  * switcher dropdown alone lost that signal entirely. */
 function StatusPill({ status }: { status: AnnouncerShow['status'] }) {
-  if (status === 'today') return <StatusBadge tone="warn">Today</StatusBadge>;
-  if (status === 'completed') return <StatusBadge tone="neutral">Completed</StatusBadge>;
-  return <StatusBadge tone="success">Upcoming</StatusBadge>;
+  if (status === 'today') return <Pill tone="green">Today</Pill>;
+  if (status === 'completed') return <Pill tone="grey">Completed</Pill>;
+  return <Pill tone="blue">Upcoming</Pill>;
 }
+
+const STATUS_SUFFIX: Record<AnnouncerShow['status'], string> = {
+  today: ' — today',
+  completed: ' — completed',
+  upcoming: '',
+};
 
 export function ShowSwitcher({
   currentShow,
@@ -19,32 +26,21 @@ export function ShowSwitcher({
   shows: AnnouncerShow[];
 }) {
   return (
-    <div className="showbar">
-      <span className="showbar-org">{currentShow.name}</span>
-      <StatusPill status={currentShow.status} />
-      {currentShow.dateLabel && <span className="card-meta">{currentShow.dateLabel}</span>}
-      {shows.length > 1 && (
-        <form method="get" className="contents">
-          <select
-            name="show"
-            defaultValue={currentShow.slug ?? currentShow.id}
-            className="dash-select"
-            style={{ maxWidth: 380 }}
-            aria-label="Select show"
-          >
-            {shows.map((show) => (
-              <option key={show.id} value={show.slug ?? show.id}>
-                {show.name}
-                {show.status === 'today' ? ' — today' : ''}
-                {show.status === 'completed' ? ' — completed' : ''}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="dash-btn dash-btn-outline">
-            Switch
-          </button>
-        </form>
+    <div className="flex flex-wrap items-center gap-2">
+      {shows.length < 2 && (
+        <span className="text-[14px] font-bold text-[#0D2C23]">{currentShow.name}</span>
       )}
+      <StatusPill status={currentShow.status} />
+      {currentShow.dateLabel && <span className={FA_MUTED}>{currentShow.dateLabel}</span>}
+      <FaShowSelect
+        shows={shows.map((show) => ({
+          id: show.id,
+          slug: show.slug,
+          name: `${show.name}${STATUS_SUFFIX[show.status]}`,
+        }))}
+        currentRef={currentShow.slug ?? currentShow.id}
+        label="Select show"
+      />
     </div>
   );
 }

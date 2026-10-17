@@ -1,4 +1,5 @@
 import type { PanelContact } from '@/modules/judging/data/queries';
+import { CardTitle, FA_MUTED, FaCard, Pill } from '@/shared/ui/organizer/fa-page';
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -17,16 +18,17 @@ export function PanelContactCard({ contact }: { contact: PanelContact }) {
   ].join(' · ');
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-[#E9EDEB] bg-white p-[16px_20px]">
-      <span className="grid size-11 flex-none place-items-center rounded-full bg-[#E7EFEA] font-[Newsreader,serif] text-base font-semibold text-[#2F5145]">
+    <FaCard className="flex items-center gap-4">
+      <span className="grid size-11 flex-none place-items-center rounded-full bg-[#E9F4EE] font-[family-name:var(--ws-fraunces)] text-base font-bold text-[#1A5B3C]">
         {initials(contact.name)}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-ink-deep block font-[Newsreader,serif] text-lg font-semibold">
-          {contact.name}
-        </span>
-        <span className="mt-[3px] block text-[13.5px] text-[#5A6B63]">{detail}</span>
+        <CardTitle className="text-[18px]">{contact.name}</CardTitle>
+        <span className={`mt-0.5 block ${FA_MUTED}`}>{detail}</span>
       </span>
-    </div>
+      <Pill tone={contact.role === 'judge' ? 'green' : 'blue'} className="flex-none">
+        {roleLabel}
+      </Pill>
+    </FaCard>
   );
 }

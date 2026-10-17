@@ -1,11 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { Input } from '@/shared/ui/shadcn/input';
+import { cn } from '@/shared/lib/utils';
+import { FA_BTN_DANGER, FA_BTN_SMALL, FA_INPUT } from '@/shared/ui/organizer/fa-page';
 import type { ShowExpense } from '@/modules/shows/data/setup-queries';
 import { useSaveShowExpenses } from '@/modules/shows/hooks/use-expense-mutations';
-import { SM_ROW_INPUT, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 
 export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: ShowExpense[] }) {
   const [rows, setRows] = useState(expenses);
@@ -38,7 +37,7 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
 
   return (
     <div>
-      <p className="mb-3 text-[12.5px] text-[#6E7C76]">
+      <p className="mb-3 text-[12.5px] text-[#5A6B63]">
         The most common horse-show cost lines, pre-filled — edit amounts, rename, or remove any that
         don&apos;t apply.
       </p>
@@ -46,8 +45,8 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
       <div className="flex flex-col gap-1.5">
         {rows.map((row, index) => (
           <div key={row.id} className="flex items-center gap-2">
-            <Input
-              className={`${SM_ROW_INPUT} h-auto min-w-[200px] flex-1`}
+            <input
+              className={cn(FA_INPUT, 'min-w-[200px] flex-1 py-1.5')}
               value={row.label}
               placeholder="Expense"
               onChange={(e) => {
@@ -60,11 +59,11 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
               }}
               aria-label={`${row.label} name`}
             />
-            <Input
+            <input
               type="number"
               min={0}
               step="0.01"
-              className={`${SM_ROW_INPUT} h-auto w-[120px] flex-none text-right`}
+              className={cn(FA_INPUT, 'w-[120px] flex-none py-1.5 text-right')}
               value={row.amount}
               onChange={(e) => {
                 const next = [...rows];
@@ -76,23 +75,22 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
               }}
               aria-label={`${row.label} amount`}
             />
-            <Button
+            <button
               type="button"
-              variant="ghost"
               onClick={() => {
                 commit(rows.filter((r) => r.id !== row.id));
               }}
-              className="h-auto flex-none rounded-[9px] border border-[#E4B5AC] bg-[#FDF0EE] px-3.5 py-2.5 text-[12.5px] font-semibold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-transparent"
+              className={cn(FA_BTN_DANGER, 'flex-none')}
             >
               Remove
-            </Button>
+            </button>
           </div>
         ))}
       </div>
 
       <div className="mt-2.5 flex gap-2">
-        <Input
-          className={`${SM_ROW_INPUT} h-auto flex-1`}
+        <input
+          className={cn(FA_INPUT, 'flex-1 py-1.5')}
           placeholder="Add another expense…"
           value={draft}
           onChange={(e) => {
@@ -106,14 +104,9 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
           }}
           aria-label="New expense name"
         />
-        <Button
-          type="button"
-          variant="ghost"
-          className={`${SM_GHOST_BTN} h-auto hover:bg-transparent`}
-          onClick={add}
-        >
+        <button type="button" className={FA_BTN_SMALL} onClick={add}>
           + Add expense
-        </Button>
+        </button>
       </div>
     </div>
   );
