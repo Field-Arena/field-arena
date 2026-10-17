@@ -64,24 +64,25 @@ export default async function MasterSchedulePage({
         )
       ) : (
         <>
-          {/* Pacing/order/lunch/day-time preferences moved here from Setup —
-              client feedback: deciding these before any entries exist is
-              premature, they only make sense once there's a real schedule to
-              tune (client's own words: "should be made after the entries
-              are done"). This page already gates everything below on
-              hasRides, which is exactly that condition. */}
-          {showDetail && (
-            <SchedulePreferencesCard
-              showId={context.currentShow.id}
-              startDate={showDetail.startDate}
-              endDate={showDetail.endDate}
-              prefs={showDetail.schedulePrefs}
-              dayStartTimes={showDetail.dayStartTimes}
-              dayEndTimes={showDetail.dayEndTimes}
-              classes={classes}
-            />
-          )}
-          <MasterScheduleView data={data} />
+          {/* Pacing/order/lunch/day-time preferences live here, not in Setup --
+              they only make sense once there's a real schedule to tune. They
+              sit with the schedule rules behind its Show/Hide button. */}
+          <MasterScheduleView
+            data={data}
+            preferences={
+              showDetail && (
+                <SchedulePreferencesCard
+                  showId={context.currentShow.id}
+                  startDate={showDetail.startDate}
+                  endDate={showDetail.endDate}
+                  prefs={showDetail.schedulePrefs}
+                  dayStartTimes={showDetail.dayStartTimes}
+                  dayEndTimes={showDetail.dayEndTimes}
+                  classes={classes}
+                />
+              )
+            }
+          />
         </>
       )}
     </WorkspacePage>
