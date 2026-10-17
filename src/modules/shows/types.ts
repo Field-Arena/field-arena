@@ -44,6 +44,10 @@ export interface ShowPanelDetail {
   ticketClose: string | null;
   ticketOpen: string | null;
   vendors: ShowVendorSummary;
+  /** Every test (class) offered, in schedule order, with its active rides. */
+  tests: { id: string; label: string; date: string | null; ring: string | null; rides: number }[];
+  /** Distinct show days that have a test scheduled. */
+  testDays: number;
 }
 
 export type TodoPriority = 'urgent' | 'soon' | 'later';

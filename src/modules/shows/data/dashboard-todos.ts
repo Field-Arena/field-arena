@@ -85,7 +85,7 @@ export async function getShowTodos(
     { data: showRow },
     { data: bookings },
     { data: vendorItems },
-    { count: classCount },
+    { data: classRows },
   ] = await Promise.all([
     getShowDocumentSummary(show.id),
     getShowAttention(show.id),
@@ -101,8 +101,40 @@ export async function getShowTodos(
       .maybeSingle(),
     supabase.from('vendor_bookings').select('status, amount_total').eq('show_id', show.id),
     supabase.from('vendor_items').select('qty, enabled').eq('show_id', show.id),
-    supabase.from('classes').select('id', { count: 'exact', head: true }).eq('show_id', show.id),
+    supabase
+      .from('classes')
+      .select('id, label, display_name, date, time, arena, location, run_order')
+      .eq('show_id', show.id),
   ]);
+  const classes = classRows ?? [];
+  const ridesByClass = new Map<string, number>();
+  if (classes.length > 0) {
+    const { data: rideRows } = await supabase
+      .from('class_entries')
+      .select('class_id, status')
+      .in(
+        'class_id',
+        classes.map((c) => c.id),
+      );
+    for (const r of rideRows ?? []) {
+      if (r.status === 'scratched') continue;
+      ridesByClass.set(r.class_id, (ridesByClass.get(r.class_id) ?? 0) + 1);
+    }
+  }
+  const tests = [...classes]
+    .sort(
+      (a, b) =>
+        (a.date ?? '').localeCompare(b.date ?? '') ||
+        (a.time ?? '').localeCompare(b.time ?? '') ||
+        (a.run_order ?? 0) - (b.run_order ?? 0),
+    )
+    .map((c) => ({
+      id: c.id,
+      label: c.display_name ?? c.label,
+      date: c.date,
+      ring: c.arena ?? c.location,
+      rides: ridesByClass.get(c.id) ?? 0,
+    }));
   const ref = show.slug ?? show.id;
   const bookingRows = bookings ?? [];
   const spaceTotal = (vendorItems ?? [])
@@ -111,7 +143,9 @@ export async function getShowTodos(
   const detail: ShowPanelDetail = {
     riders: stats.riders,
     horses: stats.horses,
-    classes: classCount ?? 0,
+    classes: classes.length,
+    tests,
+    testDays: new Set(classes.map((c) => c.date).filter(Boolean)).size,
     rings: Array.isArray(showRow?.locations) ? showRow.locations.length : 0,
     venue: showRow?.venue_name ?? null,
     ticketOpen: showRow?.ticket_open ?? null,
