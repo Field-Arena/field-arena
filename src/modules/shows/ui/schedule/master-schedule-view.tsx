@@ -19,41 +19,52 @@ import { riderDayFlags } from '@/modules/shows/utils/rider-day-flags';
 import { dayDate } from '@/modules/shows/utils/day-date';
 
 type ScheduleView = 'order' | 'edit';
-const VIEW_KEY = 'fa-schedule-view';
-const VIEW_EVENT = 'fa-schedule-view-change';
-let memoryView: ScheduleView = 'order';
+type RulesShown = 'shown' | 'hidden';
+const CHOICE_EVENT = 'fa-schedule-choice-change';
 
-function readView(): ScheduleView {
-  try {
-    const stored = window.localStorage.getItem(VIEW_KEY);
-    if (stored === 'edit' || stored === 'order') return stored;
-  } catch {
-    // Storage blocked: use the in-memory choice.
-  }
-  return memoryView;
+/* A per-browser remembered choice (which view, whether the rules show).
+ * Read through useSyncExternalStore so the server render uses the fallback
+ * and the browser then applies the stored value. */
+function storedChoice<T extends string>(key: string, values: readonly T[], fallback: T) {
+  let memory = fallback;
+  return {
+    read: (): T => {
+      try {
+        const stored = window.localStorage.getItem(key);
+        const match = values.find((v) => v === stored);
+        if (match) return match;
+      } catch {
+        // Storage blocked: use the in-memory choice.
+      }
+      return memory;
+    },
+    write: (next: T) => {
+      memory = next;
+      try {
+        window.localStorage.setItem(key, next);
+      } catch {
+        // Storage blocked: the in-memory choice still applies for this visit.
+      }
+      window.dispatchEvent(new Event(CHOICE_EVENT));
+    },
+    fallback: () => fallback,
+  };
 }
 
-function writeView(next: ScheduleView) {
-  memoryView = next;
-  try {
-    window.localStorage.setItem(VIEW_KEY, next);
-  } catch {
-    // Storage blocked: the in-memory choice still applies for this visit.
-  }
-  window.dispatchEvent(new Event(VIEW_EVENT));
-}
-
-function subscribeView(onChange: () => void) {
+function subscribeChoice(onChange: () => void) {
   const handler = () => {
     onChange();
   };
-  window.addEventListener(VIEW_EVENT, handler);
+  window.addEventListener(CHOICE_EVENT, handler);
   window.addEventListener('storage', handler);
   return () => {
-    window.removeEventListener(VIEW_EVENT, handler);
+    window.removeEventListener(CHOICE_EVENT, handler);
     window.removeEventListener('storage', handler);
   };
 }
+
+const viewChoice = storedChoice<ScheduleView>('fa-schedule-view', ['order', 'edit'], 'order');
+const rulesChoice = storedChoice<RulesShown>('fa-schedule-rules', ['shown', 'hidden'], 'hidden');
 
 export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
   const { schedule } = data;
@@ -65,8 +76,9 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
   // Opens on whichever view this organizer used last. Read through
   // useSyncExternalStore so the server render (always the running order)
   // and the browser agree, then the stored choice applies.
-  const view = useSyncExternalStore(subscribeView, readView, () => 'order' as const);
-  const setView = writeView;
+  const view = useSyncExternalStore(subscribeChoice, viewChoice.read, viewChoice.fallback);
+  const setView = viewChoice.write;
+  const rules = useSyncExternalStore(subscribeChoice, rulesChoice.read, rulesChoice.fallback);
   const flags = riderDayFlags(schedule.arenas);
 
   return (
@@ -138,19 +150,33 @@ export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
 
         <PublishScheduleButton showId={data.showId} published={data.published} />
 
+        <button
+          type="button"
+          aria-expanded={rules === 'shown'}
+          aria-controls="schedule-rules"
+          onClick={() => {
+            rulesChoice.write(rules === 'shown' ? 'hidden' : 'shown');
+          }}
+          className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[9px] border-2 border-[#1A5B3C] bg-white px-3.5 text-[13.5px] font-bold text-[#1A5B3C] hover:bg-[#E9F4EE]"
+        >
+          Schedule rules {rules === 'shown' ? '▴ Hide' : '▾ Show'}
+        </button>
+
         <span className="ml-auto flex items-center gap-2 text-[12.5px] text-[#6E7C76]">
           Awards grouping
           <AwardsGroupingToggle data={data} />
         </span>
       </div>
 
-      {view === 'edit' && (
-        <div className="print:hidden">
-          <ScheduleClashesCard schedule={schedule} />
-          <ScheduleRulesCard data={data} />
-          <ScheduleKeyCard />
-        </div>
-      )}
+      <div className="print:hidden">
+        {view === 'edit' && <ScheduleClashesCard schedule={schedule} />}
+        {rules === 'shown' && (
+          <div id="schedule-rules">
+            <ScheduleRulesCard data={data} />
+            {view === 'edit' && <ScheduleKeyCard />}
+          </div>
+        )}
+      </div>
 
       {totalDays > 1 && (
         <div className="mb-4 flex flex-wrap gap-1.5 print:hidden">
