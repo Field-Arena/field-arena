@@ -1,6 +1,7 @@
 import 'server-only';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
-import { getShowAttention } from '@/modules/shows/data/queries';
+import { getShowAttention, getShowStats } from '@/modules/shows/data/queries';
+import { createServerClient } from '@/shared/lib/supabase/server';
 import { COGGINS_LABEL } from '@/modules/shows/constants';
 import { todoPriority, sortTodos, type TodoKind } from '@/modules/shows/utils/todo-priority';
 import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
@@ -15,11 +16,19 @@ export async function getShowDocumentSummary(showId: string): Promise<ShowDocume
     awaitingReview: 0,
     problem: 0,
     cogginsExpired: 0,
+    cogginsConfirmed: 0,
+    cogginsTotal: 0,
+    waiversSigned: 0,
+    waiversTotal: 0,
   };
   if (!data) return summary;
 
   for (const row of data.rows) {
     for (const doc of row.documents) {
+      if (doc.label === COGGINS_LABEL) {
+        summary.cogginsTotal++;
+        if (doc.uploaded && doc.verified && !doc.expired) summary.cogginsConfirmed++;
+      }
       if (!doc.uploaded) summary.notUploaded++;
       else if (doc.expired || doc.status === 'rejected' || doc.status === 'replacement_requested') {
         summary.problem++;
@@ -37,11 +46,19 @@ const plural = (n: number, one: string, many = `${one}s`) => `${String(n)} ${n =
 export async function getShowTodos(
   show: { id: string; slug: string | null },
   daysOut: number | null,
-): Promise<{ todos: DashboardTodo[]; documents: ShowDocumentSummary }> {
-  const [documents, attention] = await Promise.all([
+): Promise<{ todos: DashboardTodo[]; documents: ShowDocumentSummary; entries: number }> {
+  const supabase = await createServerClient();
+  const [documents, attention, stats, { count: signed }] = await Promise.all([
     getShowDocumentSummary(show.id),
     getShowAttention(show.id),
+    getShowStats(show.id),
+    supabase
+      .from('waiver_signatures')
+      .select('id', { count: 'exact', head: true })
+      .eq('show_id', show.id),
   ]);
+  documents.waiversTotal = stats.riders;
+  documents.waiversSigned = Math.min(signed ?? 0, stats.riders);
   const horsesHref = `/dashboard/horses?show=${show.slug ?? show.id}`;
   const todos: DashboardTodo[] = [];
   const add = (kind: TodoKind, todo: Omit<DashboardTodo, 'priority'>) => {
@@ -86,6 +103,17 @@ export async function getShowTodos(
     });
   }
 
+  const unsigned = documents.waiversTotal - documents.waiversSigned;
+  if (unsigned > 0) {
+    add('document-missing', {
+      key: 'waivers-unsigned',
+      label: `${plural(unsigned, 'rider')} ${unsigned === 1 ? "hasn't" : "haven't"} signed the waiver`,
+      detail: 'Every rider must sign before they can ride.',
+      actionLabel: 'See who',
+      href: `/dashboard/riders?show=${show.slug ?? show.id}`,
+    });
+  }
+
   for (const item of attention) {
     add(item.severity === 'warn' ? 'setup-warning' : 'note', {
       key: `attention-${item.label}`,
@@ -96,5 +124,5 @@ export async function getShowTodos(
     });
   }
 
-  return { todos: sortTodos(todos), documents };
+  return { todos: sortTodos(todos), documents, entries: stats.entries };
 }

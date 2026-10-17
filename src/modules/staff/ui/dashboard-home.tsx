@@ -7,11 +7,12 @@ import { TodoList } from './todo-list';
 export interface HomeShow {
   show: DashboardShowRow;
   daysOut: number | null;
+  entries: number | null;
   todos: DashboardTodo[];
   documents: ShowDocumentSummary;
 }
 
-const STAGE_LABEL: Record<string, string> = {
+export const STAGE_LABEL: Record<string, string> = {
   setup: 'Setup',
   'sales-open': 'Entries open',
   'sales-closed': 'Entries closed',
@@ -19,11 +20,13 @@ const STAGE_LABEL: Record<string, string> = {
   complete: 'Complete',
 };
 
-function whenLabel(daysOut: number | null): string | null {
+export function whenLabel(daysOut: number | null): string | null {
   if (daysOut === null) return null;
   if (daysOut <= 0) return 'Running now';
   return daysOut === 1 ? 'Tomorrow' : `${String(daysOut)} days out`;
 }
+
+const box = 'rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white';
 
 /** The organizer's landing view: the shows they're working on now, each one
  * a way into that show, and one to-do list per show underneath. */
@@ -31,18 +34,13 @@ export function DashboardHome({ orgName, shows }: { orgName: string; shows: Home
   if (shows.length === 0) {
     return (
       <section>
-        <div className="fa-page-head">
-          <div>
-            <h2>Dashboard</h2>
-            <p>Your current shows and what needs doing.</p>
-          </div>
-        </div>
-        <div className="fa-mini-card">
-          <h4>No current shows</h4>
-          <p>
+        <h1 className="m-0 text-[30px] font-extrabold text-[#0D2C23]">Your shows</h1>
+        <div className={`${box} mt-5 p-6`}>
+          <h2 className="m-0 text-[20px] font-extrabold text-[#0D2C23]">No current shows</h2>
+          <p className="mt-1.5 mb-4 text-[15px] text-[#5A6B63]">
             {orgName} has nothing coming up. Create a show, or open a finished one from Completed.
           </p>
-          <NewShowButton className="mt-4" />
+          <NewShowButton />
         </div>
       </section>
     );
@@ -50,18 +48,20 @@ export function DashboardHome({ orgName, shows }: { orgName: string; shows: Home
 
   return (
     <section>
-      <div className="fa-page-head">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2>Dashboard</h2>
-          <p>Your current shows and what needs doing. Click a show to go into it.</p>
+          <h1 className="m-0 text-[30px] leading-tight font-extrabold text-[#0D2C23]">
+            Your shows
+          </h1>
+          <p className="mt-1 mb-0 text-[15px] text-[#5A6B63]">
+            Click a show to go into it. Use the tabs above to switch any time.
+          </p>
         </div>
-        <div className="fa-head-actions">
-          <NewShowButton />
-        </div>
+        <NewShowButton />
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {shows.map(({ show, daysOut, documents }) => {
+      <div className="mb-9 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {shows.map(({ show, daysOut, entries, documents }) => {
           const ref = show.slug ?? show.id;
           const when = whenLabel(daysOut);
           return (
@@ -69,21 +69,44 @@ export function DashboardHome({ orgName, shows }: { orgName: string; shows: Home
               key={show.id}
               href={`/dashboard?show=${ref}`}
               prefetch={false}
-              className="fa-aside-card block no-underline transition-shadow hover:shadow-[var(--fa-shadow-md)]"
+              className={`${box} group flex flex-col p-5 no-underline transition hover:border-[#1A5B3C] hover:shadow-[0_10px_28px_-14px_rgba(16,40,32,.35)]`}
             >
-              <h4 className="m-0">{show.name}</h4>
-              <p className="m-0 text-[12.5px] text-[var(--fa-ink-2)]">
+              <h2 className="m-0 text-[22px] leading-tight font-extrabold text-[#0D2C23]">
+                {show.name}
+              </h2>
+              <p className="mt-1.5 mb-0 text-[15px] font-semibold text-[#16261F]">
                 {[show.dateLabel, STAGE_LABEL[show.stage] ?? show.stage]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
-              <p className="mt-1 mb-2 text-[12.5px] text-[var(--fa-ink-3)]">
-                {[show.riderCount === null ? null : `${String(show.riderCount)} riders`, when]
+              <p className="mt-1 mb-3 text-[14px] text-[#5A6B63]">
+                {[entries === null ? null : `${String(entries)} entries`, when]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              <p className="mt-0 mb-3 flex gap-4 text-[15px] font-extrabold">
+                {[
+                  {
+                    label: 'Coggins',
+                    done: documents.cogginsConfirmed,
+                    total: documents.cogginsTotal,
+                  },
+                  {
+                    label: 'Waivers',
+                    done: documents.waiversSigned,
+                    total: documents.waiversTotal,
+                  },
+                ].map((c) => (
+                  <span
+                    key={c.label}
+                    className={c.done < c.total ? 'text-[#B4432F]' : 'text-[#1A5B3C]'}
+                  >
+                    {c.label} {c.done}/{c.total}
+                  </span>
+                ))}
+              </p>
               <DocumentStatusChips documents={documents} />
-              <span className="mt-3 block text-[12.5px] font-semibold text-[var(--fa-brand)]">
+              <span className="mt-auto pt-4 text-[15px] font-extrabold text-[#1A5B3C] group-hover:underline">
                 Enter show →
               </span>
             </Link>
@@ -91,16 +114,23 @@ export function DashboardHome({ orgName, shows }: { orgName: string; shows: Home
         })}
       </div>
 
-      <h3 className="mb-3 text-[15px] font-semibold text-[var(--fa-ink)]">To-do by show</h3>
-      <div className="grid gap-3">
+      <h2 className="mt-0 mb-4 text-[24px] font-extrabold text-[#0D2C23]">To-do by show</h2>
+      <div className="grid gap-5">
         {shows.map(({ show, todos }) => {
           const urgent = todos.filter((t) => t.priority === 'urgent').length;
           return (
-            <div key={show.id} className="fa-aside-card">
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <h4 className="m-0">{show.name}</h4>
-                <span className="text-[12px] text-[var(--fa-ink-3)]">
-                  {todos.length} open · {urgent} urgent
+            <div key={show.id} className={`${box} p-5`}>
+              <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="m-0 text-[19px] font-extrabold text-[#0D2C23]">{show.name}</h3>
+                <span className="flex gap-2 text-[13.5px] font-bold">
+                  <span className="rounded-lg bg-[#EDF0EE] px-2.5 py-1 text-[#16261F]">
+                    {todos.length} open
+                  </span>
+                  {urgent > 0 && (
+                    <span className="rounded-lg bg-[#B4432F] px-2.5 py-1 text-white">
+                      {urgent} urgent
+                    </span>
+                  )}
                 </span>
               </div>
               <TodoList todos={todos} />

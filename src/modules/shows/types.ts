@@ -32,4 +32,10 @@ export interface ShowDocumentSummary {
   /** Expired, rejected, or a replacement was requested. */
   problem: number;
   cogginsExpired: number;
+  /** Horses whose Coggins is approved and in date, out of horses needing one. */
+  cogginsConfirmed: number;
+  cogginsTotal: number;
+  /** Entered riders who've signed this show's waiver, out of all entered. */
+  waiversSigned: number;
+  waiversTotal: number;
 }
