@@ -13,6 +13,13 @@ export interface DashboardShowRow {
   riderCount: number | null;
 }
 
+/** Ticket sales right now: open (days until close), not open yet (days
+ * until they open), or closed. days is null when no date is set. */
+export interface TicketSales {
+  state: 'open' | 'not-open' | 'closed';
+  days: number | null;
+}
+
 export type TodoPriority = 'urgent' | 'soon' | 'later';
 
 /** One line on the dashboard's running to-do list. */

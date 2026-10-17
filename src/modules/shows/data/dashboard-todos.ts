@@ -4,7 +4,8 @@ import { getShowAttention, getShowStats } from '@/modules/shows/data/queries';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { COGGINS_LABEL } from '@/modules/shows/constants';
 import { todoPriority, sortTodos, type TodoKind } from '@/modules/shows/utils/todo-priority';
-import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
+import { ticketSalesStatus } from '@/modules/shows/utils/ticket-sales';
+import type { DashboardTodo, ShowDocumentSummary, TicketSales } from '@/modules/shows/types';
 
 /* Counts every required horse document for the show by where it stands.
  * Built on the Horses page's own resolution (horses-queries), so the
@@ -46,9 +47,15 @@ const plural = (n: number, one: string, many = `${one}s`) => `${String(n)} ${n =
 export async function getShowTodos(
   show: { id: string; slug: string | null },
   daysOut: number | null,
-): Promise<{ todos: DashboardTodo[]; documents: ShowDocumentSummary; entries: number }> {
+): Promise<{
+  todos: DashboardTodo[];
+  documents: ShowDocumentSummary;
+  entries: number;
+  revenue: number;
+  tickets: TicketSales;
+}> {
   const supabase = await createServerClient();
-  const [documents, attention, stats, { count: signed }] = await Promise.all([
+  const [documents, attention, stats, { count: signed }, { data: showRow }] = await Promise.all([
     getShowDocumentSummary(show.id),
     getShowAttention(show.id),
     getShowStats(show.id),
@@ -56,7 +63,18 @@ export async function getShowTodos(
       .from('waiver_signatures')
       .select('id', { count: 'exact', head: true })
       .eq('show_id', show.id),
+    supabase
+      .from('shows')
+      .select('published, ticket_open, ticket_close, runner_state')
+      .eq('id', show.id)
+      .maybeSingle(),
   ]);
+  const tickets = ticketSalesStatus({
+    published: showRow?.published ?? false,
+    ticketOpen: showRow?.ticket_open ?? null,
+    ticketClose: showRow?.ticket_close ?? null,
+    manuallyClosed: !!(showRow?.runner_state as { ticketClosed?: boolean } | null)?.ticketClosed,
+  });
   documents.waiversTotal = stats.riders;
   documents.waiversSigned = Math.min(signed ?? 0, stats.riders);
   const horsesHref = `/dashboard/horses?show=${show.slug ?? show.id}`;
@@ -124,5 +142,11 @@ export async function getShowTodos(
     });
   }
 
-  return { todos: sortTodos(todos), documents, entries: stats.entries };
+  return {
+    todos: sortTodos(todos),
+    documents,
+    entries: stats.entries,
+    revenue: stats.settledRevenue,
+    tickets,
+  };
 }

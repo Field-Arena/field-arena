@@ -11,7 +11,11 @@ import {
 import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { todayIsoInZone } from '@/modules/staff/utils';
-import { daysUntilShow, pickCurrentShows } from '@/modules/shows/utils/current-shows';
+import {
+  daysUntilShow,
+  pickCurrentShows,
+  pickFinishedShows,
+} from '@/modules/shows/utils/current-shows';
 import { toDashboardShowRows } from '@/modules/shows/utils/dashboard-show-rows';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 
@@ -42,11 +46,19 @@ export default async function DashboardPage({
     const homeShows = await Promise.all(
       current.map(async (show) => {
         const daysOut = daysUntilShow(show, today);
-        const { todos, documents, entries } = await getShowTodos(show, daysOut);
-        return { show, daysOut, entries, todos, documents };
+        const { todos, documents, entries, revenue, tickets } = await getShowTodos(show, daysOut);
+        return { show, daysOut, entries, revenue, tickets, todos, documents };
       }),
     );
-    return <DashboardHome orgName={context.orgName} shows={homeShows} />;
+    return (
+      <DashboardHome
+        orgName={context.orgName}
+        shows={homeShows}
+        upcomingShows={pickCurrentShows(dashboardShows, today, Infinity)}
+        finishedShows={pickFinishedShows(dashboardShows, today)}
+        canViewMoney={context.canViewMoney}
+      />
+    );
   }
 
   const currentShow = context.currentShow;
