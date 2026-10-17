@@ -27,6 +27,12 @@ export interface HomeShow {
 const plural = (n: number, word: string) =>
   `${String(n)} ${n === 1 ? word : /(s|ss|x|ch|sh)$/.test(word) ? `${word}es` : `${word}s`}`;
 
+/* 'YYYY-MM-DD' → 'Sat'. */
+function weekdayShort(iso: string | null): string | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+}
+
 const PRIORITY: Record<DashboardTodo['priority'], { label: string; pill: string; bar: string }> = {
   urgent: { label: 'URGENT', pill: 'bg-[#B4432F] text-white', bar: 'border-l-[#B4432F]' },
   soon: { label: 'SOON', pill: 'bg-[#FCF3E4] text-[#8A6D14]', bar: 'border-l-[#C9A227]' },
@@ -241,16 +247,19 @@ function ShowPanel({
 
       <div className="my-[18px] grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <div className={kpi}>
-          <div className={kl}>Entries</div>
-          <div className={`${kn} text-[#0D2C23]`}>{entries ?? '—'}</div>
+          <div className={kl}>Tests</div>
+          <div className={`${kn} text-[#0D2C23]`}>{detail.tests.length}</div>
           <div className={ks}>
-            {plural(detail.classes, 'class')} · {plural(detail.rings, 'ring')}
+            offered · {plural(detail.rings, 'ring')}
+            {detail.testDays > 0 ? ` · ${plural(detail.testDays, 'day')}` : ''}
           </div>
         </div>
         <div className={kpi}>
-          <div className={kl}>Riders</div>
-          <div className={`${kn} text-[#0D2C23]`}>{detail.riders}</div>
-          <div className={ks}>{plural(detail.horses, 'horse')}</div>
+          <div className={kl}>Entries</div>
+          <div className={`${kn} text-[#0D2C23]`}>{entries ?? '—'}</div>
+          <div className={ks}>
+            {plural(detail.riders, 'rider')} · {plural(detail.horses, 'horse')}
+          </div>
         </div>
         <div className={kpi}>
           <div className={kl}>Revenue</div>
@@ -301,6 +310,25 @@ function ShowPanel({
           </div>
         </div>
       </div>
+
+      {detail.tests.length > 0 && (
+        <div className="mb-[18px] rounded-xl border-[1.5px] border-[#D9E1DD] px-4 py-3.5">
+          <h4 className="m-0 mb-1.5 text-[16px] font-bold text-[#0D2C23]">Tests in this show</h4>
+          {detail.tests.map((t) => (
+            <div
+              key={t.id}
+              className="flex items-center justify-between border-b border-[#EDF0EE] py-1.5 text-[14px] font-semibold text-[#16261F] last:border-b-0"
+            >
+              <span>{t.label}</span>
+              <span className="text-[13px] text-[#5A6B63]">
+                {[weekdayShort(t.date), t.ring, plural(t.rides, 'ride')]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="mb-[18px] grid gap-4 lg:grid-cols-3">
         <Breakdown
@@ -410,7 +438,7 @@ export function HomeBoard({
   return (
     <>
       <div className="grid gap-[18px] lg:grid-cols-3">
-        {shows.map(({ show, daysOut, entries, revenue, tickets, documents }) => {
+        {shows.map(({ show, daysOut, entries, revenue, tickets, documents, detail }) => {
           const selected = show.id === openId;
           const waiverPct = percent(documents.waiversSigned, documents.waiversTotal);
           const cogginsPct = percent(documents.cogginsConfirmed, documents.cogginsTotal);
@@ -429,7 +457,9 @@ export function HomeBoard({
               }`}
             >
               <div className="text-[12.5px] font-semibold text-[#5A6B63]">
-                {[show.dateLabel, whenLabel(daysOut)].filter(Boolean).join(' · ')}
+                {[show.dateLabel, whenLabel(daysOut), plural(detail.tests.length, 'test')]
+                  .filter(Boolean)
+                  .join(' · ')}
               </div>
               <h2 className="mt-[3px] mb-2.5 text-[19px] leading-tight font-bold text-[#0D2C23]">
                 {show.name}
