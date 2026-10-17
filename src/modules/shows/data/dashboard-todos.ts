@@ -26,14 +26,15 @@ export async function getShowDocumentSummary(showId: string): Promise<ShowDocume
 
   for (const row of data.rows) {
     for (const doc of row.documents) {
-      if (doc.label === COGGINS_LABEL) {
+      if (doc.label.trim().toLowerCase() === COGGINS_LABEL.toLowerCase()) {
         summary.cogginsTotal++;
         if (doc.uploaded && doc.verified && !doc.expired) summary.cogginsConfirmed++;
       }
       if (!doc.uploaded) summary.notUploaded++;
       else if (doc.expired || doc.status === 'rejected' || doc.status === 'replacement_requested') {
         summary.problem++;
-        if (doc.label === COGGINS_LABEL && doc.expired) summary.cogginsExpired++;
+        if (doc.label.trim().toLowerCase() === COGGINS_LABEL.toLowerCase() && doc.expired)
+          summary.cogginsExpired++;
       } else if (doc.needsApproval) summary.awaitingReview++;
     }
   }

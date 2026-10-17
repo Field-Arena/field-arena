@@ -10,14 +10,15 @@ export function isShowFinished(show: DashboardShowRow, todayIso: string): boolea
 }
 
 /* The shows an organizer is working on right now, most pressing first:
- * a show running today, then upcoming shows soonest first, then shows still
- * being set up with no dates yet. */
+ * a show running today, then published upcoming shows soonest first, then
+ * unpublished ones (still being set up), then shows with no dates yet. */
 export function pickCurrentShows(
   shows: DashboardShowRow[],
   todayIso: string,
   limit = 3,
 ): DashboardShowRow[] {
-  const rank = (s: DashboardShowRow) => (s.stage === 'live' ? 0 : s.startDate ? 1 : 2);
+  const rank = (s: DashboardShowRow) =>
+    s.stage === 'live' ? 0 : !s.startDate ? 3 : s.published ? 1 : 2;
   return shows
     .filter((s) => !isShowFinished(s, todayIso))
     .sort((a, b) => rank(a) - rank(b) || (a.startDate ?? '').localeCompare(b.startDate ?? ''))
