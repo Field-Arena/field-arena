@@ -10,6 +10,8 @@ delete from public.class_entries where id in (
   where c.show_id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid));
 delete from public.waiver_signatures where show_id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid);
 delete from public.orders where show_id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid);
+delete from public.vendor_bookings where show_id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid);
+delete from public.vendor_items where show_id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid);
 delete from public.classes where show_id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid);
 delete from public.shows where id in (md5('devmin-demo:show:1')::uuid, md5('devmin-demo:show:2')::uuid, md5('devmin-demo:show:3')::uuid);
 -- With triggers off, FK cascades don't fire either, so delete children first.

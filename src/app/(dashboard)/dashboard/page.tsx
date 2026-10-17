@@ -46,8 +46,11 @@ export default async function DashboardPage({
     const homeShows = await Promise.all(
       current.map(async (show) => {
         const daysOut = daysUntilShow(show, today);
-        const { todos, documents, entries, revenue, tickets } = await getShowTodos(show, daysOut);
-        return { show, daysOut, entries, revenue, tickets, todos, documents };
+        const { todos, documents, entries, revenue, tickets, detail } = await getShowTodos(
+          show,
+          daysOut,
+        );
+        return { show, daysOut, entries, revenue, tickets, todos, documents, detail };
       }),
     );
     return (
