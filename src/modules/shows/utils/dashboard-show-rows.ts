@@ -11,6 +11,7 @@ export function toDashboardShowRows(shows: ShowPickerSummary[]): DashboardShowRo
     startDate: s.startDate,
     endDate: s.endDate,
     stage: s.stage,
+    published: s.published,
     riderCount: null,
   }));
 }

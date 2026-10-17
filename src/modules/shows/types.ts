@@ -9,6 +9,7 @@ export interface DashboardShowRow {
   startDate: string | null;
   endDate: string | null;
   stage: string;
+  published: boolean;
   /** Null when the count wasn't loaded for this view. */
   riderCount: number | null;
 }
