@@ -84,6 +84,27 @@ export function DashboardHome({ orgName, shows }: { orgName: string; shows: Home
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              <p className="mt-0 mb-3 flex gap-4 text-[15px] font-extrabold">
+                {[
+                  {
+                    label: 'Coggins',
+                    done: documents.cogginsConfirmed,
+                    total: documents.cogginsTotal,
+                  },
+                  {
+                    label: 'Waivers',
+                    done: documents.waiversSigned,
+                    total: documents.waiversTotal,
+                  },
+                ].map((c) => (
+                  <span
+                    key={c.label}
+                    className={c.done < c.total ? 'text-[#B4432F]' : 'text-[#1A5B3C]'}
+                  >
+                    {c.label} {c.done}/{c.total}
+                  </span>
+                ))}
+              </p>
               <DocumentStatusChips documents={documents} />
               <span className="mt-auto pt-4 text-[15px] font-extrabold text-[#1A5B3C] group-hover:underline">
                 Enter show →

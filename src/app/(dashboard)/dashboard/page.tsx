@@ -42,11 +42,8 @@ export default async function DashboardPage({
     const homeShows = await Promise.all(
       current.map(async (show) => {
         const daysOut = daysUntilShow(show, today);
-        const [{ todos, documents }, stats] = await Promise.all([
-          getShowTodos(show, daysOut),
-          getShowStats(show.id).catch(() => null),
-        ]);
-        return { show, daysOut, entries: stats?.entries ?? null, todos, documents };
+        const { todos, documents, entries } = await getShowTodos(show, daysOut);
+        return { show, daysOut, entries, todos, documents };
       }),
     );
     return <DashboardHome orgName={context.orgName} shows={homeShows} />;

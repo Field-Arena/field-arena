@@ -1,13 +1,10 @@
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
-import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 
 import { Card, Eyebrow, ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
-import { ShowStatsRow } from '@/shared/ui/organizer/show-stats-row';
-import { GhostButton, ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
+import { ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { DashIcon } from '@/shared/ui/dash-icon';
-import { fa } from '@/shared/lib/organizer-theme';
 import { formatMoney } from '@/shared/lib/format/currency';
 import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
 import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
@@ -80,21 +77,57 @@ export function DashboardOverview({
       </div>
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        {[
-          { label: 'Entries', value: stats.entries },
-          { label: 'Horses', value: stats.horses },
-          { label: 'Open to-dos', value: todos.length },
-        ].map((tile) => (
-          <div
-            key={tile.label}
-            className="rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white px-5 py-4"
-          >
-            <div className="text-[14px] font-bold text-[#5A6B63]">{tile.label}</div>
-            <div className="mt-1 text-[32px] leading-none font-extrabold text-[#0D2C23]">
-              {tile.value}
-            </div>
+        <div className="rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white px-5 py-4">
+          <div className="text-[14px] font-bold text-[#5A6B63]">Entries</div>
+          <div className="mt-1 text-[34px] leading-none font-extrabold text-[#0D2C23]">
+            {stats.entries}
           </div>
-        ))}
+          <div className="mt-2 text-[13.5px] font-semibold text-[#5A6B63]">
+            {stats.riders} riders · {stats.horses} horses
+          </div>
+        </div>
+        <div className="rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white px-5 py-4">
+          <div className="text-[14px] font-bold text-[#5A6B63]">Revenue</div>
+          <div className="mt-1 text-[34px] leading-none font-extrabold text-[#0D2C23]">
+            {canViewMoney ? formatMoney(stats.settledRevenue) : '—'}
+          </div>
+          <div className="mt-2 text-[13.5px] font-semibold text-[#5A6B63]">
+            {canViewMoney ? 'Collected so far' : 'Hidden for your role'}
+          </div>
+        </div>
+        <div
+          className={`rounded-2xl border-[1.5px] bg-white px-5 py-4 ${
+            todos.length > 0 ? 'border-[#B4432F]' : 'border-[#C9D3CE]'
+          }`}
+        >
+          <div className="text-[14px] font-bold text-[#5A6B63]">Open items</div>
+          <div
+            className={`mt-1 text-[34px] leading-none font-extrabold ${
+              todos.length > 0 ? 'text-[#B4432F]' : 'text-[#0D2C23]'
+            }`}
+          >
+            {todos.length}
+          </div>
+          {documents && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[14px] font-bold">
+              {[
+                {
+                  label: 'Coggins',
+                  done: documents.cogginsConfirmed,
+                  total: documents.cogginsTotal,
+                },
+                { label: 'Waivers', done: documents.waiversSigned, total: documents.waiversTotal },
+              ].map((c) => (
+                <span
+                  key={c.label}
+                  className={c.done < c.total ? 'text-[#B4432F]' : 'text-[#1A5B3C]'}
+                >
+                  {c.label} {c.done}/{c.total}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mb-8 rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white p-5">
@@ -129,45 +162,15 @@ export function DashboardOverview({
       </Card>
 
       <Card className="mb-[18px] p-[16px_18px_18px]">
-        <div className="mb-3.5 flex flex-wrap items-center gap-3">
-          <span className="text-forest inline-flex items-center gap-2 text-[13.5px] font-semibold">
-            <span className="size-[7px] rounded-full" style={{ background: fa.green }} />
-            {orgName}
-          </span>
-
-          <form method="get" className="contents">
-            <select
-              name="show"
-              defaultValue={currentShow.slug ?? currentShow.id}
-              className="text-ink-deep min-w-[320px] flex-[0_1_380px] rounded-[10px] border border-[#D9E1DD] px-3 py-2.5 text-sm"
-              aria-label="Select show"
-            >
-              {shows.map((show) => (
-                <option key={show.id} value={show.slug ?? show.id}>
-                  {show.name}
-                  {show.dateLabel ? ` (${show.dateLabel})` : ''}
-                </option>
-              ))}
-            </select>
-            <GhostButton type="submit">Switch</GhostButton>
-          </form>
-
-          <NewShowButton className="px-[15px] py-2.5 text-[13px]" />
+        <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-[15px] font-bold text-[#0D2C23]">Rings</span>
           <Link
             href={`/dashboard/awards?show=${currentShow.slug ?? currentShow.id}`}
             prefetch={false}
-            className={cn(ghostButtonClass, 'ml-auto')}
+            className={ghostButtonClass}
           >
             <DashIcon name="trophy" size={14} /> Awards
           </Link>
-        </div>
-
-        <div className="mb-4">
-          <ShowStatsRow
-            stats={stats}
-            canViewMoney={canViewMoney}
-            showId={currentShow.slug ?? currentShow.id}
-          />
         </div>
 
         {canViewMoney && stats.entryValue > 0 && stats.settledRevenue === 0 && (
