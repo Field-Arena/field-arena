@@ -22,6 +22,19 @@ export interface OrganizerContext {
   memberOrgs: MemberOrg[];
 }
 
+/* With no show picked, open the one happening soonest: live first, then
+ * published shows by start date, then unpublished, then undated. Finished
+ * shows only when nothing is coming up. */
+function soonestShow(shows: ShowListItem[]): ShowListItem | undefined {
+  const today = new Date().toISOString().slice(0, 10);
+  const rank = (s: ShowListItem) =>
+    s.status === 'live' ? 0 : !s.startDate ? 3 : s.published ? 1 : 2;
+  const upcoming = shows
+    .filter((s) => (s.endDate ?? s.startDate ?? '9999-12-31') >= today)
+    .sort((a, b) => rank(a) - rank(b) || (a.startDate ?? '').localeCompare(b.startDate ?? ''));
+  return upcoming[0] ?? shows[0];
+}
+
 export async function getOrganizerContext(requestedShowId?: string): Promise<OrganizerContext> {
   // None of these three depend on each other's result (each reads its own
   // cookie/session independently) — they used to run one after another,
@@ -71,7 +84,7 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
 
   const currentShow =
     shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
-    shows[0] ??
+    soonestShow(shows) ??
     null;
 
   let canViewMoney = profile.platform_role === 'Organizer' || impersonatedOrgId !== null;

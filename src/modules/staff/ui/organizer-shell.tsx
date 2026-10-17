@@ -125,7 +125,11 @@ export function OrganizerShell({
       const w = workspaceFor(r);
       return w ? pathname === w.href || pathname.startsWith(`${w.href}/`) : false;
     });
-    return uniqueMatch ?? profile.platform_role ?? 'SuperAdmin';
+    if (uniqueMatch) return uniqueMatch;
+    // Viewing an organization: its pages belong to the Organizer (or Show
+    // Admin preview) workspace, so they get the same show tabs and title.
+    if (impersonating) return previewingAsShowAdmin ? 'ShowAdmin' : 'Organizer';
+    return profile.platform_role ?? 'SuperAdmin';
   })();
 
   const activeWorkspace = workspaceFor(activeRailRole) ?? workspace;
