@@ -171,8 +171,8 @@ export function RunningOrderView({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_300px] print:block">
-        <div className="overflow-hidden rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white">
-          <div className="grid grid-cols-[70px_70px_64px_1fr_1fr_130px] gap-2.5 bg-[#F5F7F6] px-3.5 py-2 text-[11px] font-extrabold tracking-[.06em] text-[#5A6B63] uppercase">
+        <div className="overflow-hidden rounded-2xl border-[1.5px] border-[#C9D3CE] bg-white print:columns-2 print:gap-6 print:overflow-visible print:rounded-none print:border-0">
+          <div className="grid grid-cols-[70px_70px_64px_1fr_1fr_130px] gap-2.5 bg-[#F5F7F6] px-3.5 py-2 text-[11px] font-extrabold tracking-[.06em] text-[#5A6B63] uppercase print:hidden">
             <span>Time</span>
             <span>Ring</span>
             <span>Entry</span>
@@ -190,11 +190,13 @@ export function RunningOrderView({
             const last = g.rows[g.rows.length - 1]?.ride.end ?? 0;
             const count = sheetsByClass(g.cls);
             return (
-              <div key={g.key}>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t-[1.5px] border-[#D9E1DD] bg-[#F4FAF6] px-3.5 py-2.5">
+              <div key={g.key} className="print:mb-2 print:break-inside-avoid">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t-[1.5px] border-[#D9E1DD] bg-[#F4FAF6] px-3.5 py-2.5 print:border-t-0 print:border-b print:border-[#0D2C23] print:bg-transparent print:px-0 print:py-1">
                   <div>
-                    <span className="text-[15px] font-bold text-[#0D2C23]">{g.label}</span>{' '}
-                    <span className="text-[12px] font-semibold text-[#5A6B63]">
+                    <span className="text-[15px] font-bold text-[#0D2C23] print:text-[11.5px]">
+                      {g.label}
+                    </span>{' '}
+                    <span className="text-[12px] font-semibold text-[#5A6B63] print:text-[9.5px]">
                       · {g.ring} · {filterDay == null ? `${dayDate(data.startDate, g.day)} · ` : ''}
                       {fmtTime(first)}–{fmtTime(last)} · {g.rows.length} ride
                       {g.rows.length === 1 ? '' : 's'}
@@ -219,19 +221,19 @@ export function RunningOrderView({
                   return (
                     <div
                       key={ride.entryId}
-                      className={`grid grid-cols-[70px_70px_64px_1fr_1fr_130px] items-center gap-2.5 border-t border-[#EDF0EE] px-3.5 py-2 text-[13.5px] ${
+                      className={`grid grid-cols-[70px_70px_64px_1fr_1fr_130px] items-center gap-2.5 border-t border-[#EDF0EE] px-3.5 py-2 text-[13.5px] print:grid-cols-[46px_34px_1fr_1fr] print:gap-1.5 print:px-0 print:py-[3px] print:text-[10px] ${
                         inRing ? 'bg-[#FDEEEB] font-bold' : ''
                       }`}
                     >
                       <span>{fmtTime(ride.start)}</span>
-                      <span>{g.ring}</span>
+                      <span className="print:hidden">{g.ring}</span>
                       <b>#{ride.num}</b>
                       <span className={scratched ? 'text-[#98A29D] line-through' : ''}>
                         {ride.name}
                       </span>
                       <span className={scratched ? 'text-[#98A29D]' : ''}>{ride.horse}</span>
                       <span
-                        className={`justify-self-start rounded-[7px] px-2 py-0.5 text-[11.5px] font-extrabold ${s.className}`}
+                        className={`justify-self-start rounded-[7px] px-2 py-0.5 text-[11.5px] font-extrabold print:hidden ${s.className}`}
                       >
                         {status === 'scored' && pct ? `Scored ${pct}%` : s.label}
                       </span>
