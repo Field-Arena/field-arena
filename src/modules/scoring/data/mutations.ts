@@ -58,6 +58,15 @@ import {
 } from '@/modules/scoring/schemas';
 
 async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judge' | 'scribe') {
+  // The caller's own seat first: this runs on every mark a judge types, and
+  // judges are the common case.
+  // getMySeat throws when a lookup fails, so reaching the checks below means
+  // the seat really isn't this person's — not that the database hiccupped.
+  const mySeat = await getMySeat(classId);
+  if (mySeat?.seatId === seatId && mySeat.role === seatRole) {
+    return { signerName: mySeat.name };
+  }
+
   // Show management isn't a panel seat; per-show canEditShow, the same rule
   // assert_scores_seat_ownership applies. Not the platform role: an Organizer
   // of another org, or a ShowAdmin staffed elsewhere, is not management here.
@@ -66,13 +75,7 @@ async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judg
     return { signerName: profile?.name ?? 'Show management' };
   }
 
-  // getMySeat throws when a lookup fails, so reaching the check below means
-  // the seat really isn't this person's — not that the database hiccupped.
-  const mySeat = await getMySeat(classId);
-  if (mySeat?.seatId !== seatId || mySeat.role !== seatRole) {
-    throw new ScoringRejection('denied', 'You do not have permission to score this seat.');
-  }
-  return { signerName: mySeat.name };
+  throw new ScoringRejection('denied', 'You do not have permission to score this seat.');
 }
 
 /**
