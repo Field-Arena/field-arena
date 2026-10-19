@@ -113,3 +113,10 @@ export function todayInZone(tz: string, now: Date = new Date()): string {
   const w = wallPartsInZone(now, resolveTimeZone(tz));
   return `${String(w.year).padStart(4, '0')}-${String(w.month).padStart(2, '0')}-${String(w.day).padStart(2, '0')}`;
 }
+
+/** Today's date in the viewer's own zone. For client components only: on the
+ * server the process zone is UTC, so server code must use todayInZone with the
+ * show's or org's zone instead. */
+export function todayForViewer(now: Date = new Date()): string {
+  return todayInZone(Intl.DateTimeFormat().resolvedOptions().timeZone, now);
+}

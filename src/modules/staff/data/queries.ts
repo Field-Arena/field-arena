@@ -1,7 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { isPast } from '@/shared/lib/format/date';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import { resolveStaffPermissions } from '../utils';
 import type { PermissionKey } from '@/shared/constants/permissions';
 import type {
@@ -38,7 +38,10 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       .in('show_id', showIds)
       .neq('role', 'Vendor'),
     supabase.from('classes').select('id, show_id, label, fee').in('show_id', showIds),
-    supabase.from('shows').select('id, document_requirements').in('id', showIds),
+    supabase
+      .from('shows')
+      .select('id, document_requirements, timezone, organizations(timezone)')
+      .in('id', showIds),
     supabase
       .from('vendor_bookings')
       .select('id, show_id, name, contact, phone, status, amount_total')
@@ -95,7 +98,10 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
 
   const requirementsByShow = new Map<string, DocumentRequirement[]>();
   const cogginsReqByShow = new Map<string, DocumentRequirement | null>();
+  // "Expired" is judged against the show's own calendar day, not UTC's.
+  const todayByShow = new Map<string, string>();
   for (const row of showDocsResult.data) {
+    todayByShow.set(row.id, todayInZone(resolveTimeZone(row.timezone, row.organizations.timezone)));
     const requirements = (row.document_requirements ?? []) as unknown as DocumentRequirement[];
     requirementsByShow.set(row.id, requirements);
     const match = requirements.find((r) => r.label.toLowerCase().includes('coggins')) ?? null;
@@ -267,6 +273,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     if (!show) continue;
     const cogginsReq = cogginsReqByShow.get(showId) ?? null;
     const requirements = requirementsByShow.get(showId) ?? [];
+    const todayIso = todayByShow.get(showId) ?? todayInZone(resolveTimeZone());
 
     for (const [key, group] of groups) {
       const account = group.riderId ? riderAccountById.get(group.riderId) : undefined;
@@ -282,7 +289,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
         .map((h) => ({
           id: h.id,
           name: h.name,
-          documents: buildDocumentStatus(h.id, requirements, horseUploadsById),
+          documents: buildDocumentStatus(h.id, requirements, horseUploadsById, todayIso),
         }));
 
       const classes = [...group.classIds]
@@ -313,7 +320,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
         canScratchSkipDq: false,
         canViewMoney: false,
         permissions: null,
-        coggins: resolveCogginsStatus(group.horseIds, cogginsReq, horseUploadsById),
+        coggins: resolveCogginsStatus(group.horseIds, cogginsReq, horseUploadsById, todayIso),
         editable: false,
         riderDetail: { riderId: group.riderId, horses, classes, addOns },
         vendorDetail: null,
@@ -369,9 +376,9 @@ function buildDocumentStatus(
   horseId: string,
   requirements: DocumentRequirement[],
   horseUploadsById: Map<string, HorseUpload[]>,
+  todayIso: string,
 ): RiderDetailDocument[] {
   const uploads = horseUploadsById.get(horseId) ?? [];
-  const todayIso = new Date().toISOString().slice(0, 10);
 
   return requirements
     .filter((req) => req.label.trim())
@@ -396,6 +403,7 @@ function resolveCogginsStatus(
   horseIds: Set<string>,
   requirement: DocumentRequirement | null,
   horseUploadsById: Map<string, HorseUpload[]>,
+  todayIso: string,
 ): CogginsStatus {
   if (!requirement || horseIds.size === 0) {
     return {
@@ -422,7 +430,7 @@ function resolveCogginsStatus(
     }
     if (
       requirement.requiresExpiration &&
-      (!upload.expirationDate || isPast(upload.expirationDate))
+      (!upload.expirationDate || upload.expirationDate < todayIso)
     ) {
       anyExpired = true;
     }
