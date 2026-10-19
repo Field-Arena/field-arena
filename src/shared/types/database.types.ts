@@ -2691,6 +2691,10 @@ export type Database = {
         Args: { p_show_id: string }
         Returns: number
       }
+      refresh_class_tests_from_template: {
+        Args: { p_show_id: string; p_template_id: string }
+        Returns: Json
+      }
       rename_division: {
         Args: { division_id: string; new_name: string }
         Returns: undefined
