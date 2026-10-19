@@ -9,6 +9,9 @@ import {
   listShowsForPicker,
 } from '@/modules/shows/data/queries';
 import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
+import { getShowCockpit } from '@/modules/shows/data/show-cockpit-queries';
+import { ShowBefore } from '@/modules/staff/ui/show-before';
+import { ShowDuring } from '@/modules/staff/ui/show-during';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { todayIsoInZone } from '@/modules/staff/utils';
 import {
@@ -66,6 +69,24 @@ export default async function DashboardPage({
 
   const currentShow = context.currentShow;
   const daysOut = daysUntilShow(currentShow, today);
+
+  // Shows that haven't ended get the before-the-show or live page; finished
+  // shows keep the overview with their final numbers.
+  const lastDay = currentShow.endDate ?? currentShow.startDate;
+  if (!lastDay || lastDay >= today) {
+    const cockpit = await getShowCockpit(currentShow, today, daysOut);
+    return cockpit.live ? (
+      <ShowDuring show={currentShow} cockpit={cockpit} live={cockpit.live} />
+    ) : (
+      <ShowBefore
+        show={currentShow}
+        cockpit={cockpit}
+        daysOut={daysOut}
+        canViewMoney={context.canViewMoney}
+      />
+    );
+  }
+
   const supabase = await createServerClient();
   const [stats, inventory, stage, { todos, documents }, { data: showRow }] = await Promise.all([
     getShowStats(currentShow.id),
