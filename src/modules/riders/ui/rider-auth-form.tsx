@@ -21,6 +21,7 @@ import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/a
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { Button } from '@/shared/ui/shadcn/button';
 
 const SWITCH_LINK_CLASSES =
@@ -292,8 +293,7 @@ export function RiderAuthForm({
       >
         <AuthField
           label="Email address"
-          type="email"
-          autoComplete="email"
+          {...EMAIL_INPUT_PROPS}
           placeholder="you@example.com"
           error={errors.email?.message}
           {...signUpForm.register('email')}

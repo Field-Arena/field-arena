@@ -1,4 +1,4 @@
-import type { PanelContact } from '@/modules/judging/data/queries';
+import type { PanelContact } from '@/modules/judging/types';
 import { CardTitle, FA_MUTED, FaCard, Pill } from '@/shared/ui/organizer/fa-page';
 
 function initials(name: string): string {
@@ -14,8 +14,12 @@ export function PanelContactCard({ contact }: { contact: PanelContact }) {
     contact.role === 'judge' && contact.position
       ? `${roleLabel} at ${contact.position}`
       : roleLabel,
+    // Licence / rating (e.g. USEF "R") when the organizer recorded one.
+    contact.license,
     contact.showName,
-  ].join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <FaCard className="flex items-center gap-4">

@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowEntries } from '@/modules/shows/data/setup-queries';
-import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
-import { EntriesListScreen } from '@/modules/shows/ui/lists/entries-list-screen';
+import { getShowEntries, getShowRiders } from '@/modules/shows/data/setup-queries';
+import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
+import { RiderEntriesScreen } from '@/modules/shows/ui/lists/rider-entries-screen';
+import { env } from '@/shared/lib/env';
 
-export const metadata: Metadata = { title: 'Entries — Field & Arena' };
+export const metadata: Metadata = { title: 'Rider Entries — Field & Arena' };
+
+const DESCRIPTION =
+  'Every rider entered in the focused show — horses, class entries, and where their payment stands.';
 
 export default async function EntriesPage({
   searchParams,
@@ -16,29 +20,27 @@ export default async function EntriesPage({
 
   if (!context.currentShow) {
     return (
-      <WorkspacePage
-        title="Entries"
-        description="Every class entry sold, grouped by class."
-        orgName={context.orgName}
-        showPicker={false}
-      >
+      <WorkspacePage title="Rider Entries" description={DESCRIPTION} orgName={context.orgName}>
         <EmptyPanel title="No shows yet" note="Create a show to see its entries." />
       </WorkspacePage>
     );
   }
 
-  const data = await getShowEntries(context.currentShow.id);
+  const [riders, entries] = await Promise.all([
+    getShowRiders(context.currentShow.id),
+    getShowEntries(context.currentShow.id),
+  ]);
+  const ref = context.currentShow.slug ?? context.currentShow.id;
 
   return (
-    <WorkspacePage
-      title="Entries"
-      description="Every class entry sold, grouped by class."
-      orgName={context.orgName}
-      shows={context.shows}
-      currentShow={context.currentShow}
-    >
-      {data ? (
-        <EntriesListScreen data={data} canViewMoney={context.canViewMoney} />
+    <WorkspacePage title="Rider Entries" description={DESCRIPTION} orgName={context.orgName}>
+      {riders && entries ? (
+        <RiderEntriesScreen
+          riders={riders}
+          entries={entries}
+          canViewMoney={context.canViewMoney}
+          publicUrl={`${env.siteUrl}/show/${ref}`}
+        />
       ) : (
         <EmptyPanel title="Show not found" note="This show doesn't exist, or you can't see it." />
       )}

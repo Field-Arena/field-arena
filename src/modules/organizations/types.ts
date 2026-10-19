@@ -30,3 +30,38 @@ export interface VenueListItem {
 
   showCount: number;
 }
+
+/** The editable profile fields the onboarding form loads and saves. */
+export interface OrganizationProfile {
+  id: string;
+  name: string;
+  email: string | null;
+  website: string | null;
+  phone: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+}
+
+export interface MemberRow {
+  id: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  role: string | null;
+  membershipStatus: string;
+  membershipExpires: string | null;
+  notes: string | null;
+
+  extraFields: Record<string, string>;
+}
+
+export interface TestTemplateRow {
+  id: string;
+  name: string;
+  level: string | null;
+  sourceLabel: string | null;
+  movementCount: number;
+}

@@ -1,7 +1,7 @@
 'use client';
 import { Fragment, useMemo, useState } from 'react';
 import { formatShowDate } from '@/shared/lib/format/date';
-import type { ScheduleClass } from '@/modules/operations/data/queries';
+import type { ScheduleClass } from '@/modules/operations/types';
 import { classStatusLabel } from '@/modules/operations/utils/class-status-label';
 import { fmtTimeLabel } from '@/modules/operations/utils/fmt-time-label';
 import { ClassResultsBlock } from '@/modules/operations/ui/class-results-block';

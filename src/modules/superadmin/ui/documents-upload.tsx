@@ -31,16 +31,16 @@ export function DocumentsUpload({ onFiles }: { onFiles: (files: FileList) => voi
         type="button"
         variant="ghost"
         onClick={() => ref.current?.click()}
-        className="inline-flex h-auto items-center rounded-[7px] border border-[#D7CFBB] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#16261F] hover:bg-transparent"
+        className="inline-flex h-auto items-center rounded-[7px] border border-[#E7EAEE] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#101828] hover:bg-transparent"
       >
         Choose files
       </Button>
-      <span className="text-[13px] text-[#9AA6A0]">{label}</span>
+      <span className="text-[13px] text-[#8A94A3]">{label}</span>
       <Button
         type="button"
         variant="ghost"
         onClick={() => ref.current?.click()}
-        className="text-paper hover:bg-gold hover:text-hunter-deep inline-flex h-auto items-center gap-1.5 rounded-[9px] bg-[#17402F] px-5 py-2.5 text-[13.5px] font-bold transition"
+        className="inline-flex h-auto items-center gap-1.5 rounded-[9px] bg-[#0E5537] px-5 py-2.5 text-[13.5px] font-bold text-white transition hover:bg-[#146A47] hover:text-white"
       >
         <UploadIcon className="size-[14px]" aria-hidden />
         Upload

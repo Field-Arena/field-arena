@@ -20,8 +20,8 @@ export function DayButton({
       className={cn(
         'h-auto rounded-[9px] border px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors',
         active
-          ? 'border-forest bg-forest text-white'
-          : 'text-forest hover:border-gold border-[#D9E1DD] bg-white',
+          ? 'border-[#146A47] bg-[#146A47] text-white'
+          : 'border-[#E7EAEE] bg-white text-[#101828] hover:border-[#D6DBE1]',
         'hover:bg-transparent',
       )}
     >

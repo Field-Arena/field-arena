@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { FileTextIcon, PrinterIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/shadcn/button';
 import { cn } from '@/shared/lib/utils';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import { SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import { AwardsGroupingToggle } from '@/modules/shows/ui/schedule/awards-grouping-toggle';
 import { ScheduleKeyCard } from '@/modules/shows/ui/schedule/schedule-key-card';

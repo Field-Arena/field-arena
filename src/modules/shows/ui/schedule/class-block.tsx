@@ -4,11 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { FileTextIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Table, TableBody, TableCell, TableRow } from '@/shared/ui/shadcn/table';
 import { fmtTime } from '@/modules/shows/schedule-engine';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import {
   useMoveClassToRingDay,
   useReorderRide,
@@ -74,11 +75,18 @@ export function ClassBlock({
               type="number"
               min={1}
               max={60}
+              step={1}
+              onKeyDown={blockNonIntegerKeys}
               defaultValue={minutes}
               className="h-auto w-[52px] rounded-[6px] border border-[#D9E1DD] px-1.5 py-0.5 text-[11.5px]"
               onBlur={(e) => {
                 const next = Number(e.target.value);
                 if (next === minutes) return;
+                // Outside 1–60 whole minutes: put the saved value back.
+                if (!Number.isInteger(next) || next < 1 || next > 60) {
+                  e.target.value = String(minutes);
+                  return;
+                }
                 setDuration.mutate({ showId: data.showId, classId: block.cls, minutes: next });
               }}
             />

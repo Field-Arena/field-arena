@@ -1,6 +1,7 @@
 'use client';
 
-import type { EntryLedgerRow } from '@/modules/shows/data/entry-ledger-queries';
+import { PrintedToday } from '@/modules/shows/ui/printed-today';
+import type { EntryLedgerRow } from '@/modules/shows/types';
 
 export function BackNumberOfficeListPrintView({
   showName,
@@ -15,7 +16,7 @@ export function BackNumberOfficeListPrintView({
     <div data-print-report className="hidden p-10 print:block">
       <h1 className="text-[26px] font-bold">{showName} — Rider Back Numbers</h1>
       <p className="mb-4 text-sm text-[#555]">
-        {rows.length} riders · printed {new Date().toLocaleDateString()}
+        {rows.length} riders · printed <PrintedToday />
       </p>
       <table className="w-full border-collapse text-[12px]">
         <thead>
@@ -29,7 +30,11 @@ export function BackNumberOfficeListPrintView({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.showEntryId} className="border-b border-[#DDD]" style={{ pageBreakInside: 'avoid' }}>
+            <tr
+              key={row.showEntryId}
+              className="border-b border-[#DDD]"
+              style={{ pageBreakInside: 'avoid' }}
+            >
               <td className="py-1 pr-2">{row.riderName}</td>
               <td className="py-1 pr-2">{row.horseName}</td>
               <td className="py-1 pr-2">{row.bridleNumber ?? '—'}</td>

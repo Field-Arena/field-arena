@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowPnl } from '@/modules/shows/data/setup-queries';
-import type { StripeConnectStatus } from '@/modules/shows/data/queries';
+import type { StripeConnectStatus } from '@/modules/shows/types';
 import { getOrgBilling, getStripeConnectStatus } from '@/modules/shows/data/queries';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { StatBox, StatGrid } from '@/shared/ui/organizer/fa-page';

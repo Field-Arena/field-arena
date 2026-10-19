@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ensureClassShowParam } from '@/modules/shows/data/class-show-ref';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getEntryScorecard } from '@/modules/judging/data/queries';
@@ -10,10 +11,18 @@ export const metadata: Metadata = { title: 'Scorecard — Field & Arena' };
 
 export default async function HistoryScorecardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ classId: string; entryId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { classId, entryId } = await params;
+  // Keep the topbar show picker on this class's show, not the org default.
+  await ensureClassShowParam(
+    `/dashboard/judging/history/${classId}/${entryId}`,
+    classId,
+    await searchParams,
+  );
   const card = await getEntryScorecard(entryId);
   if (!card) notFound();
 

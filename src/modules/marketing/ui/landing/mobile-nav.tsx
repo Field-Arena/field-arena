@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { MenuIcon, XIcon } from 'lucide-react';
 import { NAV_LINKS } from '@/modules/marketing/landing-content';
-import { LoginTrigger } from '@/modules/auth/ui/login-trigger';
+import { LoginTrigger } from '@/modules/auth/public';
 import { DemoTrigger } from '@/modules/marketing/ui/landing/demo-trigger';
 import { Button } from '@/shared/ui/shadcn/button';
 

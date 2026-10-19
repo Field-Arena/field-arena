@@ -10,7 +10,7 @@ import {
   FA_TR,
 } from '@/shared/ui/organizer/fa-page';
 import { ANNOUNCING_RESULTS_PATH } from '@/modules/announcements/constants';
-import type { HistoryRow } from '@/modules/announcements/data/queries';
+import type { HistoryRow } from '@/modules/announcements/types';
 
 export function AnnouncerHistoryTable({ history }: { history: HistoryRow[] }) {
   if (history.length === 0) {

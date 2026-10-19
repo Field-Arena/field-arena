@@ -6,13 +6,14 @@ import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import {
   useCreateDivision,
   useRenameDivision,
   useUpdateDivisionDefaultFee,
   useDeleteDivision,
 } from '@/modules/shows/hooks/use-show-mutations';
-import type { DivisionRow } from '@/modules/shows/data/setup-queries';
+import type { DivisionRow } from '@/modules/shows/types';
 import { DIVISION_PRESETS, DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
 import {
   SM_CARD_PAD,
@@ -34,9 +35,15 @@ export function ClassDivisionsCard({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Last values the server accepted, per division — edits save on blur and
+  // roll back to these if the save fails.
+  const savedRef = useRef(
+    new Map(divisions.map((d) => [d.id, { name: d.name, defaultFee: d.defaultFee }])),
+  );
 
   const { mutate: create, isPending: creating } = useCreateDivision({
     onSuccess: (id, name) => {
+      savedRef.current.set(id, { name, defaultFee: null });
       setRows((r) => [...r, { id, name, position: r.length, classCount: 0, defaultFee: null }]);
       setNewName('');
     },
@@ -61,21 +68,74 @@ export function ClassDivisionsCard({
     };
   }, [open]);
 
-  function commitRename(id: string, name: string) {
+  function editName(id: string, name: string) {
     setRows((r) => r.map((d) => (d.id === id ? { ...d, name } : d)));
-    rename({ divisionId: id, name });
   }
 
-  function commitDefaultFee(id: string, raw: string) {
+  function commitRename(id: string, name: string) {
+    const saved = savedRef.current.get(id);
+    const trimmed = name.trim();
+    if (!saved) return;
+    // Show exactly what gets stored.
+    if (trimmed !== name) editName(id, trimmed);
+    if (!trimmed || saved.name === trimmed) {
+      if (!trimmed) editName(id, saved.name);
+      return;
+    }
+    rename(
+      { divisionId: id, name: trimmed },
+      {
+        onSuccess: () => {
+          // Read the latest saved values: a fee save may have landed meanwhile.
+          const latest = savedRef.current.get(id) ?? saved;
+          savedRef.current.set(id, { ...latest, name: trimmed });
+        },
+        onError: () => {
+          editName(id, savedRef.current.get(id)?.name ?? saved.name);
+        },
+      },
+    );
+  }
+
+  function editDefaultFee(id: string, raw: string) {
     const defaultFee = raw.trim() === '' ? null : Number(raw);
     if (defaultFee !== null && !Number.isFinite(defaultFee)) return;
     setRows((r) => r.map((d) => (d.id === id ? { ...d, defaultFee } : d)));
-    updateDefaultFee({ divisionId: id, defaultFee });
+  }
+
+  function commitDefaultFee(id: string, defaultFee: number | null) {
+    const saved = savedRef.current.get(id);
+    if (!saved || saved.defaultFee === defaultFee) return;
+    updateDefaultFee(
+      { divisionId: id, defaultFee },
+      {
+        onSuccess: () => {
+          // Read the latest saved values: a rename may have landed meanwhile.
+          const latest = savedRef.current.get(id) ?? saved;
+          savedRef.current.set(id, { ...latest, defaultFee });
+        },
+        onError: () => {
+          const fallback = savedRef.current.get(id)?.defaultFee ?? null;
+          setRows((r) => r.map((d) => (d.id === id ? { ...d, defaultFee: fallback } : d)));
+        },
+      },
+    );
   }
 
   function commitRemove(id: string) {
+    const index = rows.findIndex((d) => d.id === id);
+    const removed = rows[index];
+    if (!removed) return;
     setRows((r) => r.filter((d) => d.id !== id));
-    remove(id);
+    remove(id, {
+      onError: () => {
+        setRows((r) => {
+          const next = [...r];
+          next.splice(Math.min(index, next.length), 0, removed);
+          return next;
+        });
+      },
+    });
   }
 
   function addName(name: string) {
@@ -113,20 +173,29 @@ export function ClassDivisionsCard({
           >
             <Input
               value={d.name}
+              maxLength={120}
               className={cn('h-auto', SM_ROW_INPUT)}
               onChange={(e) => {
+                editName(d.id, e.target.value);
+              }}
+              onBlur={(e) => {
                 commitRename(d.id, e.target.value);
               }}
             />
             <Input
               type="number"
               min={0}
+              max={100000}
               step="0.01"
+              onKeyDown={blockNonDecimalKeys}
               placeholder={`$${String(DEFAULT_CLASS_FEE)}`}
               value={d.defaultFee ?? ''}
               className={cn('h-auto', SM_ROW_INPUT)}
               onChange={(e) => {
-                commitDefaultFee(d.id, e.target.value);
+                editDefaultFee(d.id, e.target.value);
+              }}
+              onBlur={() => {
+                commitDefaultFee(d.id, d.defaultFee);
               }}
             />
             <Button
@@ -167,6 +236,7 @@ export function ClassDivisionsCard({
             <Input
               ref={inputRef}
               value={newName}
+              maxLength={120}
               placeholder="Choose a standard sub division, or type your own…"
               className={cn('h-auto', SM_INPUT)}
               onFocus={() => {

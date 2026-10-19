@@ -1,4 +1,6 @@
 import type { PermissionKey } from '@/shared/constants/permissions';
+import type { StaffProfile } from '@/shared/types/auth';
+import type { ShowListItem } from '@/modules/shows/types';
 
 export type UserDirectoryKind = 'staff' | 'rider' | 'vendor';
 
@@ -33,6 +35,8 @@ export interface UserDirectoryRow {
   showName: string;
   status: UserDirectoryStatus;
   isSteward: boolean;
+  /** Judge licence / rating (e.g. USEF "S"); staff rows only. */
+  license: string | null;
   canScratchSkipDq: boolean;
   canViewMoney: boolean;
 
@@ -80,4 +84,37 @@ export interface RingCoverageData {
   rings: string[];
   /* ring name -> the staff_assignments.id covering it, or null when unassigned. */
   assignments: Record<string, string | null>;
+}
+
+export interface MemberOrg {
+  orgId: string;
+  orgName: string;
+  /** Workspace keys this org is relevant under — e.g. a person staffed as
+   * Judge in one org and Show Admin in another gets that org tagged with
+   * only the role that actually applies there. Lets the switcher (and the
+   * multi-role rail) show only orgs that belong to the workspace currently
+   * open, instead of every org this identity touches under any role. */
+  roles: string[];
+}
+
+/** Suspended/deleted orgs the signed-in staff user is tied to. `allBlocked`
+ * is set only when every one of their orgs is closed, and says why. */
+export interface OrgAccessBlock {
+  blockedOrgIds: string[];
+  allBlocked: 'suspended' | 'deleted' | null;
+}
+
+export interface OrganizerContext {
+  profile: StaffProfile;
+  orgId: string | null;
+  orgName: string;
+  shows: ShowListItem[];
+  currentShow: ShowListItem | null;
+  canViewMoney: boolean;
+
+  impersonating: boolean;
+
+  previewingAsShowAdmin: boolean;
+
+  memberOrgs: MemberOrg[];
 }

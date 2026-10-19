@@ -9,7 +9,7 @@ import {
   Pill,
   SectionLabel,
 } from '@/shared/ui/organizer/fa-page';
-import type { RingRow } from '@/modules/announcements/data/queries';
+import type { RingRow } from '@/modules/announcements/types';
 
 export function AllRingsTable({ rings }: { rings: RingRow[] }) {
   return (

@@ -10,7 +10,6 @@ import type {
   CatalogDocument,
   CatalogSheetRow as CatalogSheetRowData,
 } from '@/modules/superadmin/types';
-import { UploadSheetDialog } from '@/modules/superadmin/ui/upload-sheet-dialog';
 import { CatalogSheetRow } from '@/modules/superadmin/ui/catalog-sheet-row';
 
 const COLS = 'minmax(280px,1fr) 150px 160px 130px 110px 92px';
@@ -68,16 +67,9 @@ export function CatalogBoard({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <UploadSheetDialog />
-        <span className="text-fa-muted-2 text-[12.5px]">
-          Create a sheet stub here, then attach its PDF from the File column.
-        </span>
-      </div>
-
-      <div className="rounded-[14px] border border-[#E2E8E4] bg-white">
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#E2E8E4] px-5 py-3.5">
-          <span className="text-fa-muted-2 mr-1 text-[10px] font-bold tracking-[0.14em] uppercase">
+      <div className="rounded-[14px] border border-[#E7EAEE] bg-white">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#E7EAEE] px-5 py-3.5">
+          <span className="mr-1 text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
             Score type
           </span>
           {filters.map((f) => {
@@ -93,13 +85,13 @@ export function CatalogBoard({
                 className={cn(
                   'inline-flex h-auto items-baseline gap-1.5 rounded-lg border px-3 py-2 text-[12.5px] font-semibold transition-colors hover:bg-transparent',
                   on
-                    ? 'border-hunter-deep bg-hunter-deep text-paper'
-                    : 'hover:border-gold border-[#D7E0DA] bg-white text-[#5A6B63]',
+                    ? 'border-hunter-deep bg-[#146A47] text-white'
+                    : 'border-[#E7EAEE] bg-white text-[#475467] hover:border-[#D6DBE1]',
                 )}
               >
                 {f.label}
                 <span
-                  className={cn('text-[12px] font-medium', on ? 'text-paper/60' : 'text-[#9AA6A0]')}
+                  className={cn('text-[12px] font-medium', on ? 'text-white/60' : 'text-[#8A94A3]')}
                 >
                   {f.count}
                 </span>
@@ -108,7 +100,7 @@ export function CatalogBoard({
           })}
           <div className="relative ml-auto min-w-[170px] flex-[0_1_250px]">
             <SearchIcon
-              className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#9AA6A0]"
+              className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#8A94A3]"
               aria-hidden
             />
             <Input
@@ -118,20 +110,20 @@ export function CatalogBoard({
                 setSearch(event.target.value);
               }}
               placeholder="Search sheets…"
-              className="text-hunter-deep focus-visible:border-gold focus-visible:ring-gold/[.14] h-auto w-full rounded-lg border border-[#D7E0DA] bg-white py-2 pr-3 pl-[33px] text-[13px] focus-visible:ring-[3px] focus-visible:outline-none"
+              className="h-auto w-full rounded-lg border border-[#E7EAEE] bg-white py-2 pr-3 pl-[33px] text-[13px] text-[#101828] focus-visible:border-[#9FD3BA] focus-visible:ring-[3px] focus-visible:ring-[#EAF5EF] focus-visible:outline-none"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <div
-            className="grid min-w-[920px] gap-4 bg-[#F6F0E2] px-5 py-[11px]"
+            className="grid min-w-[920px] gap-4 bg-[#FBFCFD] px-5 py-[11px]"
             style={{ gridTemplateColumns: COLS }}
           >
             {['Sheet', 'Level', 'Scoring family', 'Provenance', 'File', ''].map((h) => (
               <span
                 key={h || 'action'}
-                className="text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] uppercase"
+                className="text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase"
               >
                 {h}
               </span>
@@ -139,7 +131,7 @@ export function CatalogBoard({
           </div>
 
           {visible.length === 0 ? (
-            <div className="text-fa-muted-2 px-6 py-[42px] text-center text-[13.5px]">
+            <div className="px-6 py-[42px] text-center text-[13.5px] text-[#8A94A3]">
               No sheets match this filter.
             </div>
           ) : (
@@ -154,16 +146,16 @@ export function CatalogBoard({
           )}
         </div>
 
-        <div className="text-fa-muted-2 border-t border-[#E2E8E4] px-5 py-3 text-[12.5px]">
+        <div className="border-t border-[#E7EAEE] px-5 py-3 text-[12.5px] text-[#8A94A3]">
           {visible.length} of {sheets.length} sheet{sheets.length === 1 ? '' : 's'}
         </div>
       </div>
 
       {type === 'Independent' && (
         <>
-          <div className="flex items-start gap-3 rounded-xl border border-[#EBDCAF] bg-[#FCF6E4] px-4 py-3.5">
-            <p className="text-[13.5px] leading-[1.55] text-[#7A5E12]">
-              <strong className="text-[#16261F]">Independent scoring.</strong> For shows not run
+          <div className="flex items-start gap-3 rounded-xl border border-[#F6DCB8] bg-[#FDF2E3] px-4 py-3.5">
+            <p className="text-[13.5px] leading-[1.55] text-[#B45309]">
+              <strong className="text-[#101828]">Independent scoring.</strong> For shows not run
               under a governing body — schooling shows, series, in-house classes, or an
               organizer&rsquo;s own format. An uploaded sheet behaves like any official test: the
               same fillable form, live totals, and percentage.

@@ -1,9 +1,11 @@
 'use client';
 
 import { Input } from '@/shared/ui/shadcn/input';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { VT_ROW_INPUT, VT_NOTE, VT_SECTION_LABEL } from '@/modules/organizations/ui/venue-tokens';
 import type { VenueStable } from '@/modules/organizations/types';
+import { MAX_STABLE_ROWS } from '@/modules/organizations/constants';
 
 export function VenueStableList({
   stables,
@@ -21,7 +23,7 @@ export function VenueStableList({
   onConfigure: (index: number) => void;
 }) {
   return (
-    <div className="border-t border-[#E9EDEB] pt-4">
+    <div className="border-t border-[#E7EAEE] pt-4">
       <label className={VT_SECTION_LABEL}>Stables at this location</label>
       <p className={VT_NOTE}>
         Build the real stall layout once here — name each stall, mark any out of service — and every
@@ -30,7 +32,7 @@ export function VenueStableList({
       </p>
 
       {stables.length === 0 ? (
-        <p className="mb-2.5 text-[13px] text-[#7A8781] italic">
+        <p className="mb-2.5 text-[13px] text-[#8A94A3] italic">
           No stables yet — add at least one
         </p>
       ) : (
@@ -39,10 +41,11 @@ export function VenueStableList({
             const stallCount = stable.stalls.length;
             const closedCount = stable.stalls.filter((s) => s.closed).length;
             return (
-              <div key={i} className="rounded-[10px] border border-[#EDF0EE] p-3">
+              <div key={i} className="rounded-[10px] border border-[#EEF1F4] p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <Input
                     value={stable.name}
+                    maxLength={80}
                     aria-label="Stable name"
                     placeholder="e.g. Stable A, North Barn"
                     className={`h-auto ${VT_ROW_INPUT} flex-1`}
@@ -50,15 +53,21 @@ export function VenueStableList({
                       onRename(i, e.target.value);
                     }}
                   />
-                  <label className="flex items-center gap-1.5 text-[11px] whitespace-nowrap text-[#7A8781]">
+                  <label className="flex items-center gap-1.5 text-[11px] whitespace-nowrap text-[#8A94A3]">
                     Rows
                     <Input
                       type="number"
                       min={1}
+                      max={MAX_STABLE_ROWS}
+                      step={1}
                       value={stable.rowCount}
-                      className="h-auto w-[52px] rounded-lg border border-[#D9E1DD] px-2 py-1.5 text-[12.5px]"
+                      onKeyDown={blockNonIntegerKeys}
+                      className="h-auto w-[52px] rounded-lg border border-[#E7EAEE] px-2 py-1.5 text-[12.5px]"
                       onChange={(e) => {
-                        onSetRows(i, parseInt(e.target.value, 10) || 1);
+                        onSetRows(
+                          i,
+                          Math.min(MAX_STABLE_ROWS, Math.max(1, parseInt(e.target.value, 10) || 1)),
+                        );
                       }}
                     />
                   </label>
@@ -74,7 +83,7 @@ export function VenueStableList({
                   </Button>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2.5">
-                  <span className="text-[12.5px] text-[#6E7C76]">
+                  <span className="text-[12.5px] text-[#8A94A3]">
                     {stallCount
                       ? `${String(stallCount)} stall${stallCount === 1 ? '' : 's'} built${closedCount ? ` · ${String(closedCount)} out of service` : ''}`
                       : 'No stalls built yet'}
@@ -82,7 +91,7 @@ export function VenueStableList({
                   <Button
                     type="button"
                     variant="ghost"
-                    className="hover:border-gold h-auto rounded-[9px] border border-[#D9E1DD] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#0D2C23] transition-colors hover:bg-white"
+                    className="h-auto rounded-[9px] border border-[#E7EAEE] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-white"
                     onClick={() => {
                       onConfigure(i);
                     }}
@@ -99,7 +108,7 @@ export function VenueStableList({
       <Button
         type="button"
         variant="ghost"
-        className="hover:border-gold h-auto rounded-[10px] border border-[#D9E1DD] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-[#0D2C23] transition-colors hover:bg-white"
+        className="h-auto rounded-[10px] border border-[#E7EAEE] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-white"
         onClick={onAdd}
       >
         + Add stable

@@ -1,32 +1,21 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { getStaffProfile, type StaffProfile } from '@/modules/auth/data/queries';
-import { listShowsForOrg, type ShowListItem } from '@/modules/shows/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { listShowsForOrg } from '@/modules/shows';
+import { getImpersonatedOrgId } from '@/shared/lib/auth/view-as';
 import { getPreviewingAsShowAdmin } from './preview-role';
-import { getSelectedOrg, type MemberOrg } from './org-selection';
-
-export interface OrganizerContext {
-  profile: StaffProfile;
-  orgId: string | null;
-  orgName: string;
-  shows: ShowListItem[];
-  currentShow: ShowListItem | null;
-  canViewMoney: boolean;
-
-  impersonating: boolean;
-
-  previewingAsShowAdmin: boolean;
-
-  memberOrgs: MemberOrg[];
-}
+import { getSelectedOrg } from './org-selection-queries';
+import type { MemberOrg } from '../types';
+import type { OrganizerContext } from '@/modules/staff/types';
+import type { ShowListItem } from '@/modules/shows/types';
+import { todayIsoInZone } from '../utils';
 
 /* With no show picked, open the one happening soonest: live first, then
  * published shows by start date, then unpublished, then undated. Finished
  * shows only when nothing is coming up. */
 function soonestShow(shows: ShowListItem[]): ShowListItem | undefined {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoInZone();
   const rank = (s: ShowListItem) =>
     s.status === 'live' ? 0 : !s.startDate ? 3 : s.published ? 1 : 2;
   const upcoming = shows
@@ -58,7 +47,7 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
   if (impersonatedOrgId) {
     orgId = impersonatedOrgId;
   } else {
-    const selection = await getSelectedOrg(profile);
+    const selection = await getSelectedOrg();
     orgId = selection.orgId;
     memberOrgs = selection.memberOrgs;
   }
@@ -87,12 +76,18 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
     soonestShow(shows) ??
     null;
 
-  let canViewMoney = profile.platform_role === 'Organizer' || impersonatedOrgId !== null;
-  if (!canViewMoney && currentShow) {
-    const { data: allowed } = await supabase.rpc('has_show_permission', {
-      target_show_id: currentShow.id,
-      permission_key: 'canViewMoney',
-    });
+  // From the per-show grant, not the platform role: an Organizer staffed on
+  // someone else's org (selected via the switcher) is only a Show Admin there.
+  // has_show_permission already returns true for the org's owner/co-owners and
+  // SuperAdmin; with no show yet, org ownership (can_access_org) decides.
+  let canViewMoney = impersonatedOrgId !== null;
+  if (!canViewMoney) {
+    const { data: allowed } = currentShow
+      ? await supabase.rpc('has_show_permission', {
+          target_show_id: currentShow.id,
+          permission_key: 'canViewMoney',
+        })
+      : await supabase.rpc('can_access_org', { target_org_id: orgId });
     canViewMoney = allowed === true;
   }
 

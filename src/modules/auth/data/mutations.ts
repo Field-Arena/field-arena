@@ -10,6 +10,7 @@ import {
 import { env } from '@/shared/lib/env';
 import { parseInput } from '@/shared/lib/action-result';
 import { ROUTES } from '@/shared/constants/routes';
+import { safeInternalPath } from '@/shared/lib/safe-internal-path';
 import { MAIL_UNREACHABLE_MESSAGE, NOT_PROVISIONED_MESSAGE } from '@/modules/auth/constants';
 import {
   loginSchema,
@@ -50,7 +51,7 @@ async function withMailTransport<T>(
 }
 
 export async function signInWithPassword(input: unknown): Promise<LoginOutcome> {
-  const { email, password, remember = true } = parseInput(loginSchema, input);
+  const { email, password, remember = true, next } = parseInput(loginSchema, input);
 
   await recordSessionPersistence(remember);
 
@@ -67,7 +68,7 @@ export async function signInWithPassword(input: unknown): Promise<LoginOutcome> 
     return { status: 'error', message: NOT_PROVISIONED_MESSAGE };
   }
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: destination };
+  return { status: 'done', redirectTo: safeInternalPath(next, destination) };
 }
 
 async function recordSessionPersistence(remember: boolean): Promise<void> {
@@ -153,7 +154,8 @@ export async function setPassword(input: unknown): Promise<VerifyOutcome> {
   if (!user) {
     return {
       status: 'error',
-      message: 'Your session has expired. Open the invite link again to continue.',
+      message:
+        'Your session has expired. Open the link from your email again (or request a new one) to continue.',
     };
   }
 
@@ -163,10 +165,16 @@ export async function setPassword(input: unknown): Promise<VerifyOutcome> {
   // Marks the account as actually onboarded — distinct from auth.users.last_sign_in_at,
   // which GoTrue sets the moment the invite link is clicked (verifyOtp), before this
   // screen has even rendered. Onboard-status screens read this column, not that one.
-  await supabase.from('users').update({ onboarded_at: new Date().toISOString() }).eq('id', user.id);
+  // Only the first time — a later password reset must not move the onboarding date.
+  await supabase
+    .from('users')
+    .update({ onboarded_at: new Date().toISOString() })
+    .eq('id', user.id)
+    .is('onboarded_at', null);
 
   const metaNext: unknown = user.user_metadata.next;
-  const next = typeof metaNext === 'string' ? metaNext : ROUTES.dashboard;
+  const fallback = (await provisionedDestination(supabase, user.id)) ?? ROUTES.dashboard;
+  const next = safeInternalPath(typeof metaNext === 'string' ? metaNext : null, fallback);
 
   revalidatePath('/', 'layout');
   return { status: 'done', redirectTo: next };
@@ -217,7 +225,11 @@ export async function requestPasswordReset(input: unknown): Promise<void> {
   const supabase = await createServerClient();
   const attempt = await withMailTransport('password-reset', () =>
     supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=/dashboard`,
+      // The callback exchanges the code for a session, then lands on the
+      // set-password screen — without this the link was just a magic login.
+      redirectTo: `${env.siteUrl}${ROUTES.authCallback}?next=${encodeURIComponent(
+        `${ROUTES.setPassword}?mode=reset`,
+      )}`,
     }),
   );
   const error = attempt.ok ? attempt.value.error : new Error(attempt.message);
@@ -254,7 +266,7 @@ export async function sendSignInCode(input: unknown): Promise<SignInCodeOutcome>
 }
 
 export async function verifySignInCode(input: unknown): Promise<LoginOutcome> {
-  const { email, token, remember = true } = parseInput(verifySignInCodeSchema, input);
+  const { email, token, remember = true, next } = parseInput(verifySignInCodeSchema, input);
 
   await recordSessionPersistence(remember);
 
@@ -276,5 +288,5 @@ export async function verifySignInCode(input: unknown): Promise<LoginOutcome> {
     return { status: 'error', message: NOT_PROVISIONED_MESSAGE };
   }
   revalidatePath('/', 'layout');
-  return { status: 'done', redirectTo: destination };
+  return { status: 'done', redirectTo: safeInternalPath(next, destination) };
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { riderClassName } from '@/shared/lib/format/class-name';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { anyClassFlaggedQualifying, isClassRated } from '@/modules/riders/utils/class-rated-status';
 import { RatedBadge } from '@/modules/riders/ui/rated-badge';
@@ -56,7 +57,11 @@ export function ShowTicketDetail({
           {classes.map((cls) => {
             const isFull = cls.cap != null && cls.entryCount >= cls.cap;
 
-            const classLabel = (cls.display_name?.trim() ?? '') || cls.label;
+            const classLabel = riderClassName({
+              label: cls.label,
+              displayName: cls.display_name,
+              division: cls.division,
+            });
             const subtitle = classSubtitle({
               label: cls.label,
               displayName: cls.display_name,
@@ -65,9 +70,9 @@ export function ShowTicketDetail({
             return (
               <div
                 key={cls.id}
-                className="border-line flex items-center justify-between rounded-lg border px-3 py-2"
+                className="border-line flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
               >
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-forest text-sm font-medium">
                       {classLabel}
@@ -82,9 +87,9 @@ export function ShowTicketDetail({
                     {[cls.date, cls.time, cls.arena].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   {isFull && <Badge variant="destructive">Full</Badge>}
-                  <span className="text-forest text-sm font-semibold">
+                  <span className="text-forest text-sm font-semibold whitespace-nowrap">
                     {cls.fee != null ? `$${cls.fee.toFixed(2)}` : '—'}
                   </span>
                 </div>

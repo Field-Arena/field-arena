@@ -4,10 +4,28 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { parseInput } from '@/shared/lib/action-result';
 import { demoRequestSchema } from '@/modules/marketing/schemas';
 import { DEMO_VOLUME_TO_SHOWS } from '@/modules/marketing/landing-content';
-import { DEMO_REQUEST_ERROR_MESSAGE } from '@/modules/marketing/constants';
+import { clientIp, rateLimit } from '@/shared/lib/rate-limit';
+import {
+  DEMO_REQUEST_ERROR_MESSAGE,
+  DEMO_REQUEST_LIMIT,
+  DEMO_REQUEST_RATE_LIMITED_MESSAGE,
+  DEMO_REQUEST_WINDOW_MS,
+} from '@/modules/marketing/constants';
 
+// Public and written with the service-role key, so it is rate-limited per
+// client IP and carries a honeypot field to drop scripted submissions.
 export async function requestDemo(input: unknown): Promise<void> {
   const data = parseInput(demoRequestSchema, input);
+
+  // Pretend success so a bot gets no signal that it was caught.
+  if (data.hpCompanyUrl) return;
+
+  const ip = await clientIp();
+  const { limited } = rateLimit(`demo-request:${ip}`, {
+    limit: DEMO_REQUEST_LIMIT,
+    windowMs: DEMO_REQUEST_WINDOW_MS,
+  });
+  if (limited) throw new Error(DEMO_REQUEST_RATE_LIMITED_MESSAGE);
 
   const notes = [
     `Discipline: ${data.discipline}`,

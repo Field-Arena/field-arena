@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
+import { parseCoefInput } from '@/modules/superadmin/utils/parse-coef-input';
 import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
 import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
@@ -19,15 +20,16 @@ export function SheetCollectivesEditor({
       <h2 className={`${H2} mb-4`}>Collective marks</h2>
       <div className="mb-3.5 flex flex-col gap-2.5">
         {def.collectives.length === 0 && (
-          <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+          <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
         )}
         {def.collectives.map((cm, i) => (
           <div
             key={i}
-            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
           >
             <Input
               value={cm.name}
+              maxLength={200}
               placeholder="e.g. Gaits"
               aria-label={`Collective ${String(i + 1)} name`}
               onChange={(e) => {
@@ -45,6 +47,7 @@ export function SheetCollectivesEditor({
             />
             <Input
               value={cm.note ?? ''}
+              maxLength={1000}
               placeholder="Note — what this mark covers"
               aria-label={`Collective ${String(i + 1)} note`}
               onChange={(e) => {
@@ -59,14 +62,15 @@ export function SheetCollectivesEditor({
             />
             <Input
               value={String(cm.coef)}
+              inputMode="decimal"
               placeholder="Coef"
               aria-label={`Collective ${String(i + 1)} coefficient`}
               onChange={(e) => {
-                const c = Number(e.target.value);
+                const c = parseCoefInput(e.target.value, 20);
                 setDef((d) => ({
                   ...d,
                   collectives: d.collectives.map((item, j) =>
-                    j === i ? { ...item, coef: Number.isFinite(c) ? c : 0 } : item,
+                    j === i ? { ...item, coef: c } : item,
                   ),
                 }));
               }}

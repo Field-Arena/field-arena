@@ -11,7 +11,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { PrintDate } from '@/shared/ui/print-date';
-import type { ShowPnl } from '@/modules/shows/data/setup-queries';
+import type { ShowPnl } from '@/modules/shows/types';
 
 export function PnlPrintReport({ pnl }: { pnl: ShowPnl }) {
   return (

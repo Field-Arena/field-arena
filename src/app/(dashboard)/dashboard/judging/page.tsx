@@ -1,3 +1,4 @@
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -5,18 +6,21 @@ import {
   listPanelContacts,
   getPreviewShowName,
 } from '@/modules/judging/data/queries';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
 import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
 import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
 import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
 import { isAssignmentComplete } from '@/modules/judging/utils/is-assignment-complete';
 import { todayRingLabel } from '@/modules/judging/utils/today-ring-label';
-import { PanelPopoverButton } from '@/modules/judging/ui/judging-status-card';
+import {
+  LiveClock,
+  PanelPopoverButton,
+  RingPaceCard,
+} from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
 import { formatDateShort } from '@/shared/lib/format/date';
-import { LiveClock } from '@/shared/ui/organizer/live-clock';
 import {
   EmptyState,
   FA_BTN,
@@ -29,10 +33,11 @@ import {
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
 export default async function JudgingPage() {
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // Demo rows only; real rows carry today in their own show's timezone.
+  const demoTodayIso = todayInZone(resolveTimeZone());
   const [profile, realAssignments, realPanelContacts] = await Promise.all([
     getStaffProfile(),
-    listMyAssignments(todayIso),
+    listMyAssignments(),
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
@@ -40,20 +45,17 @@ export default async function JudgingPage() {
   // are the fallback for a SuperAdmin who hasn't picked one.
   const previewShowName = isSuperAdminPreview ? await getPreviewShowName() : null;
   const useDemoData = isSuperAdminPreview && previewShowName === null;
-  const assignments = useDemoData ? buildDemoAssignments(todayIso) : realAssignments;
+  const assignments = useDemoData ? buildDemoAssignments(demoTodayIso) : realAssignments;
   const panelContacts = useDemoData ? buildDemoPanelContacts() : realPanelContacts;
   const roleLabel = profile?.platform_role === 'Scribe' ? 'Scribe' : 'Judge';
-  const { rings, contacts, assignmentsToday } = buildTodaySnapshot(
+  const { rings, ringSummaries, contacts, assignmentsToday } = buildTodaySnapshot(
     assignments,
     panelContacts,
-    todayIso,
   );
 
-  const today = assignments.filter((a) => classifyAssignment(a, todayIso) === 'today');
-  const upcoming = assignments.filter((a) => classifyAssignment(a, todayIso) === 'upcoming');
-  const completedCount = assignments.filter(
-    (a) => classifyAssignment(a, todayIso) === 'history',
-  ).length;
+  const today = assignments.filter((a) => classifyAssignment(a) === 'today');
+  const upcoming = assignments.filter((a) => classifyAssignment(a) === 'upcoming');
+  const completedCount = assignments.filter((a) => classifyAssignment(a) === 'history').length;
   const nextUpcoming = upcoming[0];
   const nextUpcomingDate = nextUpcoming
     ? formatDateShort(nextUpcoming.classDate) || formatDateShort(nextUpcoming.showDate)
@@ -96,6 +98,8 @@ export default async function JudgingPage() {
         />
         <StatBox label="Completed" value={completedCount} note="on this platform" />
       </StatGrid>
+
+      <RingPaceCard ringSummaries={ringSummaries} />
 
       {assignments.length === 0 ? (
         <EmptyState

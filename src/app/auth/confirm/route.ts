@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { ROUTES } from '@/shared/constants/routes';
+import { safeInternalPath } from '@/shared/lib/safe-internal-path';
+import { authErrorCode } from '@/shared/lib/auth-error-code';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -14,21 +16,21 @@ export async function GET(request: NextRequest) {
       if (type === 'invite') {
         return NextResponse.redirect(`${origin}${ROUTES.setPassword}`);
       }
+      // A reset link must land on the new-password form, not log straight in.
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}${ROUTES.setPassword}?mode=reset`);
+      }
 
       const metaNext: unknown = data.user?.user_metadata.next;
-      const next = safeNext(typeof metaNext === 'string' ? metaNext : searchParams.get('next'));
+      const next = safeInternalPath(
+        typeof metaNext === 'string' ? metaNext : searchParams.get('next'),
+        ROUTES.dashboard,
+      );
       return NextResponse.redirect(`${origin}${next}`);
     }
-    return NextResponse.redirect(
-      `${origin}${ROUTES.login}?error=${encodeURIComponent(error.message)}`,
-    );
+    console.error('[auth] token verification failed', error.message);
+    return NextResponse.redirect(`${origin}${ROUTES.login}?error=${authErrorCode(error.message)}`);
   }
 
   return NextResponse.redirect(`${origin}${ROUTES.login}?error=missing_token`);
-}
-
-function safeNext(value: string | null): string {
-  if (!value) return ROUTES.dashboard;
-  if (!value.startsWith('/') || value.startsWith('//')) return ROUTES.dashboard;
-  return value;
 }

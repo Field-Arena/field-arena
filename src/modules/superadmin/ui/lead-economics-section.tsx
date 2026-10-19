@@ -7,6 +7,7 @@ import { parseMoneyField } from '@/modules/superadmin/utils/parse-money-field';
 import { useUpdateLead } from '@/modules/superadmin/hooks/use-lead-mutations';
 import { SECTION, H2, GRID, SAVE } from '@/modules/superadmin/ui/lead-detail-styles';
 import { Field } from '@/modules/superadmin/ui/lead-detail-field';
+import { sanitizeDecimalInput } from '@/shared/lib/format/number-input';
 
 export function EconomicsSection({ lead }: { lead: LeadRow }) {
   const [cost, setCost] = useState(lead.cost_per_event != null ? String(lead.cost_per_event) : '');
@@ -22,12 +23,22 @@ export function EconomicsSection({ lead }: { lead: LeadRow }) {
     onChange: (v: string) => void;
     placeholder: string;
   }[] = [
-    { key: 'cost', label: 'Cost per event', value: cost, onChange: setCost, placeholder: '$0' },
+    {
+      key: 'cost',
+      label: 'Cost per event',
+      value: cost,
+      onChange: (v) => {
+        setCost(sanitizeDecimalInput(v));
+      },
+      placeholder: '$0',
+    },
     {
       key: 'rev',
       label: 'Average revenue per show',
       value: rev,
-      onChange: setRev,
+      onChange: (v) => {
+        setRev(sanitizeDecimalInput(v));
+      },
       placeholder: '$0',
     },
   ];
@@ -35,7 +46,7 @@ export function EconomicsSection({ lead }: { lead: LeadRow }) {
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-1.5`}>Deal economics</h2>
-      <p className="text-fa-muted-2 mb-5 text-[13px] leading-[1.55]">
+      <p className="mb-5 text-[13px] leading-[1.55] text-[#8A94A3]">
         What this account is projected to cost us to run and what it&apos;s worth — fill in after
         the demo.
       </p>
@@ -47,10 +58,11 @@ export function EconomicsSection({ lead }: { lead: LeadRow }) {
             value={f.value}
             onChange={f.onChange}
             placeholder={f.placeholder}
+            inputProps={{ inputMode: 'decimal' }}
           />
         ))}
       </div>
-      <div className="mt-[22px] border-t border-[#EEF2EF] pt-5">
+      <div className="mt-[22px] border-t border-[#EEF1F4] pt-5">
         <Button
           type="button"
           variant="ghost"

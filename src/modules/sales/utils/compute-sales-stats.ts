@@ -17,7 +17,8 @@ export function computeSalesStats(rows: SaleRow[]): SalesStats {
     totalSales: sum(rows),
     // Still surfaced so the screen can say how many sales carry a refund —
     // they are no longer excluded wholesale, just netted.
-    refundedExcluded: rows.filter((r) => r.refundedAmount > 0).length,
+    refundedExcluded: rows.filter((r) => r.refundedAmount > 0 || r.additionalRefundedTotal > 0)
+      .length,
     transactions: rows.length,
     riderCount: riders.length,
     riderTotal: sum(riders),

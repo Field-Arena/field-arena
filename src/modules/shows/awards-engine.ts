@@ -1,4 +1,5 @@
 import { ribbonFor, type RibbonColor } from '@/modules/shows/constants';
+import { rankPlacings } from '@/shared/lib/rank-placings';
 
 export const DIVISION_ORDER = ['J', 'Y', 'A', 'O'] as const;
 
@@ -106,22 +107,10 @@ export interface RankedEntry extends AwardEntry {
   rank: number;
 }
 
+/* Shared placing rule (shared/lib/rank-placings); awards keep their 0-based
+ * rank (ribbonFor index) so callers are unchanged. */
 function withSharedRank(rows: AwardEntry[]): RankedEntry[] {
-  const ranked: RankedEntry[] = [];
-  let rank = 0;
-
-  for (const [i, row] of rows.entries()) {
-    const prev = ranked[i - 1];
-    if (prev) {
-      const stillTied =
-        row.pct === prev.pct &&
-        (row.ctot == null || prev.ctot == null ? true : row.ctot === prev.ctot);
-      if (!stillTied) rank = i;
-    }
-    ranked.push({ ...row, rank });
-  }
-
-  return ranked;
+  return rankPlacings(rows).map((r) => ({ ...r, rank: r.rank - 1 }));
 }
 
 export interface PlacingGroup {

@@ -6,10 +6,17 @@ export const metadata: Metadata = {
   title: 'Set your password — Field & Arena',
 };
 
-export default function SetPasswordPage() {
+// Reached from an invite link (first password) or a reset link (`?mode=reset`).
+export default async function SetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
+
   return (
     <AuthShell>
-      <SetPasswordForm />
+      <SetPasswordForm mode={mode === 'reset' ? 'reset' : 'invite'} />
     </AuthShell>
   );
 }

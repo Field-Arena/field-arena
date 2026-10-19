@@ -1,5 +1,5 @@
 import { fmtTime, type Arena, type ScheduleRide } from '@/modules/shows/schedule-engine';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import { RING_SIZE_LABEL } from '@/modules/shows/constants';
 import { dayDate } from '@/modules/shows/utils/day-date';
 import { DayItems } from '@/modules/shows/ui/schedule/day-items';
@@ -34,28 +34,28 @@ export function RingSchedule({
         return (
           <section
             key={`${arena.ring}-${String(day)}`}
-            className="mb-6 rounded-[12px] border border-[#E9EDEB] bg-white p-5 print:break-after-page"
+            className="mb-6 rounded-[12px] border border-[#E7EAEE] bg-white p-5 print:break-after-page"
           >
-            <header className="mb-3 border-b border-[#E9EDEB] pb-2.5">
-              <h2 className="text-forest font-[family-name:var(--font-nr)] text-[19px] font-semibold">
+            <header className="mb-3 border-b border-[#E7EAEE] pb-2.5">
+              <h2 className="font-[family-name:var(--font-nr)] text-[19px] font-semibold text-[#101828]">
                 {data.showName}
               </h2>
-              <div className="text-[12.5px] text-[#7A8781]">
+              <div className="text-[12.5px] text-[#8A94A3]">
                 Schedule of Classes
                 {data.timezone && (
                   <span className="font-normal"> — times shown in {data.timezone}</span>
                 )}
               </div>
-              <div className="text-ink-deep mt-0.5 text-[12.5px] font-semibold">
+              <div className="mt-0.5 text-[12.5px] font-semibold text-[#101828]">
                 {days.length > 1
                   ? `Day ${String(day + 1)} of ${String(days.length)} — ${dayDate(data.startDate, day)}`
                   : dayDate(data.startDate, day)}
               </div>
             </header>
 
-            <div className="text-forest mb-3 text-[14px] font-bold">
+            <div className="mb-3 text-[14px] font-bold text-[#101828]">
               {arena.ring}{' '}
-              <span className="text-[12.5px] font-normal text-[#7A8781]">
+              <span className="text-[12.5px] font-normal text-[#8A94A3]">
                 — {RING_SIZE_LABEL[arena.ringSize] ?? RING_SIZE_LABEL.standard}
               </span>
             </div>
@@ -70,7 +70,7 @@ export function RingSchedule({
               currentEntryId={currentEntryId}
             />
 
-            <div className="mt-3 text-center text-[12.5px] font-semibold text-[#7A8781]">
+            <div className="mt-3 text-center text-[12.5px] font-semibold text-[#8A94A3]">
               — Arena Done {fmtTime(lastEnd)} —
             </div>
           </section>

@@ -2,12 +2,14 @@
 
 import { useRef } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { FA_BTN_SMALL, FA_INPUT, FA_MUTED } from '@/shared/ui/organizer/fa-page';
+import { MAX_STALLS_PER_STABLE } from '@/modules/shows/constants';
 import {
   useUpdateStableField,
   useGenerateStableStalls,
 } from '@/modules/shows/hooks/use-stable-chart-mutations';
-import type { StableChartStable } from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStable } from '@/modules/shows/types';
 
 export function StableConfigRow({ showId, stable }: { showId: string; stable: StableChartStable }) {
   const stallCountRef = useRef<HTMLInputElement>(null);
@@ -21,6 +23,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
         <input
           key={`${stable.id}-name`}
           defaultValue={stable.name}
+          maxLength={80}
           className={cn(FA_INPUT, 'w-full py-1.5')}
           onBlur={(event) => {
             const value = event.target.value.trim();
@@ -38,10 +41,17 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
           ref={stallCountRef}
           type="number"
           min={0}
+          max={MAX_STALLS_PER_STABLE}
+          step={1}
+          onKeyDown={blockNonIntegerKeys}
           defaultValue={stable.stallCount}
           className={cn(FA_INPUT, 'w-full py-1.5')}
           onBlur={(event) => {
-            const value = Math.max(0, parseInt(event.target.value, 10) || 0);
+            const value = Math.min(
+              MAX_STALLS_PER_STABLE,
+              Math.max(0, parseInt(event.target.value, 10) || 0),
+            );
+            event.target.value = String(value);
             if (value !== stable.stallCount) {
               updateField.mutate({ showId, stableId: stable.id, stallCount: value });
             }
@@ -55,10 +65,14 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
           key={`${stable.id}-rows`}
           type="number"
           min={1}
+          max={50}
+          step={1}
+          onKeyDown={blockNonIntegerKeys}
           defaultValue={stable.rowCount}
           className={cn(FA_INPUT, 'w-full py-1.5')}
           onBlur={(event) => {
-            const value = Math.max(1, parseInt(event.target.value, 10) || 1);
+            const value = Math.min(50, Math.max(1, parseInt(event.target.value, 10) || 1));
+            event.target.value = String(value);
             if (value !== stable.rowCount) {
               updateField.mutate({ showId, stableId: stable.id, rowCount: value });
             }
@@ -72,7 +86,7 @@ export function StableConfigRow({ showId, stable }: { showId: string; stable: St
         className={cn(FA_BTN_SMALL, 'mb-1')}
         onClick={() => {
           const raw = stallCountRef.current?.value ?? String(stable.stallCount);
-          const stallCount = Math.max(0, parseInt(raw, 10) || 0);
+          const stallCount = Math.min(MAX_STALLS_PER_STABLE, Math.max(0, parseInt(raw, 10) || 0));
           generate.mutate({ showId, stableId: stable.id, stallCount });
         }}
       >

@@ -20,7 +20,7 @@ import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { formatDateShort } from '@/shared/lib/format/date';
 import type { BILLING_SECTIONS } from '@/modules/shows/constants';
-import type { OrgBilling } from '@/modules/shows/data/queries';
+import type { OrgBilling } from '@/modules/shows/types';
 
 type BillingKind = (typeof BILLING_SECTIONS)[number]['kind'];
 
@@ -52,11 +52,11 @@ export function BillingDetailDialog({
       >
         <DialogHeader className={cn(modalBodyClass, 'flex-none gap-1.5 pb-0')}>
           <ModalEyebrow>Financial</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             {title}
           </DialogTitle>
           <DialogDescription>{sub}</DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -65,14 +65,14 @@ export function BillingDetailDialog({
         <div className={cn(modalBodyClass, 'min-h-0 flex-1 overflow-y-auto')}>
           {kind === 'payouts' ? (
             billing.payouts.length === 0 ? (
-              <p className="text-[12.5px] leading-[1.55] text-[#6E7C76]">
+              <p className="text-[12.5px] leading-[1.55] text-[#8A94A3]">
                 No payouts yet. Transfers appear here once the organization has completed Stripe
                 Connect onboarding and the first show has ended.
               </p>
             ) : (
               <Table className="w-full border-collapse text-[12.5px]">
                 <TableHeader>
-                  <TableRow className="border-b border-[#D9E1DD] text-left hover:bg-transparent">
+                  <TableRow className="border-b border-[#E7EAEE] text-left hover:bg-transparent">
                     <TableHead className="h-auto px-0 py-1.5 font-semibold">Date</TableHead>
                     <TableHead className="h-auto px-0 py-1.5 font-semibold">Status</TableHead>
                     <TableHead className="h-auto px-0 py-1.5 text-right font-semibold">
@@ -99,14 +99,14 @@ export function BillingDetailDialog({
               </Table>
             )
           ) : billing.charges.length === 0 ? (
-            <p className="text-[12.5px] leading-[1.55] text-[#6E7C76]">
+            <p className="text-[12.5px] leading-[1.55] text-[#8A94A3]">
               No {title.toLowerCase()} yet.
             </p>
           ) : (
             <>
               <Table className="w-full border-collapse text-[12.5px]">
                 <TableHeader>
-                  <TableRow className="border-b border-[#D9E1DD] text-left hover:bg-transparent">
+                  <TableRow className="border-b border-[#E7EAEE] text-left hover:bg-transparent">
                     <TableHead className="h-auto px-0 py-1.5 font-semibold">Date</TableHead>
                     <TableHead className="h-auto px-0 py-1.5 font-semibold">Show</TableHead>
                     <TableHead className="h-auto px-0 py-1.5 text-right font-semibold">
@@ -130,7 +130,7 @@ export function BillingDetailDialog({
                       <TableCell className="px-0 py-1.5 text-right whitespace-normal">
                         {formatMoneyExact(row.amount)}
                       </TableCell>
-                      <TableCell className="px-0 py-1.5 text-right whitespace-normal text-[#7A8781]">
+                      <TableCell className="px-0 py-1.5 text-right whitespace-normal text-[#8A94A3]">
                         {formatMoneyExact(row.fee)}
                       </TableCell>
                     </TableRow>

@@ -1,4 +1,4 @@
-import type { ShowPickerSummary } from '@/modules/shows/data/queries';
+import type { ShowPickerSummary } from '@/modules/shows/types';
 import type { DashboardShowRow } from '@/modules/shows/types';
 
 /* The show picker's rows, in the shape the dashboard's tabs and home use. */

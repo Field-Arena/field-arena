@@ -424,7 +424,9 @@ export function buildMasterSchedule(
           const ride = arena.queue[0];
           if (!ride) break;
 
-          if (ride.pinnedDay != null && ride.pinnedDay !== day) {
+          // A pin means "not before that day": rides that don't fit on the
+          // pinned day spill forward instead of never being placed.
+          if (ride.pinnedDay != null && ride.pinnedDay > day) {
             arena.queue.push(ride);
             arena.queue.shift();
             stalled++;
@@ -492,12 +494,16 @@ export function buildMasterSchedule(
         if (arena.queue.length > 0 && stalled >= arena.queue.length) {
           const ride = arena.queue[0];
           if (!ride) return;
-          if (ride.pinnedDay != null && ride.pinnedDay !== day) return;
+          if (ride.pinnedDay != null && ride.pinnedDay > day) return;
 
           const clock = clocks[i] ?? 0;
           const horse = horseKey(ride.horseId, ride.horse);
           const safeStart = earliestSafeStart(ride.num, horse, day, clock, ride.step);
           if (cap != null && safeStart + ride.step > cap) return;
+          // Waiting out a rider conflict can push the ride past the end of
+          // the day — spill it to the next day instead of scheduling it
+          // after hours.
+          if (safeStart + ride.step > end) return;
 
           const waited = safeStart > clock;
           const win = waited
@@ -556,8 +562,9 @@ export function buildMasterSchedule(
 
     const hasMoreToday = (i: number) => {
       const arena = arenas[i];
-      const ride = arena?.queue[0];
-      if (!arena || !ride) return false;
+      if (!arena) return false;
+      const ride = arena.queue.find((r) => r.pinnedDay == null || r.pinnedDay <= day);
+      if (!ride) return false;
       return (clocks[i] ?? 0) + ride.step <= end;
     };
 

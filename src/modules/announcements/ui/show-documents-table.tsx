@@ -13,7 +13,7 @@ import {
   FA_THEAD_ROW,
   FA_TR,
 } from '@/shared/ui/organizer/fa-page';
-import type { ShowDocument } from '@/modules/announcements/data/queries';
+import type { ShowDocument } from '@/modules/announcements/types';
 
 /* Legacy previewed the PDF inline in an expanding panel with a new-tab link as
  * a fallback (announcer.html:558) rather than only handing over a link. That

@@ -10,7 +10,7 @@ import {
   Pill,
   type PillTone,
 } from '@/shared/ui/organizer/fa-page';
-import type { ShowContact } from '@/modules/announcements/data/queries';
+import type { ShowContact } from '@/modules/announcements/types';
 
 const ROLE_TONE: Record<string, PillTone> = {
   Judge: 'green',

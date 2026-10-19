@@ -13,6 +13,7 @@ import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { useChargeMore } from '@/modules/sales/hooks/use-sales-mutations';
 import type { SaleRow } from '@/modules/sales/types';
+import { MAX_CHARGE_MORE_AMOUNT } from '@/modules/sales/constants';
 import { AmountField } from '@/modules/sales/ui/amount-field';
 
 export function ChargeMoreDialog({
@@ -25,10 +26,15 @@ export function ChargeMoreDialog({
   onClose: () => void;
 }) {
   const [amount, setAmount] = useState('');
+  // One id per charge attempt, sent as the Stripe idempotency key: a retried
+  // submit of the same amount can't double-charge. A new amount is a new
+  // attempt, so it gets a fresh id, and so does a retry after a failure.
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const charge = useChargeMore();
 
   const parsedAmount = Number.parseFloat(amount);
-  const valid = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const valid =
+    Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= MAX_CHARGE_MORE_AMOUNT;
 
   return (
     <Dialog
@@ -52,8 +58,17 @@ export function ChargeMoreDialog({
           id="charge-amount"
           label="Amount to charge"
           value={amount}
-          onChange={setAmount}
+          onChange={(value) => {
+            setAmount(value);
+            setRequestId(crypto.randomUUID());
+          }}
           placeholder="0.00"
+          max={MAX_CHARGE_MORE_AMOUNT}
+          error={
+            amount === '' || valid
+              ? undefined
+              : `Enter an amount between $0.01 and ${formatMoneyExact(MAX_CHARGE_MORE_AMOUNT)}.`
+          }
         />
 
         <DialogFooter>
@@ -65,8 +80,21 @@ export function ChargeMoreDialog({
             disabled={!valid || charge.isPending}
             onClick={() => {
               charge.mutate(
-                { showId, saleType: sale.saleType, saleId: sale.id, amount: parsedAmount },
-                { onSuccess: onClose },
+                {
+                  showId,
+                  saleType: sale.saleType,
+                  saleId: sale.id,
+                  amount: parsedAmount,
+                  requestId,
+                },
+                {
+                  onSuccess: onClose,
+                  // Stripe replays a declined result for the same key, so a
+                  // retry after a decline must be a new attempt.
+                  onError: () => {
+                    setRequestId(crypto.randomUUID());
+                  },
+                },
               );
             }}
           >

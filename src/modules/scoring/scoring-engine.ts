@@ -140,7 +140,9 @@ export function marksComplete(sheet: Sheet, test: TestDefinition): boolean {
 }
 
 export function isSheetComplete(sheet: Sheet, test: TestDefinition): boolean {
-  return sheet.errors >= 3 || marksComplete(sheet, test);
+  // Elimination by errors of course ends the test early — the threshold comes
+  // from the test's own deduction schedule (2 for FEI senior, 3 otherwise).
+  return errorDeduction(sheet.errors, test) === 'ELIM' || marksComplete(sheet, test);
 }
 
 export function averagePct(judgeScores: (Score | null)[]): Score | null {
@@ -194,6 +196,9 @@ export function standings(rides: ScoredRide[]): StandingRow[] {
     .sort((a, b) => {
       if (b.pct !== a.pct) return b.pct - a.pct;
       if (a.ctot != null && b.ctot != null && a.ctot !== b.ctot) return b.ctot - a.ctot;
+      // A tie with a missing collectives total lists the known one first.
+      if (a.ctot == null && b.ctot != null) return 1;
+      if (b.ctot == null && a.ctot != null) return -1;
       return 0;
     });
 

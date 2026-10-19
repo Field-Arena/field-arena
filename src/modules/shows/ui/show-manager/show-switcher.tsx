@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import type { ShowListItem } from '@/modules/shows/types';
 
 export function ShowSwitcher({
   shows,

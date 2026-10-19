@@ -9,12 +9,15 @@ export function OpsSearch({
   placeholder,
   label,
   className,
+  maxLength = 100,
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
   label: string;
   className?: string;
+  /** Caps what a user can type into the filter box. */
+  maxLength?: number;
 }) {
   return (
     <label
@@ -32,6 +35,7 @@ export function OpsSearch({
         }}
         placeholder={placeholder}
         aria-label={label}
+        maxLength={maxLength}
         className="w-full border-0 bg-transparent text-[14px] outline-none"
       />
     </label>

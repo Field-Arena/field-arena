@@ -5,7 +5,7 @@ import { PrinterIcon } from 'lucide-react';
 import { Eyebrow } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Label } from '@/shared/ui/shadcn/label';
-import type { ShowAwards } from '@/modules/shows/data/setup-queries';
+import type { ShowAwards } from '@/modules/shows/types';
 import { GroupingToggle } from '@/modules/shows/ui/awards/grouping-toggle';
 
 export function AwardsToolbar({
@@ -42,7 +42,7 @@ export function AwardsToolbar({
             onChange={(e) => {
               router.replace(`?show=${e.target.value}`);
             }}
-            className="rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-[9px] text-[13.5px]"
+            className="rounded-[8px] border border-[#E7EAEE] bg-white px-3 py-[9px] text-[13.5px]"
           >
             {shows.map((show) => (
               <option key={show.id} value={show.slug ?? show.id}>
@@ -60,7 +60,7 @@ export function AwardsToolbar({
           onChange={(e) => {
             setDiscipline(e.target.value);
           }}
-          className="rounded-[8px] border border-[#D9E1DD] bg-white px-3 py-[9px] text-[13.5px]"
+          className="rounded-[8px] border border-[#E7EAEE] bg-white px-3 py-[9px] text-[13.5px]"
         >
           <option value="all">All disciplines</option>
           {awards.disciplines.map((d) => (

@@ -3,8 +3,12 @@
 import { useRef, useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { FA_BTN_DANGER, FA_BTN_SMALL, FA_INPUT } from '@/shared/ui/organizer/fa-page';
-import type { ShowExpense } from '@/modules/shows/data/setup-queries';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
+import type { ShowExpense } from '@/modules/shows/types';
 import { useSaveShowExpenses } from '@/modules/shows/hooks/use-expense-mutations';
+
+// Mirrors showExpenseSchema's amount .max().
+const MAX_EXPENSE_AMOUNT = 10_000_000;
 
 export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: ShowExpense[] }) {
   const [rows, setRows] = useState(expenses);
@@ -48,6 +52,7 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
             <input
               className={cn(FA_INPUT, 'min-w-[200px] flex-1 py-1.5')}
               value={row.label}
+              maxLength={160}
               placeholder="Expense"
               onChange={(e) => {
                 const next = [...rows];
@@ -62,12 +67,18 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
             <input
               type="number"
               min={0}
+              max={MAX_EXPENSE_AMOUNT}
               step="0.01"
+              onKeyDown={blockNonDecimalKeys}
               className={cn(FA_INPUT, 'w-[120px] flex-none py-1.5 text-right')}
               value={row.amount}
               onChange={(e) => {
                 const next = [...rows];
-                next[index] = { ...row, amount: Number(e.target.value) || 0 };
+                const amount = Number(e.target.value) || 0;
+                next[index] = {
+                  ...row,
+                  amount: Math.min(Math.max(amount, 0), MAX_EXPENSE_AMOUNT),
+                };
                 setRows(next);
               }}
               onBlur={() => {
@@ -92,6 +103,7 @@ export function ExpenseEditor({ showId, expenses }: { showId: string; expenses: 
         <input
           className={cn(FA_INPUT, 'flex-1 py-1.5')}
           placeholder="Add another expense…"
+          maxLength={160}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);

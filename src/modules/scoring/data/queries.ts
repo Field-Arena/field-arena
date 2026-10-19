@@ -1,7 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
 import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
 import { asStringMap } from '@/modules/scoring/utils/as-string-map';
@@ -9,6 +8,9 @@ import { isJsonRecord } from '@/modules/scoring/utils/is-json-record';
 import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
 import { parseTestDefinition } from '@/modules/scoring/utils/parse-test-definition';
 import { resolveScoringPermissions } from '@/modules/scoring/utils/resolve-scoring-permissions';
+import { resolveCurrentRideIndex } from '@/shared/lib/current-ride';
+import { resolveTimeZone } from '@/shared/lib/format/time-zone';
+import { resolveEffectiveTest } from '@/modules/scoring/utils/resolve-effective-test';
 import type {
   ClassScoringState,
   MySeat,
@@ -16,7 +18,7 @@ import type {
   RideEntry,
   ScoreRow,
 } from '@/modules/scoring/types';
-import type { Json } from '@/shared/types/database.types';
+import type { PanelCandidate } from '@/modules/scoring/types';
 
 export async function getScoringState(classId: string): Promise<ClassScoringState> {
   const supabase = await createServerClient();
@@ -24,7 +26,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   const { data: cls, error: classError } = await supabase
     .from('classes')
     .select(
-      'id, label, show_id, catalog_id, scoring_open, scoring_pos, working_in_entry_id, results_published, time, location, sponsor',
+      'id, label, show_id, catalog_id, scoring_open, working_in_entry_id, results_published, time, location, sponsor',
     )
     .eq('id', classId)
     .single();
@@ -32,7 +34,11 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
 
   const [showRes, classTestRes, panelRes, entriesRes, scoresRes, orderCheckRes] = await Promise.all(
     [
-      supabase.from('shows').select('name').eq('id', cls.show_id).single(),
+      supabase
+        .from('shows')
+        .select('name, timezone, organizations(timezone)')
+        .eq('id', cls.show_id)
+        .single(),
       supabase
         .from('class_tests')
         .select('name, movements, collectives')
@@ -48,7 +54,8 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
           'id, num, rider, horse, ride_order, draw, status, holding, advanced_past, final_pct, judge_pct, collective_total, correction, reason, finalized_at, test_override, ride_started_at',
         )
         .eq('class_id', classId)
-        .order('ride_order'),
+        .order('ride_order')
+        .order('id'),
       supabase
         .from('scores')
         .select(
@@ -69,6 +76,9 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   if (scoresRes.error) throw scoresRes.error;
   if (orderCheckRes.error) throw orderCheckRes.error;
 
+  // Read-only: this runs on every 4s poll, so it never writes. Freezing the
+  // catalog test into class_tests and stamping ride_started_at happen in the
+  // explicit startRide / advanceRide mutations instead.
   let test = classTestRes.data
     ? parseTestDefinition(classTestRes.data.name, classTestRes.data)
     : null;
@@ -81,20 +91,6 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
       .maybeSingle();
     if (catalogError) throw catalogError;
     test = catalog?.def ? parseTestDefinition(catalog.title, catalog.def) : null;
-
-    if (test) {
-      const admin = createAdminClient();
-      const { error: seedError } = await admin.from('class_tests').upsert(
-        {
-          class_id: classId,
-          name: test.name,
-          movements: test.movements as unknown as Json,
-          collectives: test.collectives as unknown as Json,
-        },
-        { onConflict: 'class_id' },
-      );
-      if (seedError) throw seedError;
-    }
   }
 
   const staffIds = [
@@ -142,20 +138,6 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
   const entries = allEntries.filter((e) => !e.holding);
   const holdingEntries = allEntries.filter((e) => e.holding);
 
-  const currentEntry = cls.working_in_entry_id
-    ? (allEntries.find((e) => e.id === cls.working_in_entry_id) ?? null)
-    : (entries[cls.scoring_pos ?? 0] ?? null);
-  if (currentEntry && !currentEntry.rideStartedAt) {
-    const startedAt = new Date().toISOString();
-    currentEntry.rideStartedAt = startedAt;
-    const admin = createAdminClient();
-    const { error: rideStartError } = await admin
-      .from('class_entries')
-      .update({ ride_started_at: startedAt })
-      .eq('id', currentEntry.id);
-    if (rideStartError) throw rideStartError;
-  }
-
   const scores: ScoreRow[] = scoresRes.data.map((s) => ({
     id: s.id,
     entryId: s.entry_id,
@@ -184,7 +166,9 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     scores,
     classState: {
       open: cls.scoring_open ?? false,
-      pos: cls.scoring_pos ?? 0,
+      // The resolved position of the ride in the ring, not the raw stored
+      // pointer — see resolveCurrentRideIndex.
+      pos: resolveCurrentRideIndex(entries),
       workingInEntryId: cls.working_in_entry_id,
       resultsPublished: cls.results_published ?? false,
       orderChecked: orderCheckRes.data
@@ -192,6 +176,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
         : null,
     },
     scheduledTime: cls.time ?? null,
+    timeZone: resolveTimeZone(showRes.data.timezone, showRes.data.organizations.timezone),
     ring: cls.location ?? null,
   };
 }
@@ -222,12 +207,6 @@ export async function getTestForClass(classId: string) {
     .maybeSingle();
   if (catalogError) throw catalogError;
   return catalog?.def ? parseTestDefinition(catalog.title, catalog.def) : null;
-}
-
-export interface PanelCandidate {
-  staffId: string;
-  name: string;
-  role: 'Judge' | 'Scribe';
 }
 
 export async function listPanelCandidates(classId: string): Promise<PanelCandidate[]> {
@@ -331,19 +310,72 @@ export async function getMyScoringPermissions(classId: string) {
     .single();
   if (classError) throw classError;
 
-  const { data: staffRow, error: staffError } = await supabase
+  // One person can hold several staff rows on a show (e.g. matched by both
+  // user_id and email, or two roles) — merge them rather than letting
+  // maybeSingle() throw on the second row.
+  const { data: staffRows, error: staffError } = await supabase
     .from('staff_assignments')
     .select('role, permissions, can_scratch_skip_dq, can_view_money')
     .eq('show_id', cls.show_id)
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`)
-    .maybeSingle();
+    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
   if (staffError) throw staffError;
-  if (!staffRow) return allFalse;
+  if (staffRows.length === 0) return allFalse;
 
-  return resolveScoringPermissions({
-    role: staffRow.role,
-    permissions: staffRow.permissions,
-    canScratchSkipDq: staffRow.can_scratch_skip_dq,
-    canViewMoney: staffRow.can_view_money,
+  const merged = { ...allFalse };
+  for (const row of staffRows) {
+    const resolved = resolveScoringPermissions({
+      role: row.role,
+      permissions: row.permissions,
+      canScratchSkipDq: row.can_scratch_skip_dq,
+      canViewMoney: row.can_view_money,
+    });
+    for (const key of PERMISSION_KEYS) merged[key] = merged[key] || resolved[key];
+  }
+  return merged;
+}
+
+/**
+ * Gate for the polled GET /api/scoring/[classId]: a signed-in user who can
+ * view the class's show (can_view_show — show managers and anyone staffed on
+ * it). RLS still bounds every row the state read returns.
+ */
+export async function canViewScoringClass(
+  classId: string,
+): Promise<'ok' | 'unauthenticated' | 'forbidden'> {
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 'unauthenticated';
+
+  const { data: cls, error: classError } = await supabase
+    .from('classes')
+    .select('show_id')
+    .eq('id', classId)
+    .maybeSingle();
+  if (classError) throw classError;
+  if (!cls) return 'forbidden';
+
+  const { data: allowed, error } = await supabase.rpc('can_view_show', {
+    target_show_id: cls.show_id,
   });
+  if (error) throw error;
+  return allowed ? 'ok' : 'forbidden';
+}
+
+/** The test a specific ride is scored against — its own override when it
+ * carries a full definition, else the class test (see resolveEffectiveTest). */
+export async function getEffectiveTestForEntry(classId: string, entryId: string) {
+  const supabase = await createServerClient();
+  const { data: entry, error } = await supabase
+    .from('class_entries')
+    .select('test_override')
+    .eq('id', entryId)
+    .eq('class_id', classId)
+    .single();
+  if (error) throw error;
+  return resolveEffectiveTest(
+    parseTestDefinition(undefined, entry.test_override),
+    await getTestForClass(classId),
+  );
 }

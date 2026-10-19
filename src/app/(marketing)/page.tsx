@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { getStaffProfile, getRiderProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile, getRiderProfile } from '@/shared/lib/auth/session';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
+import { safeInternalPath } from '@/shared/lib/safe-internal-path';
 import { LandingNav } from '@/modules/marketing/ui/landing/landing-nav';
 import { LandingFooter } from '@/modules/marketing/ui/landing/landing-footer';
 import { LandingHero } from '@/modules/marketing/ui/landing/sections/landing-hero';
@@ -26,15 +27,22 @@ export const metadata: Metadata = {
     'Entries, payments, scheduling, officials, show-day operations, scoring, results, vendors, and volunteers — connected in one system built for equestrian competition.',
 };
 
-export default async function LandingPage() {
-  const staff = await getStaffProfile();
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // A failed profile lookup must not take the public landing page down — treat
+  // it as signed out and let the visitor see the page.
+  const next = safeInternalPath((await searchParams).next);
+  const staff = await getStaffProfile().catch(() => null);
   if (staff) {
     const workspace = staff.platform_role ? ROLE_WORKSPACES[staff.platform_role] : undefined;
-    redirect(workspace?.href ?? ROUTES.dashboard);
+    redirect(next ?? workspace?.href ?? ROUTES.dashboard);
   }
-  const rider = await getRiderProfile();
+  const rider = await getRiderProfile().catch(() => null);
   if (rider) {
-    redirect(RIDER_WORKSPACE.href);
+    redirect(next ?? RIDER_WORKSPACE.href);
   }
 
   return (

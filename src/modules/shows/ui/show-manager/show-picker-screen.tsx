@@ -18,8 +18,7 @@ import {
   Pill,
   type PillTone,
 } from '@/shared/ui/organizer/fa-page';
-import type { ShowPickerSummary } from '@/modules/shows/data/queries';
-import type { ShowCompleteness } from '@/modules/shows/data/setup-queries';
+import type { ShowCompleteness, ShowPickerSummary } from '@/modules/shows/types';
 import { approvalTone, percent } from '@/modules/staff/ui/dashboard-format';
 import { MissingSectionsDialog } from '@/modules/shows/ui/incomplete/missing-sections-dialog';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';

@@ -6,6 +6,8 @@ export const RING_SIZES = [
 export const MAX_RINGS = 30;
 
 export const MAX_STABLES = 40;
+/** Most stall rows one stable can be laid out in. */
+export const MAX_STABLE_ROWS = 50;
 
 export const MAX_STALLS_PER_STABLE = 300;
 

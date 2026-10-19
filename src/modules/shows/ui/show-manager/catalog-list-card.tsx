@@ -6,7 +6,8 @@ import { Card } from '@/shared/ui/organizer/card';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { cn } from '@/shared/lib/utils';
-import type { CatalogListItem } from '@/modules/shows/data/setup-queries';
+import { sanitizeDecimalInput, sanitizeIntegerInput } from '@/shared/lib/format/number-input';
+import type { CatalogListItem } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -73,7 +74,7 @@ export function CatalogListCard({
       {extraAction}
 
       {items.length === 0 ? (
-        <p className="mb-3 text-[13px] text-[#98A29D] italic">{emptyNote}</p>
+        <p className="mb-3 text-[13px] text-[#8A94A3] italic">{emptyNote}</p>
       ) : (
         <div className="mb-3 flex flex-col gap-2">
           {items.map((item) => (
@@ -92,6 +93,7 @@ export function CatalogListCard({
         <Input
           className={cn('h-auto', SM_ROW_INPUT, 'min-w-[220px] flex-1')}
           placeholder={placeholder}
+          maxLength={160}
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -104,35 +106,35 @@ export function CatalogListCard({
           }}
           aria-label={`New ${title.toLowerCase()} name`}
         />
-        <span className="text-[13px] text-[#6E7C76]">$</span>
+        <span className="text-[13px] text-[#8A94A3]">$</span>
         <Input
           className={cn('h-auto', SM_ROW_INPUT, 'w-[110px] flex-none')}
-          inputMode="numeric"
+          inputMode="decimal"
           value={price}
           onChange={(e) => {
-            setPrice(e.target.value);
+            setPrice(sanitizeDecimalInput(e.target.value, { maxIntegerDigits: 6 }));
           }}
           aria-label={`New ${title.toLowerCase()} price`}
         />
         {stablingFields && (
           <>
-            <span className="text-[12px] text-[#6E7C76]">stalls</span>
+            <span className="text-[12px] text-[#8A94A3]">stalls</span>
             <Input
               className={cn('h-auto', SM_ROW_INPUT, 'w-[64px] flex-none')}
               inputMode="numeric"
               value={stalls}
               onChange={(e) => {
-                setStalls(e.target.value);
+                setStalls(sanitizeIntegerInput(e.target.value, { maxDigits: 2 }));
               }}
               aria-label="New add-on stalls granted per unit"
             />
-            <span className="text-[12px] text-[#6E7C76]">tack</span>
+            <span className="text-[12px] text-[#8A94A3]">tack</span>
             <Input
               className={cn('h-auto', SM_ROW_INPUT, 'w-[64px] flex-none')}
               inputMode="numeric"
               value={tack}
               onChange={(e) => {
-                setTack(e.target.value);
+                setTack(sanitizeIntegerInput(e.target.value, { maxDigits: 2 }));
               }}
               aria-label="New add-on tack stalls granted per unit"
             />

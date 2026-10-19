@@ -8,7 +8,7 @@ import {
   FA_THEAD_ROW,
   FA_TR,
 } from '@/shared/ui/organizer/fa-page';
-import type { ResultRow } from '@/modules/announcements/data/queries';
+import type { ResultRow } from '@/modules/announcements/types';
 
 export function LiveResultsTable({ results }: { results: ResultRow[] }) {
   if (results.length === 0) {

@@ -19,24 +19,24 @@ interface ProvenancePill {
 
 const STUB_PILL: ProvenancePill = {
   label: 'Stub',
-  bg: '#F1F3F2',
-  fg: '#7A8781',
-  bd: '#E2E8E4',
+  bg: '#EEF1F4',
+  fg: '#8A94A3',
+  bd: '#E7EAEE',
 };
 
 const SOURCE_PILL: Record<string, ProvenancePill> = {
   stub: STUB_PILL,
-  manual: { label: 'Verified · manual', bg: '#E6F1EA', fg: '#2E7048', bd: '#D3E6DA' },
+  manual: { label: 'Verified · manual', bg: '#E7F6EE', fg: '#15794F', bd: '#CFE9DB' },
   parsed: { label: 'Auto-extracted', bg: '#E8EFF6', fg: '#2F5A87', bd: '#D3E1EE' },
-  typical: { label: 'Typical default', bg: '#F9F0D8', fg: '#8A6D14', bd: '#EBDCAF' },
+  typical: { label: 'Typical default', bg: '#FDF2E3', fg: '#B45309', bd: '#F6DCB8' },
 };
 
 const FAM_FALLBACK = {
   label: 'Unassigned',
   blurb: 'Scoring family not yet confirmed',
-  bg: '#F1F3F2',
-  fg: '#7A8781',
-  bd: '#E2E8E4',
+  bg: '#EEF1F4',
+  fg: '#8A94A3',
+  bd: '#E7EAEE',
 };
 
 export function CatalogSheetRow({
@@ -53,21 +53,17 @@ export function CatalogSheetRow({
 
   return (
     <div
-      className="grid min-w-[920px] items-center gap-4 border-b border-[#EEF2EF] px-5 py-[11px] last:border-b-0"
-      style={{ gridTemplateColumns: COLS, background: index % 2 ? '#FBF7EC' : '#FFFFFF' }}
+      className="grid min-w-[920px] items-center gap-4 border-b border-[#EEF1F4] px-5 py-[11px] last:border-b-0"
+      style={{ gridTemplateColumns: COLS, background: index % 2 ? '#FBFCFD' : '#FFFFFF' }}
     >
       <div className="min-w-0">
-        <div className="mb-1.5 text-[14px] font-bold text-[#16261F]">{sheet.title}</div>
+        <div className="mb-1.5 text-[14px] font-bold text-[#101828]">{sheet.title}</div>
         <div className="flex items-center gap-2">
-          {sheet.governing_body && (
-            <span className="inline-flex h-[18px] items-center rounded-[5px] bg-[#1F4A5C] px-[7px] text-[10px] font-bold tracking-[0.06em] text-white">
-              {sheet.governing_body}
-            </span>
-          )}
-          <span className="text-fa-muted-2 text-[12px]">{sheet.discipline ?? '—'}</span>
+          {sheet.governing_body && <span className="fa-tag-usef">{sheet.governing_body}</span>}
+          <span className="text-[12px] text-[#8A94A3]">{sheet.discipline ?? '—'}</span>
         </div>
       </div>
-      <span className="text-[13.5px] whitespace-nowrap text-[#16261F]">{sheet.level ?? '—'}</span>
+      <span className="text-[13.5px] whitespace-nowrap text-[#101828]">{sheet.level ?? '—'}</span>
       <span
         className="inline-flex h-6 w-fit items-center rounded-md border px-2.5 text-[11.5px] font-bold whitespace-nowrap"
         style={{ background: fam.bg, borderColor: fam.bd, color: fam.fg }}
@@ -85,7 +81,7 @@ export function CatalogSheetRow({
         <Link
           href={`/dashboard/superadmin/catalog/${sheet.id}`}
           prefetch={false}
-          className="hover:text-gold inline-flex items-center gap-1.5 text-[13px] font-bold text-[#16261F] transition-colors"
+          className="fa-filelink inline-flex items-center gap-1"
         >
           Open
           <ArrowRightIcon className="size-3.5" aria-hidden />

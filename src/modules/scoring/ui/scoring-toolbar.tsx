@@ -56,7 +56,7 @@ export function ScoringToolbar({
       </GhostButton>
 
       {orderChecked ? (
-        <span className="text-fa-muted text-[12.5px]">
+        <span className="text-[12.5px] text-[#475467]">
           Order checked by {orderChecked.byName} — {formatTimestamp(orderChecked.at)}
         </span>
       ) : (

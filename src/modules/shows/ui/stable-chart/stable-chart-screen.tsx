@@ -18,6 +18,7 @@ import {
   StatGrid,
 } from '@/shared/ui/organizer/fa-page';
 import { cn } from '@/shared/lib/utils';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import {
   parseStallDndId,
   findStallById,
@@ -40,8 +41,7 @@ import { StableChartPrintView } from '@/modules/shows/ui/stable-chart/stable-cha
 import { StablingGroupsSidebar } from '@/modules/shows/ui/stable-chart/stabling-groups-sidebar';
 import { ArrivalsDeparturesPanel } from '@/modules/shows/ui/stable-chart/arrivals-departures-panel';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
-import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departures-queries';
+import type { ArrivalDepartureRow, StableChartPageData } from '@/modules/shows/types';
 
 export function StableChartScreen({
   data,
@@ -202,7 +202,7 @@ export function StableChartScreen({
               onClick={() => {
                 setOptimisticPublished(!published);
                 togglePublish.mutate(
-                  { showId },
+                  { showId, expectedStatus: published ? 'published' : 'draft' },
                   {
                     onError: () => {
                       setOptimisticPublished(null);
@@ -289,14 +289,26 @@ export function StableChartScreen({
               type="number"
               min={0}
               max={MAX_STABLES}
+              step={1}
+              onKeyDown={blockNonIntegerKeys}
               defaultValue={chart.stables.length}
               className={cn(FA_INPUT, 'w-full')}
               onBlur={(event) => {
-                const count = Math.max(
-                  0,
-                  Math.min(MAX_STABLES, parseInt(event.target.value, 10) || 0),
-                );
-                if (count !== chart.stables.length) setCount.mutate({ showId, count });
+                const input = event.target;
+                const current = chart.stables.length;
+                const revert = () => {
+                  input.value = String(current);
+                };
+                // A cleared field means "no change", not "zero stables" —
+                // reading it as 0 used to wipe the whole chart.
+                if (input.value.trim() === '') {
+                  revert();
+                  return;
+                }
+                const count = Math.max(0, Math.min(MAX_STABLES, parseInt(input.value, 10) || 0));
+                if (count !== current) {
+                  setCount.mutate({ showId, count }, { onError: revert });
+                }
               }}
             />
           </div>

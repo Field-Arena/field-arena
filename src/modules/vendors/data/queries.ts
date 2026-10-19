@@ -1,7 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import {
   VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS,
   VENDOR_MAPS_BUCKET,
@@ -12,6 +12,7 @@ import type {
   VendorDocumentRequirement,
   VendorDocumentUpload,
 } from '@/modules/vendors/types';
+import type { VendorBookingRow } from '@/modules/vendors/types';
 
 /* Legacy served the booth map as a PUBLIC blob (uploadPublicBlob →
  * 'show-images/<showId>/vendormap') and linked it straight off the apply page,
@@ -35,25 +36,6 @@ async function resolveVendorMapUrl(
     return data?.signedUrl ?? null;
   }
   return vendorMapUrl;
-}
-
-export interface VendorBookingRow {
-  id: string;
-  showId: string;
-  showName: string;
-  showDate: string | null;
-  orgName: string;
-  status: string;
-  amountTotal: number | null;
-  paidAt: string | null;
-  agreementSignedAt: string | null;
-
-  agreementSignedText: string | null;
-
-  vendorAgreementText: string | null;
-  items: { name: string; qty: number; price: number }[];
-  vendorDocumentRequirements: VendorDocumentRequirement[];
-  documentUploads: VendorDocumentUpload[];
 }
 
 export async function listMyBookings(): Promise<VendorBookingRow[]> {
@@ -206,21 +188,21 @@ export async function listBookableShows(): Promise<BookableShow[]> {
   return (
     await Promise.all(
       visibleShows.map(async (show) => ({
-      showId: show.id,
-      showName: show.name,
-      showDate: show.date_label,
-      orgName: orgById.get(show.org_id)?.name ?? 'Unknown organizer',
-      vendorMapUrl: await resolveVendorMapUrl(show.vendor_map_path, show.vendor_map_url),
-      items: items
-        .filter((i) => i.show_id === show.id)
-        .map((i) => ({
-          id: i.id,
-          name: i.name,
-          price: i.price ?? 0,
-          qty: i.qty,
-          remaining: i.qty === null ? null : Math.max(0, i.qty - (bookedByItem.get(i.id) ?? 0)),
-        }))
-        .filter((i) => i.remaining === null || i.remaining > 0),
+        showId: show.id,
+        showName: show.name,
+        showDate: show.date_label,
+        orgName: orgById.get(show.org_id)?.name ?? 'Unknown organizer',
+        vendorMapUrl: await resolveVendorMapUrl(show.vendor_map_path, show.vendor_map_url),
+        items: items
+          .filter((i) => i.show_id === show.id)
+          .map((i) => ({
+            id: i.id,
+            name: i.name,
+            price: i.price ?? 0,
+            qty: i.qty,
+            remaining: i.qty === null ? null : Math.max(0, i.qty - (bookedByItem.get(i.id) ?? 0)),
+          }))
+          .filter((i) => i.remaining === null || i.remaining > 0),
       })),
     )
   )

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { listVenues } from '@/modules/organizations/data/queries';
 import { VenueList } from '@/modules/organizations/ui/venue-list';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Venues — Field & Arena' };
 

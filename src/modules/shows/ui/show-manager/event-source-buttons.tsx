@@ -1,21 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { cn } from '@/shared/lib/utils';
-import { EVENT_SOURCE_BUTTONS, QUAL_TYPE_PRESETS, type FmSetName } from '@/modules/shows/constants';
-import type { SelectEventsData } from '@/modules/shows/data/setup-queries';
+import { QUAL_TYPE_PRESETS } from '@/modules/shows/constants';
+import type { SelectEventsData } from '@/modules/shows/types';
 import { useAddQualTypePreset } from '@/modules/shows/hooks/use-select-events-mutations';
 import { FmSetDialog } from '@/modules/shows/ui/show-manager/fm-set-dialog';
 import { TocDialog } from '@/modules/shows/ui/show-manager/toc-dialog';
 import { CustomClassDialog } from '@/modules/shows/ui/show-manager/custom-class-dialog';
 
-const PILL =
-  'rounded-full border border-[#D9E1DD] bg-white px-[15px] py-2 text-[12.5px] font-semibold ' +
-  'text-[#16261F] transition-colors hover:border-[#16261F] disabled:opacity-60';
-
+/** Secondary row under the Offered classes header: the extra class sources
+ * (Test of Choice, custom, Independent templates) and qualification presets. */
 export function EventSourceButtons({ data }: { data: SelectEventsData }) {
-  const [fmSet, setFmSet] = useState<FmSetName | null>(null);
+  const [independentOpen, setIndependentOpen] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
 
@@ -23,48 +19,61 @@ export function EventSourceButtons({ data }: { data: SelectEventsData }) {
 
   return (
     <>
-      <div className="mb-2.5 flex flex-wrap items-center gap-2">
-        {EVENT_SOURCE_BUTTONS.map((name) => (
-          <Button
-            key={name}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-[var(--fa-line-soft)] px-5 py-2.5">
+        <div className="fa-quick-add">
+          <span className="fa-qa-lab">Also add:</span>
+          <button
             type="button"
-            variant="ghost"
-            className={cn('h-auto', PILL, 'hover:bg-white')}
+            className="fa-chip"
             onClick={() => {
-              if (name === '+ Test of Choice (TOC)') setTocOpen(true);
-              else if (name === '+ Add Custom Class') setCustomOpen(true);
-              else setFmSet(name);
+              setTocOpen(true);
             }}
           >
-            {name}
-          </Button>
-        ))}
-      </div>
-
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {QUAL_TYPE_PRESETS.map(({ body, price }) => (
-          <Button
-            key={body}
+            + Test of Choice
+          </button>
+          <button
             type="button"
-            variant="ghost"
-            className={cn('h-auto', PILL, 'hover:bg-white')}
-            disabled={addQual.isPending}
+            className="fa-chip"
             onClick={() => {
-              addQual.mutate({ showId: data.showId, body, price });
+              setCustomOpen(true);
             }}
           >
-            + {body} (${price})
-          </Button>
-        ))}
+            + Custom class
+          </button>
+          <button
+            type="button"
+            className="fa-chip"
+            onClick={() => {
+              setIndependentOpen(true);
+            }}
+          >
+            + Independent
+          </button>
+        </div>
+        <div className="fa-quick-add">
+          <span className="fa-qa-lab">Qualifications:</span>
+          {QUAL_TYPE_PRESETS.map(({ body, price }) => (
+            <button
+              key={body}
+              type="button"
+              className="fa-chip"
+              disabled={addQual.isPending}
+              onClick={() => {
+                addQual.mutate({ showId: data.showId, body, price });
+              }}
+            >
+              + {body} <span className="fa-ct">${price}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {fmSet && (
+      {independentOpen && (
         <FmSetDialog
-          key={fmSet}
-          setName={fmSet}
+          setName="+ Independent"
           data={data}
           onClose={() => {
-            setFmSet(null);
+            setIndependentOpen(false);
           }}
         />
       )}

@@ -1,4 +1,4 @@
-import type { MemberRow } from '@/modules/organizations/data/queries';
+import type { MemberRow } from '@/modules/organizations/types';
 import { MEMBER_CSV_HEADERS } from '@/modules/organizations/constants';
 
 function escapeMemberCsvField(value: string): string {

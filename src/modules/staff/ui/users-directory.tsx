@@ -11,10 +11,10 @@ import { StaffEditDialog } from './staff-edit-dialog';
 import { RingCoverageCard } from './ring-coverage-card';
 import { RiderDetailDialog } from './rider-detail-dialog';
 import { VendorDetailDialog } from './vendor-detail-dialog';
-import { VendorApprovalActions } from '@/modules/vendors/ui/vendor-approval-actions';
+import { VendorApprovalActions } from '@/modules/vendors/public';
 import { formatDateShort } from '@/shared/lib/format/date';
 import type { UserDirectoryRow, RingCoverageData } from '../types';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import type { ShowListItem } from '@/modules/shows/types';
 
 type Chip =
   'all' | 'staff' | 'officials' | 'riders' | 'vendors' | 'pending' | 'not_invited' | 'coggins';
@@ -107,6 +107,8 @@ export function UsersDirectory({
   initialShowFilter = '',
   classesByShow,
   ringCoverageByShow,
+  isOrgOwner,
+  viewerEmail,
 }: {
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
@@ -116,6 +118,9 @@ export function UsersDirectory({
 
   classesByShow: Record<string, ClassOption[]>;
   ringCoverageByShow: Record<string, RingCoverageData>;
+  /** Org owner / SuperAdmin — may grant money permissions and change roles. */
+  isOrgOwner: boolean;
+  viewerEmail: string;
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
   const [search, setSearch] = useState('');
@@ -230,6 +235,7 @@ export function UsersDirectory({
             shows={shows}
             defaultShowId={targetShowId}
             classes={classesByShow[targetShowId] ?? []}
+            canGrantMoney={isOrgOwner}
           />
         </div>
       </div>
@@ -463,6 +469,11 @@ export function UsersDirectory({
       <StaffEditDialog
         row={editingRow}
         shows={shows}
+        isOrgOwner={isOrgOwner}
+        isOwnRow={
+          !!editingRow?.email &&
+          editingRow.email.trim().toLowerCase() === viewerEmail.trim().toLowerCase()
+        }
         onClose={() => {
           setEditingRow(null);
         }}

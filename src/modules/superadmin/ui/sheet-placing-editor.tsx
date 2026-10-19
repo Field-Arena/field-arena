@@ -16,7 +16,7 @@ export function SheetPlacingEditor({
   return (
     <section className={SECTION}>
       <h2 className={`${H2} mb-1.5`}>Placing</h2>
-      <p className="mb-[18px] text-[12.5px] text-[#8A8275]">
+      <p className="mb-[18px] text-[12.5px] text-[#8A94A3]">
         Horses are placed against each other rather than marked, so this sheet records the method
         and the criteria instead of movements.
       </p>
@@ -29,6 +29,7 @@ export function SheetPlacingEditor({
           <textarea
             id="sd-method"
             rows={3}
+            maxLength={2000}
             value={def.method}
             placeholder="How the class is judged and placed"
             onChange={(e) => {
@@ -44,6 +45,7 @@ export function SheetPlacingEditor({
           <textarea
             id="sd-criteria"
             rows={5}
+            maxLength={4000}
             value={def.criteria}
             placeholder="What the judge weighs, in order of importance"
             onChange={(e) => {

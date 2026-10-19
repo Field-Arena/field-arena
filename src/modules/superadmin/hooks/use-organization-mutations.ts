@@ -127,8 +127,12 @@ export function useRemoveOrganizationOwner() {
 export function useResendOrganizerInvite() {
   return useMutation({
     mutationFn: (orgId: string) => resendOrganizerInvite({ orgId }),
-    onSuccess: ({ email }) => {
-      toast.success(`Invite re-sent to ${email}`);
+    onSuccess: ({ email, kind }) => {
+      toast.success(
+        kind === 'sign-in-link'
+          ? `${email} already accepted the invite — sent them a sign-in link to finish setting up`
+          : `Invite re-sent to ${email}`,
+      );
     },
     onError: (error) => {
       toast.error(errorMessage(error, 'Could not resend the invite'));

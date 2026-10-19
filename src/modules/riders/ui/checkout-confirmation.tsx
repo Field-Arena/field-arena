@@ -1,14 +1,44 @@
 import Link from 'next/link';
-import type { FinalizeOrderResult } from '@/modules/riders/types';
+import type { ConfirmCheckoutResult } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 
 export function CheckoutConfirmation({
   result,
   showId,
 }: {
-  result: FinalizeOrderResult;
+  result: ConfirmCheckoutResult;
   showId: string;
 }) {
+  if (!result.ok) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {result.reason === 'processing' ? 'Processing your payment' : 'Payment under review'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-forest text-sm">
+            {result.reason === 'processing'
+              ? "Your payment hasn't finished processing yet. Your entries are confirmed automatically once it does — check back in a few minutes."
+              : "We received your payment, but it didn't match this order, so the show team is reviewing it. You'll be contacted if anything is needed."}
+          </p>
+          <div>
+            <div className="text-fa-muted text-xs">Order</div>
+            <div className="text-forest font-mono text-xs">{result.orderId}</div>
+          </div>
+          <Link
+            href={`/rider/shows/${showId}`}
+            prefetch={false}
+            className="text-forest text-sm font-semibold underline underline-offset-2"
+          >
+            Back to the show page
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

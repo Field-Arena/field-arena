@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { FA_BTN, FA_BTN_PRIMARY, FaCard, StatBox } from '@/shared/ui/organizer/fa-page';
-import type { ShowListItem } from '@/modules/shows/data/queries';
-import type { ReadinessItem, ShowCockpit } from '@/modules/shows/data/show-cockpit-queries';
+import type { ReadinessItem, ShowCockpit, ShowListItem } from '@/modules/shows/types';
 import { TodoList } from './todo-list';
 import { approvalTone, percent, shortDate } from './dashboard-format';
 

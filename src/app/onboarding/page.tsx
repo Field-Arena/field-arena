@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { createServerClient } from '@/shared/lib/supabase/server';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { getSelectedOrg } from '@/modules/staff/data/org-selection-queries';
+import { getOrganizationProfile } from '@/modules/organizations/data/queries';
 import { OnboardingForm } from '@/modules/organizations/ui/onboarding-form';
 
 export const metadata: Metadata = {
@@ -13,12 +14,10 @@ export default async function OnboardingPage() {
   if (!profile) redirect('/login');
   if (!profile.org_id) redirect('/dashboard');
 
-  const supabase = await createServerClient();
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('name, email, website, phone, city, region, country')
-    .eq('id', profile.org_id)
-    .single();
+  // The same org completeOrganizationProfile saves to: the switcher-selected
+  // org, falling back to the home org.
+  const { orgId: selectedOrgId } = await getSelectedOrg();
+  const org = await getOrganizationProfile(selectedOrgId ?? profile.org_id);
 
   if (!org) redirect('/dashboard');
 

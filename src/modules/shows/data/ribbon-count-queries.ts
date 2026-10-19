@@ -1,4 +1,6 @@
 import 'server-only';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
+import { parseFinalPct } from '@/modules/shows/utils/parse-final-pct';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
 import {
@@ -8,28 +10,7 @@ import {
   type AwardEntry,
 } from '@/modules/shows/awards-engine';
 import { DEFAULT_SCHEDULE_PREFS, type RibbonColor } from '@/modules/shows/constants';
-import type { SchedulePrefs } from '@/modules/shows/data/setup-queries';
-
-export interface RibbonCountRow {
-  unitLabel: string;
-  pooled: boolean;
-  classLabels: string[];
-  ribbonPlaces: number;
-  // One ribbon set per non-empty placing group from unitPlacings() — the
-  // same primitive the real Awards screen ranks with. Normally 1 per unit;
-  // more than 1 only when the show's awardsByDivision preference splits it
-  // into separate J/Y/A/O groups. Never driven by how many different tests
-  // riders chose (a Test of Choice class still ranks and awards as one
-  // combined group).
-  ribbonSets: number;
-  entryCount: number;
-}
-
-export interface RibbonCountPageData {
-  showId: string;
-  showName: string;
-  rows: RibbonCountRow[];
-}
+import type { RibbonCountPageData, RibbonCountRow, SchedulePrefs } from '@/modules/shows/types';
 
 export async function getRibbonCountReport(showId: string): Promise<RibbonCountPageData | null> {
   await assertCanManageEntryLedger(showId);
@@ -60,11 +41,13 @@ export async function getRibbonCountReport(showId: string): Promise<RibbonCountP
   if (classes.length === 0) return { showId: show.id, showName: show.name, rows: [] };
 
   const classIds = classes.map((c) => c.id);
-  const { data: entries, error: entriesError } = await supabase
-    .from('class_entries')
-    .select('class_id, num, rider, horse, final_pct, collective_total, division')
-    .in('class_id', classIds);
-  if (entriesError) throw entriesError;
+  const entries = await fetchAllRows(() =>
+    supabase
+      .from('class_entries')
+      .select('class_id, num, rider, horse, final_pct, collective_total, division')
+      .in('class_id', classIds)
+      .order('id'),
+  );
 
   const byClass = new Map<string, AwardEntry[]>();
   for (const entry of entries) {
@@ -73,7 +56,7 @@ export async function getRibbonCountReport(showId: string): Promise<RibbonCountP
       num: entry.num,
       name: entry.rider ?? '',
       horse: entry.horse ?? '',
-      pct: entry.final_pct == null ? null : Number(entry.final_pct),
+      pct: parseFinalPct(entry.final_pct),
       ctot: entry.collective_total,
       division: entry.division,
     });

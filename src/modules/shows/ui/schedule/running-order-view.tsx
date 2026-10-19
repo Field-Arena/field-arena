@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { FileTextIcon, SearchIcon } from 'lucide-react';
 import { fmtTime, type ScheduleRide } from '@/modules/shows/schedule-engine';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import { dayDate } from '@/modules/shows/utils/day-date';
 
 interface RideRow {

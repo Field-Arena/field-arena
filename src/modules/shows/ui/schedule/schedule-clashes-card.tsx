@@ -13,12 +13,15 @@ export function ScheduleClashesCard({ schedule }: { schedule: MasterSchedule }) 
 
   const avoided = schedule.conflicts.avoided;
   const waited = schedule.conflicts.waited;
-  const total = avoided.length + waited.length;
+  // A ride the builder first rotates past and then still has to wait for
+  // appears in both lists — count each rider/class pair once.
+  const total = new Set([...avoided, ...waited].map((c) => `${c.riderNum}|${c.classA}|${c.classB}`))
+    .size;
 
   if (total === 0) return null;
 
   return (
-    <Card className={cn(SM_CARD_PAD, 'mb-4 border-l-4 border-l-[#B23A3A]')}>
+    <Card className={cn(SM_CARD_PAD, 'mb-4 border-l-4 border-l-[#0B6BB8]')}>
       <Button
         type="button"
         variant="ghost"
@@ -29,14 +32,14 @@ export function ScheduleClashesCard({ schedule }: { schedule: MasterSchedule }) 
         className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
       >
         <span className="flex items-center gap-2.5">
-          <span className="rounded-[4px] bg-[#FDF0EE] px-2 py-[3px] text-[10.5px] font-bold tracking-[.1em] text-[#B23A3A] uppercase">
-            Clash
+          <span className="rounded-[4px] bg-[#E8F2FB] px-2 py-[3px] text-[10.5px] font-bold tracking-[.1em] text-[#0B6BB8] uppercase">
+            Rest gaps
           </span>
-          <span className="text-forest font-[family-name:var(--font-nr)] text-[17px] font-semibold">
+          <span className="text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
             {total} rider {total === 1 ? 'clash' : 'clashes'} resolved
           </span>
         </span>
-        <span className="text-[11px] whitespace-nowrap text-[#7A8781]">
+        <span className="text-[11px] whitespace-nowrap text-[#8A94A3]">
           {open ? 'Hide ▲' : 'Show detail ▼'}
         </span>
       </Button>

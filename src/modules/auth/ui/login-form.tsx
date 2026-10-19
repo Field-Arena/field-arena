@@ -15,6 +15,7 @@ import {
   AuthEyebrow,
   AuthSubmit,
 } from '@/shared/ui/auth/auth-primitives';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { loginSchema, type LoginInput } from '@/modules/auth/schemas';
@@ -34,8 +35,12 @@ export function LoginForm({
   onSuccess,
   showFooter = true,
   headingLevel = 'h2',
+  next,
 }: {
   onSuccess?: () => void;
+
+  /** Where to land after sign-in instead of the role default (validated server-side). */
+  next?: string;
 
   showFooter?: boolean;
 
@@ -51,6 +56,7 @@ export function LoginForm({
     resolver: zodResolver(loginSchema),
 
     defaultValues: { email: '', password: '', remember: true },
+    mode: 'onTouched',
   });
 
   const signIn = useSignIn({ onSuccess });
@@ -186,7 +192,7 @@ export function LoginForm({
             event.preventDefault();
             setFormError(null);
             verifyCode.mutate(
-              { email, token: code, remember },
+              { email, token: code, remember, next },
               {
                 onSuccess: (outcome) => {
                   if (outcome.status === 'error') setFormError(outcome.message);
@@ -242,20 +248,23 @@ export function LoginForm({
         onSubmit={(event) => {
           void form.handleSubmit((values) => {
             setFormError(null);
-            signIn.mutate(values, {
-              onSuccess: (outcome) => {
-                if (outcome.status === 'error') setFormError(outcome.message);
+            signIn.mutate(
+              { ...values, next },
+              {
+                onSuccess: (outcome) => {
+                  if (outcome.status === 'error') setFormError(outcome.message);
+                },
+                onError: (error) => {
+                  setFormError(error.message);
+                },
               },
-              onError: (error) => {
-                setFormError(error.message);
-              },
-            });
+            );
           })(event);
         }}
       >
         <AuthField
           label="Email address"
-          type="email"
+          {...EMAIL_INPUT_PROPS}
           autoComplete="username"
           placeholder="you@yourbarn.com"
           error={errors.email?.message}

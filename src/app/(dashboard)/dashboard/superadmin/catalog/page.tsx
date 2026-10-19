@@ -6,14 +6,14 @@ import {
   listIndependentTestTemplates,
 } from '@/modules/superadmin/data/queries';
 import { CatalogBoard } from '@/modules/superadmin/ui/catalog-board';
+import { UploadSheetDialog } from '@/modules/superadmin/ui/upload-sheet-dialog';
 import { IndependentTemplatesPanel } from '@/modules/superadmin/ui/independent-templates-panel';
+import { StatTiles } from '@/modules/superadmin/ui/stat-tiles';
 import { groupSheetsByFamily } from '@/modules/superadmin/utils/group-sheets-by-family';
 
 export const metadata: Metadata = {
   title: 'Scoring Catalog — SuperAdmin Console',
 };
-
-const NR = 'font-[family-name:var(--font-nr)]';
 
 export default async function ScoringCatalogPage() {
   const [sheets, docs, independentTemplates] = await Promise.all([
@@ -36,52 +36,33 @@ export default async function ScoringCatalogPage() {
 
   return (
     <div className="space-y-7">
-      <div className="max-w-[680px]">
-        <div className="text-gold mb-3 text-[10.5px] font-bold tracking-[0.18em] uppercase">
-          Platform library
+      <div className="fa-page-head">
+        <div className="max-w-[680px]">
+          <h1 className="mb-2 font-[family-name:var(--fa-serif)] text-[29px] leading-tight font-semibold tracking-[-.5px] text-[#101828]">
+            Scoring Catalog
+          </h1>
+          <p className="text-[14.5px] leading-[1.6] text-[#475467]">
+            The platform&rsquo;s canonical library of official test sheets. Field &amp; Arena
+            curates each sheet once here; every organizer&rsquo;s show draws its scoring from this
+            catalog. Each sheet maps to one of the scoring families that drive the scoreboard.
+            Upload an official sheet to create its stub, then attach the PDF from the File column.
+          </p>
         </div>
-        <h1
-          className={`${NR} text-hunter-deep mb-2.5 text-[32px] leading-[1.06] font-medium tracking-[-.022em]`}
-        >
-          Scoring Catalog
-        </h1>
-        <p className="text-fa-muted text-[14.5px] leading-[1.6]">
-          The platform&rsquo;s canonical library of official test sheets. Field &amp; Arena curates
-          each sheet once here; every organizer&rsquo;s show draws its scoring from this catalog.
-          Each sheet maps to one of the scoring families that drive the scoreboard.
-        </p>
+        <div className="fa-head-actions">
+          <UploadSheetDialog />
+        </div>
       </div>
 
-      <div className="flex items-start gap-3 rounded-xl border border-[#EBDCAF] bg-[#FCF6E4] px-4 py-3.5">
-        <InfoIcon className="mt-0.5 size-4 flex-none text-[#8A6D14]" aria-hidden />
-        <p className="text-[13.5px] leading-[1.55] text-[#7A5E12]">
+      <div className="flex items-start gap-3 rounded-xl border border-[#F6DCB8] bg-[#FDF2E3] px-4 py-3.5">
+        <InfoIcon className="mt-0.5 size-4 flex-none text-[#B45309]" aria-hidden />
+        <p className="text-[13.5px] leading-[1.55] text-[#B45309]">
           Attach the official USDF / USEF / FEI document to every sheet before a show publishes
           against it. Scoring family is what the scoreboard reads — set it carefully; changing it
           after entries open re-runs every score on that sheet.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        {tiles.map((tile) => {
-          const zero = tile.value === 0;
-          return (
-            <div
-              key={tile.label}
-              className="flex min-w-[138px] flex-[1_1_150px] flex-col gap-1.5 rounded-[11px] border border-[#E7E0D0] bg-[#F6F3EC] px-[18px] pt-4 pb-[15px]"
-            >
-              <span
-                className={`${NR} text-[30px] leading-none`}
-                style={{ color: zero ? '#C4CDC8' : '#0D2C23' }}
-              >
-                {tile.value}
-              </span>
-              <span className="text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] whitespace-nowrap uppercase">
-                {tile.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <StatTiles tiles={tiles} />
 
       <CatalogBoard
         sheets={sheets}

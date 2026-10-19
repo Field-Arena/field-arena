@@ -11,10 +11,12 @@ export function OrganizerOnboardingPreview() {
 
   if (submitted) {
     return (
-      <div className="border-line mx-auto max-w-[560px] rounded-[18px] border bg-white p-9 text-center">
-        <CheckCircle2Icon className="text-forest mx-auto mb-3 size-8" aria-hidden />
-        <h1 className={`${DISPLAY} text-forest mb-2 text-2xl font-medium`}>You&apos;re all set</h1>
-        <p className="text-fa-muted text-[14.5px]">
+      <div className="mx-auto max-w-[560px] rounded-[18px] border border-[#E7EAEE] bg-white p-9 text-center">
+        <CheckCircle2Icon className="mx-auto mb-3 size-8 text-[#101828]" aria-hidden />
+        <h1 className={`${DISPLAY} mb-2 text-2xl font-medium text-[#101828]`}>
+          You&apos;re all set
+        </h1>
+        <p className="text-[14.5px] text-[#475467]">
           Demo only — nothing here was saved. A real organizer lands in their workspace next.
         </p>
       </div>
@@ -26,13 +28,13 @@ export function OrganizerOnboardingPreview() {
       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
         Demo data — a real invited organizer sees their own contact info pre-filled here instead.
       </div>
-      <div className="border-line rounded-[18px] border bg-white p-7 sm:p-9">
+      <div className="rounded-[18px] border border-[#E7EAEE] bg-white p-7 sm:p-9">
         <h1
-          className={`${DISPLAY} text-forest mb-2.5 text-[26px] leading-[1.06] font-medium tracking-[-.022em]`}
+          className={`${DISPLAY} mb-2.5 text-[26px] leading-[1.06] font-medium tracking-[-.022em] text-[#101828]`}
         >
           Complete Your Organization Profile
         </h1>
-        <p className="text-fa-muted mb-7 text-[14.5px] leading-[1.6]">
+        <p className="mb-7 text-[14.5px] leading-[1.6] text-[#475467]">
           Welcome to Field &amp; Arena. A few details about your organization and you&apos;re ready
           to build your first show.
         </p>
@@ -66,7 +68,7 @@ export function OrganizerOnboardingPreview() {
             onClick={() => {
               setSubmitted(true);
             }}
-            className="bg-gold text-forest hover:bg-gold-light h-auto w-full rounded-[10px] px-6 py-[15px] text-[15px] font-bold transition-colors"
+            className="h-auto w-full rounded-[10px] bg-[#146A47] px-6 py-[15px] text-[15px] font-bold text-white transition-colors hover:bg-[#0E5537]"
           >
             Finish setup
           </Button>

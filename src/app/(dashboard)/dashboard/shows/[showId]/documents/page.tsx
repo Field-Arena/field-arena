@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getDocumentsPageData, getDocumentRequirements } from '@/modules/shows/data/setup-queries';
 import { DocumentsCard } from '@/modules/shows/ui/show-manager/documents-card';
 import { RequiredDocumentsCard } from '@/modules/shows/ui/show-manager/required-documents-card';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };

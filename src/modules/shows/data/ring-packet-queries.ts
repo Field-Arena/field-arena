@@ -1,33 +1,8 @@
 import 'server-only';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
-
-export interface RingPacketRide {
-  entryId: string;
-  num: string;
-  riderName: string;
-  horse: string | null;
-  rideOrder: number | null;
-}
-
-export interface RingPacketClass {
-  classId: string;
-  classLabel: string;
-  division: string | null;
-  location: string | null;
-  date: string | null;
-  testName: string | null;
-  testEdition: string | null;
-  rides: RingPacketRide[];
-  ringPacketPrintedAt: string | null;
-  needsReprint: boolean;
-}
-
-export interface RingPacketPageData {
-  showId: string;
-  showName: string;
-  classes: RingPacketClass[];
-}
+import type { RingPacketClass, RingPacketPageData, RingPacketRide } from '@/modules/shows/types';
 
 export async function getRingPacketData(showId: string): Promise<RingPacketPageData | null> {
   await assertCanManageEntryLedger(showId);
@@ -54,18 +29,19 @@ export async function getRingPacketData(showId: string): Promise<RingPacketPageD
 
   const classIds = classes.map((c) => c.id);
 
-  const [{ data: tests, error: testsError }, { data: entries, error: entriesError }] =
-    await Promise.all([
-      supabase.from('class_tests').select('class_id, name, edition').in('class_id', classIds),
+  const [{ data: tests, error: testsError }, entries] = await Promise.all([
+    supabase.from('class_tests').select('class_id, name, edition').in('class_id', classIds),
+    fetchAllRows(() =>
       supabase
         .from('class_entries')
         .select('id, class_id, num, rider, rider_id, horse, ride_order, status, updated_at')
         .in('class_id', classIds)
         .neq('status', 'scratched')
-        .order('ride_order'),
-    ]);
+        .order('ride_order')
+        .order('id'),
+    ),
+  ]);
   if (testsError) throw testsError;
-  if (entriesError) throw entriesError;
 
   const testByClass = new Map(tests.map((t) => [t.class_id, t]));
 

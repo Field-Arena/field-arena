@@ -21,17 +21,17 @@ export function AnnouncerPreview() {
       liveToday
       footer={
         <div>
-          <div className="text-[9.5px] font-bold tracking-[.14em] text-[rgba(251,250,247,.4)] uppercase">
+          <div className="text-[9.5px] font-bold tracking-[.08em] text-[rgba(251,250,247,.4)] uppercase">
             Signed in as
           </div>
-          <div className="text-paper font-semibold">Tom Ruiz</div>
+          <div className="font-semibold text-white">Tom Ruiz</div>
         </div>
       }
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h1 className={`${DISPLAY} text-forest text-2xl font-medium`}>My Assignments</h1>
-          <p className="text-fa-muted text-sm">
+          <h1 className={`${DISPLAY} text-2xl font-medium text-[#101828]`}>My Assignments</h1>
+          <p className="text-sm text-[#475467]">
             Every show you&apos;re announcing, past and upcoming.
           </p>
         </div>
@@ -48,14 +48,16 @@ export function AnnouncerPreview() {
         ]}
       />
 
-      <div className="text-fa-muted mb-2 text-xs font-bold tracking-[.1em] uppercase">
+      <div className="mb-2 text-xs font-bold tracking-[.1em] text-[#475467] uppercase">
         Upcoming &amp; today
       </div>
       <div className="space-y-2">
-        <div className="border-l-gold border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border-y border-r border-l-4 bg-white px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border-y border-r border-l-4 border-[#E7EAEE] border-l-[#146A47] bg-white px-3 py-2.5">
           <div>
-            <div className="text-forest text-sm font-semibold">Autumn Leaves Dressage Classic</div>
-            <div className="text-fa-muted text-xs">
+            <div className="text-sm font-semibold text-[#101828]">
+              Autumn Leaves Dressage Classic
+            </div>
+            <div className="text-xs text-[#475467]">
               Peachtree Dressage Assoc. · Sat, Jul 11 · Ring 1
             </div>
           </div>
@@ -64,10 +66,10 @@ export function AnnouncerPreview() {
             <Button size="sm">Open live feed</Button>
           </div>
         </div>
-        <div className="border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E7EAEE] bg-white px-3 py-2.5">
           <div>
-            <div className="text-forest text-sm font-semibold">Chattahoochee Fall Classic</div>
-            <div className="text-fa-muted text-xs">
+            <div className="text-sm font-semibold text-[#101828]">Chattahoochee Fall Classic</div>
+            <div className="text-xs text-[#475467]">
               Chattahoochee Equestrian Center · Sun, Aug 2 · Ring 2
             </div>
           </div>

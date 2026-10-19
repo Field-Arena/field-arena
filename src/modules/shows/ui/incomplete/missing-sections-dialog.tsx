@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/shared/ui/shadcn/button';
 import { IconCheck, IconX, IconChevronRight } from '@/shared/ui/organizer/icons';
-import type { CompletenessSection } from '@/modules/shows/data/setup-queries';
+import type { CompletenessSection } from '@/modules/shows/types';
 
 export function MissingSectionsDialog({
   showId,
@@ -41,7 +41,7 @@ export function MissingSectionsDialog({
         className="max-h-[86vh] w-[min(530px,100%)] overflow-y-auto rounded-[14px] bg-white px-[26px] pt-6 pb-[22px] shadow-[0_30px_70px_rgba(9,26,21,.3)]"
       >
         <div className="flex items-start gap-3.5">
-          <h2 className="mb-[7px] min-w-0 flex-1 font-[Newsreader,serif] text-[23px] font-semibold tracking-[-.015em] text-[#0D2C23]">
+          <h2 className="mb-[7px] min-w-0 flex-1 font-[family-name:var(--fa-serif)] text-[23px] font-semibold tracking-[-.015em] text-[#101828]">
             {showName}
           </h2>
           <Button
@@ -49,15 +49,15 @@ export function MissingSectionsDialog({
             variant="ghost"
             aria-label="Close"
             onClick={onClose}
-            className="grid size-8 h-auto flex-none place-items-center rounded-lg border border-[#E2E8E4] bg-white p-0 text-[#5A6B63] transition-colors hover:border-[#C9A227] hover:bg-transparent hover:text-[#0D2C23]"
+            className="grid size-8 h-auto flex-none place-items-center rounded-lg border border-[#E2E8E4] bg-white p-0 text-[#475467] transition-colors hover:border-[#D6DBE1] hover:bg-transparent hover:text-[#101828]"
           >
             <IconX size={14} strokeWidth={2.6} />
           </Button>
         </div>
 
-        <p className="mb-[18px] text-[13.5px] leading-[1.5] [text-wrap:pretty] text-[#5A6B63]">
+        <p className="mb-[18px] text-[13.5px] leading-[1.5] [text-wrap:pretty] text-[#475467]">
           Tap any section to jump straight to it — the ones marked{' '}
-          <IconX size={12} className="inline text-[#B4432F]" /> still need finishing.
+          <IconX size={12} className="inline text-[#B42318]" /> still need finishing.
         </p>
 
         <div className="flex flex-col gap-0.5">
@@ -69,15 +69,15 @@ export function MissingSectionsDialog({
                 href={hrefFor(sec.name)}
                 prefetch={false}
                 onClick={onClose}
-                className="flex items-center gap-[11px] rounded-md px-2 py-[9px] text-left transition-colors hover:bg-[#F4F7F5]"
+                className="flex items-center gap-[11px] rounded-md px-2 py-[9px] text-left transition-colors hover:bg-[#F5F7F8]"
               >
                 {sec.ok ? (
-                  <IconCheck size={15} className="flex-none text-[#2E7048]" />
+                  <IconCheck size={15} className="flex-none text-[#15794F]" />
                 ) : (
-                  <IconX size={15} className="flex-none text-[#B4432F]" />
+                  <IconX size={15} className="flex-none text-[#B42318]" />
                 )}
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-[#16261F]">{sec.name}</span>
+                  <span className="block text-sm font-bold text-[#101828]">{sec.name}</span>
                   {!sec.ok && missing.length > 0 && (
                     <span className="block text-[12px] text-[#8A968F]">{missing.join(', ')}</span>
                   )}

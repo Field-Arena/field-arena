@@ -2,10 +2,17 @@
 
 import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useCreateDraftShow } from '@/modules/shows/hooks/use-show-mutations';
 
-export function NewShowButton({ className }: { className?: string }) {
+export function NewShowButton({
+  className,
+  variant = 'ghost',
+}: {
+  className?: string;
+  variant?: 'ghost' | 'primary';
+}) {
   const { mutate, isPending } = useCreateDraftShow();
   const [confirming, setConfirming] = useState(false);
 
@@ -18,13 +25,23 @@ export function NewShowButton({ className }: { className?: string }) {
           setConfirming(true);
         }}
         className={cn(
-          'inline-flex h-auto items-center gap-[9px] rounded-[10px] bg-[#0D2C23] px-[18px] py-3',
-          'text-[13.5px] font-bold text-white transition-colors hover:bg-[#16261F]',
+          variant === 'primary' ? primaryButtonClass : ghostButtonClass,
           'disabled:opacity-70',
           className,
         )}
       >
-        + New Show
+        <svg
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+        </svg>
+        New Show
       </button>
 
       <ConfirmDialog

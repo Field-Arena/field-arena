@@ -43,16 +43,24 @@ export function ScoreTally({ score, test }: { score: ScoreRow | undefined; test:
   ] as const;
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="flex flex-wrap gap-2.5">
       {cards.map((card) => (
         <div
           key={card.key}
-          className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px] text-center"
+          className={
+            card.key === 'pct'
+              ? 'min-w-[120px] rounded-[10px] bg-[var(--fa-brand)] px-4 py-2.5 text-center text-white'
+              : 'min-w-[96px] rounded-[10px] border border-[var(--fa-line)] bg-white px-4 py-2.5 text-center'
+          }
         >
-          <div className={`font-[Newsreader,serif] ${card.size} text-ink-deep font-bold`}>
+          <div
+            className={`font-[family-name:var(--fa-serif)] text-[22px] leading-tight font-semibold ${card.key === 'pct' ? 'text-white' : 'text-[var(--fa-ink)]'}`}
+          >
             {card.value}
           </div>
-          <div className="text-[11px] font-bold tracking-[.08em] text-[#7A8781] uppercase">
+          <div
+            className={`text-[10px] font-bold tracking-[.08em] uppercase ${card.key === 'pct' ? 'text-white/80' : 'text-[var(--fa-ink-3)]'}`}
+          >
             {card.label}
           </div>
         </div>

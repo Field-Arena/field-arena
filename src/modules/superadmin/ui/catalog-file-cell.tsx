@@ -24,7 +24,7 @@ export function CatalogFileCell({
         href={doc.url}
         target="_blank"
         rel="noreferrer"
-        className="hover:text-gold text-[13px] font-semibold text-[#16261F] underline underline-offset-[3px]"
+        className="text-[13px] font-semibold text-[#101828] underline underline-offset-[3px] hover:text-[#146A47]"
       >
         View PDF
       </a>
@@ -33,7 +33,7 @@ export function CatalogFileCell({
 
   if (!sourceFile) {
     return (
-      <span className="inline-flex h-6 items-center rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold whitespace-nowrap text-[#9AA6A0]">
+      <span className="inline-flex h-6 items-center rounded-md border border-dashed border-[#F6DCB8] px-2.5 text-[11.5px] font-semibold whitespace-nowrap text-[#8A94A3]">
         No file
       </span>
     );
@@ -61,7 +61,7 @@ export function CatalogFileCell({
         variant="ghost"
         disabled={upload.isPending}
         onClick={() => ref.current?.click()}
-        className="hover:text-gold inline-flex h-auto items-center gap-1.5 p-0 text-[13px] font-bold text-[#8A6D14] transition-colors hover:bg-transparent disabled:opacity-60"
+        className="inline-flex h-auto items-center gap-1.5 p-0 text-[13px] font-bold text-[#B45309] transition-colors hover:bg-transparent hover:text-[#146A47] disabled:opacity-60"
       >
         <UploadIcon className="size-[13px]" aria-hidden />
         {upload.isPending ? 'Uploading…' : 'Upload'}

@@ -14,7 +14,7 @@ import {
 } from '@/shared/ui/organizer/fa-page';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { cn } from '@/shared/lib/utils';
-import type { QuickReportsPageData } from '@/modules/shows/data/quick-reports-queries';
+import type { QuickReportsPageData } from '@/modules/shows/types';
 import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 
 type Section = 'horses' | 'documents' | 'tests' | 'ribbons' | 'balances' | 'association';

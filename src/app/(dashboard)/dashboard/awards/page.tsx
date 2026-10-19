@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getShowAwards } from '@/modules/shows/data/setup-queries';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { AwardsScreen } from '@/modules/shows/ui/awards/awards-screen';
 
 export const metadata: Metadata = { title: 'Awards — Field & Arena' };

@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  Invitation for someone who has no account yet: organization owners and
+  co-owners (user metadata: name, next) and show staff such as judges, scribes
+  and stewards (user metadata: name, firstName, role, showName). Staff who
+  already have an account get the app's own "added to a show" email instead.
+
+  After the link verifies, /auth/confirm sends invites to the set-password
+  screen.
+
+  The link goes to the app's /auth/confirm route with the token hash, not to
+  the stock confirmation URL. /auth/confirm verifies the hash server-side, so
+  the link works in any browser or device. The stock URL redirects to
+  /auth/callback with a PKCE code, which only completes in the browser that
+  asked for the email, and not at all when the email was triggered from the
+  service-role client (no PKCE verifier exists for it). The full URL is shown
+  as text so people can see where it goes and copy it if the click fails.
+
+  Same layout as every app-sent email (src/shared/lib/email-layout.ts). This
+  file is that helper's output with Go placeholders in place of the values, so
+  if the helper's markup changes, regenerate or edit these to match.
+
+  Table layout and inline styles throughout: email clients strip style blocks
+  and implement neither flex nor grid.
+
+  Never write a Go placeholder inside a comment: Supabase substitutes every
+  one, including in comments, which would leak values into the message source.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>{{ if .Data.role }}You&#39;ve been added as {{ .Data.role }}{{ else }}You&#39;ve been invited to Field &amp; Arena{{ end }}</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: #f5f7f8">
+    <span style="display: none; max-height: 0; max-width: 0; overflow: hidden; opacity: 0; mso-hide: all; font-size: 1px; line-height: 1px; color: #f5f7f8">{{ if .Data.role }}You&#39;re on the team{{ if .Data.showName }} for {{ .Data.showName }}{{ end }}. Accept your invitation to get set up.{{ else }}Accept your invitation to set up your Field &amp; Arena account.{{ end }}</span>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background: #f5f7f8; margin: 0; padding: 32px 12px">
+      <tr>
+        <td align="center">
+          <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 560px; background: #ffffff; border: 1px solid #e7eaee; border-radius: 14px; overflow: hidden">
+            <tr>
+              <td style="background: #0c4a31; padding: 20px 32px"><span style="font-family: Georgia, 'Times New Roman', serif; font-size: 19px; font-weight: 600; letter-spacing: 0.2px; color: #ffffff">Field &amp; Arena</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 32px 32px 24px">
+                <p style="margin: 0 0 10px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: #146a47">You&#39;re invited</p>
+                <h1 style="margin: 0 0 16px; font-family: Georgia, 'Times New Roman', serif; font-size: 26px; line-height: 1.25; font-weight: 600; color: #101828">{{ if .Data.role }}You&#39;ve been added as {{ .Data.role }}{{ else }}You&#39;ve been invited to Field &amp; Arena{{ end }}</h1>
+                <p style="margin: 0 0 14px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">Hi {{ if .Data.firstName }}{{ .Data.firstName }}{{ else if .Data.name }}{{ .Data.name }}{{ else }}there{{ end }},</p>
+                <p style="margin: 0 0 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">
+                  {{ if .Data.role }}You&#39;ve been added as <strong style="color: #101828; font-weight: 600">{{ .Data.role }}</strong>{{ if .Data.showName }} for <strong style="color: #101828; font-weight: 600">{{ .Data.showName }}</strong>{{ end }}. Accept your invitation to set a password and get set up.{{ else }}You&#39;ve been invited to create a Field &amp; Arena account. Accept your
+                  invitation to set a password and get set up.{{ end }}
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px">
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background: #eaf5ef; border: 1px solid #cfe5d8; border-radius: 10px">
+                  <tr>
+                    <td style="padding: 16px 18px">
+                      <p style="margin: 0 0 6px; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #475467">Accept your invitation using this link:</p>
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite" style="font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #146a47; font-weight: 600; text-decoration: underline; word-break: break-all; overflow-wrap: anywhere"
+                        >{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px"><p style="margin: 0 0 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #475467">The link can only be used once. If it has expired, ask the person who invited you to send a new one.</p></td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 8px"></td>
+            </tr>
+          </table>
+          <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%; max-width: 560px">
+            <tr>
+              <td style="padding: 20px 32px 0; font-family: -apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #8a94a3">
+                <p style="margin: 0 0 4px; font-weight: 600">Field &amp; Arena &middot; Equestrian show management</p>
+                <p style="margin: 0">You received this email because {{ if .Data.showName }}you were added to the team for {{ .Data.showName }} on Field &amp; Arena.{{ else }}you were invited to join Field &amp; Arena.{{ end }}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

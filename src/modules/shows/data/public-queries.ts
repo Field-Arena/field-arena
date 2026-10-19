@@ -1,43 +1,9 @@
 import 'server-only';
+import { cache } from 'react';
+import { earliestTodayIso } from '@/modules/shows/utils/today-iso';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import { createServerClient } from '@/shared/lib/supabase/server';
-
-export interface PublicShowClass {
-  id: string;
-  label: string;
-  division: string | null;
-  fee: number;
-  event: string | null;
-  sponsor: string | null;
-}
-
-export interface PublicShowPageData {
-  id: string;
-  slug: string | null;
-  name: string;
-  dateLabel: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  orgName: string | null;
-  venueName: string | null;
-  logoUrl: string | null;
-  website: string | null;
-  phone: string | null;
-  contactEmail: string | null;
-  prizeListUrl: string | null;
-  classes: PublicShowClass[];
-}
-
-export interface PublicShowListItem {
-  id: string;
-  slug: string | null;
-  name: string;
-  dateLabel: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  venueName: string | null;
-  orgName: string | null;
-  logoUrl: string | null;
-}
+import type { PublicShowListItem, PublicShowPageData } from '@/modules/shows/types';
 
 /**
  * The public shows directory — every published, publicly-visible show that
@@ -54,11 +20,13 @@ export interface PublicShowListItem {
 export async function listPublicShows(): Promise<PublicShowListItem[]> {
   const supabase = await createServerClient();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = earliestTodayIso();
 
   const { data: shows, error } = await supabase
     .from('shows')
-    .select('id, slug, name, date_label, start_date, end_date, org_id, venue_name, logo_path')
+    .select(
+      'id, slug, name, date_label, start_date, end_date, org_id, venue_name, logo_path, timezone',
+    )
     .eq('published', true)
     .or(
       `end_date.gte.${today},and(end_date.is.null,start_date.gte.${today}),and(end_date.is.null,start_date.is.null)`,
@@ -70,12 +38,21 @@ export async function listPublicShows(): Promise<PublicShowListItem[]> {
   const orgIds = [...new Set(shows.map((s) => s.org_id))];
   const { data: orgs, error: orgError } = await supabase
     .from('organizations')
-    .select('id, name')
+    .select('id, name, timezone')
     .in('id', orgIds);
   if (orgError) throw orgError;
   const orgNameById = new Map(orgs.map((o) => [o.id, o.name]));
+  const orgTzById = new Map(orgs.map((o) => [o.id, o.timezone]));
 
-  return shows.map((s) => ({
+  // The SQL filter above is deliberately lenient (UTC-12); now drop shows
+  // that have already ended in their own timezone.
+  const current = shows.filter((s) => {
+    const last = s.end_date ?? s.start_date;
+    if (!last) return true;
+    return last >= todayInZone(resolveTimeZone(s.timezone, orgTzById.get(s.org_id)));
+  });
+
+  return current.map((s) => ({
     id: s.id,
     slug: s.slug,
     name: s.name,
@@ -84,7 +61,9 @@ export async function listPublicShows(): Promise<PublicShowListItem[]> {
     endDate: s.end_date,
     venueName: s.venue_name,
     orgName: orgNameById.get(s.org_id) ?? null,
-    logoUrl: s.logo_path ? supabase.storage.from('logos').getPublicUrl(s.logo_path).data.publicUrl : null,
+    logoUrl: s.logo_path
+      ? supabase.storage.from('logos').getPublicUrl(s.logo_path).data.publicUrl
+      : null,
   }));
 }
 
@@ -98,7 +77,7 @@ export async function listPublicShows(): Promise<PublicShowListItem[]> {
  * So an unpublished / private show simply resolves to null (→ 404) and a
  * logged-out visitor reads exactly what the organizer chose to publish.
  */
-export async function getPublicShowPage(showId: string): Promise<PublicShowPageData | null> {
+async function loadPublicShowPage(showId: string): Promise<PublicShowPageData | null> {
   const supabase = await createServerClient();
 
   const { data: show, error } = await supabase
@@ -157,3 +136,6 @@ export async function getPublicShowPage(showId: string): Promise<PublicShowPageD
     })),
   };
 }
+
+// generateMetadata and the page both read this per request; cache() dedupes it.
+export const getPublicShowPage = cache(loadPublicShowPage);

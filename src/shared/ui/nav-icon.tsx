@@ -153,8 +153,52 @@ const PATHS: Record<string, React.ReactNode> = {
   ),
 };
 
+/* Redesign icons (field-arena-prototype/organizer.html sidebar), drawn at the
+   prototype's 1.7 stroke. Keys listed here win over PATHS above. */
+const FA = {
+  stroke: 'currentColor',
+  strokeWidth: 1.7,
+  fill: 'none',
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
+
+const DESIGN_PATHS: Record<string, React.ReactNode> = {
+  dashboard: <path {...FA} d="M3 13h8V3H3v10zm10 8h8V3h-8v18zM3 21h8v-6H3v6z" />,
+  showmanager: <path {...FA} d="M16 4l4 4L8 20H4v-4L16 4z" />,
+  schedule: (
+    <path
+      {...FA}
+      d="M8 3v3M16 3v3M4 8h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"
+    />
+  ),
+  entries: <path {...FA} d="M9 5h10M9 12h10M9 19h10M5 5h.01M5 12h.01M5 19h.01" />,
+  members: (
+    <path {...FA} d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 10a3 3 0 100-6 3 3 0 000 6z" />
+  ),
+  horses: (
+    <path
+      fill="currentColor"
+      d="M6 22h12v-1.5H6V22zm1.5-2.5h9c.4-3.3-.6-6-2.7-7.9.6-.6 1-1.5.9-2.4 0-.3.3-.6.6-.4.7.3 1.5-.3 1.4-1.1-.1-2.2-1.5-4-3.5-4.8l.3-1.3c.1-.5-.4-.9-.9-.6-.8.4-1.5 1.1-1.9 1.9C8 4 6.4 5.8 6.4 8c0 .3 0 .5.1.8L5.1 10c-.5.4-.4 1.1.2 1.3l1.3.5c-.9 1.7-1.2 3.5-.9 5.3.1.5.3 1 .6 1.4z"
+    />
+  ),
+  venues: (
+    <>
+      <path {...FA} d="M12 21s7-6.3 7-11a7 7 0 10-14 0c0 4.7 7 11 7 11z" />
+      <circle {...FA} cx="12" cy="10" r="2.5" />
+    </>
+  ),
+  eventsales: <path {...FA} d="M3 9l1-4h16l1 4M3 9h18v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9zM9 13h6" />,
+  documents: (
+    <path {...FA} d="M4 5a2 2 0 012-2h5l2 3h5a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" />
+  ),
+  financial: (
+    <path {...FA} d="M12 3v18M17 7a4 4 0 00-4-2h-2a3 3 0 000 6h2a3 3 0 010 6h-2a4 4 0 01-4-2" />
+  ),
+};
+
 export function NavIcon({ name, size = 22 }: { name: string; size?: number }) {
-  const body = PATHS[name] ?? PATHS.dashboard;
+  const body = DESIGN_PATHS[name] ?? PATHS[name] ?? PATHS.dashboard;
 
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">

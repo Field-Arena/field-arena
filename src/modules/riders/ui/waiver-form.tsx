@@ -31,11 +31,13 @@ export function WaiverForm({
   const textRef = useRef<HTMLDivElement>(null);
   const [scrolledToBottom, setScrolledToBottom] = useState(!!existingSignature);
   const [fullName, setFullName] = useState(existingSignature?.full_name ?? '');
-  const signatureDate = existingSignature?.signature_date ?? todayDate;
   const documentIsPdf = /\.pdf$/i.test(waiverDocumentName ?? '');
   const [agreed, setAgreed] = useState(!!existingSignature);
   const signWaiver = useSignWaiver();
   const signed = !!existingSignature || signWaiver.isSuccess;
+  // The server dates the signature; show what it stored once signed.
+  const signatureDate =
+    existingSignature?.signature_date ?? signWaiver.data?.signature_date ?? todayDate;
 
   const checkScrolled = () => {
     const el = textRef.current;
@@ -96,6 +98,8 @@ export function WaiverForm({
             <Input
               id="waiver-signature"
               value={fullName}
+              maxLength={200}
+              autoComplete="name"
               disabled={signed}
               onChange={(event) => {
                 setFullName(event.target.value);

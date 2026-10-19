@@ -9,7 +9,7 @@ import {
   Pill,
   type PillTone,
 } from '@/shared/ui/organizer/fa-page';
-import type { AssignmentRow } from '@/modules/judging/data/queries';
+import type { AssignmentRow } from '@/modules/judging/types';
 import { formatClassTime } from '@/modules/judging/utils/format-class-time';
 import { USDF_TEST_SHEETS_URL } from '@/modules/judging/constants';
 import { LaunchScoringButton } from '@/modules/judging/ui/launch-scoring-button';
@@ -35,7 +35,7 @@ export function AssignmentCard({
   const roleLabel = assignment.seatRole === 'judge' ? 'Judge' : 'Scribe';
   const meta = [
     assignment.showName,
-    assignment.ring,
+    assignment.ring ?? 'Ring not assigned yet',
     assignment.position ? `${roleLabel} at ${assignment.position}` : roleLabel,
   ]
     .filter(Boolean)

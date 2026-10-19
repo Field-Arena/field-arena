@@ -75,7 +75,7 @@ export function FunnelBoard({
           onClick={() => {
             setBreakdownOpen((v) => !v);
           }}
-          className="text-hunter-deep hover:border-gold inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors hover:bg-transparent"
+          className="inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#E7EAEE] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-transparent"
         >
           <BarChart3Icon className="size-[15px]" aria-hidden />
           {breakdownOpen ? 'Hide closing rate breakdown' : 'View closing rate breakdown'}
@@ -103,14 +103,14 @@ export function FunnelBoard({
             a.remove();
             URL.revokeObjectURL(url);
           }}
-          className="text-hunter-deep hover:border-gold inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#D7E0DA] bg-white px-[15px] py-2.5 text-[13px] font-semibold transition-colors hover:bg-transparent"
+          className="inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#E7EAEE] bg-white px-[15px] py-2.5 text-[13px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-transparent"
         >
           <DownloadIcon className="size-[15px]" aria-hidden />
           Export Contact List
         </Button>
         <div className="relative ml-auto max-w-[300px] min-w-[190px] flex-[1_1_220px]">
           <SearchIcon
-            className="absolute top-1/2 left-[13px] size-[15px] -translate-y-1/2 text-[#9AA6A0]"
+            className="absolute top-1/2 left-[13px] size-[15px] -translate-y-1/2 text-[#8A94A3]"
             aria-hidden
           />
           <Input
@@ -120,19 +120,17 @@ export function FunnelBoard({
               setSearch(event.target.value);
             }}
             placeholder="Search targets…"
-            className="text-hunter-deep focus-visible:border-gold focus-visible:ring-gold/[.14] h-auto w-full rounded-[9px] border border-[#D7E0DA] bg-white py-2.5 pr-3.5 pl-9 text-[13.5px] focus-visible:ring-[3px] focus-visible:outline-none"
+            className="h-auto w-full rounded-[9px] border border-[#E7EAEE] bg-white py-2.5 pr-3.5 pl-9 text-[13.5px] text-[#101828] focus-visible:border-[#9FD3BA] focus-visible:ring-[3px] focus-visible:ring-[#EAF5EF] focus-visible:outline-none"
           />
         </div>
       </div>
 
       {breakdownOpen && (
-        <div className="[animation:fa-in_.16s_ease-out_both] rounded-[14px] border border-[#E7E0D0] bg-[#F6F3EC] px-[26px] py-6">
-          <h3
-            className={`${NR} text-hunter-deep mb-1.5 text-[21px] font-medium tracking-[-.012em]`}
-          >
+        <div className="[animation:fa-in_.16s_ease-out_both] rounded-[14px] border border-[#E7EAEE] bg-[#FBFCFD] px-[26px] py-6">
+          <h3 className={`${NR} mb-1.5 text-[21px] font-medium tracking-[-.012em] text-[#101828]`}>
             Closing rate breakdown
           </h3>
-          <p className="text-fa-muted-2 mb-4 text-[13px] leading-[1.55]">
+          <p className="mb-4 text-[13px] leading-[1.55] text-[#8A94A3]">
             {funnelBase === 0
               ? 'No demos have been scheduled yet, so there is no funnel to break down.'
               : 'Percentages are relative to demos scheduled — this shows where targets actually drop off, not just the single closing-rate number.'}
@@ -145,26 +143,26 @@ export function FunnelBoard({
                   key={stage.key}
                   className={cn(
                     'grid items-center gap-[18px]',
-                    stage.key === LOST_KEY && 'mt-1 border-t border-[#DDE4DF] pt-4',
+                    stage.key === LOST_KEY && 'mt-1 border-t border-[#E7EAEE] pt-4',
                   )}
                   style={{ gridTemplateColumns: 'minmax(120px,170px) minmax(0,1fr) 78px' }}
                 >
                   <span
                     className="text-[13.5px]"
-                    style={{ color: stage.lost ? '#B4432F' : '#16261F' }}
+                    style={{ color: stage.lost ? '#B42318' : '#101828' }}
                   >
                     {stage.label}
                   </span>
-                  <span className="relative block h-2.5 overflow-hidden rounded-[5px] bg-[#E4EAE6]">
+                  <span className="relative block h-2.5 overflow-hidden rounded-[5px] bg-[#E7EAEE]">
                     <span
                       className="absolute inset-y-0 left-0 rounded-[5px]"
                       style={{
                         width: `${String(pct(count))}%`,
-                        background: stage.lost ? '#B4432F' : '#0D2C23',
+                        background: stage.lost ? '#B42318' : '#101828',
                       }}
                     />
                   </span>
-                  <span className="text-hunter-deep text-right text-[12.5px] font-bold">
+                  <span className="text-right text-[12.5px] font-bold text-[#101828]">
                     {count} ({pct(count)}%)
                   </span>
                 </div>
@@ -174,27 +172,27 @@ export function FunnelBoard({
         </div>
       )}
 
-      <div className="rounded-[14px] border border-[#E2E8E4] bg-white">
-        <div className="flex flex-wrap items-center gap-3.5 border-b border-[#E2E8E4] px-5 py-4">
-          <span className={`${NR} text-hunter-deep text-[20px]`}>Newest targets</span>
-          <span className="inline-flex h-5 items-center rounded-full bg-[#F9F0D8] px-[9px] text-[10.5px] font-bold text-[#8A6D14]">
+      <div className="rounded-[14px] border border-[#E7EAEE] bg-white">
+        <div className="flex flex-wrap items-center gap-3.5 border-b border-[#E7EAEE] px-5 py-4">
+          <span className={`${NR} text-[20px] text-[#101828]`}>Newest targets</span>
+          <span className="inline-flex h-5 items-center rounded-full bg-[#FDF2E3] px-[9px] text-[10.5px] font-bold text-[#B45309]">
             {total}
           </span>
 
-          <span className="text-hunter-deep ml-auto text-[12.5px] font-bold">
+          <span className="ml-auto text-[12.5px] font-bold text-[#101828]">
             Showing all {total} {total === 1 ? 'target' : 'targets'}
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <div
-            className="grid min-w-[760px] gap-3.5 border-b border-[#E2E8E4] bg-[#F6F3EC] px-5 py-[11px]"
+            className="grid min-w-[760px] gap-3.5 border-b border-[#E7EAEE] bg-[#FBFCFD] px-5 py-[11px]"
             style={{ gridTemplateColumns: COLS }}
           >
             {['Organization', 'Email', 'Shows/yr', 'Status', 'Action'].map((h, i) => (
               <span
                 key={h}
-                className={`text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] uppercase ${
+                className={`text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase ${
                   i === 2 || i === 4 ? 'text-right' : ''
                 }`}
               >
@@ -205,10 +203,10 @@ export function FunnelBoard({
 
           {filtered.length === 0 ? (
             <div className="px-5 py-[52px] text-center">
-              <div className={`${NR} text-hunter-deep mb-2 text-[23px]`}>
+              <div className={`${NR} mb-2 text-[23px] text-[#101828]`}>
                 {search.trim() ? `No targets match “${search.trim()}”.` : 'No leads yet'}
               </div>
-              <p className="text-fa-muted-2 text-[13.5px]">
+              <p className="text-[13.5px] text-[#8A94A3]">
                 {search.trim()
                   ? 'Try a different name, org, or email.'
                   : 'Add one, or share your Calendly demo link.'}
@@ -218,21 +216,21 @@ export function FunnelBoard({
             filtered.map((lead) => (
               <div
                 key={lead.id}
-                className="grid min-w-[760px] items-center gap-3.5 border-b border-[#EEF2EF] px-5 py-3.5 last:border-b-0 hover:bg-[#FAFCFB]"
+                className="grid min-w-[760px] items-center gap-3.5 border-b border-[#EEF1F4] px-5 py-3.5 last:border-b-0 hover:bg-[#FBFCFD]"
                 style={{ gridTemplateColumns: COLS }}
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-hunter-deep text-[13.5px] leading-[1.35] font-bold">
+                  <span className="text-[13.5px] leading-[1.35] font-bold text-[#101828]">
                     {lead.org}
                   </span>
                   {lead.contact && (
-                    <span className="text-fa-muted-2 text-[12px]">{lead.contact}</span>
+                    <span className="text-[12px] text-[#8A94A3]">{lead.contact}</span>
                   )}
                 </div>
-                <span className="text-fa-muted truncate text-[12.5px]">{lead.email ?? '—'}</span>
+                <span className="truncate text-[12.5px] text-[#475467]">{lead.email ?? '—'}</span>
                 <span
-                  className={`${NR} text-right text-[19px]`}
-                  style={{ color: lead.shows == null ? '#C4CDC8' : '#0D2C23' }}
+                  className="text-right text-base font-bold tabular-nums"
+                  style={{ color: lead.shows == null ? '#C3CAD3' : '#101828' }}
                 >
                   {lead.shows ?? '—'}
                 </span>
@@ -241,7 +239,7 @@ export function FunnelBoard({
                   <Link
                     href={`/dashboard/superadmin/sales/${lead.id}`}
                     prefetch={false}
-                    className="text-hunter-deep hover:border-gold inline-flex items-center gap-1.5 rounded-lg border border-[#C4D3CB] px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#D0D5DD] px-3 py-2 text-[12.5px] font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
                   >
                     Open
                     <ArrowRightIcon className="size-[13px]" aria-hidden />
@@ -252,7 +250,7 @@ export function FunnelBoard({
           )}
         </div>
 
-        <div className="px-5 py-3.5 text-[12.5px] text-[#9AA6A0]">
+        <div className="px-5 py-3.5 text-[12.5px] text-[#8A94A3]">
           Newest first. A dash means the target hasn&apos;t told us yet — it fills in after the demo
           call.
         </div>

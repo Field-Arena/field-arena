@@ -11,7 +11,7 @@ import {
   useUploadVendorMap,
   useRemoveVendorMap,
 } from '@/modules/shows/hooks/use-catalog-mutations';
-import type { RiderEntriesData } from '@/modules/shows/data/setup-queries';
+import type { RiderEntriesData } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -41,13 +41,13 @@ export function VendorMapCard({ data }: { data: RiderEntriesData }) {
             href={data.vendorMapUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-forest font-semibold underline"
+            className="font-semibold text-[#101828] underline"
           >
             View the uploaded map
           </a>
         </p>
       ) : (
-        <p className="mb-3 text-[13px] text-[#98A29D] italic">No map uploaded yet</p>
+        <p className="mb-3 text-[13px] text-[#8A94A3] italic">No map uploaded yet</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3">

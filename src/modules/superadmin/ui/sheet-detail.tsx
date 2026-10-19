@@ -34,7 +34,7 @@ import { SheetPlacingEditor } from '@/modules/superadmin/ui/sheet-placing-editor
 import { SheetJudgePreview } from '@/modules/superadmin/ui/sheet-judge-preview';
 
 const SAVE =
-  'rounded-[9px] bg-hunter-deep px-[22px] py-3 text-[13.5px] font-bold text-paper transition hover:bg-gold hover:text-hunter-deep disabled:opacity-60';
+  'rounded-[9px] bg-[#146A47] px-[22px] py-3 text-[13.5px] font-bold text-white transition hover:bg-[#146A47] hover:text-[#101828] disabled:opacity-60';
 /* Provenance is a curation state, not "does a PDF exist": a sheet can have its
  * file attached and still be an unverified auto-classified stub. Legacy
  * srcPill()'s four states, kept verbatim. */
@@ -48,9 +48,9 @@ export const SOURCE_LABEL: Record<string, string> = {
 const FAM_FALLBACK = {
   label: 'Unassigned',
   blurb: 'Scoring family not yet confirmed',
-  bg: '#F1F3F2',
-  fg: '#7A8781',
-  bd: '#E2E8E4',
+  bg: '#EEF1F4',
+  fg: '#8A94A3',
+  bd: '#E7EAEE',
 };
 
 type SheetFamily = (typeof SHEET_FAMILIES)[number];
@@ -143,7 +143,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
       <Link
         href="/dashboard/superadmin/catalog"
         prefetch={false}
-        className="text-hunter-deep hover:text-gold inline-flex items-center gap-2 text-[13px] font-bold transition-colors"
+        className="inline-flex items-center gap-2 text-[13px] font-bold text-[#101828] transition-colors hover:text-[#146A47]"
       >
         <ArrowLeftIcon className="size-[14px]" aria-hidden />
         Scoring Catalog
@@ -151,10 +151,10 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
 
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-3">
-          <h1 className="font-[family-name:var(--font-nr)] text-[31px] leading-[1.06] font-semibold tracking-[-.022em] text-[#16261F]">
+          <h1 className="font-[family-name:var(--font-nr)] text-[31px] leading-[1.06] font-semibold tracking-[-.022em] text-[#101828]">
             {title || 'Untitled sheet'}
           </h1>
-          <span className="inline-flex h-6 items-center rounded-md border border-dashed border-[#C9B98A] px-2.5 text-[11.5px] font-semibold text-[#7A6A3C]">
+          <span className="inline-flex h-6 items-center rounded-md border border-dashed border-[#F6DCB8] px-2.5 text-[11.5px] font-semibold text-[#B45309]">
             {SOURCE_LABEL[source ?? 'stub']}
           </span>
         </div>
@@ -165,7 +165,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
           >
             {fam.label}
           </span>
-          <span className="text-fa-muted-2 text-[14px]">{fam.blurb}</span>
+          <span className="text-[14px] text-[#8A94A3]">{fam.blurb}</span>
         </div>
       </div>
 
@@ -197,7 +197,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
       {family === 'unassigned' && (
         <section className={SECTION}>
           <h2 className={`${H2} mb-1.5`}>Pick a scoring family</h2>
-          <p className="text-[14px] leading-[1.6] text-[#8A8275]">
+          <p className="text-[14px] leading-[1.6] text-[#8A94A3]">
             The scoring family drives what the scoreboard reads and which criteria editor appears
             here. Set one above — movement, freestyle, weighted or placing — to start scaffolding
             this sheet.
@@ -224,7 +224,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
             onClick={() => {
               setPreviewing(true);
             }}
-            className="text-hunter-deep hover:border-gold h-auto rounded-[9px] border border-[#C4D3CB] bg-white px-[18px] py-3 text-[13.5px] font-semibold transition-colors hover:bg-[#FFFCF2]"
+            className="h-auto rounded-[9px] border border-[#D0D5DD] bg-white px-[18px] py-3 text-[13.5px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
           >
             ▶ Preview as judge
           </Button>
@@ -232,7 +232,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
         <Link
           href="/dashboard/superadmin/catalog"
           prefetch={false}
-          className="text-hunter-deep hover:border-gold rounded-[9px] border border-[#C4D3CB] bg-white px-[18px] py-3 text-[13.5px] font-semibold transition-colors"
+          className="rounded-[9px] border border-[#D0D5DD] bg-white px-[18px] py-3 text-[13.5px] font-semibold text-[#101828] transition-colors hover:border-[#D6DBE1]"
         >
           Cancel
         </Link>
@@ -242,7 +242,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
           onClick={() => {
             setConfirmOpen(true);
           }}
-          className="ml-auto inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#E4CFC9] px-4 py-3 text-[13px] font-bold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FCF1EF]"
+          className="ml-auto inline-flex h-auto items-center gap-2 rounded-[9px] border border-[#FBCFC9] px-4 py-3 text-[13px] font-bold text-[#B42318] transition-colors hover:border-[#B42318] hover:bg-[#FEF3F2]"
         >
           <Trash2Icon className="size-[15px]" aria-hidden />
           Delete sheet
@@ -252,7 +252,7 @@ export function SheetDetail({ sheet }: { sheet: ScoringSheet }) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               Delete {sheet.title}?
             </DialogTitle>
             <DialogDescription>

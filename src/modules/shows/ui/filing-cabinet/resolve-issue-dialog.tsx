@@ -23,7 +23,7 @@ import {
   modalContentClass,
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
-import type { EntryIssueRow } from '@/modules/shows/data/entry-issues-queries';
+import type { EntryIssueRow } from '@/modules/shows/types';
 import { useResolveIssue } from '@/modules/shows/hooks/use-entry-issues-mutations';
 
 export function ResolveIssueDialog({ showId, issue }: { showId: string; issue: EntryIssueRow }) {
@@ -66,6 +66,7 @@ export function ResolveIssueDialog({ showId, issue }: { showId: string; issue: E
             <Label>Resolution note (optional)</Label>
             <Textarea
               value={note}
+              maxLength={500}
               onChange={(e) => {
                 setNote(e.target.value);
               }}

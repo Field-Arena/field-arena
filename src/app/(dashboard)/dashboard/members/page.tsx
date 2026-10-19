@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { listMembers } from '@/modules/organizations/data/queries';
 import { MemberDatabaseScreen } from '@/modules/organizations/ui/member-database-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Member Database — Field & Arena' };
 

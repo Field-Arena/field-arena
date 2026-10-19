@@ -31,7 +31,7 @@ import {
   modalFooterClass,
 } from '@/shared/ui/organizer/modal-kit';
 import { REJECTION_REASONS, REJECTION_REASON_LABELS } from '@/modules/shows/constants';
-import type { HorseDocumentStatus } from '@/modules/shows/data/horses-queries';
+import type { HorseDocumentStatus } from '@/modules/shows/types';
 import { useReviewHorseDocument } from '@/modules/shows/hooks/use-horses-mutations';
 
 export function DocumentReviewDialog({
@@ -118,6 +118,7 @@ export function DocumentReviewDialog({
             <Label>Note to the entrant (optional, required for &ldquo;Other&rdquo;)</Label>
             <Textarea
               value={note}
+              maxLength={500}
               onChange={(e) => {
                 setNote(e.target.value);
               }}

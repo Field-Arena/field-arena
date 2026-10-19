@@ -821,3 +821,80 @@ body:has(.dash) ::placeholder {
   padding: 5px 10px;
   font-size: 12.5px;
 }
+
+/* Styles for components that still use the fa-* workspace classes (from dev).
+   Scoped to fa-* so they never restyle the live dash-* workspace. */
+.dash.fa-app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dash .fa-ws-menu {
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 100%;
+  min-width: 228px;
+}
+
+.dash .fa-user-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 100%;
+}
+
+.dash .fa-viewas-menu .fa-mi {
+  cursor: pointer;
+}
+
+.dash .fa-viewas-menu div.fa-mi {
+  cursor: default;
+  word-break: break-all;
+}
+
+.dash .fa-viewas-menu .fa-mi:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.dash .fa-sb-foot .fa-nav-item:disabled {
+  opacity: 0.6;
+}
+
+.dash .fa-main > main {
+  flex: 1;
+}
+
+.dash .fa-sidebar.fa-collapsed {
+  width: 72px;
+  flex-basis: 72px;
+}
+
+.dash
+  .fa-sidebar.fa-collapsed
+  :is(.fa-ws-meta, .fa-ws-chev, .fa-sb-search, .fa-nav-label, .fa-txt, .fa-count, .fa-user-meta) {
+  display: none;
+}
+
+.dash .fa-sidebar.fa-collapsed :is(.fa-ws, .fa-nav-item, .fa-user-card) {
+  justify-content: center;
+}
+
+.dash .fa-content [data-slot='table-header'] tr {
+  background: var(--fa-surface-2);
+}
+
+.dash .fa-content [data-slot='table-head'] {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fa-ink-3);
+  white-space: nowrap;
+}
+
+.dash .fa-content [data-slot='table-row']:hover {
+  background: #fafbfc;
+}

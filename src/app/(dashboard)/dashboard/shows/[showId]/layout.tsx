@@ -3,7 +3,7 @@ import { ShowManagerShell } from '@/modules/shows/ui/show-manager/show-manager-s
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import { getShowManagerVitals } from '@/modules/shows/data/queries';
+import { getShowStage } from '@/modules/shows/data/queries';
 import { getShowManagerOverview } from '@/modules/shows/data/show-manager-overview';
 
 /* Renders the Show Manager shell (title, tab strip, lifecycle, stats) once
@@ -12,7 +12,7 @@ import { getShowManagerOverview } from '@/modules/shows/data/show-manager-overvi
  * which also meant the tab strip flashed out and back in on every click
  * because it wasn't behind a stable layout boundary. Each tab's own page.tsx
  * still does its own tab-specific data fetch; only the shell's own data
- * (header/context/vitals) lives here now. */
+ * (header/context/stage/overview) lives here now. */
 export default async function ShowManagerLayout({
   children,
   params,
@@ -33,9 +33,9 @@ export default async function ShowManagerLayout({
     );
   }
 
-  const [context, vitals, overview] = await Promise.all([
+  const [context, stage, overview] = await Promise.all([
     getOrganizerContext(header.id),
-    getShowManagerVitals(header.id),
+    getShowStage(header.id),
     getShowManagerOverview(header.id),
   ]);
 
@@ -49,12 +49,7 @@ export default async function ShowManagerLayout({
   }
 
   return (
-    <ShowManagerShell
-      showId={showId}
-      shows={context.shows}
-      stage={vitals.stage}
-      overview={overview}
-    >
+    <ShowManagerShell showId={showId} shows={context.shows} stage={stage} overview={overview}>
       {children}
     </ShowManagerShell>
   );

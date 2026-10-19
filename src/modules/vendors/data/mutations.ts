@@ -7,9 +7,11 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, SAVE_FOR_CHARGE_MORE } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
 import { ROUTES } from '@/shared/constants/routes';
-import { getStaffProfile } from '@/modules/auth/data/queries';
-import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
+import { getStaffProfile } from '@/shared/lib/auth/session';
+import { getImpersonatedOrgId } from '@/shared/lib/auth/view-as';
 import { clientIp, rateLimit } from '@/shared/lib/rate-limit';
 import { parseInput } from '@/shared/lib/action-result';
 import type { Json } from '@/shared/types/database.types';
@@ -28,14 +30,19 @@ import {
   reviewVendorBookingSchema,
 } from '@/modules/vendors/schemas';
 import {
+  buildCheckoutSnapshot,
   buildVendorStripeLineItems,
   createVendorBookingStripeCustomer,
   finalizeVendorBookingPayment,
+  markVendorBookingForReview,
+  paidBookingItems,
+  parseCheckoutSnapshot,
   priceVendorBooking,
+  resolvePaidBookingPricing,
   saveVendorOffSessionCard,
 } from '@/modules/vendors/data/checkout';
 import type {
-  FinalizeVendorBookingResult,
+  ConfirmVendorCheckoutResult,
   VendorCheckoutSessionResult,
   VendorResendOutcome,
   VendorSignUpOutcome,
@@ -47,6 +54,8 @@ import {
   VENDOR_DOCUMENTS_PATH,
   VENDOR_DOCS_BUCKET,
   VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS,
+  VENDOR_CHECKOUT_SESSION_TTL_SECONDS,
+  REVIEW_BOOKING_STATUS,
 } from '@/modules/vendors/constants';
 
 type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
@@ -507,6 +516,11 @@ export async function createVendorCheckoutSession(
   if (booking.status === 'rejected') {
     throw new Error('This application was declined, so it cannot be paid.');
   }
+  if (booking.status === REVIEW_BOOKING_STATUS) {
+    throw new Error(
+      'A payment for this booking is being reviewed by the organizer, so it cannot be paid again.',
+    );
+  }
   if (!booking.agreement_signed_at) {
     throw new Error('Sign the booth agreement before paying.');
   }
@@ -514,8 +528,42 @@ export async function createVendorCheckoutSession(
   const priced = await priceVendorBooking(admin, booking);
   if (priced.total <= 0) throw new Error('This booking has nothing to charge yet.');
 
-  const stripeCustomerId = await createVendorBookingStripeCustomer(booking);
   const stripe = getStripeClient();
+
+  /* Only one checkout per booking may be payable at a time: payment is
+   * matched against the snapshot of the CURRENT session (H14), so an older
+   * open session is expired first. If it has already been paid, refuse —
+   * the webhook / return page will mark the booking paid. */
+  const previous = parseCheckoutSnapshot(booking.checkout_snapshot);
+  if (previous) {
+    const previousSession = await stripe.checkout.sessions
+      .retrieve(previous.sessionId)
+      .catch(() => null);
+    if (previousSession?.status === 'complete') {
+      throw new Error(
+        'A payment for this booking has already been made and is being processed. Refresh in a moment.',
+      );
+    }
+    if (previousSession?.status === 'open') {
+      await stripe.checkout.sessions.expire(previous.sessionId).catch((cause: unknown) => {
+        console.error(
+          '[vendors] could not expire previous checkout session',
+          previous.sessionId,
+          cause,
+        );
+        throw new Error('Could not restart checkout for this booking. Please try again.');
+      });
+    }
+  }
+
+  const stripeCustomerId = await createVendorBookingStripeCustomer(booking);
+  if (stripeCustomerId !== booking.stripe_customer_id) {
+    // Stored up front so the next attempt reuses this customer.
+    await admin
+      .from('vendor_bookings')
+      .update({ stripe_customer_id: stripeCustomerId })
+      .eq('id', booking.id);
+  }
   const returnPath = VENDOR_DASHBOARD_PATH;
 
   const paymentIntentData: NonNullable<Stripe.Checkout.SessionCreateParams['payment_intent_data']> =
@@ -533,8 +581,13 @@ export async function createVendorCheckoutSession(
     success_url: `${env.siteUrl}${returnPath}?booking=${booking.id}&checkoutSession={CHECKOUT_SESSION_ID}`,
     cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
 
-    metadata: { bookingId: booking.id, showId: booking.show_id },
+    metadata: {
+      bookingId: booking.id,
+      showId: booking.show_id,
+      pricedTotalCents: String(Math.round(priced.total * 100)),
+    },
     payment_intent_data: paymentIntentData,
+    expires_at: Math.floor(Date.now() / 1000) + VENDOR_CHECKOUT_SESSION_TTL_SECONDS,
     // No payment_method_types: the Stripe Dashboard decides which methods show
     // (card, Apple Pay / Google Pay, Klarna, ...). Card saving for "charge more"
     // is set per method, not on payment_intent_data — a PaymentIntent-level
@@ -546,10 +599,19 @@ export async function createVendorCheckoutSession(
     typeof session.payment_intent === 'string'
       ? session.payment_intent
       : (session.payment_intent?.id ?? null);
-  await admin
+  // The price this session charges is stored with it, so payment is checked
+  // and recorded against it rather than the catalog at payment time (H14).
+  const { error: snapshotError } = await admin
     .from('vendor_bookings')
-    .update({ stripe_payment_intent_id: paymentIntentId })
+    .update({
+      stripe_payment_intent_id: paymentIntentId,
+      checkout_snapshot: buildCheckoutSnapshot(priced, session.id),
+    })
     .eq('id', booking.id);
+  if (snapshotError) {
+    await stripe.checkout.sessions.expire(session.id).catch(() => undefined);
+    throw new Error('Could not start checkout for this booking. Please try again.');
+  }
 
   if (!session.url) throw new Error('Stripe did not return a checkout URL. Please try again.');
 
@@ -565,7 +627,7 @@ export async function createVendorCheckoutSession(
 
 export async function confirmVendorCheckoutSession(
   input: unknown,
-): Promise<FinalizeVendorBookingResult> {
+): Promise<ConfirmVendorCheckoutResult> {
   const parsed = parseInput(confirmVendorCheckoutSessionSchema, input);
   const vendor = await requireVendorProfile();
   const admin = createAdminClient();
@@ -573,14 +635,17 @@ export async function confirmVendorCheckoutSession(
   const booking = await loadOwnBookingForCheckout(admin, parsed.bookingId, vendor.email);
 
   if (booking.status === 'paid') {
-    const priced = await priceVendorBooking(admin, booking);
+    const items = await paidBookingItems(admin, booking);
     return {
       ok: true,
       alreadyFulfilled: true,
       bookingId: booking.id,
-      total: booking.amount_total ?? priced.total,
-      items: priced.items,
+      total: booking.amount_total ?? items.reduce((sum, item) => sum + item.amount, 0),
+      items,
     };
+  }
+  if (booking.status === REVIEW_BOOKING_STATUS) {
+    return { ok: false, reason: 'review', bookingId: booking.id };
   }
 
   const stripe = getStripeClient();
@@ -589,21 +654,49 @@ export async function confirmVendorCheckoutSession(
   if (session.metadata?.bookingId !== booking.id) {
     throw new Error('This Checkout Session does not match this booking.');
   }
+  /* Runs during the return page's render: an unsettled payment is a normal
+   * state, not an error. The webhook marks the booking paid once it settles. */
   if (session.payment_status !== 'paid') {
-    throw new Error('Payment has not completed yet.');
+    return { ok: false, reason: 'processing', bookingId: booking.id };
   }
 
-  const priced = await priceVendorBooking(admin, booking);
-  if (session.amount_total !== Math.round(priced.total * 100)) {
-    throw new Error('Payment amount does not match this booking.');
+  const paymentIntentId = session.payment_intent
+    ? typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent.id
+    : null;
+
+  if (booking.status === 'rejected') {
+    console.error('[vendors] payment received for rejected booking', booking.id, session.id);
+    await markVendorBookingForReview(
+      admin,
+      booking.id,
+      `Payment ${paymentIntentId ?? session.id} received after the application was rejected — refund it.`,
+      paymentIntentId,
+    );
+    return { ok: false, reason: 'review', bookingId: booking.id };
   }
 
-  let paymentIntentId: string | null = null;
-  if (session.payment_intent) {
-    paymentIntentId =
-      typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : session.payment_intent.id;
+  const priced = await resolvePaidBookingPricing(admin, booking, session.id);
+  if (!priced || session.amount_total !== Math.round(priced.total * 100)) {
+    console.error(
+      '[vendors] checkout amount mismatch for booking',
+      booking.id,
+      session.amount_total,
+      priced?.total ?? 'superseded session',
+    );
+    await markVendorBookingForReview(
+      admin,
+      booking.id,
+      priced
+        ? `Stripe charged ${String(session.amount_total)}¢ but checkout priced ${String(Math.round(priced.total * 100))}¢ (session ${session.id}).`
+        : `Payment arrived on a superseded checkout session ${session.id}.`,
+      paymentIntentId,
+    );
+    return { ok: false, reason: 'review', bookingId: booking.id };
+  }
+
+  if (paymentIntentId) {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId).catch(() => null);
     if (paymentIntent) await saveVendorOffSessionCard(admin, booking.id, paymentIntent);
   }
@@ -612,13 +705,35 @@ export async function confirmVendorCheckoutSession(
   return result;
 }
 
+/* Approve/reject write through the service-role client, so RLS is not there
+ * to stop an Organizer from another org. Previously any Organizer (or any
+ * impersonation) returned early here. Now an impersonating SuperAdmin is
+ * bound to the org they entered, and everyone else — Organizers included —
+ * goes through has_show_permission, which only grants an Organizer the shows
+ * of their own org. */
 async function assertCanManageVendors(showId: string): Promise<void> {
   const profile = await getStaffProfile();
   if (!profile) throw new Error('Not signed in.');
 
-  const impersonatedOrgId = await getImpersonatedOrgId();
-  if (profile.platform_role === 'Organizer' || impersonatedOrgId !== null) return;
+  const admin = createAdminClient();
+  const { data: show, error: showError } = await admin
+    .from('shows')
+    .select('org_id')
+    .eq('id', showId)
+    .maybeSingle();
+  if (showError) throw new Error(showError.message);
+  if (!show) throw new Error('That show no longer exists.');
 
+  const impersonatedOrgId = await getImpersonatedOrgId();
+  if (impersonatedOrgId !== null) {
+    if (impersonatedOrgId !== show.org_id) {
+      throw new Error('That show belongs to a different organization.');
+    }
+    return;
+  }
+
+  // has_show_permission already resolves an Organizer (only for their own
+  // org's shows), an organization owner, and a Show Admin / granted staff.
   const supabase = await createServerClient();
   const { data: allowed } = await supabase.rpc('has_show_permission', {
     target_show_id: showId,
@@ -627,14 +742,6 @@ async function assertCanManageVendors(showId: string): Promise<void> {
   if (allowed !== true) {
     throw new Error('You do not have permission to manage vendors for this show.');
   }
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 interface PendingBookingForReview {
@@ -686,30 +793,38 @@ async function sendVendorApprovalEmail(
 
   const claimUrl = `${env.siteUrl}/vendor-apply/account`;
   const greetingName = booking.contact_name ?? booking.name;
+  const showName = show?.name ?? 'the show';
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Field & Arena <notifications@field-arena.com>',
-        to: booking.contact,
-        subject: `Your vendor application for ${show?.name ?? 'the show'} was approved`,
-        html:
-          `<p>Hi ${escapeHtml(greetingName)},</p>` +
-          `<p>Good news — your vendor application for <b>${escapeHtml(show?.name ?? 'the show')}</b> has been approved.</p>` +
-          `<p>To sign the booth agreement and pay, claim your vendor account using this same email (${escapeHtml(booking.contact)}):</p>` +
-          `<p><a href="${claimUrl}">${claimUrl}</a></p>`,
-      }),
+    const { html, text } = renderEmail({
+      preheader: `Good news — your vendor application for ${showName} was approved.`,
+      eyebrow: 'Application approved',
+      heading: 'Your vendor application was approved',
+      greeting: `Hi ${greetingName},`,
+      paragraphs: [
+        ['Good news — your vendor application for ', { strong: showName }, ' has been approved.'],
+        [
+          'To sign the booth agreement and pay, claim your vendor account using this same email (',
+          { strong: booking.contact },
+          ').',
+        ],
+      ],
+      details: [
+        { label: 'Show', value: showName },
+        { label: 'Vendor', value: booking.name },
+      ],
+      link: { label: 'Claim your vendor account using this link:', url: claimUrl },
+      footerNote: `you applied to be a vendor at ${showName} on Field & Arena.`,
     });
-    if (!res.ok) {
-      console.error('[vendors] approval email failed', res.status, await res.text());
-    }
+    const sent = await sendEmail({
+      to: booking.contact,
+      subject: `Your vendor application for ${showName} was approved`,
+      html,
+      text,
+    });
+    if (!sent) console.error('[vendors] approval email was not delivered');
   } catch (cause) {
-    console.error('[vendors] approval email transport failure', cause);
+    console.error('[vendors] approval email failed', cause);
   }
 }
 

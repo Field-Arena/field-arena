@@ -2,7 +2,7 @@
 
 import { EmptyState, FaCard, Pill } from '@/shared/ui/organizer/fa-page';
 import { DocumentViewerDialog } from '@/shared/ui/organizer/document-viewer-dialog';
-import type { HorsesPageData } from '@/modules/shows/data/horses-queries';
+import type { HorsesPageData } from '@/modules/shows/types';
 import { DocumentReviewDialog } from '@/modules/shows/ui/filing-cabinet/document-review-dialog';
 import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 

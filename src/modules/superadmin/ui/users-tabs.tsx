@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { cn } from '@/shared/lib/utils';
 
 type TabKey = 'superadmins' | 'directory';
 
@@ -24,26 +22,20 @@ export function UsersTabs({
 
   return (
     <div className="space-y-5">
-      <div role="tablist" aria-label="Users" className="flex flex-wrap gap-2">
+      <div role="tablist" aria-label="Users" className="fa-subtoggle !mb-0">
         {tabs.map(({ key, label }) => (
-          <Button
+          <button
             key={key}
             type="button"
-            variant="ghost"
             role="tab"
             aria-selected={tab === key}
             onClick={() => {
               setTab(key);
             }}
-            className={cn(
-              'h-auto rounded-full px-4 py-2 text-[13.5px] font-bold transition-colors hover:bg-transparent',
-              tab === key
-                ? 'bg-hunter-deep text-white'
-                : 'border-line-strong text-hunter-deep hover:border-hunter-deep border',
-            )}
+            className={tab === key ? 'fa-active' : undefined}
           >
             {label}
-          </Button>
+          </button>
         ))}
       </div>
 

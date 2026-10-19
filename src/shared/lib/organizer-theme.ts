@@ -1,37 +1,38 @@
+// Redesign palette (field-arena-prototype/assets/style.css :root). Key names
+// are kept from the previous design so existing callers restyle in place;
+// the old gold accent maps onto the redesign's amber.
 export const fa = {
-  ink: '#16261F',
-  inkDeep: '#0D2C23',
-  body: '#5A6B63',
-  muted: '#7A8781',
-  faint: '#98A29D',
-  line: '#E9EDEB',
-  lineSoft: '#EDF0EE',
-  lineFaint: '#F1F4F3',
-  field: '#D9E1DD',
-  canvas: '#F5F7F6',
+  ink: '#101828',
+  inkDeep: '#101828',
+  body: '#475467',
+  muted: '#8A94A3',
+  faint: '#8A94A3',
+  line: '#E7EAEE',
+  lineSoft: '#EEF1F4',
+  lineFaint: '#EEF1F4',
+  field: '#E7EAEE',
+  canvas: '#F5F7F8',
   surface: '#FFFFFF',
-  hover: '#F8FAF9',
-  green: '#1A5B3C',
-  greenDeep: '#144A30',
-  greenTint: '#E9F4EE',
-  greenLine: '#BEDDCB',
-  gold: '#C9A227',
-  goldFg: '#8A6D14',
-  goldTint: '#FCF3E4',
-  goldLine: '#E8D79A',
-  red: '#B4432F',
-  redDeep: '#98341F',
-  redTint: '#FDEEEB',
-  redLine: '#E4B5AC',
-  blue: '#2F6FB0',
-  cream: '#F8F5EC',
-  creamLine: '#E7E0D0',
+  hover: '#FBFCFD',
+  green: '#146A47',
+  greenDeep: '#0E5537',
+  greenTint: '#EAF5EF',
+  greenLine: '#CFE9DB',
+  gold: '#B45309',
+  goldFg: '#B45309',
+  goldTint: '#FDF2E3',
+  goldLine: '#F6DCB8',
+  red: '#B42318',
+  redDeep: '#912018',
+  redTint: '#FEF3F2',
+  redLine: '#FBCFC9',
+  blue: '#0B6BB8',
+  cream: '#FBFCFD',
+  creamLine: '#E7EAEE',
 } as const;
 
-export const cardShadow =
-  'shadow-[0_1px_2px_rgba(16,40,32,.04),0_10px_26px_-16px_rgba(16,40,32,.14)]';
-export const cardShadowHover =
-  'hover:shadow-[0_2px_4px_rgba(16,40,32,.05),0_16px_34px_-18px_rgba(16,40,32,.2)]';
-export const cardBase = `bg-white border border-[#EDF0EE] rounded-[14px] ${cardShadow}`;
-export const eyebrow = 'text-[9.5px] font-bold uppercase tracking-[.14em] text-[#6E7C76]';
-export const serif = 'font-[Newsreader,serif]';
+export const cardShadow = 'shadow-[0_1px_2px_rgba(16,24,40,.05)]';
+export const cardShadowHover = 'hover:shadow-[0_4px_16px_rgba(16,24,40,.08)]';
+export const cardBase = `bg-white border border-[#E7EAEE] rounded-[14px] ${cardShadow}`;
+export const eyebrow = 'text-[11px] font-semibold uppercase tracking-[.08em] text-[#8A94A3]';
+export const serif = 'font-[family-name:var(--fa-serif)]';

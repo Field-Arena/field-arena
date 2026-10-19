@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
+import { optionalWebsiteSchema } from '@/shared/schemas/website';
+import { VENDOR_ITEM_QTY_MAX } from '@/modules/vendors/constants';
 
 export const vendorSignUpSchema = z.object({
   name: z.string().trim().min(1, 'Your name is required').max(200),
@@ -34,7 +36,7 @@ export type VendorResendCodeInput = z.infer<typeof vendorResendCodeSchema>;
 
 const cartLine = z.object({
   vendorItemId: z.uuid(),
-  qty: z.coerce.number().int().min(1).max(999),
+  qty: z.coerce.number().int().min(1).max(VENDOR_ITEM_QTY_MAX),
 });
 
 export const applyToShowSchema = z.object({
@@ -54,12 +56,7 @@ export const applyToShowSchema = z.object({
     .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
-  website: z
-    .string()
-    .trim()
-    .max(200)
-    .optional()
-    .transform((v) => (v === '' ? undefined : v)),
+  website: optionalWebsiteSchema(200),
   productsOffered: z
     .string()
     .trim()
@@ -90,12 +87,7 @@ export const applyToShowPublicSchema = z.object({
     .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
-  website: z
-    .string()
-    .trim()
-    .max(200)
-    .optional()
-    .transform((v) => (v === '' ? undefined : v)),
+  website: optionalWebsiteSchema(200),
   productsOffered: z
     .string()
     .trim()
@@ -113,6 +105,15 @@ export const applyToShowPublicSchema = z.object({
 });
 
 export type ApplyToShowPublicInput = z.input<typeof applyToShowPublicSchema>;
+
+/** The public apply page's text fields — the server schema minus what the page fills in. */
+export const applyToShowPublicFormSchema = applyToShowPublicSchema.omit({
+  showId: true,
+  items: true,
+});
+
+export type ApplyToShowPublicFormInput = z.input<typeof applyToShowPublicFormSchema>;
+export type ApplyToShowPublicFormValues = z.output<typeof applyToShowPublicFormSchema>;
 
 export const signVendorAgreementSchema = z.object({
   bookingId: z.uuid(),

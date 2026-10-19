@@ -53,6 +53,7 @@ export function StablingDetailsForm({
           <Input
             id="stabling-trainer"
             value={stablingDetails.trainerName}
+            maxLength={120}
             onChange={(event) => {
               setStablingDetails({ trainerName: event.target.value });
             }}
@@ -65,6 +66,7 @@ export function StablingDetailsForm({
             id="stabling-with"
             list="known-trainer-names"
             value={stablingDetails.stableWith}
+            maxLength={120}
             onChange={(event) => {
               setStablingDetails({ stableWith: event.target.value });
             }}
@@ -82,6 +84,7 @@ export function StablingDetailsForm({
             id="stabling-notes"
             rows={2}
             value={stablingDetails.notes}
+            maxLength={500}
             onChange={(event) => {
               setStablingDetails({ notes: event.target.value });
             }}

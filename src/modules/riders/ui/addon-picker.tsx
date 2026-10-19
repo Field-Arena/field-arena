@@ -5,6 +5,7 @@ import { UNLIMITED_ADD_ON_QUANTITY_INPUT_MAX } from '@/modules/riders/constants'
 import type { AddOnWithRemaining } from '@/modules/riders/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 
 export function AddOnPicker({ addOns }: { addOns: AddOnWithRemaining[] }) {
   const addOnQuantities = useEntryCartStore((state) => state.addOnQuantities);
@@ -38,10 +39,15 @@ export function AddOnPicker({ addOns }: { addOns: AddOnWithRemaining[] }) {
                 type="number"
                 min={0}
                 max={max}
+                step={1}
+                onKeyDown={blockNonIntegerKeys}
                 disabled={soldOut}
                 value={addOnQuantities[addOn.id] ?? 0}
                 onChange={(event) => {
-                  const qty = Math.min(max, Math.max(0, Number(event.target.value) || 0));
+                  const qty = Math.min(
+                    max,
+                    Math.max(0, Math.trunc(Number(event.target.value)) || 0),
+                  );
                   setAddOnQuantity(addOn.id, qty);
                 }}
                 className="w-20 text-center"

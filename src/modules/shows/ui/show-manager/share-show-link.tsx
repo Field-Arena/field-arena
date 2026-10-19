@@ -4,12 +4,8 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Card } from '@/shared/ui/organizer/card';
 import { GhostButton } from '@/shared/ui/organizer/buttons';
-import {
-  SM_CARD_PAD,
-  SM_SECTION_HEAD,
-  SM_NOTE,
-  SM_INPUT,
-} from '@/modules/shows/ui/show-manager/tokens';
+import { SM_CARD_PAD, SM_NOTE, SM_INPUT } from '@/modules/shows/ui/show-manager/tokens';
+import { SmHead } from './sm-head';
 
 export function ShareShowLink({ url, browseUrl }: { url: string; browseUrl: string }) {
   const [copied, setCopied] = useState(false);
@@ -29,7 +25,11 @@ export function ShareShowLink({ url, browseUrl }: { url: string; browseUrl: stri
 
   return (
     <Card className={SM_CARD_PAD}>
-      <h2 className={SM_SECTION_HEAD}>Public show page</h2>
+      <SmHead
+        icon="link"
+        title="Public show page"
+        sub="The link riders use to find and enter this show"
+      />
       <p className={SM_NOTE}>
         A page anyone can open — riders view the show and enter right here on Field &amp; Arena.
         Share this link once the show is published.
@@ -55,18 +55,18 @@ export function ShareShowLink({ url, browseUrl }: { url: string; browseUrl: stri
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-forest text-[13px] font-semibold hover:underline"
+          className="text-[13px] font-semibold text-[#101828] hover:underline"
         >
           Open
         </a>
       </div>
-      <p className="mt-3 text-[12.5px] text-[#98A29D]">
+      <p className="mt-3 text-[12.5px] text-[#8A94A3]">
         Every published show also appears together at{' '}
         <a
           href={browseUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-forest font-semibold hover:underline"
+          className="font-semibold text-[#101828] hover:underline"
         >
           {browseUrl}
         </a>

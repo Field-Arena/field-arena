@@ -4,13 +4,34 @@ import { SHOW_STAGES } from '@/shared/constants/show-stages';
 
 import { Card, Eyebrow, ScreenTitle, ScreenLede } from '@/shared/ui/organizer/card';
 import { ghostButtonClass, primaryButtonClass } from '@/shared/ui/organizer/buttons';
-import { DashIcon } from '@/shared/ui/dash-icon';
 import { formatMoney } from '@/shared/lib/format/currency';
-import type { InventoryRow, ShowListItem, ShowStats } from '@/modules/shows/data/queries';
-import type { DashboardTodo, ShowDocumentSummary } from '@/modules/shows/types';
+import type {
+  DashboardTodo,
+  InventoryRow,
+  ShowDocumentSummary,
+  ShowListItem,
+  ShowStats,
+} from '@/modules/shows/types';
 import { TodoList } from './todo-list';
 import { DocumentStatusChips } from './document-status-chips';
 import { STAGE_LABEL, approvalTone, whenLabel } from './dashboard-home';
+
+const TrophyIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M7 4h10v4a5 5 0 01-10 0V4z" />
+    <path d="M7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3M9 15h6M10 19h4M12 15v4" />
+  </svg>
+);
 
 export function DashboardOverview({
   orgName,
@@ -171,7 +192,7 @@ export function DashboardOverview({
             prefetch={false}
             className={ghostButtonClass}
           >
-            <DashIcon name="trophy" size={14} /> Awards
+            <TrophyIcon /> Awards
           </Link>
         </div>
 

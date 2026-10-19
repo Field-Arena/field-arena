@@ -1,5 +1,5 @@
 import type { Arena } from '@/modules/shows/schedule-engine';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import { groupDayItemsIntoBlocks } from '@/modules/shows/utils/group-day-items-into-blocks';
 import { ClassBlock } from '@/modules/shows/ui/schedule/class-block';
 
@@ -28,7 +28,7 @@ export function DayItems({
         block.rides.length === 0 ? (
           <div
             key={block.cls}
-            className="my-2.5 text-center text-[12.5px] font-semibold text-[#7A8781]"
+            className="my-2.5 text-center text-[12.5px] font-semibold text-[#8A94A3]"
           >
             — {block.label} —
           </div>

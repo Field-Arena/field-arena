@@ -1,24 +1,29 @@
-export const DISPLAY = 'font-[family-name:var(--font-nr)]';
+/* Show Manager section styling — the redesign's grouped form section
+ * (.fs-head / .fs-body in field-arena-prototype/assets/style.css). A section
+ * is a Card with SM_CARD_PAD whose first child is an SM_SECTION_HEAD heading;
+ * the heading pulls itself out to the card edges (-m) so its divider runs
+ * full width, the way the prototype's .fs-head does. */
+export const DISPLAY = 'font-[family-name:var(--fa-serif)]';
 
-export const SM_CARD_PAD = 'p-[22px_24px_26px]';
+export const SM_CARD_PAD = 'p-5';
 
-export const SM_SECTION_HEAD = `${DISPLAY} mb-4 text-[21px] font-semibold leading-[1.2] tracking-[-.012em] text-forest`;
+export const SM_SECTION_HEAD =
+  '-mx-5 -mt-5 mb-5 flex items-center gap-[11px] border-b border-[#EEF1F4] px-5 py-[15px] text-[14.5px] font-semibold leading-snug text-[#101828]';
 
-export const SM_NOTE = 'mb-4 max-w-[960px] text-[12.5px] leading-[1.55] text-[#6E7C76] text-pretty';
+export const SM_NOTE = 'mb-4 max-w-[860px] text-[12.5px] leading-[1.55] text-[#8A94A3] text-pretty';
 
-export const SM_LABEL =
-  'mb-2 block text-[10px] font-bold uppercase tracking-[.14em] text-[#6E7C76]';
+export const SM_LABEL = 'mb-1.5 block text-[12.5px] font-semibold text-[#475467]';
 
 export const SM_INPUT =
-  'w-full rounded-[10px] border border-[#D9E1DD] bg-white px-3.5 py-3 text-sm text-ink-deep outline-none focus-visible:border-gold focus-visible:ring-[3px] focus-visible:ring-gold/[.16]';
+  'h-10 w-full rounded-[10px] border border-[#E7EAEE] bg-white px-3 text-[13.5px] text-[#101828] outline-none transition focus-visible:border-[#9FD3BA] focus-visible:shadow-[0_0_0_3px_#EAF5EF]';
 
-export const SM_SELECT = SM_INPUT + ' appearance-none';
+export const SM_SELECT = SM_INPUT + ' appearance-auto';
 
 export const SM_ROW_INPUT =
-  'w-full rounded-[6px] border border-[#AEB8B3] bg-white px-3 py-2.5 text-[13.5px] font-semibold text-ink-deep outline-none focus-visible:border-gold';
+  'h-[38px] w-full rounded-[9px] border border-[#E7EAEE] bg-white px-3 text-[13.5px] font-medium text-[#101828] outline-none focus-visible:border-[#9FD3BA] focus-visible:shadow-[0_0_0_3px_#EAF5EF]';
 
 export const SM_GREEN_BTN =
-  'inline-flex items-center gap-2 rounded-[9px] bg-[#1A5B3C] px-[18px] py-3 text-[13.5px] font-bold text-[#F5F7F6] transition-colors hover:bg-forest disabled:opacity-60';
+  'inline-flex items-center gap-[7px] whitespace-nowrap rounded-[10px] bg-[#146A47] px-[15px] py-[9px] text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(16,80,55,.3)] transition hover:bg-[#0E5537] disabled:opacity-60';
 
 export const SM_GHOST_BTN =
-  'inline-flex items-center gap-2 rounded-[9px] border border-[#D9E1DD] bg-white px-3.5 py-2.5 text-[12.5px] font-semibold text-forest transition-colors hover:border-gold';
+  'inline-flex items-center gap-[7px] whitespace-nowrap rounded-[10px] border border-[#E7EAEE] bg-white px-[15px] py-[9px] text-[13px] font-semibold text-[#475467] shadow-[0_1px_2px_rgba(16,24,40,.05)] transition hover:border-[#D6DBE1] hover:bg-[#FBFCFD] hover:text-[#101828]';

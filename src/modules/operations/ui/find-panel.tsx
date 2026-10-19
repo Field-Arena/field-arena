@@ -1,10 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import type {
-  HorseDirectoryRow,
-  RiderDirectoryRow,
-  VendorRow,
-} from '@/modules/operations/data/queries';
+import type { HorseDirectoryRow, RiderDirectoryRow, VendorRow } from '@/modules/operations/types';
 import { OpsSearch } from '@/modules/operations/ui/ops-search';
 import {
   Chip,

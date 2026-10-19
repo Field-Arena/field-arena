@@ -13,6 +13,7 @@ export function LoginDialog() {
   const open = useLoginDialogStore((state) => state.open);
   const setOpen = useLoginDialogStore((state) => state.setOpen);
   const notice = useLoginDialogStore((state) => state.notice);
+  const next = useLoginDialogStore((state) => state.next);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -47,6 +48,7 @@ export function LoginDialog() {
 
           <LoginForm
             showFooter={false}
+            next={next ?? undefined}
             onSuccess={() => {
               setOpen(false);
             }}

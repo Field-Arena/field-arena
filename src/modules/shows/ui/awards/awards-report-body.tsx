@@ -20,13 +20,13 @@ export function AwardsReportBody({
   return (
     <>
       <Card className="mb-[22px] grid grid-cols-[auto_minmax(0,1fr)] items-center gap-6 p-[16px_20px_18px] print:break-inside-avoid">
-        <div className="flex flex-col gap-[5px] border-r border-[#EEF2F0] pr-6">
+        <div className="flex flex-col gap-[5px] border-r border-[#EEF1F4] pr-6">
           <Eyebrow>Ribbons to bring</Eyebrow>
-          <span className="text-[31px] leading-none font-bold tracking-[-.028em] text-[#16261F]">
+          <span className="text-[31px] leading-none font-bold tracking-[-.028em] text-[#101828]">
             {ribbonTotal}
           </span>
 
-          <span className="text-[12px] text-[#98A29D]">
+          <span className="text-[12px] text-[#8A94A3]">
             per class/pool, see below · grouped by {groupedByLabel}
           </span>
         </div>
@@ -34,19 +34,19 @@ export function AwardsReportBody({
       </Card>
 
       <Card className="mb-[22px] grid grid-cols-[auto_minmax(0,1fr)] items-center gap-6 p-[16px_20px_18px] print:break-inside-avoid">
-        <div className="flex flex-col gap-[5px] border-r border-[#EEF2F0] pr-6">
+        <div className="flex flex-col gap-[5px] border-r border-[#EEF1F4] pr-6">
           <Eyebrow>Tests to print</Eyebrow>
-          <span className="text-[31px] leading-none font-bold tracking-[-.028em] text-[#16261F]">
+          <span className="text-[31px] leading-none font-bold tracking-[-.028em] text-[#101828]">
             {testTotal}
           </span>
 
-          <span className="text-[12px] text-[#98A29D]">one scoresheet per entry, by test</span>
+          <span className="text-[12px] text-[#8A94A3]">one scoresheet per entry, by test</span>
         </div>
         <TestCountChips tally={testTally} />
       </Card>
 
       {report.levels.length === 0 ? (
-        <p className="text-[13.5px] text-[#7A8781]">No scores entered yet.</p>
+        <p className="text-[13.5px] text-[#8A94A3]">No scores entered yet.</p>
       ) : (
         <div className="flex flex-col gap-[18px]">
           {report.levels.map((level) => (

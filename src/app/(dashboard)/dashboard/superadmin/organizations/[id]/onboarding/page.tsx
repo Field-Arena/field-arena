@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeftIcon } from 'lucide-react';
-import { createServerClient } from '@/shared/lib/supabase/server';
+import { getOrganizationProfile } from '@/modules/organizations/data/queries';
 import { OnboardingForm } from '@/modules/organizations/ui/onboarding-form';
 
 export const metadata: Metadata = { title: 'Onboarding — SuperAdmin Console' };
@@ -18,12 +18,7 @@ export default async function OrganizationOnboardingPage({
 }) {
   const { id } = await params;
 
-  const supabase = await createServerClient();
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, email, website, phone, city, region, country')
-    .eq('id', id)
-    .maybeSingle();
+  const org = await getOrganizationProfile(id);
 
   if (!org) notFound();
 
@@ -31,7 +26,7 @@ export default async function OrganizationOnboardingPage({
     <div className="space-y-5">
       <Link
         href={`/dashboard/superadmin/organizations/${id}`}
-        className="text-fa-muted hover:text-gold inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
+        className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#475467] transition-colors hover:text-[#146A47]"
       >
         <ArrowLeftIcon className="size-4" aria-hidden />
         {org.name} — Shows

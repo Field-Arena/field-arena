@@ -51,6 +51,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
 
   const form = useForm<VenueDetailsInput>({
     resolver: zodResolver(venueDetailsSchema),
+    mode: 'onTouched',
     defaultValues: detailsDefaults(venue),
   });
   const { errors } = form.formState;
@@ -74,7 +75,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
   }
 
   function setRingCount(raw: string) {
-    const count = Math.max(0, Math.min(MAX_RINGS, Number(raw) || 0));
+    const count = Math.max(0, Math.min(MAX_RINGS, Math.trunc(Number(raw)) || 0));
     const next = Array.from(
       { length: count },
       (_, i) => rings[i] ?? { name: `Ring ${String(i + 1)}`, size: 'standard' as const },
@@ -128,7 +129,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
         >
           <DialogHeader className={modalBodyClass + ' flex-none gap-1.5 pb-0'}>
             <ModalEyebrow>Venues</ModalEyebrow>
-            <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+            <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
               {isEdit ? 'Edit location' : 'Add new location'}
             </DialogTitle>
             <DialogDescription>
@@ -136,7 +137,7 @@ export function VenueFormDialog({ venue, trigger }: { venue?: VenueListItem; tri
               then pick it up on any show in Setup&rsquo;s Competition Locations card instead of
               rebuilding it every time.
             </DialogDescription>
-            <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+            <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
               <IconX size={13} />
               <span className="sr-only">Close</span>
             </DialogClose>

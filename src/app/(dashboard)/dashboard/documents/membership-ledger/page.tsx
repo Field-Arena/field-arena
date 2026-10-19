@@ -3,7 +3,7 @@ import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getMembershipLedgerPageData } from '@/modules/shows/data/membership-ledger-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { MembershipLedgerScreen } from '@/modules/shows/ui/filing-cabinet/membership-ledger-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Membership Ledger — Field & Arena' };
 

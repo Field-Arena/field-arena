@@ -1,10 +1,11 @@
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import type { Metadata } from 'next';
 import {
   listMyAssignments,
   listPanelContacts,
   getPreviewShowName,
 } from '@/modules/judging/data/queries';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
 import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
 import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
@@ -16,10 +17,11 @@ import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
 export const metadata: Metadata = { title: 'Panel & Contacts — Field & Arena' };
 
 export default async function JudgingPanelPage() {
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // Demo rows only; real rows carry today in their own show's timezone.
+  const demoTodayIso = todayInZone(resolveTimeZone());
   const [profile, realAssignments, realContacts] = await Promise.all([
     getStaffProfile(),
-    listMyAssignments(todayIso),
+    listMyAssignments(),
     listPanelContacts(),
   ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
@@ -27,9 +29,9 @@ export default async function JudgingPanelPage() {
   // are the fallback for a SuperAdmin who hasn't picked one.
   const previewShowName = isSuperAdminPreview ? await getPreviewShowName() : null;
   const useDemoData = isSuperAdminPreview && previewShowName === null;
-  const assignments = useDemoData ? buildDemoAssignments(todayIso) : realAssignments;
+  const assignments = useDemoData ? buildDemoAssignments(demoTodayIso) : realAssignments;
   const contacts = useDemoData ? buildDemoPanelContacts() : realContacts;
-  const snapshot = buildTodaySnapshot(assignments, contacts, todayIso);
+  const snapshot = buildTodaySnapshot(assignments, contacts);
 
   return (
     <>

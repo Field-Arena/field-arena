@@ -5,8 +5,7 @@ import {
   useRemovePanelSeat,
   useUpsertPanelSeat,
 } from '@/modules/scoring/hooks/use-scoring-mutations';
-import type { PanelCandidate } from '@/modules/scoring/data/queries';
-import type { PanelSeat } from '@/modules/scoring/types';
+import type { PanelCandidate, PanelSeat } from '@/modules/scoring/types';
 
 export function PanelAssignmentCard({
   classId,
@@ -31,8 +30,8 @@ export function PanelAssignmentCard({
   }
 
   return (
-    <div className="rounded-xl border border-[#E9EDEB] bg-white p-[16px_18px]">
-      <span className="mb-3 block text-[10px] font-bold tracking-[.12em] text-[#7A8781] uppercase">
+    <div className="fa-card !overflow-visible p-5">
+      <span className="mb-3 block text-[11px] font-semibold tracking-[.08em] text-[var(--fa-ink-3)] uppercase">
         Panel Assignment
       </span>
 
@@ -40,14 +39,14 @@ export function PanelAssignmentCard({
         {panel.map((seat) => (
           <div
             key={seat.seatId}
-            className="flex flex-wrap items-center gap-2 rounded-lg border border-[#E9EDEB] p-2.5"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-[#E7EAEE] p-2.5"
           >
-            <span className="text-ink-deep w-24 flex-none text-[13px] font-semibold">
+            <span className="w-24 flex-none text-[13px] font-semibold text-[#101828]">
               Judge at {seat.position ?? '—'}
             </span>
 
             <select
-              className="rounded-md border border-[#E9EDEB] px-2 py-1.5 text-[13px]"
+              className="rounded-md border border-[#E7EAEE] px-2 py-1.5 text-[13px]"
               value={seat.judgeStaffId ?? ''}
               onChange={(e) => {
                 upsert.mutate({
@@ -66,7 +65,7 @@ export function PanelAssignmentCard({
             </select>
 
             <select
-              className="rounded-md border border-[#E9EDEB] px-2 py-1.5 text-[13px]"
+              className="rounded-md border border-[#E7EAEE] px-2 py-1.5 text-[13px]"
               value={seat.scribeStaffId ?? ''}
               onChange={(e) => {
                 upsert.mutate({

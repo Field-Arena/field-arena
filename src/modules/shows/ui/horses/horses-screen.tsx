@@ -8,8 +8,8 @@ import type {
   HorseDocumentStatus,
   HorsesPageData,
   HorseRow,
-} from '@/modules/shows/data/horses-queries';
-import type { StableChartSummary } from '@/modules/shows/data/stable-chart-queries';
+  StableChartSummary,
+} from '@/modules/shows/types';
 import { AddHorseDialog } from '@/modules/shows/ui/horses/add-horse-dialog';
 import {
   useRemindHorseDocuments,

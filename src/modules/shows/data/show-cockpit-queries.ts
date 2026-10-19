@@ -4,77 +4,16 @@ import { getMasterSchedule } from '@/modules/shows/data/setup-queries';
 import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
 import { COGGINS_LABEL } from '@/modules/shows/constants';
 import type { ScheduleRide } from '@/modules/shows/schedule-engine';
+import { clockLabel } from '@/modules/shows/utils/clock-label';
 import type {
   DashboardTodo,
-  ShowDocumentSummary,
-  ShowPanelDetail,
-  TicketSales,
+  LiveClassRow,
+  LiveData,
+  LiveRide,
+  LiveRing,
+  ReadinessItem,
+  ShowCockpit,
 } from '@/modules/shows/types';
-
-export interface ReadinessItem {
-  label: string;
-  state: 'done' | 'warn' | 'todo';
-  status: string;
-}
-
-export interface LiveRide {
-  entryId: string;
-  num: string;
-  rider: string;
-  horse: string;
-  start: number;
-}
-
-export interface LiveRing {
-  ring: string;
-  classId: string | null;
-  classLabel: string | null;
-  current: LiveRide | null;
-  onDeck: LiveRide | null;
-  inHole: LiveRide | null;
-  rideIndex: number;
-  rideTotal: number;
-  /** Minutes behind (+) or ahead (−) of schedule; null when not meaningful. */
-  paceMinutes: number | null;
-}
-
-export interface LiveClassRow {
-  classId: string;
-  label: string;
-  ring: string;
-  start: number;
-  status: 'results' | 'running' | 'next' | 'done';
-}
-
-export interface LiveData {
-  dayIndex: number;
-  totalDays: number;
-  ridesTotal: number;
-  ridesDone: number;
-  scratches: number;
-  ridersToday: number;
-  classesToday: number;
-  resultsPublished: number;
-  lastRideEnd: number | null;
-  nowMinutes: number;
-  rings: LiveRing[];
-  schedule: LiveClassRow[];
-  needsNow: DashboardTodo[];
-  waiversBlocking: number;
-  cogginsBlocking: number;
-}
-
-export interface ShowCockpit {
-  todos: DashboardTodo[];
-  documents: ShowDocumentSummary;
-  entries: number;
-  revenue: number;
-  tickets: TicketSales;
-  detail: ShowPanelDetail;
-  newOrdersThisWeek: number;
-  readiness: ReadinessItem[];
-  live: LiveData | null;
-}
 
 const plural = (n: number, word: string) => `${String(n)} ${word}${n === 1 ? '' : 's'}`;
 
@@ -92,13 +31,6 @@ function minutesNowInZone(timeZone: string): number {
 
 const dayDiff = (from: string, to: string) =>
   Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
-
-export function clockLabel(minutes: number): string {
-  const h24 = Math.floor(minutes / 60) % 24;
-  const m = Math.round(minutes % 60);
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  return `${String(h12)}:${String(m).padStart(2, '0')} ${h24 < 12 ? 'AM' : 'PM'}`;
-}
 
 /* Everything the show page needs, before and during the show. */
 export async function getShowCockpit(
