@@ -5,11 +5,9 @@ import {
   getShowSetupDetail,
   listClasses,
 } from '@/modules/shows/data/setup-queries';
-import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
+import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import { MasterScheduleView } from '@/modules/shows/ui/schedule/master-schedule-view';
 import { SchedulePreferencesCard } from '@/modules/shows/ui/show-manager/schedule-preferences-card';
-import { PrintScheduleButton } from '@/modules/shows/ui/schedule/print-schedule-button';
-import { PublishScheduleButton } from '@/modules/shows/ui/schedule/publish-schedule-button';
 
 export const metadata: Metadata = { title: 'Master Schedule — Field & Arena' };
 
@@ -47,18 +45,10 @@ export default async function MasterSchedulePage({
   return (
     <WorkspacePage
       title="Master Schedule"
-      description="Auto-built from entries. Tune ride lengths, move classes between rings and days, drag riders into order, and publish when it's ready. Everything re-times instantly."
+      description="The master schedule for your currently focused show."
       orgName={context.orgName}
       shows={context.shows}
       currentShow={context.currentShow}
-      actions={
-        data && hasRides ? (
-          <>
-            <PrintScheduleButton />
-            <PublishScheduleButton showId={data.showId} published={data.published} />
-          </>
-        ) : undefined
-      }
     >
       {!data || !hasRides ? (
         data?.schedule.tooLarge ? (
@@ -74,26 +64,25 @@ export default async function MasterSchedulePage({
         )
       ) : (
         <>
-          <MasterScheduleView data={data} />
-          <div className="mt-4 print:hidden">
-            {/* Pacing/order/lunch/day-time preferences moved here from Setup —
-              client feedback: deciding these before any entries exist is
-              premature, they only make sense once there's a real schedule to
-              tune (client's own words: "should be made after the entries
-              are done"). This page already gates everything below on
-              hasRides, which is exactly that condition. */}
-            {showDetail && (
-              <SchedulePreferencesCard
-                showId={context.currentShow.id}
-                startDate={showDetail.startDate}
-                endDate={showDetail.endDate}
-                prefs={showDetail.schedulePrefs}
-                dayStartTimes={showDetail.dayStartTimes}
-                dayEndTimes={showDetail.dayEndTimes}
-                classes={classes}
-              />
-            )}
-          </div>
+          {/* Pacing/order/lunch/day-time preferences live here, not in Setup --
+              they only make sense once there's a real schedule to tune. They
+              sit with the schedule rules behind its Show/Hide button. */}
+          <MasterScheduleView
+            data={data}
+            preferences={
+              showDetail && (
+                <SchedulePreferencesCard
+                  showId={context.currentShow.id}
+                  startDate={showDetail.startDate}
+                  endDate={showDetail.endDate}
+                  prefs={showDetail.schedulePrefs}
+                  dayStartTimes={showDetail.dayStartTimes}
+                  dayEndTimes={showDetail.dayEndTimes}
+                  classes={classes}
+                />
+              )
+            }
+          />
         </>
       )}
     </WorkspacePage>

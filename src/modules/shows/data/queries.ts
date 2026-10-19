@@ -16,7 +16,6 @@ import type {
   ActivityItem,
   AttentionItem,
   DashboardReadiness,
-  DashboardShowRow,
   IncompleteShowSummary,
   InventoryRow,
   OrgBilling,
@@ -209,78 +208,6 @@ export async function getShowManagerVitals(showId: string): Promise<ShowManagerV
  * mirrors getShowStage()'s rules; rider counts mirror getShowStats()'s
  * rider_id-falls-back-to-rider identity rule, just grouped by show instead
  * of computed for one. */
-export async function listDashboardShows(orgId: string): Promise<DashboardShowRow[]> {
-  const supabase = await createServerClient();
-
-  const { data: shows, error } = await supabase
-    .from('shows')
-    .select('id, slug, name, date_label, published, runner_state')
-    .eq('org_id', orgId)
-    .order('start_date', { ascending: false });
-  if (error) throw error;
-  if (shows.length === 0) return [];
-
-  const showIds = shows.map((s) => s.id);
-
-  const [{ data: classes, error: classError }, { data: publishedClasses, error: pubError }] =
-    await Promise.all([
-      supabase.from('classes').select('id, show_id').in('show_id', showIds),
-      supabase
-        .from('classes')
-        .select('show_id')
-        .in('show_id', showIds)
-        .eq('results_published', true),
-    ]);
-  if (classError) throw classError;
-  if (pubError) throw pubError;
-
-  const completeShowIds = new Set(publishedClasses.map((c) => c.show_id));
-  const showIdByClassId = new Map(classes.map((c) => [c.id, c.show_id]));
-  const classIds = classes.map((c) => c.id);
-
-  const ridersByShow = new Map<string, Set<string>>();
-  if (classIds.length > 0) {
-    const entries = await fetchAllRows(() =>
-      supabase
-        .from('class_entries')
-        .select('rider, rider_id, class_id')
-        .in('class_id', classIds)
-        .order('id'),
-    );
-    for (const e of entries) {
-      const showId = showIdByClassId.get(e.class_id);
-      if (!showId) continue;
-      const key = e.rider_id ?? e.rider;
-      if (!key) continue;
-      const set = ridersByShow.get(showId) ?? new Set<string>();
-      set.add(key);
-      ridersByShow.set(showId, set);
-    }
-  }
-
-  return shows.map((show) => {
-    const runner = (show.runner_state ?? {}) as { approved?: boolean; ticketClosed?: boolean };
-    const stage = completeShowIds.has(show.id)
-      ? 'complete'
-      : runner.approved
-        ? 'live'
-        : runner.ticketClosed
-          ? 'sales-closed'
-          : show.published
-            ? 'sales-open'
-            : 'setup';
-
-    return {
-      id: show.id,
-      slug: show.slug,
-      name: show.name,
-      dateLabel: show.date_label,
-      stage,
-      riderCount: ridersByShow.get(show.id)?.size ?? 0,
-    };
-  });
-}
-
 export async function getDashboardReadiness(showId: string): Promise<DashboardReadiness> {
   const supabase = await createServerClient();
 
@@ -369,7 +296,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
 
   const { data, error } = await supabase
     .from('shows')
-    .select('id, slug, name, date_label, start_date, venue_name, published, runner_state')
+    .select('id, slug, name, date_label, start_date, end_date, venue_name, published, runner_state')
     .eq('org_id', orgId)
     .order('start_date', { ascending: true, nullsFirst: false });
   if (error) throw error;
@@ -404,6 +331,7 @@ export async function listShowsForPicker(orgId: string): Promise<ShowPickerSumma
       name: s.name,
       dateLabel: s.date_label,
       startDate: s.start_date,
+      endDate: s.end_date,
       venueName: s.venue_name,
       published: s.published ?? false,
       stage,

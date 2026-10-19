@@ -2,8 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import { PrinterIcon } from 'lucide-react';
-import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
-import { GhostButton } from '@/shared/ui/organizer/buttons';
+import {
+  CardTitle,
+  EmptyState,
+  FA_BTN,
+  FA_SELECT,
+  FaCard,
+  Pill,
+} from '@/shared/ui/organizer/fa-page';
 import type {
   EntryLedgerPageData,
   RingPacketPageData,
@@ -16,6 +22,7 @@ import { RingPacketPrintView } from '@/modules/shows/ui/filing-cabinet/print/rin
 import { BackNumberOfficeListPrintView } from '@/modules/shows/ui/filing-cabinet/print/back-number-office-list-print-view';
 import { BackNumberCardsPanel } from '@/modules/shows/ui/filing-cabinet/back-number-cards-panel';
 import { useMarkRingPacketPrinted } from '@/modules/shows/hooks/use-print-center-mutations';
+import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 
 type PrintJob = 'ledger' | 'numberCards' | 'testCopies' | 'ringPacket' | 'officeNumberList';
 
@@ -85,51 +92,52 @@ export function PrintCenterScreen({
   }
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
-      <div className="mb-4 print:hidden">
-        <SectionTitle className="mb-1.5">Print Center</SectionTitle>
-        <ScreenLede className="mb-0">
-          Print the entry ledger or entry/bridle/back number cards for {showName}.
-        </ScreenLede>
-      </div>
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <CabinetSectionHead
+        className="print:hidden"
+        title="Print center"
+        lede={<>Print the entry ledger or entry/bridle/back number cards for {showName}.</>}
+      />
 
       {rows.length === 0 ? (
-        <Card className="p-[18px_20px_20px] print:hidden">
-          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
-            Nothing to print yet — entries appear once riders check out.
-          </p>
-        </Card>
+        <div className="print:hidden">
+          <EmptyState title="Nothing to print yet" note="Entries appear once riders check out." />
+        </div>
       ) : (
         <div className="flex flex-wrap gap-3 print:hidden">
-          <GhostButton
+          <button
+            type="button"
+            className={FA_BTN}
             onClick={() => {
               runPrint('ledger');
             }}
           >
             <PrinterIcon className="size-4" aria-hidden />
             Print Entry Ledger ({rows.length})
-          </GhostButton>
-          <GhostButton
+          </button>
+          <button
+            type="button"
+            className={FA_BTN}
             onClick={() => {
               runPrint('numberCards');
             }}
           >
             <PrinterIcon className="size-4" aria-hidden />
             Print Number Cards ({rows.length})
-          </GhostButton>
+          </button>
         </div>
       )}
 
       {testRows.length > 0 && (
-        <Card className="mt-4 p-[18px_20px_20px] print:hidden">
-          <h2 className="mb-3 text-[14px] font-bold">Test copy counts</h2>
+        <FaCard className="mt-4 print:hidden">
+          <CardTitle className="mb-3 text-[17px]">Test copy counts</CardTitle>
           <div className="mb-3 flex flex-wrap gap-3">
             <select
               value={dayFilter}
               onChange={(e) => {
                 setDayFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
+              className={FA_SELECT}
               aria-label="Filter by day"
             >
               <option value="">All days</option>
@@ -144,7 +152,7 @@ export function PrintCenterScreen({
               onChange={(e) => {
                 setRingFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
+              className={FA_SELECT}
               aria-label="Filter by ring"
             >
               <option value="">All rings</option>
@@ -155,27 +163,29 @@ export function PrintCenterScreen({
               ))}
             </select>
           </div>
-          <GhostButton
+          <button
+            type="button"
+            className={FA_BTN}
             onClick={() => {
               runPrint('testCopies');
             }}
           >
             <PrinterIcon className="size-4" aria-hidden />
             Print Test Copy Counts ({filteredTestRows.length})
-          </GhostButton>
-        </Card>
+          </button>
+        </FaCard>
       )}
 
       {packetClasses.length > 0 && (
-        <Card className="mt-4 p-[18px_20px_20px] print:hidden">
-          <h2 className="mb-3 text-[14px] font-bold">Ring packet — rides in order</h2>
+        <FaCard className="mt-4 print:hidden">
+          <CardTitle className="mb-3 text-[17px]">Ring packet — rides in order</CardTitle>
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <select
               value={dayFilter}
               onChange={(e) => {
                 setDayFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
+              className={FA_SELECT}
               aria-label="Filter by day"
             >
               <option value="">All days</option>
@@ -190,7 +200,7 @@ export function PrintCenterScreen({
               onChange={(e) => {
                 setRingFilter(e.target.value);
               }}
-              className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
+              className={FA_SELECT}
               aria-label="Filter by ring"
             >
               <option value="">All rings</option>
@@ -200,7 +210,7 @@ export function PrintCenterScreen({
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-1.5 text-[13px] text-[#475467]">
+            <label className="flex items-center gap-1.5 text-[13px] font-semibold text-[#5A6B63]">
               <input
                 type="checkbox"
                 checked={onlyChanged}
@@ -212,20 +222,18 @@ export function PrintCenterScreen({
             </label>
           </div>
 
-          <ul className="mb-3 flex flex-col gap-1 text-[12.5px] text-[#475467]">
+          <ul className="mb-3 flex flex-col gap-1 text-[12.5px] text-[#5A6B63]">
             {filteredPacketClasses.map((c) => (
               <li key={c.classId} className="flex items-center gap-2">
                 <span>{c.classLabel}</span>
-                {c.needsReprint && (
-                  <span className="rounded-full bg-[#FCEBD2] px-2 py-0.5 text-[10.5px] font-bold text-[#9A6A12]">
-                    needs reprint
-                  </span>
-                )}
+                {c.needsReprint && <Pill tone="yellow">needs reprint</Pill>}
               </li>
             ))}
           </ul>
 
-          <GhostButton
+          <button
+            type="button"
+            className={FA_BTN}
             disabled={markPrinted.isPending}
             onClick={() => {
               runPrint('ringPacket');
@@ -234,23 +242,25 @@ export function PrintCenterScreen({
             <PrinterIcon className="size-4" aria-hidden />
             Print Ring Packet ({filteredPacketClasses.length} class
             {filteredPacketClasses.length === 1 ? '' : 'es'})
-          </GhostButton>
-        </Card>
+          </button>
+        </FaCard>
       )}
 
       {backNumberRows.length > 0 && (
-        <Card className="mt-4 p-[18px_20px_20px] print:hidden">
-          <h2 className="mb-3 text-[14px] font-bold">Rider back numbers</h2>
+        <FaCard className="mt-4 print:hidden">
+          <CardTitle className="mb-3 text-[17px]">Rider back numbers</CardTitle>
           <BackNumberCardsPanel showId={showId} rows={backNumberRows} />
-          <GhostButton
+          <button
+            type="button"
+            className={FA_BTN}
             onClick={() => {
               runPrint('officeNumberList');
             }}
           >
             <PrinterIcon className="size-4" aria-hidden />
             Print office list ({backNumberRows.length})
-          </GhostButton>
-        </Card>
+          </button>
+        </FaCard>
       )}
 
       {job === 'ledger' && <EntryLedgerPrintView showName={showName} rows={rows} />}

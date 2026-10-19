@@ -191,7 +191,13 @@ export function RiderDemoWalkthrough({
         <div className="mx-auto max-w-2xl space-y-6">
           {activeIndex === 0 && (
             <>
-              <ClassPicker classes={DEMO_CLASSES} qualTypes={DEMO_QUAL_TYPES} />
+              <ClassPicker
+                classes={DEMO_CLASSES}
+                qualTypes={DEMO_QUAL_TYPES}
+                horses={[]}
+                showType="rated"
+                riderCategory={null}
+              />
               <AddOnPicker addOns={DEMO_ADD_ONS} />
             </>
           )}

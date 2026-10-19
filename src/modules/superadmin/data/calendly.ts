@@ -6,7 +6,7 @@ export async function upsertLeadFromCalendly(lead: CalendlyLead): Promise<void> 
   const admin = createAdminClient();
 
   const EXISTING_COLUMNS =
-    'id, org_name, contact_name, email, website, shows_per_year, calendly_event_uri, demo_at, status';
+    'id, org_name, contact_name, email, website, phone, city, state, shows_per_year, calendly_event_uri, demo_at, status';
 
   let existing: {
     id: string;
@@ -14,6 +14,9 @@ export async function upsertLeadFromCalendly(lead: CalendlyLead): Promise<void> 
     contact_name: string | null;
     email: string | null;
     website: string | null;
+    phone: string | null;
+    city: string | null;
+    state: string | null;
     shows_per_year: number | null;
     calendly_event_uri: string | null;
     demo_at: string | null;
@@ -45,6 +48,9 @@ export async function upsertLeadFromCalendly(lead: CalendlyLead): Promise<void> 
     contact_name: lead.contactName ?? existing?.contact_name ?? null,
     email: lead.email ?? existing?.email ?? null,
     website: lead.website ?? existing?.website ?? null,
+    phone: lead.phone ?? existing?.phone ?? null,
+    city: lead.city ?? existing?.city ?? null,
+    state: lead.state ?? existing?.state ?? null,
     shows_per_year: lead.showsPerYear ?? existing?.shows_per_year ?? null,
     calendly_event_uri: lead.calendlyEventUri ?? existing?.calendly_event_uri ?? null,
     demo_at: lead.demoAt ?? existing?.demo_at ?? null,

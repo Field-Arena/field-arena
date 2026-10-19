@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { RIDER_CATEGORIES, RIDER_FIELD_MAX } from '@/modules/riders/constants';
+import {
+  ENTRY_DIVISION_CODES,
+  RIDER_CATEGORIES,
+  RIDER_FIELD_MAX,
+} from '@/modules/riders/constants';
 import { emailSchema, requiredEmailSchema } from '@/shared/schemas/email';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
 
@@ -17,6 +21,13 @@ export const riderSignUpSchema = z.object({
 });
 
 export type RiderSignUpInput = z.infer<typeof riderSignUpSchema>;
+
+export const riderSignInSchema = z.object({
+  email: requiredEmailSchema('Enter the email address you signed up with'),
+  password: z.string().min(1, 'Enter your password'),
+});
+
+export type RiderSignInInput = z.infer<typeof riderSignInSchema>;
 
 export const riderVerifySchema = z.object({
   email: emailSchema(),
@@ -95,7 +106,7 @@ export type RiderProfileUpdateInput = z.infer<typeof riderProfileUpdateSchema>;
 export const riderDetailsFormSchema = z.object({
   usef: membershipNumberSchema('USEF number').optional(),
   fei: membershipNumberSchema('FEI number').optional(),
-  category: z.enum(RIDER_CATEGORIES, { message: 'Choose a rider category' }),
+  // Rider division is chosen per class at entry now — no longer asked here.
   dob: z
     .string()
     .trim()
@@ -168,9 +179,21 @@ export type HorseDocumentDeleteInput = z.infer<typeof horseDocumentDeleteSchema>
 export const waiverSignSchema = z.object({
   showId: z.uuid(),
   fullName: z.string().trim().min(1, 'Your typed full legal name is required').max(200),
+  // Ignored: the signature date is always set server-side to the day the
+  // rider signs. Kept optional so older clients still validate.
+  signatureDate: z.string().trim().optional(),
 });
 
 export type WaiverSignInput = z.infer<typeof waiverSignSchema>;
+
+export const requiredDocumentSignSchema = z.object({
+  showId: z.uuid(),
+  requirementId: z.string().trim().min(1),
+  fullName: z.string().trim().min(1, 'Type your full legal name to sign').max(200),
+  agreed: z.literal(true, { message: 'Tick "I agree" to sign' }),
+});
+
+export type RequiredDocumentSignInput = z.infer<typeof requiredDocumentSignSchema>;
 
 export const checkoutCartLineSchema = z.object({
   classId: z.uuid(),
@@ -181,6 +204,9 @@ export const checkoutCartLineSchema = z.object({
   // class — priceCart/finalizeOrder only look for this when the class it
   // belongs to actually has test_options set.
   testChoice: z.string().trim().min(1).optional(),
+  // The rider division (J/Y/A/O) chosen for this class entry. Optional so a
+  // cart built before this field existed still validates.
+  division: z.enum(ENTRY_DIVISION_CODES).optional(),
 });
 
 export type CheckoutCartLine = z.infer<typeof checkoutCartLineSchema>;

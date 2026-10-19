@@ -3,7 +3,7 @@ import { getLiveResults, listMyShows, pickCurrentShow } from '@/modules/announce
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { LiveResultsTable } from '@/modules/announcements/ui/live-results-table';
 import { AnnouncerAutoRefresh } from '@/modules/announcements/ui/announcer-auto-refresh';
-import { EmptyPanel } from '@/shared/ui/workspace-page';
+import { EmptyState, LiveDot, PageHeader } from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Results — Live — Field & Arena' };
 
@@ -19,18 +19,14 @@ export default async function AnnouncingResultsPage({
   if (!currentShow) {
     return (
       <>
-        <div className="dash-head">
-          <div>
-            <h1>Results — Live</h1>
-            <p>Every rider&apos;s score, the moment it&apos;s confirmed — class by class.</p>
-          </div>
-        </div>
-        <div className="dash-card">
-          <EmptyPanel
-            title="No shows assigned"
-            note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
-          />
-        </div>
+        <PageHeader
+          eyebrow="Every rider's score, the moment it's confirmed — class by class"
+          title="Results — Live"
+        />
+        <EmptyState
+          title="No shows assigned"
+          note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
+        />
       </>
     );
   }
@@ -39,18 +35,18 @@ export default async function AnnouncingResultsPage({
 
   return (
     <>
-      <div className="dash-head">
-        <div>
-          <h1>Results — Live</h1>
-          <p>Every rider&apos;s score, the moment it&apos;s confirmed — class by class.</p>
-        </div>
-      </div>
-
-      <div className="dash-card">
-        <AnnouncerAutoRefresh />
-        <ShowSwitcher currentShow={currentShow} shows={shows} />
-        <LiveResultsTable results={results} />
-      </div>
+      <AnnouncerAutoRefresh />
+      <PageHeader
+        eyebrow={
+          <span className="inline-flex items-center gap-2">
+            <LiveDot />
+            Every rider&apos;s score, the moment it&apos;s confirmed — class by class
+          </span>
+        }
+        title="Results — Live"
+        actions={<ShowSwitcher currentShow={currentShow} shows={shows} />}
+      />
+      <LiveResultsTable results={results} />
     </>
   );
 }

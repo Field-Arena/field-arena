@@ -176,6 +176,8 @@ export const createLeadSchema = z.object({
   email: blankOrEmail(200).optional().transform(blankToUndefined),
   phone: blankPhoneToUndef,
   website: optionalWebsiteSchema(200),
+  city: z.string().trim().max(120).optional().transform(blankToUndefined),
+  state: z.string().trim().max(120).optional().transform(blankToUndefined),
   showsPerYear: z
     .string()
     .trim()
@@ -210,6 +212,8 @@ export const updateLeadSchema = z.object({
     .refine(isValidWebsiteValue, WEBSITE_INVALID_MESSAGE)
     .transform(normalizeWebsiteUrl)
     .nullish(),
+  city: z.string().trim().max(120).nullish(),
+  state: z.string().trim().max(120).nullish(),
   status: z.enum(LEAD_STATUS_VALUES).optional(),
   notes: z.string().max(8000).nullish(),
   showsPerYear: z.number().int().min(0).max(LEAD_SHOWS_PER_YEAR_MAX).nullish(),
@@ -225,6 +229,8 @@ export const updateLeadSchema = z.object({
 export type UpdateLeadInput = z.input<typeof updateLeadSchema>;
 
 export const leadIdSchema = z.object({ id: z.uuid() });
+
+export const leadNoShowSchema = z.object({ id: z.uuid(), noShow: z.boolean() });
 
 export const toggleChecklistItemSchema = z.object({
   id: z.uuid(),

@@ -258,7 +258,22 @@ export interface CalendlyLead {
   contactName: string | null;
   email: string | null;
   website: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
   showsPerYear: number | null;
   calendlyEventUri: string | null;
   demoAt: string | null;
+}
+
+export type OrganizerInviteState = 'none' | 'pending' | 'signed-up';
+
+/** One row of the Sales pipeline's contact list (see listContacts). */
+export interface ContactRow {
+  lead: LeadRow;
+  demo: 'none' | 'pending' | 'complete' | 'no-show';
+  organizer: OrganizerInviteState;
+  /** Shows the organizer has created on the platform (when signed up). */
+  showsCreated: number;
+  signedUpAt: string | null;
 }

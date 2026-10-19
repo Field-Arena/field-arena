@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSignWaiver } from '@/modules/riders/hooks/use-waiver-mutations';
 import type { WaiverSignatureRow } from '@/modules/riders/types';
+import { formatDateShort } from '@/shared/lib/format/date';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -16,20 +17,27 @@ export function WaiverForm({
   existingSignature,
   waiverDocumentUrl,
   waiverDocumentName,
+  todayDate,
 }: {
   showId: string;
   waiverText: string;
   existingSignature: WaiverSignatureRow | null;
   waiverDocumentUrl?: string | null;
   waiverDocumentName?: string | null;
+  /** Today's date in the show's time zone — what the server will date the
+   * signature with. Shown read-only; the rider never types a date. */
+  todayDate: string;
 }) {
   const textRef = useRef<HTMLDivElement>(null);
   const [scrolledToBottom, setScrolledToBottom] = useState(!!existingSignature);
   const [fullName, setFullName] = useState(existingSignature?.full_name ?? '');
+  const documentIsPdf = /\.pdf$/i.test(waiverDocumentName ?? '');
   const [agreed, setAgreed] = useState(!!existingSignature);
   const signWaiver = useSignWaiver();
   const signed = !!existingSignature || signWaiver.isSuccess;
-  const signatureDate = existingSignature?.signature_date ?? signWaiver.data?.signature_date ?? '';
+  // The server dates the signature; show what it stored once signed.
+  const signatureDate =
+    existingSignature?.signature_date ?? signWaiver.data?.signature_date ?? todayDate;
 
   const checkScrolled = () => {
     const el = textRef.current;
@@ -52,6 +60,17 @@ export function WaiverForm({
         <CardTitle>Release of liability, waiver of claims, and assumption of risk</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <p className="text-fa-muted text-xs">
+          Read the release below, then sign it here on the site — type your full legal name and tick
+          &ldquo;I agree&rdquo;. Nothing to print, scan or upload.
+        </p>
+        {waiverDocumentUrl && waiverDocumentName && documentIsPdf && (
+          <iframe
+            src={waiverDocumentUrl}
+            title={waiverDocumentName}
+            className="border-line h-[420px] w-full rounded-lg border bg-white"
+          />
+        )}
         {waiverDocumentUrl && waiverDocumentName && (
           <a
             href={waiverDocumentUrl}
@@ -59,7 +78,7 @@ export function WaiverForm({
             rel="noreferrer"
             className="text-forest inline-block text-xs font-semibold underline underline-offset-2"
           >
-            📄 View full document: {waiverDocumentName}
+            📄 {documentIsPdf ? 'Open in a new tab' : 'View full document'}: {waiverDocumentName}
           </a>
         )}
         <div
@@ -85,18 +104,18 @@ export function WaiverForm({
               onChange={(event) => {
                 setFullName(event.target.value);
               }}
-              placeholder="e.g. Jordan A. Rider"
+              placeholder="Click here to type your full legal name…"
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="waiver-date">Date</Label>
-            <Input
+            <div
               id="waiver-date"
-              value={signatureDate}
-              readOnly
-              disabled
-              placeholder="Dated automatically when you sign"
-            />
+              className="border-line text-forest flex h-9 items-center rounded-lg border bg-white/60 px-3 text-sm"
+            >
+              {formatDateShort(signatureDate)}
+            </div>
+            <p className="text-fa-muted text-[11px]">Filled in automatically when you sign.</p>
           </div>
         </div>
 
@@ -110,11 +129,14 @@ export function WaiverForm({
             }}
             className="mt-0.5"
           />
-          I have read and agree to the terms above.
+          I agree — I have read the release above and I am signing it electronically.
         </label>
 
         {signed ? (
-          <p className="text-sm font-medium text-green-700">✓ Signed</p>
+          <p className="text-sm font-medium text-green-700">
+            ✓ Signed by {existingSignature?.full_name ?? fullName.trim()} on{' '}
+            {formatDateShort(signatureDate)}
+          </p>
         ) : (
           <Button
             type="button"

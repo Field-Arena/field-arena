@@ -4,7 +4,7 @@ import { listSales, getCanRefund } from '@/modules/sales/data/queries';
 import { computeSalesStats } from '@/modules/sales/utils/compute-sales-stats';
 import { EventSalesScreen } from '@/modules/sales/ui/event-sales-screen';
 import { isStripeLive } from '@/shared/lib/stripe';
-import { WorkspacePage, EmptyPanel } from '@/shared/ui/workspace-page';
+import { WorkspacePage, EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Event Sales — Field & Arena' };
 
@@ -20,7 +20,7 @@ export default async function EventSalesPage({
     return (
       <WorkspacePage
         title="Event Sales"
-        description="Entry fees, add-ons, and vendor booths for the focused show — open any order to view the invoice, refund, or charge more."
+        description="Rider entries and add-ons"
         orgName={context.orgName}
         showPicker={false}
       >
@@ -42,22 +42,16 @@ export default async function EventSalesPage({
   const stats = computeSalesStats(rows);
 
   return (
-    <WorkspacePage
-      title="Event Sales"
-      description="Entry fees, add-ons, and vendor booths for the focused show — open any order to view the invoice, refund, or charge more."
-      orgName={context.orgName}
+    <EventSalesScreen
       shows={context.shows}
-      currentShow={context.currentShow}
-    >
-      <EventSalesScreen
-        showId={context.currentShow.id}
-        showName={context.currentShow.name}
-        isLive={isStripeLive()}
-        canRefund={canRefund}
-        canViewMoney={context.canViewMoney}
-        rows={rows}
-        stats={stats}
-      />
-    </WorkspacePage>
+      currentRef={context.currentShow.slug ?? context.currentShow.id}
+      showId={context.currentShow.id}
+      showName={context.currentShow.name}
+      isLive={isStripeLive()}
+      canRefund={canRefund}
+      canViewMoney={context.canViewMoney}
+      rows={rows}
+      stats={stats}
+    />
   );
 }

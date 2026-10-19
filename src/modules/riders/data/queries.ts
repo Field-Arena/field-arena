@@ -21,6 +21,8 @@ import type {
   RiderVisibleOrderRow,
   PublicShowDetail,
   RiderEntryDetail,
+  RiderPortalShow,
+  RiderPortalShowStatus,
   RiderRow,
   RiderScorecard,
   RiderScorecardCard,
@@ -102,6 +104,71 @@ export async function listRiderShowLinks(): Promise<RiderShowLink[]> {
     showName: s.name,
     riderNumber: riderNumberByShow.get(s.id) ?? null,
   }));
+}
+
+/* The rider portal home: every show this rider is tied to, so the portal is
+ * show-centric rather than a dead end.
+ *   - entered:     at least one class entry (paid checkout)
+ *   - in_progress: signed this show's waiver or started a checkout, no entry yet
+ *   - not_started: a show they opened from its public page (recentShowIds —
+ *                  remembered in a cookie by the show's entry page) but haven't
+ *                  done anything on yet
+ * Only shows the rider can read under RLS (published) come back. */
+export async function listRiderPortalShows(recentShowIds: string[]): Promise<RiderPortalShow[]> {
+  const supabase = await createServerClient();
+
+  const user = await getCachedRiderUser();
+  if (!user) return [];
+
+  const [entered, waivers, orders] = await Promise.all([
+    listRiderShowLinks(),
+    supabase.from('waiver_signatures').select('show_id').eq('rider_id', user.id),
+    supabase.from('orders').select('show_id, status').eq('rider_id', user.id),
+  ]);
+  if (waivers.error) throw waivers.error;
+  if (orders.error) throw orders.error;
+
+  const status = new Map<string, RiderPortalShowStatus>();
+  const riderNumber = new Map<string, string | null>();
+  for (const link of entered) {
+    status.set(link.showId, 'entered');
+    riderNumber.set(link.showId, link.riderNumber);
+  }
+  for (const row of [...waivers.data, ...orders.data]) {
+    if (!status.has(row.show_id)) status.set(row.show_id, 'in_progress');
+  }
+  for (const id of recentShowIds) {
+    if (!status.has(id)) status.set(id, 'not_started');
+  }
+  const showIds = [...status.keys()];
+  if (showIds.length === 0) return [];
+
+  const { data: shows, error } = await supabase
+    .from('shows')
+    .select('id, slug, name, date_label, venue_name, start_date')
+    .in('id', showIds);
+  if (error) throw error;
+
+  const rank: Record<RiderPortalShowStatus, number> = {
+    in_progress: 0,
+    not_started: 1,
+    entered: 2,
+  };
+  return shows
+    .map((s) => ({
+      showId: s.id,
+      showSlug: s.slug,
+      showName: s.name,
+      dateLabel: s.date_label,
+      venueName: s.venue_name,
+      startDate: s.start_date,
+      status: status.get(s.id) ?? 'not_started',
+      riderNumber: riderNumber.get(s.id) ?? null,
+    }))
+    .sort(
+      (a, b) =>
+        rank[a.status] - rank[b.status] || (b.startDate ?? '').localeCompare(a.startDate ?? ''),
+    );
 }
 
 async function getActiveEntryCountsByClass(classIds: string[]): Promise<Record<string, number>> {

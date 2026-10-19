@@ -1,4 +1,5 @@
 import type { CheckoutAddOnLine, CheckoutCartLine } from '@/modules/riders/schemas';
+import type { EntryDivisionCode } from '@/modules/riders/types';
 
 export interface CheckoutCartPayload {
   cart: CheckoutCartLine[];
@@ -11,12 +12,14 @@ export function buildCheckoutCartPayload({
   qualSelections,
   addOnQuantities,
   testChoices = {},
+  divisionChoices = {},
 }: {
   selectedClassIds: Set<string>;
   classHorseAssignments: Record<string, (string | null)[]>;
   qualSelections: Record<string, Set<string>>;
   addOnQuantities: Record<string, number>;
   testChoices?: Record<string, string>;
+  divisionChoices?: Record<string, EntryDivisionCode>;
 }): CheckoutCartPayload {
   const cart = [...selectedClassIds].flatMap((classId) => {
     const horseIds = (classHorseAssignments[classId] ?? []).filter((id): id is string =>
@@ -24,11 +27,13 @@ export function buildCheckoutCartPayload({
     );
     const qualTypeIds = [...(qualSelections[classId] ?? [])];
     const testChoice = testChoices[classId];
+    const division = divisionChoices[classId];
     return horseIds.map((horseId) => ({
       classId,
       horseId,
       qualTypeIds,
       ...(testChoice ? { testChoice } : {}),
+      ...(division ? { division } : {}),
     }));
   });
   const addOns = Object.entries(addOnQuantities)

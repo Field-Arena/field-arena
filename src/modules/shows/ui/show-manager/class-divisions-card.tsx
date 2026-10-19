@@ -17,11 +17,11 @@ import type { DivisionRow } from '@/modules/shows/types';
 import { DIVISION_PRESETS, DEFAULT_CLASS_FEE } from '@/modules/shows/constants';
 import {
   SM_CARD_PAD,
+  SM_SECTION_HEAD,
   SM_NOTE,
   SM_ROW_INPUT,
   SM_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
-import { SmHead } from './sm-head';
 
 export function ClassDivisionsCard({
   showId,
@@ -34,6 +34,7 @@ export function ClassDivisionsCard({
   const [newName, setNewName] = useState('');
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   // Last values the server accepted, per division — edits save on blur and
   // roll back to these if the save fails.
   const savedRef = useRef(
@@ -153,11 +154,7 @@ export function ClassDivisionsCard({
 
   return (
     <Card className={SM_CARD_PAD}>
-      <SmHead
-        icon="divisions"
-        title="Class divisions"
-        sub="Subcategories offered under every test, with default prices"
-      />
+      <h2 className={SM_SECTION_HEAD}>Class divisions</h2>
       <p className={SM_NOTE}>
         The subcategories offered under every test. Rename, remove, or add your own. Set a default
         price per division — new classes under it start at that price instead of the show default.
@@ -165,7 +162,7 @@ export function ClassDivisionsCard({
 
       <div className="mb-1.5 grid grid-cols-[minmax(0,1fr)_110px_auto] items-center gap-3.5 px-0.5">
         <span />
-        <span className="text-[11px] font-semibold text-[#8A94A3]">Default price</span>
+        <span className="text-[11px] font-semibold text-[#98A29D]">Default price</span>
         <span />
       </div>
       <div className="mb-4 flex flex-col gap-2">
@@ -207,7 +204,7 @@ export function ClassDivisionsCard({
               onClick={() => {
                 commitRemove(d.id);
               }}
-              className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
+              className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
             >
               Remove
             </Button>
@@ -215,60 +212,82 @@ export function ClassDivisionsCard({
         ))}
       </div>
 
-      <div ref={rootRef} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <div className="relative">
-          <Input
-            value={newName}
-            maxLength={120}
-            placeholder="Choose a standard division, or type your own…"
-            className={cn('h-auto', SM_INPUT)}
-            onFocus={() => {
-              setOpen(true);
-            }}
-            onChange={(e) => {
-              setNewName(e.target.value);
-              setOpen(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addName(newName);
-              }
-            }}
-          />
-          {open && suggestions.length > 0 && (
-            <ul
-              role="listbox"
-              aria-label="Standard divisions"
-              className="absolute top-full left-0 z-30 mt-1 max-h-[240px] w-full overflow-y-auto rounded-[10px] border border-[#E7EAEE] bg-white py-1 shadow-lg"
+      <div ref={rootRef}>
+        {presetOptions.length > 0 && (
+          <p className="mb-2 text-[13px] text-[#5A6B63]">
+            <Button
+              type="button"
+              variant="ghost"
+              aria-expanded={open}
+              aria-controls="standard-divisions-list"
+              onClick={() => {
+                setOpen(true);
+                inputRef.current?.focus();
+              }}
+              className="text-forest decoration-gold hover:text-forest h-auto bg-transparent p-0 align-baseline text-[13px] font-extrabold tracking-[.02em] underline decoration-2 underline-offset-[3px] hover:bg-transparent"
             >
-              {suggestions.map((name) => (
-                <li key={name}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={false}
-                    onClick={() => {
-                      addName(name);
-                    }}
-                    className="block w-full truncate px-3 py-2 text-left text-[13.5px] text-[#101828] transition-colors hover:bg-[#E7EAEE]"
-                  >
-                    {name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+              Click HERE
+            </Button>{' '}
+            to choose your standard sub division.
+          </p>
+        )}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              value={newName}
+              maxLength={120}
+              placeholder="Choose a standard sub division, or type your own…"
+              className={cn('h-auto', SM_INPUT)}
+              onFocus={() => {
+                setOpen(true);
+              }}
+              onChange={(e) => {
+                setNewName(e.target.value);
+                setOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addName(newName);
+                }
+              }}
+            />
+            {open && suggestions.length > 0 && (
+              <ul
+                id="standard-divisions-list"
+                role="listbox"
+                aria-label="Standard sub divisions"
+                className="absolute top-full left-0 z-30 mt-1 max-h-[240px] w-full overflow-y-auto rounded-[10px] border border-[#D9E1DD] bg-white py-1 shadow-lg"
+              >
+                {suggestions.map((name) => (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      onClick={() => {
+                        addName(name);
+                      }}
+                      className="text-ink-deep block w-full truncate px-3 py-2 text-left text-[13.5px] transition-colors hover:bg-[#E9EDEB]"
+                    >
+                      {name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <PrimaryButton
+            className="rounded-[9px] whitespace-nowrap"
+            disabled={creating || !newName.trim()}
+            onClick={() => {
+              addName(newName);
+            }}
+          >
+            + Add division
+          </PrimaryButton>
         </div>
-        <PrimaryButton
-          className="rounded-[9px] whitespace-nowrap"
-          disabled={creating || !newName.trim()}
-          onClick={() => {
-            addName(newName);
-          }}
-        >
-          + Add division
-        </PrimaryButton>
       </div>
     </Card>
   );

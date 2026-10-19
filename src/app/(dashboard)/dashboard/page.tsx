@@ -1,16 +1,22 @@
 import { redirect } from 'next/navigation';
 import { DashboardOverview } from '@/modules/staff/ui/dashboard-overview';
+import { DashboardHome } from '@/modules/staff/ui/dashboard-home';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import {
-  getDashboardReadiness,
-  getShowActivity,
-  getShowAttention,
   getShowInventory,
   getShowRingNames,
   getShowStage,
   getShowStats,
-  listDashboardShows,
+  listShowsForPicker,
 } from '@/modules/shows/data/queries';
+import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
+import { todayIsoInZone } from '@/modules/staff/utils';
+import {
+  daysUntilShow,
+  pickCurrentShows,
+  pickFinishedShows,
+} from '@/modules/shows/utils/current-shows';
+import { toDashboardShowRows } from '@/modules/shows/utils/dashboard-show-rows';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 
 export default async function DashboardPage({
@@ -29,48 +35,57 @@ export default async function DashboardPage({
     }
   }
 
-  const dashboardShows = context.orgId ? await listDashboardShows(context.orgId) : [];
+  const dashboardShows = context.orgId
+    ? toDashboardShowRows(await listShowsForPicker(context.orgId))
+    : [];
+  const today = todayIsoInZone();
 
-  if (!context.currentShow) {
+  // No show picked: the home view — the current shows and their to-dos.
+  if (!requestedShowId || !context.currentShow) {
+    const current = pickCurrentShows(dashboardShows, today);
+    const homeShows = await Promise.all(
+      current.map(async (show) => {
+        const daysOut = daysUntilShow(show, today);
+        const { todos, documents, entries, revenue, tickets, detail } = await getShowTodos(
+          show,
+          daysOut,
+        );
+        return { show, daysOut, entries, revenue, tickets, todos, documents, detail };
+      }),
+    );
     return (
-      <DashboardOverview
+      <DashboardHome
         orgName={context.orgName}
-        shows={context.shows}
-        dashboardShows={dashboardShows}
-        currentShow={null}
-        stats={null}
-        inventory={[]}
-        stage="setup"
-        readiness={null}
-        rings={[]}
+        shows={homeShows}
+        upcomingShows={pickCurrentShows(dashboardShows, today, Infinity)}
+        finishedShows={pickFinishedShows(dashboardShows, today)}
         canViewMoney={context.canViewMoney}
       />
     );
   }
 
-  const [stats, inventory, stage, attention, readiness, activity, rings] = await Promise.all([
-    getShowStats(context.currentShow.id),
-    getShowInventory(context.currentShow.id),
-    getShowStage(context.currentShow.id),
-    getShowAttention(context.currentShow.id),
-    getDashboardReadiness(context.currentShow.id),
-    getShowActivity(context.currentShow.id),
-    getShowRingNames(context.currentShow.id),
+  const currentShow = context.currentShow;
+  const daysOut = daysUntilShow(currentShow, today);
+  const [stats, inventory, stage, { todos, documents }, rings] = await Promise.all([
+    getShowStats(currentShow.id),
+    getShowInventory(currentShow.id),
+    getShowStage(currentShow.id),
+    getShowTodos(currentShow, daysOut),
+    getShowRingNames(currentShow.id),
   ]);
 
   return (
     <DashboardOverview
       orgName={context.orgName}
       shows={context.shows}
-      dashboardShows={dashboardShows}
-      currentShow={context.currentShow}
+      currentShow={currentShow}
       stats={stats}
       inventory={inventory}
       stage={stage}
-      readiness={readiness}
       rings={rings}
-      attention={attention}
-      activity={activity}
+      todos={todos}
+      documents={documents}
+      daysOut={daysOut}
       canViewMoney={context.canViewMoney}
     />
   );

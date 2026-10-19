@@ -347,16 +347,19 @@ export const PNL_CATEGORY_ORDER = [
 export const BILLING_SECTIONS = [
   {
     kind: 'charges',
+    icon: '💳',
     title: 'Charges',
     sub: 'Payments collected from riders and vendors across every show.',
   },
   {
     kind: 'payouts',
+    icon: '💰',
     title: 'Payouts',
     sub: 'What you actually receive — transfers to you after the platform fee is deducted.',
   },
   {
     kind: 'deposits',
+    icon: '🧾',
     title: 'Deposits',
     sub: 'Money that has actually landed in the Field & Arena bank account.',
   },

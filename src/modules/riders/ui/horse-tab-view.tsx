@@ -7,6 +7,8 @@ import {
   useUpdateHorse,
 } from '@/modules/riders/hooks/use-horse-mutations';
 import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
+import { RequiredDocumentSign } from '@/modules/riders/ui/required-document-sign';
+import { isSignableRequirement } from '@/modules/riders/utils/is-signable-requirement';
 import {
   LEGACY_COLOR,
   LegacySecTitle,
@@ -26,13 +28,34 @@ const fieldInputStyle: CSSProperties = {
   width: '100%',
 };
 
+const TYPE_HERE = 'Click here to type…';
+
+interface DocumentContext {
+  showId: string;
+  showName: string;
+  riderName: string;
+  horseCount: number;
+}
+
 export function HorseTabView({
   horses,
   documentRequirements,
+  showId,
+  showName,
+  riderName,
 }: {
   horses: HorseWithDocumentUrls[];
   documentRequirements: DocumentRequirement[];
+  showId: string;
+  showName: string;
+  riderName: string;
 }) {
+  const documentContext: DocumentContext = {
+    showId,
+    showName,
+    riderName,
+    horseCount: horses.length,
+  };
   const [adding, setAdding] = useState(false);
   const [newHorseName, setNewHorseName] = useState('');
   const createHorse = useCreateHorse({
@@ -66,14 +89,19 @@ export function HorseTabView({
         </button>
       </div>
 
-      {horses.length === 0 && !adding && (
-        <p style={{ fontSize: 13.5, color: LEGACY_COLOR.inkSoft }}>
-          No horses on your account yet — add one above.
-        </p>
-      )}
+      <p style={{ fontSize: 13, color: LEGACY_COLOR.inkSoft, margin: '0 0 12px' }}>
+        {horses.length === 0 && !adding
+          ? 'No horses on your account yet — click “Add a Horse” above.'
+          : 'Click “Add a Horse” each time you want to add another horse.'}
+      </p>
 
       {horses.map((horse) => (
-        <LegacyHorseCard key={horse.id} horse={horse} documentRequirements={documentRequirements} />
+        <LegacyHorseCard
+          key={horse.id}
+          horse={horse}
+          documentRequirements={documentRequirements}
+          documentContext={documentContext}
+        />
       ))}
 
       {adding && (
@@ -107,7 +135,7 @@ export function HorseTabView({
             </label>
             <input
               autoFocus
-              placeholder="e.g. Midnight Runner"
+              placeholder="Click here to type the horse’s registered name…"
               maxLength={RIDER_FIELD_MAX.horseName}
               value={newHorseName}
               style={fieldInputStyle}
@@ -145,9 +173,11 @@ export function HorseTabView({
 function LegacyHorseCard({
   horse,
   documentRequirements,
+  documentContext,
 }: {
   horse: HorseWithDocumentUrls;
   documentRequirements: DocumentRequirement[];
+  documentContext: DocumentContext;
 }) {
   const updateHorse = useUpdateHorse();
   const deleteHorse = useDeleteHorse();
@@ -196,9 +226,10 @@ function LegacyHorseCard({
           <label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
-            Stable name
+            Home Stable
           </label>
           <input
+            placeholder={TYPE_HERE}
             maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.stable ?? ''}
             style={fieldInputStyle}
@@ -214,6 +245,7 @@ function LegacyHorseCard({
             Trainer name
           </label>
           <input
+            placeholder={TYPE_HERE}
             maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.trainer ?? ''}
             style={fieldInputStyle}
@@ -234,6 +266,7 @@ function LegacyHorseCard({
               const next = sanitizePhoneInput(event.target.value);
               if (next !== event.target.value) event.target.value = next;
             }}
+            placeholder={TYPE_HERE}
             defaultValue={horse.trainer_phone ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -248,7 +281,7 @@ function LegacyHorseCard({
             Height (hands)
           </label>
           <input
-            placeholder="e.g. 15.2"
+            placeholder={`${TYPE_HERE} e.g. 15.2`}
             maxLength={RIDER_FIELD_MAX.horseHeight}
             defaultValue={horse.height ?? ''}
             style={fieldInputStyle}
@@ -264,6 +297,7 @@ function LegacyHorseCard({
             Farrier
           </label>
           <input
+            placeholder={TYPE_HERE}
             maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.farrier ?? ''}
             style={fieldInputStyle}
@@ -296,14 +330,26 @@ function LegacyHorseCard({
 
       {documentRequirements.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {documentRequirements.map((req) => (
-            <HorseDocumentUpload
-              key={req.id}
-              horseId={horse.id}
-              requirement={req}
-              existing={uploadsByRequirement.get(req.id)}
-            />
-          ))}
+          {documentRequirements.map((req) =>
+            isSignableRequirement(req) ? (
+              <RequiredDocumentSign
+                key={req.id}
+                showId={documentContext.showId}
+                showName={documentContext.showName}
+                requirement={req}
+                existing={uploadsByRequirement.get(req.id)}
+                riderName={documentContext.riderName}
+                horseCount={documentContext.horseCount}
+              />
+            ) : (
+              <HorseDocumentUpload
+                key={req.id}
+                horseId={horse.id}
+                requirement={req}
+                existing={uploadsByRequirement.get(req.id)}
+              />
+            ),
+          )}
         </div>
       )}
     </div>

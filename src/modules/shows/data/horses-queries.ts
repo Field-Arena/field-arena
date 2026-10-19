@@ -74,6 +74,7 @@ export async function getHorsesPageData(
     classes: number;
     horseId: string | null;
     riderNames: Set<string>;
+    nums: Set<string>;
   }
   const byHorse = new Map<string, Group>();
 
@@ -81,7 +82,7 @@ export async function getHorsesPageData(
     const entries = await fetchAllRows(() =>
       supabase
         .from('class_entries')
-        .select('horse, rider, horse_id, rider_id')
+        .select('horse, rider, horse_id, rider_id, num')
         .in(
           'class_id',
           classes.map((c) => c.id),
@@ -104,6 +105,7 @@ export async function getHorsesPageData(
         existing.horseId ??= entry.horse_id;
         existing.riderId ??= entry.rider_id;
         if (entry.rider) existing.riderNames.add(entry.rider);
+        if (entry.num) existing.nums.add(entry.num);
       } else {
         byHorse.set(key, {
           name: entry.horse,
@@ -112,6 +114,7 @@ export async function getHorsesPageData(
           classes: 1,
           horseId: entry.horse_id,
           riderNames: new Set(entry.rider ? [entry.rider] : []),
+          nums: new Set(entry.num ? [entry.num] : []),
         });
       }
     }
@@ -267,6 +270,9 @@ export async function getHorsesPageData(
         cogginsExpired,
         isMultiEntry,
         riders,
+        entryNumbers: [...group.nums].sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true }),
+        ),
       };
     }),
     ...manualHorses.map((mh): HorseRow => {
@@ -292,6 +298,7 @@ export async function getHorsesPageData(
         cogginsExpired,
         isMultiEntry: false,
         riders: mh.riderName ? [mh.riderName] : [],
+        entryNumbers: [],
       };
     }),
   ];

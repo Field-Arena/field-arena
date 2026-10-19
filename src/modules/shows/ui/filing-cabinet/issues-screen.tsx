@@ -1,27 +1,29 @@
 'use client';
 
-import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
-import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
+import { cn } from '@/shared/lib/utils';
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/shared/ui/shadcn/table';
+  EmptyState,
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+  Pill,
+  type PillTone,
+} from '@/shared/ui/organizer/fa-page';
 import { formatTimestamp } from '@/shared/lib/format/date';
 import type { IssuesPageData } from '@/modules/shows/types';
 import { AddNoteDialog } from '@/modules/shows/ui/filing-cabinet/add-note-dialog';
 import { ResolveIssueDialog } from '@/modules/shows/ui/filing-cabinet/resolve-issue-dialog';
+import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 
-const KIND_TONE: Record<string, StatusTone> = {
-  document: 'warn',
-  membership: 'danger',
-  number: 'info',
-  note: 'neutral',
-  request: 'info',
+const KIND_TONE: Record<string, PillTone> = {
+  document: 'yellow',
+  membership: 'red',
+  number: 'blue',
+  note: 'grey',
+  request: 'purple',
 };
 
 const KIND_LABEL: Record<string, string> = {
@@ -36,68 +38,80 @@ export function IssuesScreen({ data }: { data: IssuesPageData }) {
   const { showId, showName, issues, entries } = data;
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <SectionTitle className="mb-1.5">Issues / Notes / Requests</SectionTitle>
-          <ScreenLede className="mb-0">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <CabinetSectionHead
+        title="Issues, notes & requests"
+        lede={
+          <>
             Which entries at {showName} aren&apos;t ready, why, and what to fix. Resolving an issue
             clears it from this list but keeps the record.
-          </ScreenLede>
-        </div>
-        {entries.length > 0 && <AddNoteDialog showId={showId} entries={entries} />}
-      </div>
+          </>
+        }
+        actions={entries.length > 0 && <AddNoteDialog showId={showId} entries={entries} />}
+      />
 
       {issues.length === 0 ? (
-        <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
-            Nothing open — every flagged document, membership issue, or staff note has been
-            resolved.
-          </p>
-        </Card>
+        <EmptyState
+          title="Nothing open"
+          note="Every flagged document, membership issue, or staff note has been resolved."
+        />
       ) : (
-        <Card className="overflow-x-auto p-0">
-          <Table>
-            <TableCaption className="sr-only">Open issues for {showName}</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Entry #</TableHead>
-                <TableHead scope="col">Bridle #</TableHead>
-                <TableHead scope="col">Rider / Horse</TableHead>
-                <TableHead scope="col">Kind</TableHead>
-                <TableHead scope="col">Issue</TableHead>
-                <TableHead scope="col">Detail</TableHead>
-                <TableHead scope="col">Logged</TableHead>
-                <TableHead scope="col" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className={FA_TABLE_WRAP}>
+          <table className={FA_TABLE}>
+            <caption className="sr-only">Open issues for {showName}</caption>
+            <thead>
+              <tr className={FA_THEAD_ROW}>
+                <th scope="col" className={FA_TH}>
+                  Entry #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Bridle #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Rider / Horse
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Kind
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Issue
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Detail
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Logged
+                </th>
+                <th scope="col" className={FA_TH} />
+              </tr>
+            </thead>
+            <tbody>
               {issues.map((issue) => (
-                <TableRow key={issue.id}>
-                  <TableCell>{issue.entryNumber}</TableCell>
-                  <TableCell>{issue.bridleNumber}</TableCell>
-                  <TableCell>
-                    <div className="font-semibold">{issue.riderName}</div>
-                    <div className="text-[12px] text-[#8A94A3]">{issue.horseName}</div>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge tone={KIND_TONE[issue.kind]}>{KIND_LABEL[issue.kind]}</StatusBadge>
-                  </TableCell>
-                  <TableCell className="max-w-[220px] font-semibold">{issue.message}</TableCell>
-                  <TableCell className="max-w-[220px] text-[12.5px] text-[#475467]">
+                <tr key={issue.id} className={FA_TR}>
+                  <td className={FA_TD}>{issue.entryNumber}</td>
+                  <td className={FA_TD}>{issue.bridleNumber}</td>
+                  <td className={FA_TD}>
+                    <div className="font-bold">{issue.riderName}</div>
+                    <div className="text-[12px] text-[#5A6B63]">{issue.horseName}</div>
+                  </td>
+                  <td className={FA_TD}>
+                    <Pill tone={KIND_TONE[issue.kind]}>{KIND_LABEL[issue.kind]}</Pill>
+                  </td>
+                  <td className={cn(FA_TD, 'max-w-[220px] font-semibold')}>{issue.message}</td>
+                  <td className={cn(FA_TD, 'max-w-[220px] text-[12.5px] text-[#5A6B63]')}>
                     {issue.detail ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-[12px] text-[#8A94A3]">
+                  </td>
+                  <td className={cn(FA_TD, 'text-[12px] text-[#5A6B63]')}>
                     {formatTimestamp(issue.createdAt)}
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className={FA_TD}>
                     <ResolveIssueDialog showId={showId} issue={issue} />
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </Card>
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

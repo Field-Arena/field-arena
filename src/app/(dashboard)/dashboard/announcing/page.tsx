@@ -5,9 +5,16 @@ import { ActiveRingsPanel } from '@/modules/announcements/ui/active-rings-panel'
 import { AllRingsTable } from '@/modules/announcements/ui/all-rings-table';
 import { ANNOUNCING_RESULTS_PATH } from '@/modules/announcements/constants';
 import { AnnouncerAutoRefresh } from '@/modules/announcements/ui/announcer-auto-refresh';
-import { EmptyPanel } from '@/shared/ui/workspace-page';
+import { EmptyState, FA_BTN_PRIMARY, LiveDot, PageHeader } from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Up Next — Field & Arena' };
+
+const LIVE_EYEBROW = (
+  <span className="inline-flex items-center gap-2">
+    <LiveDot />
+    Live · auto-updates
+  </span>
+);
 
 export default async function AnnouncingPage({
   searchParams,
@@ -21,18 +28,11 @@ export default async function AnnouncingPage({
   if (!currentShow) {
     return (
       <>
-        <div className="dash-head">
-          <div>
-            <h1>Up Next</h1>
-            <p>Ring status, running order and live results.</p>
-          </div>
-        </div>
-        <div className="dash-card">
-          <EmptyPanel
-            title="No shows assigned"
-            note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
-          />
-        </div>
+        <PageHeader eyebrow="Ring status, running order and live results" title="Up Next" />
+        <EmptyState
+          title="No shows assigned"
+          note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
+        />
       </>
     );
   }
@@ -42,29 +42,25 @@ export default async function AnnouncingPage({
 
   return (
     <>
-      <div className="dash-head">
-        <div>
-          <h1>Up Next</h1>
-          <p>Ring status, running order and live results.</p>
-        </div>
-      </div>
+      <AnnouncerAutoRefresh />
+      <PageHeader
+        eyebrow={LIVE_EYEBROW}
+        title="Up Next"
+        actions={
+          <>
+            <ShowSwitcher currentShow={currentShow} shows={shows} />
+            <a
+              href={`${ANNOUNCING_RESULTS_PATH}?show=${currentShow.slug ?? currentShow.id}`}
+              className={FA_BTN_PRIMARY}
+            >
+              View results — live →
+            </a>
+          </>
+        }
+      />
 
-      <div className="dash-card">
-        <AnnouncerAutoRefresh />
-        <ShowSwitcher currentShow={currentShow} shows={shows} />
-
-        <ActiveRingsPanel liveRings={liveRings} />
-        <AllRingsTable rings={rings} />
-
-        <p style={{ marginTop: 26 }}>
-          <a
-            href={`${ANNOUNCING_RESULTS_PATH}?show=${currentShow.slug ?? currentShow.id}`}
-            className="dash-btn dash-btn-outline"
-          >
-            View results — live →
-          </a>
-        </p>
-      </div>
+      <ActiveRingsPanel liveRings={liveRings} />
+      <AllRingsTable rings={rings} />
     </>
   );
 }

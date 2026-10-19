@@ -1,161 +1,232 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
+import Link from 'next/link';
+import { FileTextIcon, PrinterIcon } from 'lucide-react';
+import { Button } from '@/shared/ui/shadcn/button';
+import { cn } from '@/shared/lib/utils';
 import type { MasterScheduleData } from '@/modules/shows/types';
+import { SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import { AwardsGroupingToggle } from '@/modules/shows/ui/schedule/awards-grouping-toggle';
 import { ScheduleKeyCard } from '@/modules/shows/ui/schedule/schedule-key-card';
 import { ScheduleRulesCard } from '@/modules/shows/ui/schedule/schedule-rules-card';
 import { ScheduleClashesCard } from '@/modules/shows/ui/schedule/schedule-clashes-card';
+import { PublishScheduleButton } from '@/modules/shows/ui/schedule/publish-schedule-button';
+import { DayButton } from '@/modules/shows/ui/schedule/day-button';
 import { RingSchedule } from '@/modules/shows/ui/schedule/ring-schedule';
-import { ScheduleGrid } from '@/modules/shows/ui/schedule/schedule-grid';
+import { RunningOrderView } from '@/modules/shows/ui/schedule/running-order-view';
 import { riderDayFlags } from '@/modules/shows/utils/rider-day-flags';
-import {
-  SCHEDULE_LEVELS,
-  levelOf,
-  type ScheduleLevelKey,
-} from '@/modules/shows/utils/schedule-level';
+import { dayDate } from '@/modules/shows/utils/day-date';
 
-function shortDay(startDate: string | null, day: number): string {
-  if (!startDate) return `Day ${String(day + 1)}`;
-  const d = new Date(`${startDate.slice(0, 10)}T12:00:00`);
-  d.setDate(d.getDate() + day);
-  const wd = d.toLocaleDateString('en-US', { weekday: 'short' });
-  const md = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${wd} · ${md}`;
+type ScheduleView = 'order' | 'edit';
+type RulesShown = 'shown' | 'hidden';
+const CHOICE_EVENT = 'fa-schedule-choice-change';
+
+/* A per-browser remembered choice (which view, whether the rules show).
+ * Read through useSyncExternalStore so the server render uses the fallback
+ * and the browser then applies the stored value. */
+function storedChoice<T extends string>(key: string, values: readonly T[], fallback: T) {
+  let memory = fallback;
+  return {
+    read: (): T => {
+      try {
+        const stored = window.localStorage.getItem(key);
+        const match = values.find((v) => v === stored);
+        if (match) return match;
+      } catch {
+        // Storage blocked: use the in-memory choice.
+      }
+      return memory;
+    },
+    write: (next: T) => {
+      memory = next;
+      try {
+        window.localStorage.setItem(key, next);
+      } catch {
+        // Storage blocked: the in-memory choice still applies for this visit.
+      }
+      window.dispatchEvent(new Event(CHOICE_EVENT));
+    },
+    fallback: () => fallback,
+  };
 }
 
-export function MasterScheduleView({ data }: { data: MasterScheduleData }) {
+function subscribeChoice(onChange: () => void) {
+  const handler = () => {
+    onChange();
+  };
+  window.addEventListener(CHOICE_EVENT, handler);
+  window.addEventListener('storage', handler);
+  return () => {
+    window.removeEventListener(CHOICE_EVENT, handler);
+    window.removeEventListener('storage', handler);
+  };
+}
+
+const viewChoice = storedChoice<ScheduleView>('fa-schedule-view', ['order', 'edit'], 'order');
+const rulesChoice = storedChoice<RulesShown>('fa-schedule-rules', ['shown', 'hidden'], 'hidden');
+
+export function MasterScheduleView({
+  data,
+  preferences,
+}: {
+  data: MasterScheduleData;
+  /** Pacing/order/day-time preferences, shown with the rules. */
+  preferences?: ReactNode;
+}) {
   const { schedule } = data;
+
   const totalDays = Math.max(1, ...schedule.arenas.flatMap((a) => a.items.map((it) => it.day + 1)));
-  const [day, setDay] = useState(0);
-  const [hidden, setHidden] = useState<Set<ScheduleLevelKey>>(new Set());
+  const [filterDay, setFilterDay] = useState<number | null>(null);
+  // Running order is the everyday view; the ring editor is where rides are
+  // reordered, timed, moved and scratched.
+  // Opens on whichever view this organizer used last. Read through
+  // useSyncExternalStore so the server render (always the running order)
+  // and the browser agree, then the stored choice applies.
+  const view = useSyncExternalStore(subscribeChoice, viewChoice.read, viewChoice.fallback);
+  const setView = viewChoice.write;
+  const rules = useSyncExternalStore(subscribeChoice, rulesChoice.read, rulesChoice.fallback);
   const flags = riderDayFlags(schedule.arenas);
-
-  const present = new Set(
-    schedule.arenas.flatMap((a) =>
-      a.items.flatMap((it) => (it.type === 'ride' ? [levelOf(it.label).key] : [])),
-    ),
-  );
-  const legend = SCHEDULE_LEVELS.filter((l) => present.has(l.key));
-
-  // "Waited" is the builder resolving a double-booking by holding a ring
-  // until the rider's rest gap has passed — informational, not a conflict.
-  const waited = schedule.conflicts.waited;
-
-  function toggleLevel(key: ScheduleLevelKey) {
-    setHidden((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
 
   return (
     <div>
-      <div className="print:hidden">
-        <div className="fa-sched-toolbar">
-          {totalDays > 1 && (
-            <div className="fa-day-tabs">
-              {Array.from({ length: totalDays }, (_, i) => i).map((i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`fa-day-tab ${day === i ? 'fa-active' : ''}`}
-                  onClick={() => {
-                    setDay(i);
-                  }}
-                >
-                  {shortDay(data.startDate, i)}
-                </button>
-              ))}
-            </div>
-          )}
-          <span className={`fa-sched-status ${data.published ? '' : 'fa-dirty'}`}>
-            <span className="fa-dot" />
-            {data.published ? 'Published · in sync' : 'Draft · unpublished'}
-          </span>
-          <div className="fa-legend">
-            {legend.map((l) => (
-              <button
-                key={l.key}
-                type="button"
-                className={`fa-lg border-0 bg-transparent ${hidden.has(l.key) ? 'fa-dim' : ''}`}
-                aria-pressed={!hidden.has(l.key)}
-                title={hidden.has(l.key) ? `Show ${l.label}` : `Fade ${l.label}`}
-                onClick={() => {
-                  toggleLevel(l.key);
-                }}
-              >
-                <span className="fa-sw" style={{ background: l.color }} />
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {waited[0] && (
-          <div className="fa-callout !border-[#CFE3F5] !bg-[var(--fa-sky-tint)] !text-[#0B4F87]">
-            <svg
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              viewBox="0 0 24 24"
-              aria-hidden
+      <div className="mb-3 flex flex-wrap items-center gap-2.5 print:hidden">
+        <div
+          role="tablist"
+          aria-label="Schedule view"
+          className="inline-flex rounded-[10px] border-2 border-[#C9D3CE] bg-white p-0.5"
+        >
+          {(
+            [
+              ['order', 'Running order'],
+              ['edit', '✥ Drag & drop editor'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => {
+                setView(key);
+              }}
+              className={`cursor-pointer rounded-[8px] px-3.5 py-1.5 text-[13.5px] font-bold ${
+                view === key ? 'bg-[#1A5B3C] text-white' : 'text-[#16261F]'
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z"
-              />
-            </svg>
-            <span>
-              <b className="!text-[#0B4F87]">Rest gap applied.</b> {waited[0].riderName} rides in{' '}
-              {waited[0].ringA} and {waited[0].ringB}, so {waited[0].ringA} waits until they&apos;ve
-              had their {data.rules.hardRuleSameHorseMin}-minute break (
-              {data.rules.hardRuleDiffHorseMin} with a different horse)
-              {waited.length > 1 ? ` — plus ${String(waited.length - 1)} more like it` : ''}. No
-              rider is double-booked; move a class if you&apos;d rather the ring didn&apos;t sit
-              idle.
-            </span>
-          </div>
-        )}
-
-        <p className="mb-2.5 flex items-center gap-1.5 text-[12.5px] text-[var(--fa-ink-3)] italic">
-          <span aria-hidden>⠿</span>
-          Drag riders to reorder within a class · click a ride for more options.
-        </p>
-
-        <ScheduleGrid data={data} day={day} totalDays={totalDays} hidden={hidden} />
-
-        <div className="mt-6 flex flex-col gap-4">
-          <div className="fa-card flex flex-wrap items-center gap-3 px-5 py-3.5">
-            <span className="text-[13px] font-semibold text-[var(--fa-ink)]">Awards grouping</span>
-            <span className="text-[12.5px] text-[var(--fa-ink-3)]">
-              How placings are awarded across divisions
-            </span>
-            <span className="ml-auto">
-              <AwardsGroupingToggle data={data} />
-            </span>
-          </div>
-          <ScheduleClashesCard schedule={schedule} />
-          <ScheduleRulesCard data={data} />
-          <ScheduleKeyCard />
+              {label}
+            </button>
+          ))}
         </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          className={cn('h-auto', SM_GHOST_BTN, 'hover:bg-transparent')}
+          onClick={() => {
+            window.print();
+          }}
+        >
+          <PrinterIcon className="size-4" aria-hidden />
+          Print schedule
+        </Button>
+
+        {(() => {
+          const sheetCount = schedule.arenas
+            .flatMap((a) => a.items)
+            .filter(
+              (it) =>
+                it.type === 'ride' &&
+                it.status !== 'scratched' &&
+                (filterDay == null || it.day === filterDay),
+            ).length;
+          const dayParam = filterDay == null ? '' : `&day=${String(filterDay)}`;
+          return (
+            <Link
+              href={`/dashboard/score-sheets?show=${data.showId}${dayParam}`}
+              prefetch={false}
+              target="_blank"
+              className="inline-flex h-10 items-center gap-2 rounded-[9px] border-2 border-[#1A5B3C] bg-[#1A5B3C] px-4 text-[14px] font-bold text-white no-underline"
+            >
+              <FileTextIcon className="size-4" aria-hidden />
+              Print all score sheets
+              {filterDay == null ? '' : ` for Day ${String(filterDay + 1)}`} ({sheetCount})
+            </Link>
+          );
+        })()}
+
+        <PublishScheduleButton showId={data.showId} published={data.published} />
+
+        <button
+          type="button"
+          aria-expanded={rules === 'shown'}
+          aria-controls="schedule-rules"
+          onClick={() => {
+            rulesChoice.write(rules === 'shown' ? 'hidden' : 'shown');
+          }}
+          className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[9px] border-2 border-[#1A5B3C] bg-white px-3.5 text-[13.5px] font-bold text-[#1A5B3C] hover:bg-[#E9F4EE]"
+        >
+          Schedule rules {rules === 'shown' ? '▴ Hide' : '▾ Show'}
+        </button>
+
+        <span className="ml-auto flex items-center gap-2 text-[12.5px] text-[#6E7C76]">
+          Awards grouping
+          <AwardsGroupingToggle data={data} />
+        </span>
       </div>
 
-      {/* The printed schedule keeps the sheet-per-ring layout. */}
-      <div className="hidden print:block">
-        {schedule.arenas.map((arena) => (
-          <RingSchedule
-            key={arena.ring}
-            arena={arena}
-            data={data}
-            filterDay={null}
-            totalDays={totalDays}
-            flags={flags}
-          />
-        ))}
+      <div className="print:hidden">
+        {view === 'edit' && <ScheduleClashesCard schedule={schedule} />}
+        {rules === 'shown' && (
+          <div id="schedule-rules">
+            {preferences}
+            <ScheduleRulesCard data={data} />
+            {view === 'edit' && <ScheduleKeyCard />}
+          </div>
+        )}
+      </div>
+
+      {totalDays > 1 && (
+        <div className="mb-4 flex flex-wrap gap-1.5 print:hidden">
+          <DayButton
+            active={filterDay == null}
+            onClick={() => {
+              setFilterDay(null);
+            }}
+          >
+            All
+          </DayButton>
+          {Array.from({ length: totalDays }, (_, i) => i).map((i) => (
+            <DayButton
+              key={i}
+              active={filterDay === i}
+              onClick={() => {
+                setFilterDay(i);
+              }}
+            >
+              Day {i + 1} — {dayDate(data.startDate, i)}
+            </DayButton>
+          ))}
+        </div>
+      )}
+
+      {/* The dashboard's print rule hides everything except [data-print-report]
+          (see dashboard.css), so the schedule body has to opt in to print. */}
+      <div data-print-report>
+        {view === 'order' ? (
+          <RunningOrderView data={data} filterDay={filterDay} />
+        ) : (
+          schedule.arenas.map((arena) => (
+            <RingSchedule
+              key={arena.ring}
+              arena={arena}
+              data={data}
+              filterDay={filterDay}
+              totalDays={totalDays}
+              flags={flags}
+            />
+          ))
+        )}
       </div>
     </div>
   );

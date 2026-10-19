@@ -3,19 +3,20 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { PrinterIcon } from 'lucide-react';
-import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
-import { GhostButton } from '@/shared/ui/organizer/buttons';
-import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
+import { cn } from '@/shared/lib/utils';
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/shared/ui/shadcn/table';
-import { Input } from '@/shared/ui/shadcn/input';
+  EmptyState,
+  FA_BTN,
+  FA_INPUT,
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+  Pill,
+  type PillTone,
+} from '@/shared/ui/organizer/fa-page';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SHOW_ENTRY_STATUS_LABELS } from '@/modules/shows/constants';
 import type { DocumentRollupStatus, EntryLedgerPageData } from '@/modules/shows/types';
@@ -26,11 +27,12 @@ import {
 import { EntryDetailDialog } from '@/modules/shows/ui/filing-cabinet/entry-detail-dialog';
 import { BridleNumberAssignDialog } from '@/modules/shows/ui/filing-cabinet/bridle-number-assign-dialog';
 import { BackNumberReprintButton } from '@/modules/shows/ui/filing-cabinet/back-number-reprint-button';
+import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 
-const DOC_STATUS_TONE: Record<DocumentRollupStatus, StatusTone> = {
-  complete: 'success',
-  needs_attention: 'warn',
-  missing: 'danger',
+const DOC_STATUS_TONE: Record<DocumentRollupStatus, PillTone> = {
+  complete: 'green',
+  needs_attention: 'yellow',
+  missing: 'red',
 };
 
 const DOC_STATUS_LABEL: Record<DocumentRollupStatus, string> = {
@@ -39,13 +41,13 @@ const DOC_STATUS_LABEL: Record<DocumentRollupStatus, string> = {
   missing: 'Missing',
 };
 
-const STATUS_TONE: Record<string, StatusTone> = {
-  submitted: 'neutral',
-  documents_received: 'info',
-  documents_verified: 'info',
-  checkin_released: 'warn',
-  cleared: 'success',
-  scratched: 'danger',
+const STATUS_TONE: Record<string, PillTone> = {
+  submitted: 'grey',
+  documents_received: 'blue',
+  documents_verified: 'blue',
+  checkin_released: 'yellow',
+  cleared: 'green',
+  scratched: 'red',
 };
 
 function NumberCell({
@@ -60,11 +62,12 @@ function NumberCell({
   const [draft, setDraft] = useState(value);
 
   return (
-    <Input
+    <input
       value={draft}
       maxLength={20}
       disabled={pending}
-      className="h-8 w-[84px] text-[13px]"
+      aria-label="Number"
+      className={cn(FA_INPUT, 'h-8 w-[84px] px-2 py-1 text-[13px]')}
       onChange={(e) => {
         setDraft(e.target.value);
       }}
@@ -93,65 +96,88 @@ export function EntryLedgerScreen({
   const openRow = rows.find((r) => r.showEntryId === openEntryId) ?? null;
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <SectionTitle className="mb-1.5">Entry Ledger</SectionTitle>
-          <ScreenLede className="mb-0">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <CabinetSectionHead
+        title="Entry ledger"
+        lede={
+          <>
             Who entered {showName}, what they bought, what they entered, and what still needs
             attention. Reads the same entries and payments used everywhere else — edits here correct
             the entry/bridle/back number only.
-          </ScreenLede>
-        </div>
-        <Link
-          href={`/dashboard/documents/print-center?show=${linkId}`}
-          prefetch={false}
-          className="inline-flex"
-        >
-          <GhostButton>
+          </>
+        }
+        actions={
+          <Link
+            href={`/dashboard/documents/print-center?show=${linkId}`}
+            prefetch={false}
+            className={FA_BTN}
+          >
             <PrinterIcon className="size-4" aria-hidden />
             Print Center
-          </GhostButton>
-        </Link>
-      </div>
+          </Link>
+        }
+      />
 
       {rows.length === 0 ? (
-        <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
-            No entries yet — rows appear here as riders check out, or when entries are added by
-            hand.
-          </p>
-        </Card>
+        <EmptyState
+          title="No entries yet"
+          note="Rows appear here as riders check out, or when entries are added by hand."
+        />
       ) : (
-        <Card className="overflow-x-auto p-0">
-          <Table>
-            <TableCaption className="sr-only">Entry ledger for {showName}</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Entry #</TableHead>
-                <TableHead scope="col">Bridle #</TableHead>
-                <TableHead scope="col">Back #</TableHead>
-                <TableHead scope="col">Rider</TableHead>
-                <TableHead scope="col">Horse</TableHead>
-                <TableHead scope="col">Classes</TableHead>
-                <TableHead scope="col">Status</TableHead>
-                <TableHead scope="col">Fees</TableHead>
-                <TableHead scope="col">Paid</TableHead>
-                <TableHead scope="col">Balance</TableHead>
-                <TableHead scope="col">Documents</TableHead>
-                <TableHead scope="col">Issues</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className={FA_TABLE_WRAP}>
+          <table className={FA_TABLE}>
+            <caption className="sr-only">Entry ledger for {showName}</caption>
+            <thead>
+              <tr className={FA_THEAD_ROW}>
+                <th scope="col" className={FA_TH}>
+                  Entry #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Bridle #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Back #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Rider
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Horse
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Classes
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Status
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Fees
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Paid
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Balance
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Documents
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Issues
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {rows.map((row) => (
-                <TableRow
+                <tr
                   key={row.showEntryId}
-                  className="cursor-pointer"
+                  className={cn(FA_TR, 'cursor-pointer hover:bg-[#FBFCFB]')}
                   onClick={() => {
                     setOpenEntryId(row.showEntryId);
                   }}
                 >
-                  <TableCell
+                  <td
+                    className={FA_TD}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -167,8 +193,9 @@ export function EntryLedgerScreen({
                         });
                       }}
                     />
-                  </TableCell>
-                  <TableCell
+                  </td>
+                  <td
+                    className={FA_TD}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -180,8 +207,9 @@ export function EntryLedgerScreen({
                       currentNumber={row.bridleNumber}
                       availableNumbers={availableBridleNumbers}
                     />
-                  </TableCell>
-                  <TableCell
+                  </td>
+                  <td
+                    className={FA_TD}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -202,35 +230,39 @@ export function EntryLedgerScreen({
                         <BackNumberReprintButton showId={showId} showEntryId={row.showEntryId} />
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className="max-w-[160px] truncate font-semibold" title={row.riderName}>
+                  </td>
+                  <td
+                    className={cn(FA_TD, 'max-w-[160px] truncate font-bold')}
+                    title={row.riderName}
+                  >
                     {row.riderName}
-                  </TableCell>
-                  <TableCell className="max-w-[140px] truncate" title={row.horseName}>
+                  </td>
+                  <td className={cn(FA_TD, 'max-w-[140px] truncate')} title={row.horseName}>
                     {row.horseName}
-                  </TableCell>
-                  <TableCell
-                    className="max-w-[220px] truncate text-[12.5px]"
+                  </td>
+                  <td
+                    className={cn(FA_TD, 'max-w-[220px] truncate text-[12.5px]')}
                     title={row.classes.join(', ') || undefined}
                   >
                     {row.classes.join(', ') || '—'}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge tone={STATUS_TONE[row.status] ?? 'neutral'}>
+                  </td>
+                  <td className={FA_TD}>
+                    <Pill tone={STATUS_TONE[row.status] ?? 'grey'}>
                       {SHOW_ENTRY_STATUS_LABELS[row.status]}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>{formatMoney(row.fees)}</TableCell>
-                  <TableCell>{formatMoney(row.amountPaid)}</TableCell>
-                  <TableCell className={row.balance > 0 ? 'text-status-danger font-semibold' : ''}>
+                    </Pill>
+                  </td>
+                  <td className={FA_TD}>{formatMoney(row.fees)}</td>
+                  <td className={FA_TD}>{formatMoney(row.amountPaid)}</td>
+                  <td className={cn(FA_TD, row.balance > 0 && 'font-bold text-[#B4432F]')}>
                     {formatMoney(row.balance)}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge tone={DOC_STATUS_TONE[row.documentStatus]}>
+                  </td>
+                  <td className={FA_TD}>
+                    <Pill tone={DOC_STATUS_TONE[row.documentStatus]}>
                       {DOC_STATUS_LABEL[row.documentStatus]}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell
+                    </Pill>
+                  </td>
+                  <td
+                    className={FA_TD}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -239,19 +271,19 @@ export function EntryLedgerScreen({
                       <Link
                         href={`/dashboard/documents/issues?show=${linkId}`}
                         prefetch={false}
-                        className="text-status-danger font-bold underline"
+                        className="font-bold text-[#B4432F] underline"
                       >
                         {row.openIssueCount}
                       </Link>
                     ) : (
-                      <span className="text-[#8A94A3]">0</span>
+                      <span className="text-[#5A6B63]">0</span>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </Card>
+            </tbody>
+          </table>
+        </div>
       )}
 
       <EntryDetailDialog

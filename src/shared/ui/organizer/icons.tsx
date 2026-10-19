@@ -52,13 +52,6 @@ export const IconCalendarX = ({ size = 17, strokeWidth = 2.2, className }: P) =>
   </svg>
 );
 
-export const IconHorse = ({ size = 16, strokeWidth = 2, className }: P) => (
-  <svg {...base(size, strokeWidth, className)}>
-    <path d="M5 21c0-5 3-8 7-9l3-4 4-2-1 4 2 2-3 2c0 4-2 7-5 7z" />
-    <path d="M9 21H5" />
-  </svg>
-);
-
 export const IconChevronDown = ({ size = 14, strokeWidth = 2.6, className }: P) => (
   <svg {...base(size, strokeWidth, className)}>
     <path d="m6 9 6 6 6-6" />
@@ -116,23 +109,6 @@ export const IconFile = ({ size = 15, strokeWidth = 2, className }: P) => (
   <svg {...base(size, strokeWidth, className)}>
     <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
     <path d="M14 2v5h5" />
-  </svg>
-);
-
-export const IconPrinter = ({ size = 15, strokeWidth = 2, className }: P) => (
-  <svg {...base(size, strokeWidth, className)}>
-    <path d="M6 9V2h12v7" />
-    <path d="M6 18H4v-6h16v6h-2" />
-    <rect x="6" y="14" width="12" height="8" />
-  </svg>
-);
-
-export const IconColumns = ({ size = 15, strokeWidth = 2, className }: P) => (
-  <svg {...base(size, strokeWidth, className)}>
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
   </svg>
 );
 

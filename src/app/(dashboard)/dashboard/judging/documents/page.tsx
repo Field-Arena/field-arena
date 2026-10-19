@@ -1,24 +1,47 @@
 import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import type { Metadata } from 'next';
-import { listMyAssignments, getPreviewShowName } from '@/modules/judging/data/queries';
+import {
+  listMyAssignments,
+  listPanelContacts,
+  getPreviewShowName,
+} from '@/modules/judging/data/queries';
 import { getStaffProfile } from '@/shared/lib/auth/session';
 import { buildDemoAssignments } from '@/modules/judging/utils/build-demo-assignments';
+import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel-contacts';
+import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
+import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
 import { JUDGING_REFERENCE_DOCS, USDF_TEST_SHEETS_URL } from '@/modules/judging/constants';
 import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
+import {
+  FA_MUTED,
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+  PageHeader,
+} from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Documents — Field & Arena' };
 
 export default async function JudgingDocumentsPage() {
   // Demo rows only; real rows carry today in their own show's timezone.
   const demoTodayIso = todayInZone(resolveTimeZone());
-  const [profile, realAssignments] = await Promise.all([getStaffProfile(), listMyAssignments()]);
+  const [profile, realAssignments, realContacts] = await Promise.all([
+    getStaffProfile(),
+    listMyAssignments(),
+    listPanelContacts(),
+  ]);
   const isSuperAdminPreview = profile?.platform_role === 'SuperAdmin';
   // Real rows come back whenever a show is being previewed; the demo builders
   // are the fallback for a SuperAdmin who hasn't picked one.
   const previewShowName = isSuperAdminPreview ? await getPreviewShowName() : null;
   const useDemoData = isSuperAdminPreview && previewShowName === null;
   const assignments = useDemoData ? buildDemoAssignments(demoTodayIso) : realAssignments;
+  const contacts = useDemoData ? buildDemoPanelContacts() : realContacts;
+  const snapshot = buildTodaySnapshot(assignments, contacts);
   // One test sheet per class still ahead of you (today or later), deduped by
   // test — the same sheet across two shows is one download.
   const sheets = [
@@ -30,57 +53,67 @@ export default async function JudgingDocumentsPage() {
   ];
 
   return (
-    <section>
-      <div className="fa-page-head">
-        <div>
-          <h2>Documents</h2>
-          <p>Test sheets, directives, and rule references for your assignments.</p>
-        </div>
-      </div>
+    <>
+      <PageHeader
+        eyebrow="Test sheets and rule references for your upcoming classes"
+        title="Documents"
+      />
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
-      <h3 className="mb-3 text-[15px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
-        Your test sheets
-      </h3>
-      {sheets.length === 0 ? (
-        <div className="fa-mini-card mb-7">
-          <p>No upcoming classes — test sheets show up here once you&apos;re on a panel.</p>
-        </div>
-      ) : (
-        <div className="fa-grid2 mb-7">
-          {sheets.map((a) => (
-            <a
-              key={a.classLabel}
-              href={USDF_TEST_SHEETS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fa-mini-card no-underline transition hover:shadow-[var(--fa-shadow-md)]"
-            >
-              <h4>{a.classLabel} ↗</h4>
-              <p>Official test sheet · {a.showName}</p>
-            </a>
-          ))}
-        </div>
-      )}
+      <JudgingStatusCard
+        rings={snapshot.rings}
+        contacts={snapshot.contacts}
+        assignmentsToday={snapshot.assignmentsToday}
+      />
 
-      <h3 className="mb-3 text-[15px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
-        References
-      </h3>
-      <div className="fa-grid2">
-        {JUDGING_REFERENCE_DOCS.map((doc) => (
-          <a
-            key={doc.name}
-            href={doc.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="fa-mini-card no-underline transition hover:shadow-[var(--fa-shadow-md)]"
-          >
-            <h4>{doc.name} ↗</h4>
-            <p>{doc.detail}</p>
-          </a>
-        ))}
+      <div className={FA_TABLE_WRAP}>
+        <table className={FA_TABLE}>
+          <thead>
+            <tr className={FA_THEAD_ROW}>
+              <th className={FA_TH}>Document</th>
+              <th className={FA_TH}>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sheets.map((a) => (
+              <tr key={`sheet-${a.classLabel}`} className={FA_TR}>
+                <td className={FA_TD}>
+                  <a
+                    href={USDF_TEST_SHEETS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#0D2C23] underline decoration-[#B4BFB9] underline-offset-2 hover:text-[#1A5B3C]"
+                  >
+                    {a.classLabel} ↗
+                  </a>
+                </td>
+                <td className={`${FA_TD} text-[#5A6B63]`}>Official test sheet · {a.showName}</td>
+              </tr>
+            ))}
+            {JUDGING_REFERENCE_DOCS.map((doc) => (
+              <tr key={doc.name} className={FA_TR}>
+                <td className={FA_TD}>
+                  <a
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#0D2C23] underline decoration-[#B4BFB9] underline-offset-2 hover:text-[#1A5B3C]"
+                  >
+                    {doc.name} ↗
+                  </a>
+                </td>
+                <td className={`${FA_TD} text-[#5A6B63]`}>{doc.detail}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </section>
+
+      <p className={`mt-3 leading-[1.55] ${FA_MUTED}`}>
+        General references that apply to every class. The test sheet for a specific class is on that
+        class in My Assignments.
+      </p>
+    </>
   );
 }

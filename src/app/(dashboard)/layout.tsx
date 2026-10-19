@@ -14,9 +14,8 @@ import { getUserWorkspaceRoles } from '@/modules/staff/data/workspace-roles';
 import { getOrgAccessBlock } from '@/modules/staff/data/org-access-queries';
 import { OrgSuspendedScreen } from '@/modules/staff/ui/org-suspended-screen';
 import { listOrganizerOptions } from '@/modules/superadmin/data/queries';
-import { listDashboardShows } from '@/modules/shows/data/queries';
-import { getMyJudgeLicense, listMyAssignments } from '@/modules/judging/data/queries';
-import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
+import { listShowsForPicker } from '@/modules/shows/data/queries';
+import { toDashboardShowRows } from '@/modules/shows/utils/dashboard-show-rows';
 import { ROLE_WORKSPACES, RIDER_WORKSPACE } from '@/shared/constants/role-workspaces';
 import { ROUTES } from '@/shared/constants/routes';
 
@@ -130,30 +129,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
       ? []
       : await getUserWorkspaceRoles(profile).catch(() => []);
 
-  // The redesign's topbar carries the focused-show picker and the sidebar's
-  // Rider Entries count, both of which need the org's show list. Only the
-  // Organizer/ShowAdmin workspace has them; a failed load degrades to an
-  // empty picker rather than taking the whole shell down.
+  // The show tabs need the org's shows. A tab strip is a convenience: if the
+  // list can't be loaded the workspace still renders, just without tabs.
   const shellOrgId = impersonating ?? selectedOrgId;
-  const hasShowPicker = shellRole === 'Organizer' || shellRole === 'ShowAdmin';
-  // Judges and scribes get a live count on "My Assignments" and a "Live
-  // today" status under the workspace name, as in the redesign.
-  const sitsOnPanels =
-    !impersonating &&
-    (role === 'Judge' ||
-      role === 'Scribe' ||
-      availableRoles.includes('Judge') ||
-      availableRoles.includes('Scribe'));
-  const [shellShows, shellOrgName, panelAssignments, judgeLicense] = await Promise.all([
-    hasShowPicker && shellOrgId ? listDashboardShows(shellOrgId).catch(() => []) : [],
-    impersonatedOrgName ??
-      memberOrgs.find((o) => o.orgId === selectedOrgId)?.orgName ??
-      (selectedOrgId ? getOrganizationName(selectedOrgId).catch(() => null) : null),
-    sitsOnPanels ? listMyAssignments().catch(() => []) : [],
-    sitsOnPanels ? getMyJudgeLicense().catch(() => null) : null,
-  ]);
-  const panelToday = panelAssignments.filter((a) => classifyAssignment(a) === 'today').length;
-  const panelUpcoming = panelAssignments.filter((a) => classifyAssignment(a) === 'upcoming').length;
+  const shellShows =
+    (shellRole === 'Organizer' || shellRole === 'ShowAdmin') && shellOrgId
+      ? toDashboardShowRows(await listShowsForPicker(shellOrgId).catch(() => []))
+      : [];
 
   return (
     <OrganizerShell
@@ -166,11 +148,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       selectedOrgId={selectedOrgId}
       memberOrgs={memberOrgs}
       availableRoles={availableRoles}
-      orgName={shellOrgName}
       shows={shellShows}
-      panelSummary={
-        sitsOnPanels ? { today: panelToday, upcoming: panelUpcoming, license: judgeLicense } : null
-      }
     >
       {children}
     </OrganizerShell>

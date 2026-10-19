@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { FA_BTN_PRIMARY } from '@/shared/ui/organizer/fa-page';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Textarea } from '@/shared/ui/shadcn/textarea';
 import { Label } from '@/shared/ui/shadcn/label';
@@ -22,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/shadcn/select';
-import { GhostButton, GoldButton, primaryButtonClass } from '@/shared/ui/organizer/buttons';
+import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
 import { IconX } from '@/shared/ui/organizer/icons';
 import {
   ModalEyebrow,
@@ -56,7 +57,7 @@ export function AddNoteDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className={primaryButtonClass}>
+        <button type="button" className={FA_BTN_PRIMARY}>
           <span aria-hidden>+</span> Add note / request
         </button>
       </DialogTrigger>
@@ -64,13 +65,13 @@ export function AddNoteDialog({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Issues / Notes / Requests</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
             Add a note or request
           </DialogTitle>
           <DialogDescription>
             For anything staff need to track that isn&apos;t already flagged automatically.
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>

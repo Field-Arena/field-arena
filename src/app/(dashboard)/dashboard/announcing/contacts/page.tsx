@@ -6,7 +6,7 @@ import {
 } from '@/modules/announcements/data/queries';
 import { ShowSwitcher } from '@/modules/announcements/ui/show-switcher';
 import { ShowContactsTable } from '@/modules/announcements/ui/show-contacts-table';
-import { EmptyPanel } from '@/shared/ui/workspace-page';
+import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Contacts — Field & Arena' };
 
@@ -22,18 +22,14 @@ export default async function AnnouncingContactsPage({
   if (!currentShow) {
     return (
       <>
-        <div className="dash-head">
-          <div>
-            <h1>Contacts</h1>
-            <p>Judges, scribes, and show staff for your current assignment.</p>
-          </div>
-        </div>
-        <div className="dash-card">
-          <EmptyPanel
-            title="No shows assigned"
-            note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
-          />
-        </div>
+        <PageHeader
+          eyebrow="Judges, scribes, and show staff for your current assignment"
+          title="Contacts"
+        />
+        <EmptyState
+          title="No shows assigned"
+          note="You are not staffed as an announcer on any show yet. An organizer adds an announcer from ShowManager."
+        />
       </>
     );
   }
@@ -42,17 +38,12 @@ export default async function AnnouncingContactsPage({
 
   return (
     <>
-      <div className="dash-head">
-        <div>
-          <h1>Contacts</h1>
-          <p>Judges, scribes, and show staff for your current assignment.</p>
-        </div>
-      </div>
-
-      <div className="dash-card">
-        <ShowSwitcher currentShow={currentShow} shows={shows} />
-        <ShowContactsTable contacts={contacts} />
-      </div>
+      <PageHeader
+        eyebrow="Judges, scribes, and show staff for your current assignment"
+        title="Contacts"
+        actions={<ShowSwitcher currentShow={currentShow} shows={shows} />}
+      />
+      <ShowContactsTable contacts={contacts} />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
 import {
@@ -7,7 +8,7 @@ import {
 } from '@/modules/shows/data/stable-chart-queries';
 import { getShowStableChartRaw } from '@/modules/shows/data/queries';
 import { HorsesScreen } from '@/modules/shows/ui/horses/horses-screen';
-import { EmptyPanel } from '@/shared/ui/workspace-page';
+import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Horses — Field & Arena' };
 
@@ -25,6 +26,11 @@ export default async function HorsesPage({
         <EmptyPanel title="No shows yet" note="Horses are listed per show." />
       </div>
     );
+  }
+
+  // Put the show in the address so the show tabs above mark the one open.
+  if (!requestedShowId) {
+    redirect(`/dashboard/horses?show=${context.currentShow.slug ?? context.currentShow.id}`);
   }
 
   const [stableChartRaw, horsesData] = await Promise.all([

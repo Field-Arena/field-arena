@@ -11,9 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
-import { Button } from '@/shared/ui/shadcn/button';
-import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { FA_BTN, FA_BTN_PRIMARY, FA_INPUT } from '@/shared/ui/organizer/fa-page';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { useApplyToVendorShow } from '@/modules/vendors/hooks/use-vendor-mutations';
@@ -49,14 +48,14 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button type="button" size="sm">
+        <button type="button" className={FA_BTN_PRIMARY}>
           Apply for a space
-        </Button>
+        </button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">
+          <DialogTitle className="font-[family-name:var(--ws-fraunces)] text-[22px] font-bold text-[#0D2C23]">
             Apply to vend at {show.showName}
           </DialogTitle>
           <DialogDescription>
@@ -104,7 +103,8 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
         >
           <div className="space-y-1.5">
             <Label htmlFor="va-business">Business / farm name</Label>
-            <Input
+            <input
+              className={`${FA_INPUT} w-full`}
               id="va-business"
               required
               placeholder="Blue Ridge Tack Co."
@@ -118,7 +118,8 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="va-contact-name">Contact name (optional)</Label>
-            <Input
+            <input
+              className={`${FA_INPUT} w-full`}
               id="va-contact-name"
               placeholder="Jane Smith"
               maxLength={200}
@@ -131,7 +132,8 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="va-products">Products / services offered (optional)</Label>
-            <Input
+            <input
+              className={`${FA_INPUT} w-full`}
               id="va-products"
               placeholder="Tack, apparel, custom leatherwork"
               maxLength={500}
@@ -148,15 +150,15 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               <div key={item.id} className="flex items-center justify-between gap-3 text-[13.5px]">
                 <span className="min-w-0 flex-1">
                   {item.name}
-                  <span className="ml-2 text-[#7A8781]">{formatMoney(item.price)}</span>
+                  <span className="ml-2 text-[#5A6B63]">{formatMoney(item.price)}</span>
                 </span>
-                <Input
+                <input
                   type="number"
                   min={0}
                   max={item.remaining ?? VENDOR_ITEM_QTY_MAX}
                   step={1}
                   onKeyDown={blockNonIntegerKeys}
-                  className="w-20"
+                  className={`${FA_INPUT} w-20`}
                   value={qtyById[item.id] ?? 0}
                   onChange={(e) => {
                     const n = Math.min(
@@ -171,19 +173,23 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
           </div>
 
           <DialogFooter>
-            <Button
+            <button
               type="button"
-              variant="outline"
+              className={FA_BTN}
               onClick={() => {
                 setOpen(false);
               }}
             >
               Cancel
-            </Button>
-            <Button type="submit" disabled={isPending || !businessName.trim() || cart.length === 0}>
-              {isPending && <Loader2Icon className="animate-spin" aria-hidden />}
+            </button>
+            <button
+              type="submit"
+              className={FA_BTN_PRIMARY}
+              disabled={isPending || !businessName.trim() || cart.length === 0}
+            >
+              {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
               {isPending ? 'Submitting…' : 'Submit application'}
-            </Button>
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>

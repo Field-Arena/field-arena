@@ -31,6 +31,7 @@ import {
   updateSettlementSchema,
   updateLeadSchema,
   leadIdSchema,
+  leadNoShowSchema,
   toggleChecklistItemSchema,
   createSheetSchema,
   updateSheetSchema,
@@ -721,6 +722,8 @@ export async function createLead(input: unknown): Promise<{ id: string }> {
       email: parsed.email ? parsed.email.toLowerCase() : null,
       phone: parsed.phone ?? null,
       website: parsed.website ?? null,
+      city: parsed.city ?? null,
+      state: parsed.state ?? null,
       shows_per_year: showsPerYear,
       status: 'new',
     })
@@ -745,6 +748,8 @@ export async function updateLead(input: unknown): Promise<{ ok: true }> {
   if (parsed.email !== undefined) updates.email = parsed.email ? parsed.email.toLowerCase() : null;
   if (parsed.phone !== undefined) updates.phone = emptyToNull(parsed.phone);
   if (parsed.website !== undefined) updates.website = emptyToNull(parsed.website);
+  if (parsed.city !== undefined) updates.city = emptyToNull(parsed.city);
+  if (parsed.state !== undefined) updates.state = emptyToNull(parsed.state);
   if (parsed.status !== undefined) updates.status = parsed.status;
   if (parsed.notes !== undefined) updates.notes = emptyToNull(parsed.notes);
   if (parsed.showsPerYear !== undefined) updates.shows_per_year = parsed.showsPerYear;
@@ -766,6 +771,91 @@ export async function updateLead(input: unknown): Promise<{ ok: true }> {
 
   revalidatePath(SALES_PATH);
   revalidatePath(`${SALES_PATH}/${id}`);
+  return { ok: true };
+}
+
+/* "Invite to be organizer" from the Sales pipeline: creates the organization
+ * and emails its owner the same invite the Add-organizer dialog sends, then
+ * links the lead to that organization so the pipeline can show Invite
+ * pending → Signed up from the owner account itself. If the contact already
+ * has an organizer account, the lead is linked to it instead. */
+export async function inviteLeadAsOrganizer(
+  input: unknown,
+): Promise<{ ok: true; email: string } | { ok: false; message: string }> {
+  await requireSuperAdmin();
+  const { id } = parseInput(leadIdSchema, input);
+  const admin = createAdminClient();
+
+  const { data: lead, error: readError } = await admin
+    .from('leads')
+    .select('id, org_name, contact_name, email, city, state, org_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (!lead) return { ok: false, message: 'Contact not found.' };
+  if (lead.org_id) return { ok: false, message: 'This contact has already been invited.' };
+  if (!lead.email) return { ok: false, message: 'Add an email address before inviting.' };
+
+  const email = lead.email.trim().toLowerCase();
+  const linkLead = async (orgId: string) => {
+    const { error } = await admin
+      .from('leads')
+      .update({
+        org_id: orgId,
+        invited_at: new Date().toISOString(),
+        status: 'onboarding',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    revalidatePath(SALES_PATH);
+    revalidatePath(`${SALES_PATH}/${id}`);
+  };
+
+  // Already an organizer on the platform: link, don't re-invite.
+  const { data: existing } = await admin
+    .from('users')
+    .select('org_id, platform_role')
+    .eq('email', email)
+    .maybeSingle();
+  if (existing) {
+    if (existing.platform_role === 'Organizer' && existing.org_id) {
+      await linkLead(existing.org_id);
+      return { ok: true, email };
+    }
+    return {
+      ok: false,
+      message: 'Someone with this email already has a non-organizer account on Field & Arena.',
+    };
+  }
+
+  const [first = '', ...rest] = (lead.contact_name ?? '').trim().split(/\s+/);
+  const result = await createOrganization({
+    name: lead.org_name,
+    contactFirstName: first || lead.org_name,
+    contactLastName: rest.join(' ') || '—',
+    contactEmail: email,
+    city: lead.city ?? undefined,
+    region: lead.state ?? undefined,
+    country: 'United States',
+    feeModel: 'default',
+  });
+  if (!result.ok) return { ok: false, message: result.error };
+
+  await linkLead(result.id);
+  return { ok: true, email };
+}
+
+export async function setLeadNoShow(input: unknown): Promise<{ ok: true }> {
+  await requireSuperAdmin();
+  const { id, noShow } = parseInput(leadNoShowSchema, input);
+  const supabase = await createServerClient();
+  const { error } = await supabase
+    .from('leads')
+    .update({ demo_no_show: noShow, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+  revalidatePath(SALES_PATH);
   return { ok: true };
 }
 

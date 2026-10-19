@@ -1,17 +1,34 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { listMyBookings } from '@/modules/vendors/data/queries';
 import { confirmVendorCheckoutSession } from '@/modules/vendors/data/mutations';
-import { EmptyPanel } from '@/shared/ui/workspace-page';
-import { StatusBadge } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
-import { formatTimestamp } from '@/shared/lib/format/date';
 import { VendorAgreementDialog } from '@/modules/vendors/ui/vendor-agreement-dialog';
 import { VendorPayButton } from '@/modules/vendors/ui/vendor-pay-button';
 import { VendorCheckoutConfirmation } from '@/modules/vendors/ui/vendor-checkout-confirmation';
 import { previewAmountDue } from '@/modules/vendors/utils/preview-amount-due';
 import { summarizeBookings } from '@/modules/vendors/utils/summarize-bookings';
+import {
+  CardTitle,
+  EmptyState,
+  FA_BTN_PRIMARY,
+  FA_MUTED,
+  FaCard,
+  PageHeader,
+  Pill,
+  StatBox,
+  StatGrid,
+} from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'My Bookings — Field & Arena' };
+
+const EYEBROW = 'Your booth space across every organizer on the platform';
+
+function paidOn(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 export default async function VendorPage({
   searchParams,
@@ -30,14 +47,10 @@ export default async function VendorPage({
       sessionId: checkoutSessionId,
     });
     return (
-      <>
-        <div className="dash-head">
-          <div>
-            <h1>My Bookings</h1>
-          </div>
-        </div>
+      <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+        <PageHeader eyebrow={EYEBROW} title="My Bookings" />
         <VendorCheckoutConfirmation result={result} />
-      </>
+      </div>
     );
   }
 
@@ -46,95 +59,98 @@ export default async function VendorPage({
   const stats = summarizeBookings(bookings);
 
   return (
-    <>
-      <div className="dash-head">
-        <div>
-          <h1>My Bookings</h1>
-          <p>Your booth space across every organizer on the platform.</p>
-        </div>
-      </div>
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <PageHeader
+        eyebrow={EYEBROW}
+        title="My Bookings"
+        actions={
+          <Link href="/dashboard/vendor/discover" prefetch={false} className={FA_BTN_PRIMARY}>
+            + Reserve space
+          </Link>
+        }
+      />
 
       {checkoutCanceled === '1' && (
-        <div className="dash-card" style={{ color: 'var(--amber)' }}>
-          Checkout was canceled — nothing was charged.
-        </div>
+        <FaCard tone="warn" className="mb-4">
+          <p className="text-[14px] font-semibold text-[#8A6D14]">
+            Checkout was canceled — nothing was charged.
+          </p>
+        </FaCard>
       )}
 
-      <div className="dash-card">
-        <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-          {stats.map((stat) => (
-            <div key={stat.label} className={stat.revenue ? 'stat revenue' : 'stat'}>
-              <div className="stat-label">{stat.label}</div>
-              <div className="stat-value">{stat.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {bookings.length === 0 ? (
-          <EmptyPanel
-            title="No bookings yet"
-            note="Reserve booth space from Reserve Space, or apply directly through an organizer's vendor application."
+      <StatGrid cols={3}>
+        {stats.map((stat) => (
+          <StatBox
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            tone={stat.label === 'Paid' ? 'green' : 'default'}
           />
-        ) : (
-          <div className="cards" style={{ marginTop: 14 }}>
-            {bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className={`card-row ${booking.status === 'paid' ? 'confirmed' : 'pending'}`}
-              >
-                <div className="card-main">
-                  <div className="card-title">{booking.showName}</div>
-                  <div className="card-meta">
-                    {booking.orgName} · {booking.showDate ?? 'Dates not set'}
-                  </div>
-                  {booking.items.length > 0 && (
-                    <div className="b-items">
-                      {booking.items.map((item) => (
-                        <div key={item.name} className="b-item-row">
-                          <span>
-                            {item.name}
-                            {item.qty > 1 && ` x${String(item.qty)}`}
-                          </span>
-                          <span className="amt">{formatMoney(item.price * item.qty)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  {booking.status === 'paid' ? (
-                    <StatusBadge tone="success">Paid</StatusBadge>
-                  ) : booking.status === 'approved' ? (
-                    <StatusBadge tone="info">Approved — awaiting payment</StatusBadge>
-                  ) : booking.status === 'rejected' ? (
-                    <StatusBadge tone="danger">Rejected</StatusBadge>
-                  ) : booking.status === 'review' ? (
-                    <StatusBadge tone="warn">Payment under review</StatusBadge>
-                  ) : (
-                    <StatusBadge tone="warn">Pending review</StatusBadge>
-                  )}
-                  {booking.amountTotal !== null && (
-                    <div className="card-meta" style={{ marginTop: 6 }}>
-                      {formatMoney(booking.amountTotal)}
-                    </div>
-                  )}
-                  {booking.paidAt && (
-                    <div className="card-meta">paid {formatTimestamp(booking.paidAt)}</div>
-                  )}
+        ))}
+      </StatGrid>
 
-                  {booking.status !== 'rejected' && (
-                    <div style={{ marginTop: 8 }}>
-                      {booking.agreementSignedAt ? (
-                        <div className="card-meta">agreement signed</div>
-                      ) : (
-                        <VendorAgreementDialog
-                          bookingId={booking.id}
-                          showName={booking.showName}
-                          agreementText={booking.vendorAgreementText}
-                        />
-                      )}
-                    </div>
-                  )}
+      {bookings.length === 0 ? (
+        <EmptyState
+          title="No bookings yet"
+          note="Reserve booth space from Reserve Space, or apply directly through an organizer's vendor application."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+          {bookings.map((booking) => (
+            <FaCard
+              key={booking.id}
+              tone={booking.status === 'approved' ? 'warn' : 'default'}
+              className="flex flex-col"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle>{booking.showName}</CardTitle>
+                  <p className={FA_MUTED}>
+                    {booking.orgName} · {booking.showDate ?? 'Dates not set'}
+                  </p>
+                </div>
+                {booking.status === 'paid' ? (
+                  <Pill tone="green">Paid{booking.paidAt ? ` ${paidOn(booking.paidAt)}` : ''}</Pill>
+                ) : booking.status === 'approved' ? (
+                  <Pill tone="yellow" className="whitespace-normal">
+                    Approved — awaiting payment
+                  </Pill>
+                ) : booking.status === 'rejected' ? (
+                  <Pill tone="red">Rejected</Pill>
+                ) : booking.status === 'review' ? (
+                  <Pill tone="yellow" className="whitespace-normal">
+                    Payment under review
+                  </Pill>
+                ) : (
+                  <Pill tone="grey">Pending review</Pill>
+                )}
+              </div>
+
+              {booking.items.length > 0 && (
+                <ul className="my-3 list-none p-0 text-[14px] leading-[1.8]">
+                  {booking.items.map((item) => (
+                    <li key={item.name}>
+                      {item.name} × {String(item.qty)} · {formatMoney(item.price * item.qty)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[#EDF0EE] pt-3">
+                <b className="text-[20px] text-[#0D2C23]">
+                  {booking.amountTotal !== null ? formatMoney(booking.amountTotal) : ''}
+                </b>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {booking.status !== 'rejected' &&
+                    (booking.agreementSignedAt ? (
+                      <span className={FA_MUTED}>Agreement signed</span>
+                    ) : (
+                      <VendorAgreementDialog
+                        bookingId={booking.id}
+                        showName={booking.showName}
+                        agreementText={booking.vendorAgreementText}
+                      />
+                    ))}
 
                   {/* Legacy offered "Pay now" on any unpaid booking, not only
                    * an approved one (vendor.html:242) — a vendor could pay the
@@ -143,26 +159,28 @@ export default async function VendorPage({
                    * is reconciling, so it is never offered for payment again. */}
                   {booking.status !== 'paid' &&
                     booking.status !== 'rejected' &&
-                    booking.status !== 'review' && (
-                      <div style={{ marginTop: 8 }}>
-                        {booking.agreementSignedAt ? (
-                          <VendorPayButton
-                            bookingId={booking.id}
-                            amountDue={previewAmountDue(booking.items)}
-                          />
-                        ) : (
-                          <div className="card-meta" style={{ color: 'var(--amber)' }}>
-                            sign the booth agreement above to pay
-                          </div>
-                        )}
-                      </div>
+                    booking.status !== 'review' &&
+                    booking.agreementSignedAt && (
+                      <VendorPayButton
+                        bookingId={booking.id}
+                        amountDue={previewAmountDue(booking.items)}
+                      />
                     )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+
+              {booking.status !== 'paid' &&
+                booking.status !== 'rejected' &&
+                booking.status !== 'review' &&
+                !booking.agreementSignedAt && (
+                  <p className="mt-2 text-right text-[12.5px] font-semibold text-[#8A6D14]">
+                    Sign the booth agreement to pay
+                  </p>
+                )}
+            </FaCard>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

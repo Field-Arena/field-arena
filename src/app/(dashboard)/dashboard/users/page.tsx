@@ -53,6 +53,7 @@ export default async function UsersPage({
       rows={users}
       shows={context.shows}
       initialShowId={context.currentShow.id}
+      initialShowFilter={requestedShowId ? context.currentShow.id : ''}
       classesByShow={classesByShow}
       ringCoverageByShow={ringCoverageByShow}
       isOrgOwner={isOrgOwner}

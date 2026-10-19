@@ -8,6 +8,8 @@ import {
   updateLead,
   sendLeadOnboarding,
   toggleLeadChecklistItem,
+  inviteLeadAsOrganizer,
+  setLeadNoShow,
 } from '@/modules/superadmin/data/mutations';
 import type { CreateLeadInput, UpdateLeadInput } from '@/modules/superadmin/schemas';
 import { readableError } from '@/shared/lib/error-message';
@@ -22,7 +24,7 @@ export function useCreateLead(options?: { onSuccess?: (id: string) => void }) {
   return useMutation({
     mutationFn: (input: CreateLeadInput) => createLead(input),
     onSuccess: ({ id }) => {
-      toast.success('Target added to the funnel.');
+      toast.success('Contact added.');
       router.refresh();
       options?.onSuccess?.(id);
     },
@@ -80,6 +82,39 @@ export function useToggleChecklistItem() {
     },
     onError: (error) => {
       toast.error(errorMessage(error, 'Could not update the checklist'));
+    },
+  });
+}
+
+export function useInviteLeadAsOrganizer() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await inviteLeadAsOrganizer({ id });
+      if (!result.ok) throw new Error(result.message);
+      return result;
+    },
+    onSuccess: ({ email }) => {
+      toast.success(`Organizer invite sent to ${email}`);
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not send the organizer invite'));
+    },
+  });
+}
+
+export function useSetLeadNoShow() {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: { id: string; noShow: boolean }) => setLeadNoShow(input),
+    onSuccess: () => {
+      router.refresh();
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Could not update the demo'));
     },
   });
 }

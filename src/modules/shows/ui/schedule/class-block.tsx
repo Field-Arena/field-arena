@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { FileTextIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -40,21 +42,34 @@ export function ClassBlock({
   const [dragging, setDragging] = useState<string | null>(null);
 
   const judges = data.judgesByClass[block.cls] ?? [];
+  // Every unscratched ride in this test, across all days it runs.
+  const classSheetCount = data.schedule.arenas
+    .flatMap((a) => a.items)
+    .filter((it) => it.type === 'ride' && it.cls === block.cls && it.status !== 'scratched').length;
   const minutes = data.rideMinutesByClass[block.cls] ?? 0;
 
   return (
     <div className="mb-4">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2.5">
-        <span className="text-[13.5px] font-bold text-[#101828]">
+        <span className="text-ink-deep text-[13.5px] font-bold">
           {block.label}
-          {block.continues && <span className="ml-1.5 font-normal text-[#8A94A3]">Continues</span>}
-          <span className="ml-1.5 text-[12px] font-normal text-[#8A94A3]">
+          {block.continues && <span className="ml-1.5 font-normal text-[#7A8781]">Continues</span>}
+          <span className="ml-1.5 text-[12px] font-normal text-[#7A8781]">
             — Day {day + 1}, {dayDate(data.startDate, day)}
           </span>
         </span>
 
         <span className="flex flex-wrap items-center gap-2 print:hidden">
-          <Label className="flex items-center gap-1 text-[11.5px] text-[#8A94A3]">
+          <Link
+            href={`/dashboard/score-sheets?show=${data.showId}&class=${block.cls}`}
+            prefetch={false}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-[7px] border-2 border-[#1A5B3C] bg-white px-2.5 py-1 text-[12.5px] font-bold text-[#1A5B3C] no-underline hover:bg-[#1A5B3C] hover:text-white"
+          >
+            <FileTextIcon className="size-3.5" aria-hidden />
+            Print {classSheetCount} sheet{classSheetCount === 1 ? '' : 's'}
+          </Link>
+          <Label className="flex items-center gap-1 text-[11.5px] text-[#7A8781]">
             Ride time
             <Input
               type="number"
@@ -63,7 +78,7 @@ export function ClassBlock({
               step={1}
               onKeyDown={blockNonIntegerKeys}
               defaultValue={minutes}
-              className="h-auto w-[52px] rounded-[6px] border border-[#E7EAEE] px-1.5 py-0.5 text-[11.5px]"
+              className="h-auto w-[52px] rounded-[6px] border border-[#D9E1DD] px-1.5 py-0.5 text-[11.5px]"
               onBlur={(e) => {
                 const next = Number(e.target.value);
                 if (next === minutes) return;
@@ -82,7 +97,7 @@ export function ClassBlock({
             <select
               aria-label={`Move ${block.label}`}
               value={`${ring}|${String(day)}`}
-              className="rounded-[6px] border border-[#E7EAEE] px-1.5 py-1 text-[11.5px]"
+              className="rounded-[6px] border border-[#D9E1DD] px-1.5 py-1 text-[11.5px]"
               onChange={(e) => {
                 const [nextRing = ring, nextDay = '0'] = e.target.value.split('|');
                 move.mutate({
@@ -105,7 +120,7 @@ export function ClassBlock({
         </span>
       </div>
 
-      <div className="mb-1 text-[12px] text-[#8A94A3]">
+      <div className="mb-1 text-[12px] text-[#7A8781]">
         {judges.length > 0 ? judges.join(' · ') : 'No judge assigned'}
       </div>
 
@@ -143,16 +158,16 @@ export function ClassBlock({
                   setDragging(null);
                 }}
                 className={cn(
-                  'border-b border-[#EEF1F4] hover:bg-transparent',
-                  scratched && 'text-[#8A94A3] line-through',
-                  isCurrent && 'bg-[#FDF2E3]',
+                  'border-b border-[#F1F4F3] hover:bg-transparent',
+                  scratched && 'text-[#98A29D] line-through',
+                  isCurrent && 'bg-[#FCF3E4]',
                   movable && 'cursor-grab',
                 )}
               >
                 <TableCell className="w-[112px] py-1.5 font-semibold whitespace-normal">
                   {fmtTime(ride.start)}
                   {isCurrent && (
-                    <span className="ml-1 text-[10px] font-bold text-[#B45309] print:hidden">
+                    <span className="ml-1 text-[10px] font-bold text-[#8A6D14] print:hidden">
                       ▸ Riding now
                     </span>
                   )}
@@ -162,7 +177,7 @@ export function ClassBlock({
                     <span
                       aria-hidden
                       title="Drag to reorder within this class"
-                      className="mr-1 text-[#8A94A3] print:hidden"
+                      className="mr-1 text-[#98A29D] print:hidden"
                     >
                       ⠿
                     </span>
@@ -170,20 +185,20 @@ export function ClassBlock({
                   {ride.num} {ride.horse},{' '}
                   <span
                     className={cn(
-                      flag && flag.count > 1 && 'font-bold text-[#B45309]',
-                      flag && flag.count <= 1 && flag.horses.size > 1 && 'font-bold text-[#0B6BB8]',
+                      flag && flag.count > 1 && 'font-bold text-[#8A6D14]',
+                      flag && flag.count <= 1 && flag.horses.size > 1 && 'font-bold text-[#2F6FB0]',
                       flag && flag.horses.size > 1 && 'underline decoration-dotted',
                     )}
                   >
                     {ride.name}
                   </span>
                 </TableCell>
-                <TableCell className="w-[70px] py-1.5 whitespace-normal text-[#8A94A3]">
+                <TableCell className="w-[70px] py-1.5 whitespace-normal text-[#7A8781]">
                   {ride.division !== 'O' && ride.division}
                   {ride.qualifying && (
                     <span
                       title={ride.quals.join(', ')}
-                      className="ml-1 rounded bg-[#FDF2E3] px-1 text-[10px] font-bold text-[#B45309]"
+                      className="ml-1 rounded bg-[#FCF3E4] px-1 text-[10px] font-bold text-[#8A6D14]"
                     >
                       Q
                     </span>

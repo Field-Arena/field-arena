@@ -1,118 +1,255 @@
-/* ── Organizer workspace (dashboard) ─────────────────────────────────────
-   The shell and every redesigned screen use the fa-* classes generated into
-   fa-design.css from the redesign prototype. This file holds app-only
-   additions on top of that (things the prototype never needed: menus the
-   shell opens, the collapsed sidebar, the mobile-preview frame) plus the
-   legacy dash-* classes pages not yet redesigned still use. */
+/* ── Organizer workspace (dashboard) design system ──────────────────────
+   Uses the shared brand vars declared in globals.css (:root). Scoped under
+   .dash so it never leaks into the marketing pages. */
 
 .dash {
-  --fa-sans: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
-  --fa-serif: var(--font-fraunces), Fraunces, Georgia, serif;
-  /* Pages built to the previous design bind Archivo / Newsreader directly
-     (font-[family-name:var(--font-ar)] etc.). The redesign is Inter +
-     Fraunces throughout, so inside the workspace those faces resolve to the
-     new ones. */
-  --font-ar: var(--font-inter);
-  --font-nr: var(--font-fraunces);
+  --rail: 68px;
+  --side: 252px;
+  /* .dash-mobile-toggle floats fixed at top:14px/right:14px over every
+     dashboard page ("Exit mobile preview" is the longest label it ever
+     shows). Anything that can reach the top-right corner — the topbar note,
+     the impersonation banner's exit button — reserves this much space so
+     the floating button never sits on top of live text/controls. */
+  --mobile-toggle-clear: 190px;
+  display: grid;
+  grid-template-columns: var(--rail) var(--side) 1fr;
+  min-height: 100vh;
+  background: #f7f5ee;
+  color: var(--ink);
+  font-family: var(--sans);
 }
 
-/* The shell root carries both .dash and .fa-app, so the generated
-   `.dash .fa-app` (descendant) rule never matches it. */
-.dash.fa-app {
+/* ── Workspace legibility: type + contrast (client feedback) ──────────────
+   The client found the workspace too light and asked for roughly double the
+   contrast and a blockier, typewriter-like face. Done centrally here rather
+   than file by file:
+
+   Scope. `body:has(.dash)` — .dash is the organizer/staff shell
+   (OrganizerShell), and keying on <body> rather than .dash itself also covers
+   dialogs, popovers and toasts, which Radix portals out to <body>. The
+   marketing site, rider portal and SuperAdmin console never render .dash, so
+   none of this reaches them.
+
+   Fonts. Courier Prime (a typewriter face drawn for on-screen reading) for
+   headings and the big stat numbers — that is where the typewriter feel reads
+   as intended. Body copy, labels, tables and inputs use IBM Plex Sans at
+   weight 500: squarer and heavier than Inter, but proportional. Courier
+   everywhere was tried and rejected: a monospace face roughly doubles line
+   lengths and breaks dense tables, and at the 9.5–11px of the uppercase
+   labels its small x-height made them harder to read, not easier. Both load in src/app/layout.tsx. The
+   components bind their faces through --font-nr / --font-ar / --font-fraunces
+   / --font-inter / --serif / --sans, so re-pointing those variables here
+   re-fonts every screen without touching the components.
+
+   Colour. The token-driven greys (text-fa-muted, text-fa-muted-2,
+   text-ink-lead, text-muted-foreground, var(--fa-muted) …) are re-pointed the
+   same way. Most components, though, hard-code their greys as Tailwind
+   arbitrary values (text-[#5A6B63], text-[#98A29D] …), so those classes are
+   remapped below onto three darker tiers. The remap sits in Tailwind's
+   `utilities` layer at the same specificity as the class it replaces, so
+   hover:/focus:/disabled: variants (higher specificity) still win, exactly as
+   they did before. Greys that only ever sit on the dark green rail/sidebar are
+   deliberately left out of the remap.
+
+     --ws-text        body text, near-ink
+     --ws-text-2      was #5A6B63 / #6E7C76 — secondary copy, hints, labels
+     --ws-text-3      was #7A8781 / #98A29D — fine print, timestamps, empty states
+     --ws-text-faint  was #B4BFB9 / #C4CDC8 — zero values, disabled tabs
+     --ws-placeholder input placeholders, kept clearly lighter than typed text */
+/* Headlines are Fraunces (owner's call, replacing the earlier Courier Prime).
+   next/font sets --font-fraunces on <html>; it's captured there because the
+   block below re-points --font-fraunces itself at --ws-type, and reading it
+   back on the same element would be circular. */
+html {
+  --ws-fraunces: var(--font-fraunces);
+}
+body:has(.dash) {
+  --ws-type: var(--ws-fraunces), 'Fraunces', Georgia, 'Times New Roman', serif;
+  --ws-body: var(--font-plex-sans), 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --ws-text: #111813;
+  --ws-text-2: #232d28;
+  --ws-text-3: #37423c;
+  --ws-text-faint: #7a847f;
+  --ws-placeholder: #66706b;
+
+  /* Font variables the components already use. */
+  --font-nr: var(--ws-type);
+  --font-fraunces: var(--ws-type);
+  --font-serif: var(--ws-type);
+  --serif: var(--ws-type);
+  --font-ar: var(--ws-body);
+  --font-inter: var(--ws-body);
+  --font-sans: var(--ws-body);
+  --sans: var(--ws-body);
+
+  /* Colour tokens the components already use. */
+  --ink: var(--ws-text);
+  --color-ink: var(--ws-text);
+  --color-ink-deep: var(--ws-text);
+  --fa-muted: var(--ws-text-2);
+  --color-fa-muted: var(--ws-text-2);
+  --color-ink-lead: var(--ws-text-2);
+  --color-ink-soft: var(--ws-text-2);
+  --muted-foreground: var(--ws-text-2);
+  --color-fa-muted-2: var(--ws-text-3);
+
+  color: var(--ws-text);
+  font-family: var(--ws-body);
+  font-weight: 500;
+}
+
+body:has(.dash) ::placeholder {
+  color: var(--ws-placeholder);
+  opacity: 1;
+}
+
+@layer base {
+  /* Headings default to the typewriter face. In the base layer so a heading
+     that names its own face with a utility class still gets it. (ScreenTitle
+     asks for font-[Newsreader,serif], which tailwind-merge drops as a
+     font-weight conflict — so screen titles rely on this rule.) */
+  :where(body:has(.dash)) :is(h1, h2, h3) {
+    font-family: var(--ws-type);
+  }
+}
+
+@layer utilities {
+  /* Newsreader requested by literal family name (font-[Newsreader,serif]) —
+     no variable to re-point, so it is remapped directly. */
+  :where(body:has(.dash)) .font-\[Newsreader\,serif\] {
+    font-family: var(--ws-type);
+  }
+
+  :where(body:has(.dash)) :is(.text-\[\#16261F\]) {
+    color: var(--ws-text);
+  }
+
+  :where(body:has(.dash))
+    :is(
+      .text-\[\#5A6B63\],
+      .text-\[\#6E7C76\],
+      .text-\[\#48574F\],
+      .text-\[\#7C8A84\],
+      .text-\[\#3D4A44\]
+    ) {
+    color: var(--ws-text-2);
+  }
+
+  :where(body:has(.dash))
+    :is(
+      .text-\[\#7A8781\],
+      .text-\[\#98A29D\],
+      .text-\[\#9AA6A0\],
+      .text-\[\#8A968F\],
+      .text-\[\#8A8275\],
+      .text-\[\#7A6A5C\]
+    ) {
+    color: var(--ws-text-3);
+  }
+
+  :where(body:has(.dash)) :is(.text-\[\#B4BFB9\], .text-\[\#C4CDC8\], .text-\[\#B8C2BD\]) {
+    color: var(--ws-text-faint);
+  }
+}
+
+/* Role rail */
+.dash-rail {
+  background: var(--hunter-deep);
+  color: #cdbb7a;
   display: flex;
-  min-height: 100vh;
-}
-
-/* The workspace switcher and user menu open inside the sidebar, which the
-   prototype's topbar-anchored .viewas-menu placement doesn't fit. */
-.dash .fa-ws-menu {
-  top: calc(100% + 6px);
-  left: 0;
-  right: auto;
-  width: 100%;
-  min-width: 228px;
-}
-.dash .fa-user-menu {
-  top: auto;
-  bottom: calc(100% + 6px);
-  left: 0;
-  right: auto;
-  width: 100%;
-}
-.dash .fa-viewas-menu .fa-mi {
-  cursor: pointer;
-}
-.dash .fa-viewas-menu div.fa-mi {
-  cursor: default;
-  word-break: break-all;
-}
-.dash .fa-viewas-menu .fa-mi:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-.dash .fa-sb-foot .fa-nav-item:disabled {
-  opacity: 0.6;
-}
-.dash .fa-icon-btn svg.lucide {
-  width: 17px;
-  height: 17px;
-}
-.dash .fa-main > main {
-  flex: 1;
-}
-
-/* Collapsed sidebar — icon-only. The prototype wires the toggle but ships no
-   collapsed styles, so this is the natural reading of it. */
-.dash .fa-sidebar.fa-collapsed {
-  width: 72px;
-  flex-basis: 72px;
-}
-.dash
-  .fa-sidebar.fa-collapsed
-  :is(.fa-ws-meta, .fa-ws-chev, .fa-sb-search, .fa-nav-label, .fa-txt, .fa-count, .fa-user-meta) {
-  display: none;
-}
-.dash .fa-sidebar.fa-collapsed :is(.fa-ws, .fa-nav-item, .fa-user-card) {
-  justify-content: center;
-}
-
-/* Mobile preview — a QA aid: the workspace inside a phone frame, with the
-   same collapse a real narrow viewport gets. */
-.dash-mobile-frame-bg {
-  background: #3a3a3a;
-  min-height: 100vh;
-  padding: 40px 0;
-}
-.dash.dash-mobile-frame {
-  width: 390px;
-  height: 844px;
-  min-height: 0;
-  margin: 0 auto;
-  border-radius: 36px;
-  border: 10px solid #111;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-.dash.dash-mobile-frame .fa-sidebar,
-.dash.dash-mobile-frame .fa-crumbs,
-.dash.dash-mobile-frame .fa-viewas {
-  display: none;
-}
-.dash.dash-mobile-frame .fa-main {
-  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 6px;
+  /* Stay in view while the page scrolls — the rail/sidebar are navigation, not
+     content, so they pin to the viewport with their own overflow instead of
+     scrolling away with the page. align-self:start stops the grid stretching
+     the column to full content height (which would leave sticky nothing to
+     pin against). */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
   overflow-y: auto;
 }
-.dash.dash-mobile-frame .fa-topbar {
-  padding: 10px 14px;
+.dash-rail-logo {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+  line-height: 1;
 }
-.dash.dash-mobile-frame .fa-content {
-  padding: 20px 16px 48px;
+.dash-rail-logo b {
+  color: var(--gold);
+  font-weight: 700;
 }
-.dash.dash-mobile-frame .stat-grid,
-.dash.dash-mobile-frame .fa-stats {
-  grid-template-columns: repeat(2, 1fr);
+.dash-rail-label {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: #b9c9bf;
+  margin-bottom: 14px;
+}
+.dash-rail-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: #b5c7bc;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+.dash-rail-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #d7e2da;
+}
+.dash-rail-btn.active {
+  background: var(--gold);
+  color: var(--hunter-deep);
 }
 
+/* Sidebar */
+.dash-side {
+  background: var(--hunter);
+  color: #e7efe9;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 18px 20px;
+  /* Pinned alongside the rail (see .dash-rail) so every nav item stays reachable
+     without scrolling back up; overflow-y lets a tall nav scroll inside the
+     pinned panel on short viewports. */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.dash-side-brand {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+}
+.dash-side-brand b {
+  color: var(--gold);
+  font-weight: 700;
+}
+.dash-side-sub {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: #d3e2d9;
+  margin-top: 4px;
+}
+.dash-side-heading {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #c6d9ce;
+  margin: 26px 0 8px;
+}
 .dash-select {
   width: 100%;
   background: #0f2f25;
@@ -123,8 +260,98 @@
   font-size: 14px;
   font-weight: 600;
 }
+.dash-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 26px;
+}
+.dash-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  color: #eef5f1;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+.dash-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.dash-nav-item.active {
+  background: var(--gold);
+  color: var(--hunter-deep);
+}
+.dash-nav-item.active svg {
+  color: var(--hunter-deep);
+}
+.dash-nav-item svg {
+  width: 18px;
+  height: 18px;
+  color: #cfe0d6;
+  flex: none;
+}
+.dash-side-foot {
+  margin-top: auto;
+  padding-top: 24px;
+  font-size: 12px;
+  color: #cbdad1;
+}
+.dash-side-foot b {
+  display: block;
+  color: #fff;
+  font-weight: 700;
+  margin-top: 2px;
+}
 
 /* Main */
+.dash-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dash-topbar {
+  height: 58px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 30px;
+}
+.dash-topbar-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--hunter-deep);
+  font-size: 17px;
+}
+.dash-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hunter);
+  background: var(--hunter-pale);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.dash-topbar-note {
+  margin-left: auto;
+  color: var(--fa-muted);
+  font-size: 13px;
+  max-width: 620px;
+  padding-right: var(--mobile-toggle-clear);
+  text-align: right;
+}
+.dash-content {
+  padding: 30px 34px 48px;
+  min-width: 0;
+}
 .dash-head {
   display: flex;
   align-items: flex-start;
@@ -264,10 +491,6 @@
   border: 1px solid var(--border);
   border-radius: 13px;
   padding: 15px 16px;
-  transition: box-shadow 0.15s ease;
-}
-.stat:hover {
-  box-shadow: 0 4px 16px rgba(16, 24, 40, 0.08);
 }
 .stat-label {
   font-size: 10.5px;
@@ -277,10 +500,9 @@
   font-weight: 700;
 }
 .stat-value {
-  font-size: 28px;
+  font-family: var(--serif);
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
   color: var(--hunter-deep);
   margin: 6px 0 4px;
 }
@@ -397,9 +619,72 @@
    below already gives a real narrow screen (nav hidden, single column) —
    simulated on a desktop browser that has no real narrow viewport to trigger
    it on its own. */
+.dash-mobile-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 2000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--hunter-deep);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 9px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(20, 30, 25, 0.28);
+  font-family: inherit;
+}
+.dash-mobile-toggle:hover {
+  filter: brightness(1.15);
+}
+@media (max-width: 480px) {
+  .dash-mobile-toggle {
+    display: none;
+  }
+}
+
+.dash-mobile-frame-bg {
+  background: #3a3a3a;
+  min-height: 100vh;
+  padding: 40px 0;
+}
+.dash.dash-mobile-frame {
+  width: 390px;
+  height: 844px;
+  min-height: 0;
+  margin: 0 auto;
+  border-radius: 36px;
+  border: 10px solid #111;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
+}
+.dash.dash-mobile-frame .dash-rail,
+.dash.dash-mobile-frame .dash-side {
+  display: none;
+}
+.dash.dash-mobile-frame .dash-main {
+  min-height: 0;
+}
+.dash.dash-mobile-frame .dash-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 /* Same collapse the real ≤900px breakpoint below applies — repeated here
    because that rule is keyed on the actual viewport width, which the frame
    (390px wide, sitting inside a full desktop viewport) does not change. */
+.dash.dash-mobile-frame .dash-topbar-note {
+  display: none;
+}
+.dash.dash-mobile-frame .stat-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
 
 @media (max-width: 1100px) {
   .stat-grid {
@@ -407,8 +692,18 @@
   }
 }
 @media (max-width: 900px) {
+  .dash {
+    grid-template-columns: 1fr;
+  }
+  .dash-rail,
+  .dash-side {
+    display: none;
+  }
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .dash-topbar-note {
+    display: none;
   }
 }
 
@@ -437,11 +732,160 @@
   }
 }
 
-/* Shared shadcn tables inside the workspace read as the redesign's .fa-table
-   header (small uppercase ink-3 on surface-2) without touching every screen. */
+/* ── Show tabs, home and to-do list (feat/dashboard-show-tabs) ──────────────
+   The new dashboard pieces are written against the redesign's fa-* tokens
+   (dev branch). On this branch those tokens don't exist yet, so they're
+   mapped onto the current organizer palette here. */
+.dash {
+  --fa-ink: #16261f;
+  --fa-ink-2: #5a6b63;
+  --fa-ink-3: #7a8781;
+  --fa-line: #e9edeb;
+  --fa-line-soft: #edf0ee;
+  --fa-surface: #ffffff;
+  --fa-brand: #1a5b3c;
+  --fa-emerald: #1a5b3c;
+  --fa-emerald-tint: #e9f4ee;
+  --fa-red: #b4432f;
+  --fa-red-tint: #fdeeeb;
+  --fa-amber: #8a6d14;
+  --fa-amber-tint: #fcf3e4;
+  --fa-shadow-md: 0 2px 4px rgba(16, 40, 32, 0.05), 0 16px 34px -18px rgba(16, 40, 32, 0.2);
+}
+.dash .fa-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dash .fa-page-head h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--fa-ink);
+}
+.dash .fa-page-head p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fa-ink-2);
+}
+.dash .fa-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash .fa-aside-card,
+.dash .fa-mini-card {
+  background: #fff;
+  border: 1px solid var(--fa-line-soft);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow:
+    0 1px 2px rgba(16, 40, 32, 0.04),
+    0 10px 26px -16px rgba(16, 40, 32, 0.14);
+  color: var(--fa-ink);
+}
+.dash .fa-aside-card h4,
+.dash .fa-mini-card h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fa-ink);
+}
+.dash .fa-mini-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fa-ink-2);
+}
+.dash .fa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9px;
+  border: 1px solid var(--fa-line);
+  background: #fff;
+  color: var(--fa-ink);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dash .fa-btn:hover {
+  border-color: #c9d3ce;
+  background: #f8faf9;
+}
+.dash .fa-btn-sm {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
+/* Styles for components that still use the fa-* workspace classes (from dev).
+   Scoped to fa-* so they never restyle the live dash-* workspace. */
+.dash.fa-app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dash .fa-ws-menu {
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 100%;
+  min-width: 228px;
+}
+
+.dash .fa-user-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 100%;
+}
+
+.dash .fa-viewas-menu .fa-mi {
+  cursor: pointer;
+}
+
+.dash .fa-viewas-menu div.fa-mi {
+  cursor: default;
+  word-break: break-all;
+}
+
+.dash .fa-viewas-menu .fa-mi:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.dash .fa-sb-foot .fa-nav-item:disabled {
+  opacity: 0.6;
+}
+
+.dash .fa-main > main {
+  flex: 1;
+}
+
+.dash .fa-sidebar.fa-collapsed {
+  width: 72px;
+  flex-basis: 72px;
+}
+
+.dash
+  .fa-sidebar.fa-collapsed
+  :is(.fa-ws-meta, .fa-ws-chev, .fa-sb-search, .fa-nav-label, .fa-txt, .fa-count, .fa-user-meta) {
+  display: none;
+}
+
+.dash .fa-sidebar.fa-collapsed :is(.fa-ws, .fa-nav-item, .fa-user-card) {
+  justify-content: center;
+}
+
 .dash .fa-content [data-slot='table-header'] tr {
   background: var(--fa-surface-2);
 }
+
 .dash .fa-content [data-slot='table-head'] {
   font-size: 11px;
   font-weight: 600;
@@ -450,114 +894,7 @@
   color: var(--fa-ink-3);
   white-space: nowrap;
 }
+
 .dash .fa-content [data-slot='table-row']:hover {
   background: #fafbfc;
-}
-
-/* ── Legacy dash-* / stat classes, restyled to the redesign ──────────────
-   Operations, Vendor, Announcer and a few organizer screens still use these
-   class names; scoped under .dash so they pick up the redesign's type,
-   colors and card treatment without each screen being rewritten. */
-.dash .dash-head h1 {
-  font-family: var(--fa-serif);
-  font-weight: 600;
-  color: var(--fa-ink);
-  font-size: 29px;
-  letter-spacing: -0.5px;
-  margin: 0 0 8px;
-}
-.dash .dash-head p {
-  color: var(--fa-ink-2);
-  font-size: 14px;
-  line-height: 1.6;
-  max-width: 640px;
-}
-.dash .dash-head {
-  margin-bottom: 24px;
-}
-.dash .dash-card {
-  border: 1px solid var(--fa-line);
-  border-radius: var(--fa-radius);
-  box-shadow: var(--fa-shadow-sm);
-  padding: 20px;
-}
-.dash .dash-btn {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 9px 15px;
-  gap: 7px;
-}
-.dash .dash-btn-dark,
-.dash .dash-btn-green {
-  background: var(--fa-brand);
-  box-shadow: 0 1px 2px rgba(16, 80, 55, 0.3);
-}
-.dash .dash-btn-dark:hover,
-.dash .dash-btn-green:hover {
-  background: var(--fa-brand-strong);
-}
-.dash .dash-btn-outline {
-  border-color: var(--fa-line);
-  color: var(--fa-ink-2);
-  box-shadow: var(--fa-shadow-sm);
-}
-.dash .dash-btn-outline:hover {
-  background: var(--fa-surface-2);
-  color: var(--fa-ink);
-}
-.dash .dash-select {
-  background: var(--fa-surface);
-  border-color: var(--fa-line);
-  color: var(--fa-ink);
-  font-size: 13.5px;
-  font-weight: 500;
-  padding: 9px 12px;
-}
-.dash .stat-grid {
-  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
-}
-.dash .stat {
-  background: var(--fa-surface);
-  border: 1px solid var(--fa-line);
-  border-radius: var(--fa-radius);
-  padding: 17px 17px 15px;
-  box-shadow: var(--fa-shadow-sm);
-  transition: 0.16s;
-  display: flex;
-  flex-direction: column;
-}
-.dash .stat > * {
-  order: 3;
-}
-.dash .stat > .stat-value {
-  order: 1;
-}
-.dash .stat:hover {
-  box-shadow: var(--fa-shadow-md);
-  transform: translateY(-1px);
-}
-.dash .stat-label {
-  order: 2;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--fa-ink-3);
-  margin-top: 7px;
-}
-.dash .stat-value {
-  font-size: 26px;
-  letter-spacing: -1px;
-  line-height: 1;
-  color: var(--fa-ink);
-  margin: 0;
-}
-.dash .stat.revenue .stat-value {
-  color: var(--fa-emerald);
-}
-.dash .stat-sub {
-  font-size: 11.5px;
-  color: var(--fa-ink-3);
-  margin-top: 6px;
 }

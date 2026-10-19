@@ -1,113 +1,87 @@
 'use client';
 
 import { useState } from 'react';
-import { PrinterIcon } from 'lucide-react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { Card } from '@/shared/ui/organizer/card';
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
+import { CardTitle, FA_BTN_SMALL, FaCard } from '@/shared/ui/organizer/fa-page';
 import type { ShowPnl } from '@/modules/shows/types';
-import { SM_CARD_PAD, SM_GHOST_BTN } from '@/modules/shows/ui/show-manager/tokens';
 import { RevenueBreakdown } from '@/modules/shows/ui/financial/revenue-breakdown';
 import { ExpenseEditor } from '@/modules/shows/ui/financial/expense-editor';
 
-const TITLE = 'text-[15px] font-semibold tracking-[-.2px] text-[#101828]';
+const ROW = 'flex flex-wrap items-center justify-between gap-2.5 border-t border-[#EDF0EE] py-3';
 
-export function PnlPanel({ pnl, canViewMoney }: { pnl: ShowPnl; canViewMoney: boolean }) {
+export function PnlPanel({ pnl }: { pnl: ShowPnl }) {
   const [revenueOpen, setRevenueOpen] = useState(true);
   const [expensesOpen, setExpensesOpen] = useState(false);
 
   return (
-    <>
-      <Card className={SM_CARD_PAD}>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            setRevenueOpen((v) => !v);
-          }}
-          aria-expanded={revenueOpen}
-          className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
+    <FaCard>
+      <CardTitle className="mb-2">Profit &amp; loss</CardTitle>
+
+      <div className={ROW}>
+        <span
+          className="flex items-center gap-2 text-[14px] font-bold"
+          title="Every paid rider, vendor and merchandise sale for this show"
         >
-          <span
-            className={TITLE}
-            title="Every paid rider, vendor and merchandise sale for this show"
-          >
-            Revenue
-          </span>
-          <span className="flex items-center gap-3">
-            <b className="text-[16px]">{formatMoneyExact(pnl.revenueTotal)}</b>
-            <span className="text-[11px] whitespace-nowrap text-[#8A94A3]">
-              {revenueOpen ? 'Hide ▲' : 'By category ▼'}
-            </span>
-          </span>
-        </Button>
-
-        {revenueOpen && (
-          <div className="mt-2.5">
-            <RevenueBreakdown pnl={pnl} />
-          </div>
-        )}
-      </Card>
-
-      <Card className={SM_CARD_PAD}>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            setExpensesOpen((v) => !v);
-          }}
-          aria-expanded={expensesOpen}
-          className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
-        >
-          <span
-            className={TITLE}
-            title="Real-world costs of running this show — venue, judges, insurance, etc."
-          >
-            Expenses
-          </span>
-          <span className="flex items-center gap-3">
-            <b className="text-[16px]">{formatMoneyExact(pnl.expensesTotal)}</b>
-            <span className="text-[11px] whitespace-nowrap text-[#8A94A3]">
-              {expensesOpen ? 'Hide ▲' : 'Show detail ▼'}
-            </span>
-          </span>
-        </Button>
-
-        {expensesOpen && (
-          <div className="mt-2.5">
-            <ExpenseEditor showId={pnl.showId} expenses={pnl.expenses} />
-          </div>
-        )}
-      </Card>
-
-      <Card className={cn(SM_CARD_PAD, 'flex flex-wrap items-center justify-between gap-2.5')}>
-        <div className="flex items-center gap-3">
-          <span className={TITLE} title="Revenue minus expenses for this show">
-            Net
-          </span>
-          <b className="text-[20px]" style={{ color: pnl.net < 0 ? '#a33' : '#146A47' }}>
-            {formatMoneyExact(pnl.net)}
-            {pnl.net < 0 && (
-              <span className="ml-1 text-[12px] font-bold tracking-[.3px]">(LOSS)</span>
-            )}
-          </b>
-        </div>
-
-        {canViewMoney && (
-          <Button
+          Revenue
+          <button
             type="button"
-            variant="ghost"
-            className={cn(SM_GHOST_BTN, 'h-auto hover:bg-transparent print:hidden')}
+            className={FA_BTN_SMALL}
+            aria-expanded={revenueOpen}
             onClick={() => {
-              window.print();
+              setRevenueOpen((v) => !v);
             }}
           >
-            <PrinterIcon className="size-4" aria-hidden />
-            Print P&amp;L
-          </Button>
-        )}
-      </Card>
-    </>
+            {revenueOpen ? 'Hide ▴' : 'By category ▾'}
+          </button>
+        </span>
+        <b className="text-[15px]">{formatMoneyExact(pnl.revenueTotal)}</b>
+      </div>
+      {revenueOpen && (
+        <div className="pb-3">
+          <RevenueBreakdown pnl={pnl} />
+        </div>
+      )}
+
+      <div className={ROW}>
+        <span
+          className="flex items-center gap-2 text-[14px] font-bold"
+          title="Real-world costs of running this show — venue, judges, insurance, etc."
+        >
+          Expenses
+          <button
+            type="button"
+            className={FA_BTN_SMALL}
+            aria-expanded={expensesOpen}
+            onClick={() => {
+              setExpensesOpen((v) => !v);
+            }}
+          >
+            {expensesOpen ? 'Done ▴' : 'Edit ▾'}
+          </button>
+        </span>
+        <b className="text-[15px]">
+          {pnl.expensesTotal > 0 ? '−' : ''}
+          {formatMoneyExact(pnl.expensesTotal)}
+        </b>
+      </div>
+      {expensesOpen && (
+        <div className="pb-3">
+          <ExpenseEditor showId={pnl.showId} expenses={pnl.expenses} />
+        </div>
+      )}
+
+      <div className={cn(ROW, 'border-t-[1.5px] border-[#C9D3CE]')}>
+        <span className="text-[16px] font-bold" title="Revenue minus expenses for this show">
+          Net
+        </span>
+        <b className={cn('text-[20px]', pnl.net < 0 ? 'text-[#B4432F]' : 'text-[#1A5B3C]')}>
+          {formatMoneyExact(pnl.net)}
+          {pnl.net < 0 && (
+            <span className="ml-1 text-[12px] font-bold tracking-[.3px]">(LOSS)</span>
+          )}
+        </b>
+      </div>
+    </FaCard>
   );
 }

@@ -1047,6 +1047,11 @@ export type Database = {
           status: string | null
           updated_at: string
           website: string | null
+          city: string | null
+          state: string | null
+          demo_no_show: boolean
+          invited_at: string | null
+          org_id: string | null
         }
         Insert: {
           avg_revenue_per_show?: number | null
@@ -1067,6 +1072,11 @@ export type Database = {
           status?: string | null
           updated_at?: string
           website?: string | null
+          city?: string | null
+          state?: string | null
+          demo_no_show?: boolean
+          invited_at?: string | null
+          org_id?: string | null
         }
         Update: {
           avg_revenue_per_show?: number | null
@@ -1087,6 +1097,11 @@ export type Database = {
           status?: string | null
           updated_at?: string
           website?: string | null
+          city?: string | null
+          state?: string | null
+          demo_no_show?: boolean
+          invited_at?: string | null
+          org_id?: string | null
         }
         Relationships: []
       }

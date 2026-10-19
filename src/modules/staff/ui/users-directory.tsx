@@ -1,12 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ScreenTitle, ScreenLede, Eyebrow, Card } from '@/shared/ui/organizer/card';
-import { SearchInput } from '@/shared/ui/organizer/search-input';
-import { StatusPill } from '@/shared/ui/organizer/status-pill';
-import { cn } from '@/shared/lib/utils';
-import { formatDateShort } from '@/shared/lib/format/date';
-import { USER_STATUS_META, ADD_USER_ROLES } from '../constants';
+import { USER_STATUS_META } from '../constants';
 import { roleRank } from '../utils';
 import { AddUserDialog, type ClassOption } from './add-user-dialog';
 import { UploadStaffListDialog } from './upload-staff-list-dialog';
@@ -17,18 +12,99 @@ import { RingCoverageCard } from './ring-coverage-card';
 import { RiderDetailDialog } from './rider-detail-dialog';
 import { VendorDetailDialog } from './vendor-detail-dialog';
 import { VendorApprovalActions } from '@/modules/vendors/public';
-import type { UserDirectoryRow, UserDirectoryStatus, RingCoverageData } from '../types';
+import { formatDateShort } from '@/shared/lib/format/date';
+import type { UserDirectoryRow, RingCoverageData } from '../types';
 import type { ShowListItem } from '@/modules/shows/types';
 
-const FILTER_SELECT_CLASS =
-  'min-w-[160px] flex-1 rounded-[10px] border border-[#E7EAEE] bg-white px-3 py-2.5 text-[13.5px] text-[#101828] outline-none focus-visible:border-[#9FD3BA]';
+type Chip =
+  'all' | 'staff' | 'officials' | 'riders' | 'vendors' | 'pending' | 'not_invited' | 'coggins';
 
-const STATUS_ORDER: UserDirectoryStatus[] = ['onboard', 'pending', 'not_invited'];
+const CHIPS: { key: Chip; label: string }[] = [
+  { key: 'all', label: 'Everyone' },
+  { key: 'staff', label: 'Staff' },
+  { key: 'officials', label: 'Judges & scribes' },
+  { key: 'riders', label: 'Riders' },
+  { key: 'vendors', label: 'Vendors' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'not_invited', label: 'Not invited' },
+  { key: 'coggins', label: 'Coggins problems' },
+];
+
+const OFFICIALS = new Set(['Judge', 'Scribe']);
+
+function matchesChip(row: UserDirectoryRow, chip: Chip): boolean {
+  switch (chip) {
+    case 'all':
+      return true;
+    case 'staff':
+      return row.kind === 'staff';
+    case 'officials':
+      return row.kind === 'staff' && OFFICIALS.has(row.role);
+    case 'riders':
+      return row.kind === 'rider';
+    case 'vendors':
+      return row.kind === 'vendor';
+    case 'pending':
+      return row.status === 'pending';
+    case 'not_invited':
+      return row.status === 'not_invited';
+    case 'coggins':
+      return row.kind === 'rider' && row.coggins?.compliant === false;
+  }
+}
+
+const ROLE_PILL: Record<string, string> = {
+  staff: 'bg-[#EEF3FB] text-[#3E6FA8]',
+  rider: 'bg-[#EDF0EE] text-[#5A6B63]',
+  vendor: 'bg-[#F4EEFA] text-[#6B4FA0]',
+};
+
+const SMALL_BTN =
+  'cursor-pointer rounded-[8px] border-[1.5px] border-[#1A5B3C] bg-white px-3 py-1 text-[12.5px] font-bold text-[#1A5B3C]';
+
+function StatBox({
+  label,
+  value,
+  note,
+  color,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  note?: string;
+  color?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`cursor-pointer rounded-[12px] border-[1.5px] bg-white px-4 py-3 text-left ${
+        active
+          ? 'border-[#1A5B3C] shadow-[0_0_0_3px_#E9F4EE]'
+          : 'border-[#D9E1DD] hover:border-[#1A5B3C]'
+      }`}
+    >
+      <span className="block text-[12.5px] font-semibold text-[#5A6B63]">{label}</span>
+      <span
+        className="block text-[26px] leading-tight font-bold"
+        style={{ color: color ?? '#0D2C23' }}
+      >
+        {value}
+      </span>
+      {note && <span className="block text-[12px] font-semibold text-[#5A6B63]">{note}</span>}
+    </button>
+  );
+}
 
 export function UsersDirectory({
   rows,
   shows,
   initialShowId,
+  initialShowFilter = '',
   classesByShow,
   ringCoverageByShow,
   isOrgOwner,
@@ -37,6 +113,8 @@ export function UsersDirectory({
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
   initialShowId: string;
+  /** Opened from a show (?show=…): list only that show's people at first. */
+  initialShowFilter?: string;
 
   classesByShow: Record<string, ClassOption[]>;
   ringCoverageByShow: Record<string, RingCoverageData>;
@@ -46,10 +124,8 @@ export function UsersDirectory({
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [showFilter, setShowFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [cogginsOnly, setCogginsOnly] = useState(false);
+  const [chip, setChip] = useState<Chip>('all');
+  const [showFilter, setShowFilter] = useState(initialShowFilter);
   const [editingRow, setEditingRow] = useState<UserDirectoryRow | null>(null);
   const [viewingRiderRow, setViewingRiderRow] = useState<UserDirectoryRow | null>(null);
   const [viewingVendorRow, setViewingVendorRow] = useState<UserDirectoryRow | null>(null);
@@ -69,32 +145,41 @@ export function UsersDirectory({
   );
   const targetShowRingCoverage = ringCoverageByShow[targetShowId] ?? { rings: [], assignments: {} };
 
-  /* The full role catalog, not just roles someone currently holds — an
-   * organizer with no vendors yet should still be able to pick "Vendor" and
-   * see that empty state, same as the Show/Status filters already list every
-   * option regardless of what's present in `rows`. */
-  const roleTypes = useMemo(() => [...ADD_USER_ROLES].sort((a, b) => a.localeCompare(b)), []);
-  const showCoggins = roleFilter === 'Rider';
-
-  const noncompliantCount = useMemo(
-    () => rows.filter((r) => r.kind === 'rider' && r.coggins?.compliant === false).length,
-    [rows],
+  // Counts follow the show filter so the boxes always describe what's listed.
+  const scoped = useMemo(
+    () => (showFilter ? rows.filter((r) => r.showId === showFilter) : rows),
+    [rows, showFilter],
   );
+  const counts = useMemo(() => {
+    const staff = scoped.filter((r) => r.kind === 'staff');
+    return {
+      staff: staff.length,
+      judges: staff.filter((r) => r.role === 'Judge').length,
+      scribes: staff.filter((r) => r.role === 'Scribe').length,
+      riders: scoped.filter((r) => r.kind === 'rider').length,
+      vendors: scoped.filter((r) => r.kind === 'vendor').length,
+      invitesPending: staff.filter((r) => r.status === 'pending').length,
+      vendorsPending: scoped.filter((r) => r.kind === 'vendor' && r.status === 'pending').length,
+      coggins: scoped.filter((r) => r.kind === 'rider' && r.coggins?.compliant === false).length,
+    };
+  }, [scoped]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows
+    return scoped
       .filter((u) => {
-        if (roleFilter && u.role !== roleFilter) return false;
-        if (showFilter && u.showId !== showFilter) return false;
-        if (statusFilter && u.status !== statusFilter) return false;
-        if (cogginsOnly && (u.role !== 'Rider' || u.coggins?.compliant !== false)) return false;
-        if (q && !u.name.toLowerCase().includes(q) && !(u.email ?? '').toLowerCase().includes(q))
+        if (!matchesChip(u, chip)) return false;
+        if (
+          q &&
+          !u.name.toLowerCase().includes(q) &&
+          !(u.email ?? '').toLowerCase().includes(q) &&
+          !(u.phone ?? '').toLowerCase().includes(q)
+        )
           return false;
         return true;
       })
       .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
-  }, [rows, roleFilter, showFilter, statusFilter, cogginsOnly, search]);
+  }, [scoped, chip, search]);
 
   const PAGE_SIZE = 25;
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -102,193 +187,178 @@ export function UsersDirectory({
   const pageStart = (effectivePage - 1) * PAGE_SIZE;
   const pagedRows = filteredRows.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const columns = showCoggins
-    ? 'minmax(160px,1.4fr) 120px 160px minmax(160px,1.2fr) 130px 110px 150px'
-    : 'minmax(160px,1.4fr) 120px 160px minmax(160px,1.2fr) 130px 110px';
+  const pickChip = (next: Chip) => {
+    setChip(next);
+    setPage(1);
+  };
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Eyebrow className="mb-1.5 block">Access</Eyebrow>
-          <ScreenTitle className="mb-1.5">Users</ScreenTitle>
-          <ScreenLede className="mb-0">
-            Invite and manage everyone with access — judges, scribes, staff, and more.
-          </ScreenLede>
+          <p className="text-[13.5px] font-semibold text-[#5A6B63]">
+            Everyone working, riding or selling at your shows
+          </p>
+          <h1 className="mt-1 font-[family-name:var(--ws-fraunces)] text-[32px] leading-[1.1] font-bold text-[#0D2C23]">
+            Users
+          </h1>
         </div>
-        <span className="inline-flex flex-none items-center gap-1.5 rounded-full border border-[#E7EAEE] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#101828]">
-          <span className="size-1.5 rounded-full bg-[#146A47]" aria-hidden />
-          {rows.length} of {rows.length}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={targetShowId}
+            onChange={(e) => {
+              setTargetShowId(e.target.value);
+            }}
+            className="text-ink-deep max-w-full min-w-0 rounded-[10px] border-2 border-[#C9D3CE] bg-white px-3 py-2 text-[13.5px] font-semibold"
+            aria-label="Show to add, upload or export staff for"
+          >
+            {shows.map((show) => (
+              <option key={show.id} value={show.id}>
+                Staff for: {show.name}
+              </option>
+            ))}
+          </select>
+          {targetShow && (
+            <UploadStaffListDialog showId={targetShow.id} showName={targetShow.name} />
+          )}
+          {targetShow && (
+            <ExportStaffListButton rows={targetShowStaff} showName={targetShow.name} />
+          )}
+          {targetShow && (
+            <PermissionsListDialog
+              staff={targetShowStaff}
+              showName={targetShow.name}
+              onEditStaff={setEditingRow}
+            />
+          )}
+          <AddUserDialog
+            shows={shows}
+            defaultShowId={targetShowId}
+            classes={classesByShow[targetShowId] ?? []}
+            canGrantMoney={isOrgOwner}
+          />
+        </div>
       </div>
 
-      <Card className="mb-5 flex flex-wrap items-center gap-3 p-[16px_18px]">
-        <select
-          value={targetShowId}
-          onChange={(e) => {
-            setTargetShowId(e.target.value);
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <StatBox
+          label="Staff & officials"
+          value={counts.staff}
+          note={`${String(counts.judges)} judges · ${String(counts.scribes)} scribes`}
+          active={chip === 'staff'}
+          onClick={() => {
+            pickChip('staff');
           }}
-          className="min-w-[280px] flex-[0_1_360px] rounded-[10px] border border-[#E7EAEE] px-3 py-2.5 text-sm text-[#101828]"
-          aria-label="Show to add or export staff for"
+        />
+        <StatBox
+          label="Riders"
+          value={counts.riders}
+          active={chip === 'riders'}
+          onClick={() => {
+            pickChip('riders');
+          }}
+        />
+        <StatBox
+          label="Vendors"
+          value={counts.vendors}
+          active={chip === 'vendors'}
+          onClick={() => {
+            pickChip('vendors');
+          }}
+        />
+        <StatBox
+          label="Invites pending"
+          value={counts.invitesPending}
+          color={counts.invitesPending > 0 ? '#8A6D14' : undefined}
+          active={chip === 'pending'}
+          onClick={() => {
+            pickChip('pending');
+          }}
+        />
+        <StatBox
+          label="Coggins problems"
+          value={counts.coggins}
+          note={
+            counts.vendorsPending > 0
+              ? `${String(counts.vendorsPending)} vendors to approve`
+              : undefined
+          }
+          color={counts.coggins > 0 ? '#B4432F' : undefined}
+          active={chip === 'coggins'}
+          onClick={() => {
+            pickChip('coggins');
+          }}
+        />
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {CHIPS.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={chip === c.key}
+            onClick={() => {
+              pickChip(c.key);
+            }}
+            className={`cursor-pointer rounded-full border-2 px-3.5 py-1.5 text-[13px] font-bold ${
+              chip === c.key
+                ? 'border-[#1A5B3C] bg-[#1A5B3C] text-white'
+                : 'border-[#C9D3CE] bg-white text-[#0D2C23] hover:border-[#1A5B3C]'
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+        <select
+          value={showFilter}
+          onChange={(e) => {
+            setShowFilter(e.target.value);
+            setPage(1);
+          }}
+          className="text-ink-deep max-w-[200px] rounded-[10px] border-2 border-[#C9D3CE] bg-white px-3 py-1.5 text-[13px] font-semibold"
+          aria-label="Filter by show"
         >
+          <option value="">All shows</option>
           {shows.map((show) => (
             <option key={show.id} value={show.id}>
               {show.name}
-              {show.dateLabel ? ` (${show.dateLabel})` : ''}
             </option>
           ))}
         </select>
-
-        <AddUserDialog
-          shows={shows}
-          defaultShowId={targetShowId}
-          classes={classesByShow[targetShowId] ?? []}
-          canGrantMoney={isOrgOwner}
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Name, email or phone"
+          aria-label="Search users"
+          className="text-ink-deep ml-auto w-full rounded-[10px] border-2 border-[#C9D3CE] bg-white px-3 py-2 text-[14px] outline-none focus-visible:border-[#1A5B3C] sm:w-[240px]"
         />
-        {targetShow && <UploadStaffListDialog showId={targetShow.id} showName={targetShow.name} />}
-        {targetShow && <ExportStaffListButton rows={targetShowStaff} showName={targetShow.name} />}
-        {targetShow && (
-          <PermissionsListDialog
-            staff={targetShowStaff}
-            showName={targetShow.name}
-            onEditStaff={setEditingRow}
-          />
-        )}
-      </Card>
+      </div>
 
-      <Card className="p-[18px_20px_20px]">
-        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="font-[family-name:var(--fa-serif)] text-[20px] font-semibold text-[#101828]">
-            All Users
-          </h2>
-          <span className="text-[13px] font-semibold text-[#475467]">
-            {filteredRows.length} of {rows.length}
-          </span>
-        </div>
-        <p className="mb-4 text-[13px] text-[#475467]">
-          Everyone with access across every one of your shows — search or filter to find someone.
-        </p>
-
-        {noncompliantCount > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-[#FBCFC9] bg-[#FEF3F2] px-4 py-3 text-[13px] text-[#912018]">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#B42318] px-2.5 py-1 text-[11.5px] font-bold text-white">
-              ⚠ {noncompliantCount}
-            </span>
-            <span>riders outside Coggins compliance — missing, expired, or not yet verified.</span>
-            <button
-              type="button"
-              onClick={() => {
-                setRoleFilter('Rider');
-                setCogginsOnly(true);
-              }}
-              className="ml-auto font-bold hover:underline"
-            >
-              Show only these →
-            </button>
-          </div>
-        )}
-
-        <div className="mb-3 flex flex-wrap gap-2.5">
-          <SearchInput
-            placeholder="Search name or email…"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-            }}
-          />
-          <select
-            value={roleFilter}
-            onChange={(e) => {
-              setRoleFilter(e.target.value);
-              if (e.target.value !== 'Rider') setCogginsOnly(false);
-            }}
-            className={FILTER_SELECT_CLASS}
-            aria-label="Filter by user type"
-          >
-            <option value="">All user types</option>
-            {roleTypes.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
-          <select
-            value={showFilter}
-            onChange={(e) => {
-              setShowFilter(e.target.value);
-            }}
-            className={FILTER_SELECT_CLASS}
-            aria-label="Filter by show"
-          >
-            <option value="">All shows</option>
-            {shows.map((show) => (
-              <option key={show.id} value={show.id}>
-                {show.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mb-4 flex flex-wrap gap-2.5">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-            }}
-            className={cn(FILTER_SELECT_CLASS, 'max-w-[220px]')}
-            aria-label="Filter by status"
-          >
-            <option value="">Any status</option>
-            {STATUS_ORDER.map((status) => (
-              <option key={status} value={status}>
-                {USER_STATUS_META[status].label}
-              </option>
-            ))}
-          </select>
-
-          {showCoggins && (
-            <select
-              value={cogginsOnly ? 'noncompliant' : ''}
-              onChange={(e) => {
-                setCogginsOnly(e.target.value === 'noncompliant');
-              }}
-              className={cn(FILTER_SELECT_CLASS, 'max-w-[260px]')}
-              aria-label="Filter by Coggins compliance"
-            >
-              <option value="">Any Coggins status</option>
-              <option value="noncompliant">⚠ Non-compliant only</option>
-            </select>
-          )}
-        </div>
-
-        <div className="overflow-x-auto rounded-[12px] border border-[#EEF1F4]">
-          <div className="min-w-[900px]">
-            <div
-              className="grid gap-3.5 border-b border-[#EEF1F4] bg-[#FBFCFD] px-4 py-2.5"
-              style={{ gridTemplateColumns: columns }}
-            >
-              {[
-                'Name',
-                'User Type',
-                'Show',
-                'Email',
-                'Phone',
-                'Status',
-                ...(showCoggins ? ['Coggins'] : []),
-              ].map((label) => (
-                <span
-                  key={label}
-                  className="text-[9.5px] font-bold tracking-[.08em] text-[#8A94A3] uppercase"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-
-            {filteredRows.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13.5px] text-[#8A94A3]">
-                No users match those filters.
-              </div>
+      <div className="overflow-x-auto rounded-[14px] border-[1.5px] border-[#C9D3CE] bg-white">
+        <table className="w-full min-w-[900px] border-collapse text-[13.5px]">
+          <thead>
+            <tr className="bg-[#F5F7F6] text-left text-[11px] tracking-[.06em] text-[#5A6B63] uppercase">
+              <th className="px-3 py-2.5 font-bold">Name</th>
+              <th className="px-3 py-2.5 font-bold">Role</th>
+              <th className="px-3 py-2.5 font-bold">Show</th>
+              <th className="px-3 py-2.5 font-bold">Email · Phone</th>
+              <th className="px-3 py-2.5 font-bold">Status</th>
+              <th className="px-3 py-2.5 font-bold">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedRows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-[13.5px] text-[#7A8781]">
+                  No users match those filters.
+                </td>
+              </tr>
             ) : (
               pagedRows.map((row) => {
                 const openRow = () => {
@@ -298,29 +368,38 @@ export function UsersDirectory({
                 };
                 const meta = USER_STATUS_META[row.status];
                 return (
-                  <div
+                  <tr
                     key={row.key}
-                    role="button"
                     tabIndex={0}
                     onClick={openRow}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') openRow();
                     }}
-                    className="grid cursor-pointer items-center gap-3.5 border-b border-[#EEF1F4] px-4 py-3 text-[13px] transition-colors last:border-b-0 hover:bg-[#FBFCFD]"
-                    style={{ gridTemplateColumns: columns }}
+                    className="cursor-pointer border-t border-[#EDF0EE] hover:bg-[#F8FAF9]"
                   >
-                    <span className="min-w-0 truncate font-semibold text-[#101828]">
-                      {row.name}
-                    </span>
-                    <span className="min-w-0 truncate text-[#475467]">{row.role}</span>
-                    <span className="min-w-0 truncate text-[#475467]">{row.showName}</span>
-                    <span className="min-w-0 truncate text-[#475467]">{row.email ?? '—'}</span>
-                    <span className="min-w-0 truncate text-[#475467]">{row.phone ?? '—'}</span>
-                    <span>
-                      <StatusPill bg={meta.bg} border="transparent" fg={meta.fg}>
+                    <td className="px-3 py-3 font-bold text-[#0D2C23]">{row.name}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`rounded-[7px] px-2 py-0.5 text-[11.5px] font-extrabold ${ROLE_PILL[row.kind] ?? 'bg-[#EDF0EE] text-[#5A6B63]'}`}
+                      >
+                        {row.role}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 font-semibold text-[#5A6B63]">{row.showName}</td>
+                    <td className="px-3 py-3 text-[12.5px] font-semibold text-[#5A6B63]">
+                      <span className="block">{row.email ?? '—'}</span>
+                      <span className="block">{row.phone ?? '—'}</span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className="rounded-[7px] px-2 py-0.5 text-[11.5px] font-extrabold"
+                        style={{ background: meta.bg, color: meta.fg }}
+                      >
                         {meta.label}
-                      </StatusPill>
-                      {row.kind === 'vendor' && row.status === 'pending' && (
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      {row.kind === 'vendor' && row.status === 'pending' ? (
                         <span
                           onClick={(e) => {
                             e.stopPropagation();
@@ -328,55 +407,57 @@ export function UsersDirectory({
                         >
                           <VendorApprovalActions bookingId={row.id} showId={row.showId} />
                         </span>
+                      ) : row.kind === 'rider' ? (
+                        <CogginsPill row={row} />
+                      ) : row.kind === 'staff' ? (
+                        <span className={SMALL_BTN}>Edit</span>
+                      ) : (
+                        <span className={SMALL_BTN}>View</span>
                       )}
-                    </span>
-                    {showCoggins && (
-                      <span>
-                        <CogginsCell row={row} />
-                      </span>
-                    )}
-                  </div>
+                    </td>
+                  </tr>
                 );
               })
             )}
+          </tbody>
+        </table>
+      </div>
+
+      {filteredRows.length > PAGE_SIZE && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#48574F]">
+          <span>
+            Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredRows.length)} of{' '}
+            {filteredRows.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={effectivePage <= 1}
+              onClick={() => {
+                setPage(effectivePage - 1);
+              }}
+              className={`${SMALL_BTN} disabled:opacity-40`}
+            >
+              Previous
+            </button>
+            <span className="tabular-nums">
+              Page {effectivePage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              disabled={effectivePage >= pageCount}
+              onClick={() => {
+                setPage(effectivePage + 1);
+              }}
+              className={`${SMALL_BTN} disabled:opacity-40`}
+            >
+              Next
+            </button>
           </div>
-
-          {filteredRows.length > PAGE_SIZE && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[#475467]">
-              <span>
-                Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredRows.length)} of{' '}
-                {filteredRows.length}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={effectivePage <= 1}
-                  onClick={() => {
-                    setPage(effectivePage - 1);
-                  }}
-                  className="rounded-[9px] border border-[#E7EAEE] bg-white px-3 py-1.5 font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] disabled:opacity-40"
-                >
-                  Previous
-                </button>
-                <span className="tabular-nums">
-                  Page {effectivePage} of {pageCount}
-                </span>
-                <button
-                  type="button"
-                  disabled={effectivePage >= pageCount}
-                  onClick={() => {
-                    setPage(effectivePage + 1);
-                  }}
-                  className="rounded-[9px] border border-[#E7EAEE] bg-white px-3 py-1.5 font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
         </div>
-      </Card>
+      )}
 
+      <div className="mt-5" />
       {targetShow && (
         <RingCoverageCard
           showId={targetShow.id}
@@ -417,44 +498,28 @@ export function UsersDirectory({
   );
 }
 
-/* Matches legacy's cogginsCellHtml exactly: once uploaded, the date and the
- * up/ver ticks are always shown together, side by side -- expired only
- * changes how the date renders (red, "Expired " prefix), it never hides
- * whether the document was uploaded or verified. A date-required document
- * with no date on file is its own red case, distinct from an actual past
- * date. */
-function CogginsCell({ row }: { row: UserDirectoryRow }) {
-  if (row.role !== 'Rider') return <span className="text-[#8A94A3]">—</span>;
-
+/* Rider rows show where their Coggins stands as one colored pill. */
+function CogginsPill({ row }: { row: UserDirectoryRow }) {
   const coggins = row.coggins;
-  if (!coggins?.applicable) return <span className="text-[#8A94A3]">—</span>;
+  if (!coggins?.applicable) return <span className="text-[#98A29D]">—</span>;
 
-  if (coggins.reason === 'missing') {
-    return <span className="text-[12.5px] font-bold text-[#B42318]">✕ Not uploaded</span>;
-  }
-
-  const isExpired = coggins.reason === 'expired';
+  const date = coggins.expirationDate ? formatDateShort(coggins.expirationDate) : null;
+  const [tone, text] =
+    coggins.reason === 'missing'
+      ? (['bg-[#FDEEEB] text-[#98341F]', 'Coggins not uploaded'] as const)
+      : coggins.reason === 'expired'
+        ? (['bg-[#FDEEEB] text-[#98341F]', `Coggins expired${date ? ` ${date}` : ''}`] as const)
+        : !coggins.expirationDate
+          ? (['bg-[#FDEEEB] text-[#98341F]', 'Coggins has no date'] as const)
+          : coggins.verified
+            ? (['bg-[#E9F4EE] text-[#1A5B3C]', `Coggins ✓ to ${date ?? ''}`] as const)
+            : (['bg-[#FCF3E4] text-[#8A6D14]', 'Coggins waiting review'] as const);
 
   return (
-    <span className="text-[12.5px] whitespace-nowrap">
-      {coggins.expirationDate ? (
-        <span className={isExpired ? 'font-bold text-[#B42318]' : 'text-[#101828]'}>
-          {isExpired ? 'Expired ' : ''}
-          {formatDateShort(coggins.expirationDate)}
-        </span>
-      ) : (
-        <span className="font-bold text-[#B42318]">no date on file</span>
-      )}{' '}
-      <span className="font-semibold text-[#146A47]">✓</span>
-      <span className="text-[10.5px] text-[#8A94A3]"> up</span>{' '}
-      <span
-        className={
-          coggins.verified ? 'font-semibold text-[#146A47]' : 'font-semibold text-[#8A6D0B]'
-        }
-      >
-        {coggins.verified ? '✓' : '◐'}
-      </span>
-      <span className="text-[10.5px] text-[#8A94A3]"> ver</span>
+    <span
+      className={`rounded-[7px] px-2 py-0.5 text-[11.5px] font-extrabold whitespace-nowrap ${tone}`}
+    >
+      {text}
     </span>
   );
 }

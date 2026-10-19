@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { DownloadIcon, Loader2Icon } from 'lucide-react';
-import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
-import { Input } from '@/shared/ui/shadcn/input';
-import { Label } from '@/shared/ui/shadcn/label';
+import { cn } from '@/shared/lib/utils';
+import { FA_BTN_PRIMARY, FA_BTN_SMALL, FA_INPUT, FA_SELECT } from '@/shared/ui/organizer/fa-page';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import type { EntryLedgerRow } from '@/modules/shows/types';
 import { downloadBackNumberCards } from '@/modules/shows/utils/download-back-number-cards';
 import {
@@ -12,7 +12,6 @@ import {
   BACK_NUMBER_CARD_MAX_HEIGHT_IN,
   BACK_NUMBER_CARD_MAX_WIDTH_IN,
 } from '@/modules/shows/schemas';
-import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 
 export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: EntryLedgerRow[] }) {
   const eligible = useMemo(() => rows.filter((r) => r.backNumber !== null), [rows]);
@@ -84,7 +83,7 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
           onChange={(e) => {
             setClassFilter(e.target.value);
           }}
-          className="rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
+          className={FA_SELECT}
           aria-label="Filter by class"
         >
           <option value="">All classes</option>
@@ -94,9 +93,9 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
             </option>
           ))}
         </select>
-        <div className="space-y-1">
-          <Label className="text-[11px]">Card width (in)</Label>
-          <Input
+        <label className="block space-y-1 text-[12px] font-semibold text-[#5A6B63]">
+          <span>Card width (in)</span>
+          <input
             type="number"
             step="0.1"
             min={1}
@@ -106,12 +105,12 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
             onChange={(e) => {
               setCardWidthIn(e.target.value);
             }}
-            className="h-8 w-[80px] text-[13px]"
+            className={cn(FA_INPUT, 'block h-9 w-[80px] px-2.5 py-1 text-[13px]')}
           />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-[11px]">Card height (in)</Label>
-          <Input
+        </label>
+        <label className="block space-y-1 text-[12px] font-semibold text-[#5A6B63]">
+          <span>Card height (in)</span>
+          <input
             type="number"
             step="0.1"
             min={1}
@@ -121,17 +120,17 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
             onChange={(e) => {
               setCardHeightIn(e.target.value);
             }}
-            className="h-8 w-[80px] text-[13px]"
+            className={cn(FA_INPUT, 'block h-9 w-[80px] px-2.5 py-1 text-[13px]')}
           />
-        </div>
+        </label>
       </div>
 
-      <label className="flex items-center gap-1.5 text-[13px] text-[#475467]">
+      <label className="flex items-center gap-1.5 text-[13px] text-[#5A6B63]">
         <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} />
         Select all ({filtered.length})
       </label>
 
-      <ul className="flex max-h-[220px] flex-col gap-1 overflow-y-auto rounded-lg border border-[#E7EAEE] p-2">
+      <ul className="flex max-h-[220px] flex-col gap-1 overflow-y-auto rounded-[10px] border-[1.5px] border-[#C9D3CE] bg-white p-2">
         {filtered.map((r) => (
           <li
             key={r.showEntryId}
@@ -146,13 +145,13 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
                 }}
               />
               <span className="font-semibold">{r.riderName}</span>
-              <span className="text-[#8A94A3]">
+              <span className="text-[#5A6B63]">
                 {r.horseName} · #{r.backNumber}
               </span>
             </label>
-            <GhostButton
+            <button
               type="button"
-              className="h-7 px-2.5 py-0 text-[11.5px]"
+              className={FA_BTN_SMALL}
               disabled={pending !== null}
               onClick={() => {
                 void download([r.showEntryId], r.showEntryId);
@@ -163,16 +162,16 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
               ) : (
                 'Reprint'
               )}
-            </GhostButton>
+            </button>
           </li>
         ))}
       </ul>
 
-      {error && <p className="text-[12.5px] text-[#B42318]">{error}</p>}
+      {error && <p className="text-[12.5px] text-[#B4432F]">{error}</p>}
 
-      <GoldButton
+      <button
         type="button"
-        className="w-fit"
+        className={cn(FA_BTN_PRIMARY, 'w-fit')}
         disabled={selected.size === 0 || pending !== null}
         onClick={() => {
           void download([...selected], 'bulk');
@@ -184,7 +183,7 @@ export function BackNumberCardsPanel({ showId, rows }: { showId: string; rows: E
           <DownloadIcon className="size-4" aria-hidden />
         )}
         Download back number cards ({selected.size})
-      </GoldButton>
+      </button>
     </div>
   );
 }

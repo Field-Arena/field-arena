@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/shadcn/dialog';
+import { FA_BTN_SMALL } from '@/shared/ui/organizer/fa-page';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { Textarea } from '@/shared/ui/shadcn/textarea';
@@ -87,21 +88,21 @@ export function MembershipCheckDialog({
       }}
     >
       <DialogTrigger asChild>
-        <GhostButton type="button" className="h-8 px-2.5 py-0 text-[12px]">
+        <button type="button" className={FA_BTN_SMALL}>
           Edit
-        </GhostButton>
+        </button>
       </DialogTrigger>
 
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Membership Ledger</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
             {row.riderName} — {row.horseName}
           </DialogTitle>
           <DialogDescription>
             Entry {row.entryNumber} · Bridle {row.bridleNumber}
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
@@ -200,7 +201,7 @@ export function MembershipCheckDialog({
                 <label key={flag} className="flex cursor-pointer items-center gap-2 text-[13px]">
                   <input
                     type="checkbox"
-                    className="size-4 accent-[#146A47]"
+                    className="accent-hunter-deep size-4"
                     checked={flags.includes(flag)}
                     onChange={() => {
                       toggleFlag(flag);

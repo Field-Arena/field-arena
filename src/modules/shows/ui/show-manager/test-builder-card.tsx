@@ -318,12 +318,16 @@ export function TestBuilderCard({
   catalog,
   classes,
   assignedByTemplateId,
+  showId,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
   assignedByTemplateId: Record<string, AssignedClassOption[]>;
+  /** The show's slug or id from the URL — the footer's "Continue to Results"
+   * link needs it, or it pointed at /dashboard/shows//results ("Show not found"). */
+  showId: string;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openInstr, setOpenInstr] = useState<Record<string, boolean>>({});
@@ -639,7 +643,7 @@ export function TestBuilderCard({
         <Label className={SM_LABEL}>Sections</Label>
         <div className="mb-3 flex flex-col gap-4">
           {d.sections.map((s) => (
-            <div key={s.id} className="rounded-[12px] border border-[#E7EAEE] bg-[#FBFCFB] p-4">
+            <div key={s.id} className="rounded-[12px] border border-[#E9EDEB] bg-[#FBFCFB] p-4">
               <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
                 <Input
                   value={s.name}
@@ -664,11 +668,11 @@ export function TestBuilderCard({
                   ))}
                 </select>
                 <div className="flex items-center gap-3">
-                  <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#475467]">
+                  <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                     <input
                       type="checkbox"
                       checked={s.subtotal}
-                      className="h-4 w-4 accent-[#146A47]"
+                      className="h-4 w-4 accent-[#1A5B3C]"
                       onChange={(e) => {
                         patchSection(s.id, { subtotal: e.target.checked });
                       }}
@@ -685,7 +689,7 @@ export function TestBuilderCard({
                           : prev,
                       );
                     }}
-                    className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
+                    className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
                   >
                     Remove
                   </Button>
@@ -697,7 +701,7 @@ export function TestBuilderCard({
                 {s.items.map((it) => (
                   <div
                     key={it.id}
-                    className="rounded-[10px] border border-[#E7EAEE] bg-white p-3.5"
+                    className="rounded-[10px] border border-[#E9EDEB] bg-white p-3.5"
                   >
                     <div className="mb-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_86px_86px_auto] sm:items-center">
                       <Input
@@ -738,11 +742,11 @@ export function TestBuilderCard({
                         }}
                       />
                       <div className="flex items-center gap-3">
-                        <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#475467]">
+                        <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                           <input
                             type="checkbox"
                             checked={it.required}
-                            className="h-4 w-4 accent-[#146A47]"
+                            className="h-4 w-4 accent-[#1A5B3C]"
                             onChange={(e) => {
                               patchItem(s.id, it.id, { required: e.target.checked });
                             }}
@@ -757,7 +761,7 @@ export function TestBuilderCard({
                               items: s.items.filter((x) => x.id !== it.id),
                             });
                           }}
-                          className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
+                          className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
                         >
                           Remove
                         </Button>
@@ -779,7 +783,7 @@ export function TestBuilderCard({
                       onClick={() => {
                         setOpenInstr((prev) => ({ ...prev, [it.id]: !prev[it.id] }));
                       }}
-                      className="text-[12px] font-semibold text-[#101828] hover:underline"
+                      className="text-forest text-[12px] font-semibold hover:underline"
                     >
                       {openInstr[it.id] ? '− instructions' : '+ instructions'}
                       {it.instructions.length > 0 ? ` (${String(it.instructions.length)})` : ''}
@@ -840,7 +844,7 @@ export function TestBuilderCard({
                                   instructions: it.instructions.filter((x) => x.id !== ins.id),
                                 });
                               }}
-                              className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
+                              className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
                             >
                               Remove
                             </Button>
@@ -923,22 +927,22 @@ export function TestBuilderCard({
                 }}
               />
               <div className="flex flex-wrap items-center gap-3">
-                <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#475467]">
+                <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                   <input
                     type="checkbox"
                     checked={p.repeat}
-                    className="h-4 w-4 accent-[#146A47]"
+                    className="h-4 w-4 accent-[#1A5B3C]"
                     onChange={(e) => {
                       patchPenalty(p.id, { repeat: e.target.checked });
                     }}
                   />
                   Repeat
                 </Label>
-                <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#475467]">
+                <Label className="flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
                   <input
                     type="checkbox"
                     checked={p.elimination}
-                    className="h-4 w-4 accent-[#146A47]"
+                    className="h-4 w-4 accent-[#1A5B3C]"
                     onChange={(e) => {
                       patchPenalty(p.id, { elimination: e.target.checked });
                     }}
@@ -955,7 +959,7 @@ export function TestBuilderCard({
                         : prev,
                     );
                   }}
-                  className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
+                  className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
                 >
                   Remove
                 </Button>
@@ -1025,11 +1029,11 @@ export function TestBuilderCard({
               ))}
             </select>
           </div>
-          <Label className="mt-6 flex items-center gap-2 text-[13px] font-semibold text-[#475467]">
+          <Label className="mt-6 flex items-center gap-2 text-[13px] font-semibold text-[#5A6B63]">
             <input
               type="checkbox"
               checked={d.scoringConfig.applyCoefficients}
-              className="h-4 w-4 accent-[#146A47]"
+              className="h-4 w-4 accent-[#1A5B3C]"
               onChange={(e) => {
                 patchScoring({ applyCoefficients: e.target.checked });
               }}
@@ -1098,7 +1102,7 @@ export function TestBuilderCard({
 
         {catalogLevels.length > 0 && (
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11.5px] font-semibold text-[#8A94A3]">Browse by level:</span>
+            <span className="text-[11.5px] font-semibold text-[#98A29D]">Browse by level:</span>
             {catalogLevels.map((level) => (
               <Button
                 key={level}
@@ -1110,8 +1114,8 @@ export function TestBuilderCard({
                 className={cn(
                   'h-auto rounded-full border px-2.5 py-1 text-[12px] font-semibold hover:bg-transparent',
                   catalogLevel === level
-                    ? 'border-[#146A47] text-[#101828]'
-                    : 'border-[#E7EAEE] text-[#475467] hover:border-[#D6DBE1]',
+                    ? 'text-forest border-[#1A5B3C]'
+                    : 'border-[#E9EDEB] text-[#5A6B63] hover:border-[#C9A227]',
                 )}
               >
                 {level}
@@ -1123,7 +1127,7 @@ export function TestBuilderCard({
         {catalogBrowsingActive && (
           <div className="mb-4 flex flex-col gap-3">
             {catalogGroups.length === 0 ? (
-              <p className="text-[13px] text-[#8A94A3] italic">
+              <p className="text-[13px] text-[#98A29D] italic">
                 {catalogQuery ? (
                   <>No official test matches &ldquo;{catalogQuery}&rdquo;.</>
                 ) : (
@@ -1133,7 +1137,7 @@ export function TestBuilderCard({
             ) : (
               catalogGroups.map(([level, entries]) => (
                 <div key={level}>
-                  <div className="mb-1.5 text-[11px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
+                  <div className="mb-1.5 text-[11px] font-bold tracking-[.08em] text-[#6E7C76] uppercase">
                     {level} ({entries.length})
                   </div>
                   <div className="flex flex-wrap gap-2.5">
@@ -1155,7 +1159,7 @@ export function TestBuilderCard({
         )}
 
         {templates.length === 0 ? (
-          <p className="text-[13px] text-[#8A94A3] italic">
+          <p className="text-[13px] text-[#98A29D] italic">
             No tests in your library yet — start from a blank test or search the official catalog
             above.
           </p>
@@ -1177,15 +1181,15 @@ export function TestBuilderCard({
               return (
                 <div
                   key={t.id}
-                  className="flex flex-wrap items-center gap-3.5 rounded-[10px] border border-[#E7EAEE] px-4 py-3"
+                  className="flex flex-wrap items-center gap-3.5 rounded-[10px] border border-[#E9EDEB] px-4 py-3"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13.5px] font-semibold text-[#101828]">
+                    <span className="text-ink-deep block text-[13.5px] font-semibold">
                       {t.name}
                     </span>
-                    <span className="text-[12px] text-[#8A94A3]">{meta}</span>
+                    <span className="text-[12px] text-[#98A29D]">{meta}</span>
                     {assignedTo.length > 0 && (
-                      <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-semibold text-[#101828]">
+                      <span className="text-forest mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-semibold">
                         Currently used by:
                         {assignedTo.map((a) => (
                           <span
@@ -1203,7 +1207,7 @@ export function TestBuilderCard({
                               onClick={() => {
                                 unassignFromClass.mutate({ classId: a.classId });
                               }}
-                              className="hover:text-status-danger font-bold text-[#101828] disabled:opacity-50"
+                              className="hover:text-status-danger text-forest font-bold disabled:opacity-50"
                             >
                               ×
                             </button>
@@ -1218,7 +1222,7 @@ export function TestBuilderCard({
                     onClick={() => {
                       openEdit(t);
                     }}
-                    className="h-auto px-0 py-0 text-[13px] font-semibold text-[#101828] hover:bg-transparent hover:underline"
+                    className="text-forest h-auto px-0 py-0 text-[13px] font-semibold hover:bg-transparent hover:underline"
                   >
                     Edit
                   </Button>
@@ -1228,7 +1232,7 @@ export function TestBuilderCard({
                     onClick={() => {
                       duplicate(t);
                     }}
-                    className="h-auto px-0 py-0 text-[13px] font-semibold text-[#475467] hover:bg-transparent hover:text-[#146A47]"
+                    className="hover:text-forest h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                   >
                     Duplicate
                   </Button>
@@ -1238,7 +1242,7 @@ export function TestBuilderCard({
                     onClick={() => {
                       del.mutate(t.id);
                     }}
-                    className="hover:text-status-danger h-auto px-0 py-0 text-[13px] font-semibold text-[#475467] hover:bg-transparent"
+                    className="hover:text-status-danger h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                   >
                     Delete
                   </Button>
@@ -1270,7 +1274,7 @@ export function TestBuilderCard({
                           if (!classId) return;
                           assignToClass.mutate({ templateId: t.id, classId });
                         }}
-                        className="h-auto px-0 py-0 text-[13px] font-semibold text-[#101828] hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B4BFB9] disabled:no-underline"
+                        className="text-forest h-auto px-0 py-0 text-[13px] font-semibold hover:bg-transparent hover:underline disabled:cursor-not-allowed disabled:text-[#B4BFB9] disabled:no-underline"
                       >
                         {assignToClass.isPending && assignToClass.variables.templateId === t.id
                           ? 'Assigning…'
@@ -1285,7 +1289,7 @@ export function TestBuilderCard({
         )}
       </Card>
 
-      <SectionFooter currentTab="Test Builder" />
+      <SectionFooter currentTab="Test Builder" showId={showId} />
     </>
   );
 }

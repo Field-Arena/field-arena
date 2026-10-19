@@ -227,7 +227,13 @@ export function RiderShowDashboard({
         )}
         {activeTab === 'profile' && <ProfileTab rider={rider} />}
         {activeTab === 'horse' && (
-          <HorseTabView horses={horses} documentRequirements={documentRequirements} />
+          <HorseTabView
+            horses={horses}
+            documentRequirements={documentRequirements}
+            showId={show.id}
+            showName={show.name}
+            riderName={[rider.first_name, rider.last_name].filter(Boolean).join(' ')}
+          />
         )}
         {activeTab === 'purchases' && (
           <PurchasesTab

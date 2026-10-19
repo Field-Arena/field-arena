@@ -1,16 +1,17 @@
 'use client';
 
-import { SectionTitle, ScreenLede, Card } from '@/shared/ui/organizer/card';
-import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
+import { cn } from '@/shared/lib/utils';
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/shared/ui/shadcn/table';
+  EmptyState,
+  FA_TABLE,
+  FA_TABLE_WRAP,
+  FA_TD,
+  FA_TH,
+  FA_THEAD_ROW,
+  FA_TR,
+  Pill,
+  type PillTone,
+} from '@/shared/ui/organizer/fa-page';
 import {
   Select,
   SelectContent,
@@ -25,11 +26,12 @@ import {
   useSetMembershipVerificationStatus,
 } from '@/modules/shows/hooks/use-membership-ledger-mutations';
 import { MembershipCheckDialog } from '@/modules/shows/ui/filing-cabinet/membership-check-dialog';
+import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';
 
-const VERIFICATION_TONE: Record<string, StatusTone> = {
-  unverified: 'neutral',
-  verified: 'success',
-  flagged: 'danger',
+const VERIFICATION_TONE: Record<string, PillTone> = {
+  unverified: 'grey',
+  verified: 'green',
+  flagged: 'red',
 };
 
 const VERIFICATION_LABEL: Record<string, string> = {
@@ -44,72 +46,90 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
   const setVerification = useSetMembershipVerificationStatus();
 
   return (
-    <div className="font-[family-name:var(--font-ar)] text-[#101828]">
-      <div className="mb-4">
-        <SectionTitle className="mb-1.5">Membership Ledger</SectionTitle>
-        <ScreenLede className="mb-0">
-          A separate check from paying for {showName} — memberships, registrations, and
-          qualification-adjacent identifiers, verified once per entry, not once per class.
-        </ScreenLede>
-      </div>
+    <div className="text-ink-deep font-[family-name:var(--font-ar)]">
+      <CabinetSectionHead
+        title="Membership ledger"
+        lede={
+          <>
+            A separate check from paying for {showName} — memberships, registrations, and
+            qualification-adjacent identifiers, verified once per entry, not once per class.
+          </>
+        }
+      />
 
       {rows.length === 0 ? (
-        <Card className="p-[18px_20px_20px]">
-          <p className="py-8 text-center text-[13.5px] text-[#8A94A3] italic">
-            No entries yet — rows appear here alongside the Entry Ledger.
-          </p>
-        </Card>
+        <EmptyState title="No entries yet" note="Rows appear here alongside the Entry Ledger." />
       ) : (
-        <Card className="overflow-x-auto p-0">
-          <Table>
-            <TableCaption className="sr-only">Membership ledger for {showName}</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Entry #</TableHead>
-                <TableHead scope="col">Bridle #</TableHead>
-                <TableHead scope="col">Rider / Horse</TableHead>
-                <TableHead scope="col">Association</TableHead>
-                <TableHead scope="col">Rider #</TableHead>
-                <TableHead scope="col">Horse reg. #</TableHead>
-                <TableHead scope="col">Owner #</TableHead>
-                <TableHead scope="col">Flags</TableHead>
-                <TableHead scope="col">Linked member</TableHead>
-                <TableHead scope="col">Verification</TableHead>
-                <TableHead scope="col" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className={FA_TABLE_WRAP}>
+          <table className={FA_TABLE}>
+            <caption className="sr-only">Membership ledger for {showName}</caption>
+            <thead>
+              <tr className={FA_THEAD_ROW}>
+                <th scope="col" className={FA_TH}>
+                  Entry #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Bridle #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Rider / Horse
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Association
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Rider #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Horse reg. #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Owner #
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Flags
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Linked member
+                </th>
+                <th scope="col" className={FA_TH}>
+                  Verification
+                </th>
+                <th scope="col" className={FA_TH} />
+              </tr>
+            </thead>
+            <tbody>
               {rows.map((row) => (
-                <TableRow key={row.showEntryId}>
-                  <TableCell>{row.entryNumber}</TableCell>
-                  <TableCell>{row.bridleNumber}</TableCell>
-                  <TableCell>
-                    <div className="font-semibold">{row.riderName}</div>
-                    <div className="text-[12px] text-[#8A94A3]">{row.horseName}</div>
+                <tr key={row.showEntryId} className={FA_TR}>
+                  <td className={FA_TD}>{row.entryNumber}</td>
+                  <td className={FA_TD}>{row.bridleNumber}</td>
+                  <td className={FA_TD}>
+                    <div className="font-bold">{row.riderName}</div>
+                    <div className="text-[12px] text-[#5A6B63]">{row.horseName}</div>
                     {(row.suggestedUsef ?? row.suggestedFei) && (
-                      <div className="text-[11px] text-[#8A94A3]">
+                      <div className="text-[11px] text-[#5A6B63]">
                         On file: {[row.suggestedUsef, row.suggestedFei].filter(Boolean).join(' / ')}
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell>{row.association ?? '—'}</TableCell>
-                  <TableCell>{row.riderMembershipNumber ?? '—'}</TableCell>
-                  <TableCell>{row.horseRegistrationNumber ?? '—'}</TableCell>
-                  <TableCell>{row.ownerMembershipNumber ?? '—'}</TableCell>
-                  <TableCell className="max-w-[180px]">
+                  </td>
+                  <td className={FA_TD}>{row.association ?? '—'}</td>
+                  <td className={FA_TD}>{row.riderMembershipNumber ?? '—'}</td>
+                  <td className={FA_TD}>{row.horseRegistrationNumber ?? '—'}</td>
+                  <td className={FA_TD}>{row.ownerMembershipNumber ?? '—'}</td>
+                  <td className={cn(FA_TD, 'max-w-[180px]')}>
                     {row.flags.length === 0 ? (
-                      <span className="text-[#8A94A3]">—</span>
+                      <span className="text-[#5A6B63]">—</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {row.flags.map((flag: MembershipFlag) => (
-                          <StatusBadge key={flag} tone="danger" className="text-[10px]">
+                          <Pill key={flag} tone="red">
                             {MEMBERSHIP_FLAG_LABELS[flag]}
-                          </StatusBadge>
+                          </Pill>
                         ))}
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell className="min-w-[160px]">
+                  </td>
+                  <td className={cn(FA_TD, 'min-w-[160px]')}>
                     <Select
                       value={row.linkedMemberId ?? 'none'}
                       onValueChange={(v) => {
@@ -120,7 +140,7 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
                         });
                       }}
                     >
-                      <SelectTrigger className="h-8 w-full text-[12.5px]">
+                      <SelectTrigger className="h-8 w-full rounded-[8px] border-[1.5px] border-[#C9D3CE] bg-white text-[12.5px] font-semibold">
                         <SelectValue placeholder="Not linked" />
                       </SelectTrigger>
                       <SelectContent>
@@ -132,8 +152,8 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
                         ))}
                       </SelectContent>
                     </Select>
-                  </TableCell>
-                  <TableCell className="min-w-[150px]">
+                  </td>
+                  <td className={cn(FA_TD, 'min-w-[150px]')}>
                     <Select
                       value={row.verificationStatus}
                       onValueChange={(v) => {
@@ -144,10 +164,10 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
                         });
                       }}
                     >
-                      <SelectTrigger className="h-8 w-full text-[12.5px]">
-                        <StatusBadge tone={VERIFICATION_TONE[row.verificationStatus]}>
+                      <SelectTrigger className="h-8 w-full rounded-[8px] border-[1.5px] border-[#C9D3CE] bg-white text-[12.5px] font-semibold">
+                        <Pill tone={VERIFICATION_TONE[row.verificationStatus]}>
                           {VERIFICATION_LABEL[row.verificationStatus]}
-                        </StatusBadge>
+                        </Pill>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unverified">Unverified</SelectItem>
@@ -155,15 +175,15 @@ export function MembershipLedgerScreen({ data }: { data: MembershipLedgerPageDat
                         <SelectItem value="flagged">Flagged</SelectItem>
                       </SelectContent>
                     </Select>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td className={FA_TD}>
                     <MembershipCheckDialog showId={showId} row={row} />
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </Card>
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

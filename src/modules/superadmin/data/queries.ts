@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { getStripeClient, isStripeConfigured } from '@/shared/lib/stripe';
 import { fetchAllRows } from '@/modules/superadmin/data/fetch-all-rows';
 import {
@@ -14,6 +15,8 @@ import { findCatalogMatch } from '@/modules/superadmin/utils/find-catalog-match'
 import { resolveStaffPermissions } from '@/modules/superadmin/utils/resolve-staff-permissions';
 import { countEnabledPermissions } from '@/modules/superadmin/utils/count-enabled-permissions';
 import type {
+  ContactRow,
+  OrganizerInviteState,
   PlatformStats,
   OrganizationSummary,
   LeadRow,
@@ -233,7 +236,67 @@ export async function listOrganizerOptions(): Promise<
 }
 
 const LEAD_COLUMNS =
-  'id, org_name, contact_name, email, phone, website, shows_per_year, status, cost_per_event, avg_revenue_per_show, notes, calendly_event_uri, demo_at, onboarding_at, onboarding_checklist, onboarding_email_sent_at, created_at, updated_at';
+  'id, org_name, contact_name, email, phone, website, city, state, shows_per_year, status, cost_per_event, avg_revenue_per_show, notes, calendly_event_uri, demo_at, demo_no_show, invited_at, org_id, onboarding_at, onboarding_checklist, onboarding_email_sent_at, created_at, updated_at';
+
+// Kept importable from here for existing callers; the types live in ../types.
+export type { ContactRow, OrganizerInviteState };
+
+/* The Sales pipeline's contact list: every lead plus where its demo and its
+ * organizer invite stand, read live — Demo is complete once its booked time
+ * has passed (unless marked a no-show); the invite counts as signed up once
+ * the organizer account it created has finished onboarding. */
+export async function listContacts(): Promise<ContactRow[]> {
+  // Reads organizer accounts with the admin client, so check the caller first.
+  const profile = await getStaffProfile();
+  if (profile?.platform_role !== 'SuperAdmin') throw new Error('Super Admin only.');
+  const leads = await listLeads();
+  const orgIds = [...new Set(leads.map((l) => l.org_id).filter((id): id is string => !!id))];
+  const admin = createAdminClient();
+
+  const [{ data: owners }, { data: shows }] = await Promise.all([
+    orgIds.length
+      ? admin
+          .from('users')
+          .select('org_id, onboarded_at')
+          .in('org_id', orgIds)
+          .eq('platform_role', 'Organizer')
+      : Promise.resolve({ data: [] as { org_id: string | null; onboarded_at: string | null }[] }),
+    orgIds.length
+      ? admin.from('shows').select('org_id').in('org_id', orgIds)
+      : Promise.resolve({ data: [] as { org_id: string }[] }),
+  ]);
+  const onboardedAt = new Map<string, string | null>();
+  for (const o of owners ?? []) {
+    if (!o.org_id) continue;
+    if (o.onboarded_at || !onboardedAt.has(o.org_id)) onboardedAt.set(o.org_id, o.onboarded_at);
+  }
+  const showCount = new Map<string, number>();
+  for (const s of shows ?? []) showCount.set(s.org_id, (showCount.get(s.org_id) ?? 0) + 1);
+
+  const now = Date.now();
+  return leads.map((lead) => {
+    const demo: ContactRow['demo'] = !lead.demo_at
+      ? 'none'
+      : lead.demo_no_show
+        ? 'no-show'
+        : Date.parse(lead.demo_at) <= now
+          ? 'complete'
+          : 'pending';
+    const signedUpAt = lead.org_id ? (onboardedAt.get(lead.org_id) ?? null) : null;
+    const organizer: OrganizerInviteState = !lead.org_id
+      ? 'none'
+      : signedUpAt
+        ? 'signed-up'
+        : 'pending';
+    return {
+      lead,
+      demo,
+      organizer,
+      showsCreated: lead.org_id ? (showCount.get(lead.org_id) ?? 0) : 0,
+      signedUpAt,
+    };
+  });
+}
 
 export async function listLeads(): Promise<LeadRow[]> {
   const supabase = await createServerClient();

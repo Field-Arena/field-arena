@@ -1,5 +1,6 @@
 import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   listMyAssignments,
   listPanelContacts,
@@ -11,9 +12,23 @@ import { buildDemoPanelContacts } from '@/modules/judging/utils/build-demo-panel
 import { buildTodaySnapshot } from '@/modules/judging/utils/build-today-snapshot';
 import { classifyAssignment } from '@/modules/judging/utils/classify-assignment';
 import { isAssignmentComplete } from '@/modules/judging/utils/is-assignment-complete';
-import { JudgingStatusCard } from '@/modules/judging/ui/judging-status-card';
+import { todayRingLabel } from '@/modules/judging/utils/today-ring-label';
+import {
+  LiveClock,
+  PanelPopoverButton,
+  RingPaceCard,
+} from '@/modules/judging/ui/judging-status-card';
 import { AssignmentCard } from '@/modules/judging/ui/assignment-card';
 import { SuperAdminPreviewNotice } from '@/modules/judging/ui/superadmin-preview-notice';
+import { formatDateShort } from '@/shared/lib/format/date';
+import {
+  EmptyState,
+  FA_BTN,
+  PageHeader,
+  SectionLabel,
+  StatBox,
+  StatGrid,
+} from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'My Assignments — Field & Arena' };
 
@@ -33,53 +48,70 @@ export default async function JudgingPage() {
   const assignments = useDemoData ? buildDemoAssignments(demoTodayIso) : realAssignments;
   const panelContacts = useDemoData ? buildDemoPanelContacts() : realPanelContacts;
   const roleLabel = profile?.platform_role === 'Scribe' ? 'Scribe' : 'Judge';
-  const { ringSummaries, contacts, assignmentsToday } = buildTodaySnapshot(
+  const { rings, ringSummaries, contacts, assignmentsToday } = buildTodaySnapshot(
     assignments,
     panelContacts,
   );
 
   const today = assignments.filter((a) => classifyAssignment(a) === 'today');
   const upcoming = assignments.filter((a) => classifyAssignment(a) === 'upcoming');
+  const completedCount = assignments.filter((a) => classifyAssignment(a) === 'history').length;
+  const nextUpcoming = upcoming[0];
+  const nextUpcomingDate = nextUpcoming
+    ? formatDateShort(nextUpcoming.classDate) || formatDateShort(nextUpcoming.showDate)
+    : '';
 
   return (
-    <section>
-      <div className="fa-page-head">
-        <div>
-          <h2>My Assignments</h2>
-          <p>Today&apos;s ring times and every show you&apos;re on the panel for.</p>
-        </div>
-        <span className="fa-badge fa-live !px-3.5 !py-2 !text-[12.5px]">
-          <span className="fa-dot" />
-          {roleLabel} · {today.length} today · {upcoming.length} upcoming
-        </span>
-      </div>
+    <>
+      <PageHeader
+        eyebrow={
+          <>
+            {roleLabel} · <LiveClock /> · Today&apos;s ring times and every show you&apos;re on the
+            panel for
+          </>
+        }
+        title="My Assignments"
+        actions={
+          <>
+            <PanelPopoverButton contacts={contacts} />
+            {today.length > 0 && (
+              <Link href="/dashboard/judging/results" prefetch={false} className={FA_BTN}>
+                🏆 View results
+              </Link>
+            )}
+          </>
+        }
+      />
 
       {isSuperAdminPreview && <SuperAdminPreviewNotice showName={previewShowName} />}
 
-      <JudgingStatusCard
-        ringSummaries={ringSummaries}
-        contacts={contacts}
-        assignmentsToday={assignmentsToday}
-        showResultsLink={today.length > 0}
-      />
+      <StatGrid cols={3}>
+        <StatBox
+          label="Today"
+          value={`${String(today.length)} class${today.length === 1 ? '' : 'es'}`}
+          note={todayRingLabel(rings, assignmentsToday)}
+        />
+        <StatBox
+          label="Upcoming"
+          value={upcoming.length}
+          note={nextUpcomingDate ? `next: ${nextUpcomingDate}` : 'nothing scheduled yet'}
+        />
+        <StatBox label="Completed" value={completedCount} note="on this platform" />
+      </StatGrid>
+
+      <RingPaceCard ringSummaries={ringSummaries} />
 
       {assignments.length === 0 ? (
-        <div className="fa-mini-card text-center">
-          <p>
-            You are not on any class panel. An organizer assigns a {roleLabel.toLowerCase()} to a
-            class from Show Manager, and it appears here once they do.
-          </p>
-        </div>
+        <EmptyState
+          title="You are not on any class panel"
+          note={`An organizer assigns a ${roleLabel.toLowerCase()} to a class from ShowManager, and it appears here once they do.`}
+        />
       ) : (
         <>
-          <h3 className="mb-3 text-[15px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
-            Today&apos;s ring times
-          </h3>
-          <div className="mb-8 flex flex-col gap-3">
+          <SectionLabel>Today</SectionLabel>
+          <div className="mb-2 flex flex-col gap-2.5">
             {today.length === 0 ? (
-              <div className="fa-mini-card">
-                <p>Nothing on the panel for you today.</p>
-              </div>
+              <EmptyState title="Nothing on the panel for you today." />
             ) : (
               today.map((a) => (
                 <AssignmentCard
@@ -92,14 +124,10 @@ export default async function JudgingPage() {
             )}
           </div>
 
-          <h3 className="mb-3 text-[15px] font-semibold tracking-[-.2px] text-[var(--fa-ink)]">
-            Upcoming
-          </h3>
-          <div className="flex flex-col gap-3">
+          <SectionLabel>Upcoming</SectionLabel>
+          <div className="flex flex-col gap-2.5">
             {upcoming.length === 0 ? (
-              <div className="fa-mini-card">
-                <p>Nothing else scheduled yet.</p>
-              </div>
+              <EmptyState title="Nothing else scheduled yet." />
             ) : (
               upcoming.map((a) => (
                 <AssignmentCard
@@ -112,6 +140,6 @@ export default async function JudgingPage() {
           </div>
         </>
       )}
-    </section>
+    </>
   );
 }

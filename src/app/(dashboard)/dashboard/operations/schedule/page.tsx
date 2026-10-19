@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { listMyShows, listSchedule } from '@/modules/operations/data/queries';
 import { ScheduleList } from '@/modules/operations/ui/schedule-list';
-import { EmptyPanel } from '@/shared/ui/workspace-page';
+import { OPS_WRAP, OpsNoShows } from '@/modules/operations/ui/ops-page';
+import { PageHeader } from '@/shared/ui/organizer/fa-page';
+import { FaShowSelect } from '@/shared/ui/organizer/fa-show-select';
 
 export const metadata: Metadata = { title: 'Schedule — Field & Arena' };
 
@@ -16,67 +18,19 @@ export default async function OperationsSchedulePage({
     shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null;
 
   if (!currentShow) {
-    return (
-      <>
-        <div className="dash-head">
-          <div>
-            <h1>Schedule</h1>
-            <p>The full ring-by-ring running order.</p>
-          </div>
-        </div>
-        <div className="dash-card">
-          <EmptyPanel
-            title="No shows assigned"
-            note="You are not staffed on any show yet. An organizer adds show staff from ShowManager."
-          />
-        </div>
-      </>
-    );
+    return <OpsNoShows eyebrow="The full ring-by-ring running order" title="Schedule" />;
   }
 
   const classes = await listSchedule(currentShow.id);
 
   return (
-    <>
-      <div className="dash-head">
-        <div>
-          <h1>Schedule</h1>
-          <p>
-            Tap any class to see its results. Live classes show live results; upcoming classes show
-            the draw order.
-          </p>
-        </div>
-      </div>
-
-      <div className="dash-card">
-        <div className="showbar">
-          <span className="showbar-org">{currentShow.name}</span>
-          {shows.length > 1 && (
-            <form method="get" className="contents">
-              <select
-                name="show"
-                defaultValue={currentShow.slug ?? currentShow.id}
-                className="dash-select"
-                style={{ maxWidth: 380 }}
-                aria-label="Select show"
-              >
-                {shows.map((show) => (
-                  <option key={show.id} value={show.slug ?? show.id}>
-                    {show.name}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="dash-btn dash-btn-outline">
-                Switch
-              </button>
-            </form>
-          )}
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <ScheduleList classes={classes} />
-        </div>
-      </div>
-    </>
+    <div className={OPS_WRAP}>
+      <PageHeader
+        eyebrow={`The full ring-by-ring running order · ${currentShow.name}`}
+        title="Schedule"
+        actions={<FaShowSelect shows={shows} currentRef={currentShow.slug ?? currentShow.id} />}
+      />
+      <ScheduleList classes={classes} />
+    </div>
   );
 }

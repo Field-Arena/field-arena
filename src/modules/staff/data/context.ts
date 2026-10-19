@@ -8,6 +8,21 @@ import { getPreviewingAsShowAdmin } from './preview-role';
 import { getSelectedOrg } from './org-selection-queries';
 import type { MemberOrg } from '../types';
 import type { OrganizerContext } from '@/modules/staff/types';
+import type { ShowListItem } from '@/modules/shows/types';
+import { todayIsoInZone } from '../utils';
+
+/* With no show picked, open the one happening soonest: live first, then
+ * published shows by start date, then unpublished, then undated. Finished
+ * shows only when nothing is coming up. */
+function soonestShow(shows: ShowListItem[]): ShowListItem | undefined {
+  const today = todayIsoInZone();
+  const rank = (s: ShowListItem) =>
+    s.status === 'live' ? 0 : !s.startDate ? 3 : s.published ? 1 : 2;
+  const upcoming = shows
+    .filter((s) => (s.endDate ?? s.startDate ?? '9999-12-31') >= today)
+    .sort((a, b) => rank(a) - rank(b) || (a.startDate ?? '').localeCompare(b.startDate ?? ''));
+  return upcoming[0] ?? shows[0];
+}
 
 export async function getOrganizerContext(requestedShowId?: string): Promise<OrganizerContext> {
   // None of these three depend on each other's result (each reads its own
@@ -57,7 +72,9 @@ export async function getOrganizerContext(requestedShowId?: string): Promise<Org
   ]);
 
   const currentShow =
-    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ?? shows[0] ?? null;
+    shows.find((s) => s.id === requestedShowId || s.slug === requestedShowId) ??
+    soonestShow(shows) ??
+    null;
 
   // From the per-show grant, not the platform role: an Organizer staffed on
   // someone else's org (selected via the switcher) is only a Show Admin there.

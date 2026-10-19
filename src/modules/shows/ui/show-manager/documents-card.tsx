@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
+import { DocumentViewerDialog } from '@/shared/ui/organizer/document-viewer-dialog';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -111,38 +112,29 @@ export function DocumentsCard({
         </div>
 
         {documents.length === 0 ? (
-          <p className="text-[13px] text-[#8A94A3] italic">No files published yet.</p>
+          <p className="text-[13px] text-[#98A29D] italic">No files published yet.</p>
         ) : (
           <div className="flex flex-col gap-2.5">
             {documents.map((doc) => {
               const open = openDocId === doc.id;
               const effectiveEventIds = pendingEventIds[doc.id] ?? doc.eventIds;
               return (
-                <div key={doc.id} className="rounded-[10px] border border-[#E7EAEE]">
+                <div key={doc.id} className="rounded-[10px] border border-[#E9EDEB]">
                   <div className="flex flex-wrap items-center gap-3.5 px-4 py-3">
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-[#101828]">
+                    <span className="text-ink-deep min-w-0 flex-1 truncate text-[13.5px] font-semibold">
                       {doc.name}
                     </span>
-                    <span className="text-[12px] text-[#8A94A3]">
+                    <span className="text-[12px] text-[#98A29D]">
                       {formatTimestamp(doc.createdAt)}
                     </span>
-                    {doc.url && (
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[13px] font-semibold text-[#101828] underline underline-offset-2"
-                      >
-                        View
-                      </a>
-                    )}
+                    {doc.url && <DocumentViewerDialog url={doc.url} name={doc.name} />}
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={() => {
                         setOpenDocId(open ? null : doc.id);
                       }}
-                      className="h-auto px-0 py-0 text-[13px] font-semibold text-[#475467] hover:bg-transparent hover:text-[#146A47]"
+                      className="hover:text-forest h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                     >
                       {effectiveEventIds.length > 0
                         ? `Attached to ${String(effectiveEventIds.length)} ${effectiveEventIds.length === 1 ? 'class' : 'classes'}`
@@ -154,15 +146,15 @@ export function DocumentsCard({
                       onClick={() => {
                         remove.mutate({ id: doc.id, showId });
                       }}
-                      className="hover:text-status-danger h-auto px-0 py-0 text-[13px] font-semibold text-[#475467] hover:bg-transparent"
+                      className="hover:text-status-danger h-auto px-0 py-0 text-[13px] font-semibold text-[#5A6B63] hover:bg-transparent"
                     >
                       Remove
                     </Button>
                   </div>
                   {open && (
-                    <div className="border-t border-[#EEF1F4] bg-[#FBFCFB] px-4 py-3.5">
+                    <div className="border-t border-[#EEF2F0] bg-[#FBFCFB] px-4 py-3.5">
                       {classes.length === 0 ? (
-                        <p className="text-[12.5px] text-[#8A94A3] italic">
+                        <p className="text-[12.5px] text-[#98A29D] italic">
                           No classes on this show yet — pick some in Select Events first.
                         </p>
                       ) : (
@@ -170,12 +162,12 @@ export function DocumentsCard({
                           {classes.map((c) => (
                             <Label
                               key={c.id}
-                              className="inline-flex items-center gap-[7px] text-[13px] text-[#475467]"
+                              className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]"
                             >
                               <input
                                 type="checkbox"
                                 checked={effectiveEventIds.includes(c.id)}
-                                className="size-3.5 accent-[#146A47]"
+                                className="size-3.5 accent-[#1A5B3C]"
                                 onChange={() => {
                                   toggleEvent(doc, c.id);
                                 }}

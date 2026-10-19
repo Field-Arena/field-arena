@@ -64,7 +64,7 @@ export function ScoreDetailDialog({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-lg">
+            <DialogTitle className="font-[family-name:var(--ws-fraunces)] text-lg text-[#0D2C23]">
               {num ? `#${num} · ` : ''}
               {rider}
             </DialogTitle>
@@ -73,9 +73,11 @@ export function ScoreDetailDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <p className="font-serif text-[22px] font-bold text-[#16261F]">Final score: {pct}</p>
+          <p className="font-[family-name:var(--ws-fraunces)] text-[22px] font-bold text-[#0D2C23]">
+            Final score: {pct}
+          </p>
 
-          <p className="text-fa-muted text-[13.5px] leading-[1.6]">
+          <p className="text-[13.5px] leading-[1.6] text-[#5A6B63]">
             Movement-by-movement detail isn&apos;t available from this screen. See the judge/scribe
             scoring app for the full sheet.
           </p>

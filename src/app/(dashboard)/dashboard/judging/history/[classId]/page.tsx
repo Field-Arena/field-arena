@@ -3,7 +3,7 @@ import { ensureClassShowParam } from '@/modules/shows/data/class-show-ref';
 import Link from 'next/link';
 import { getClassPlacings } from '@/modules/judging/data/queries';
 import { PlacingsTable } from '@/modules/judging/ui/placings-table';
-import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
+import { PageHeader } from '@/shared/ui/organizer/fa-page';
 
 export const metadata: Metadata = { title: 'Placings — Field & Arena' };
 
@@ -21,17 +21,16 @@ export default async function HistoryClassPlacingsPage({
 
   return (
     <>
-      <div className="mb-[22px]">
-        <Link href="/dashboard/judging/history" className="fa-backlink !mb-2">
-          ← Back to History
-        </Link>
-        <ScreenTitle>{className}</ScreenTitle>
-        <ScreenLede className="mb-0">Final placings for this class.</ScreenLede>
-      </div>
+      <Link
+        href="/dashboard/judging/history"
+        prefetch={false}
+        className="mb-1 inline-block text-[13px] font-semibold text-[#5A6B63] no-underline hover:text-[#1A5B3C]"
+      >
+        ← Back to History
+      </Link>
+      <PageHeader eyebrow="Final placings for this class" title={className} />
 
-      <Card className="p-[16px_18px]">
-        <PlacingsTable entries={entries} linkBase={`/dashboard/judging/history/${classId}`} />
-      </Card>
+      <PlacingsTable entries={entries} linkBase={`/dashboard/judging/history/${classId}`} />
     </>
   );
 }

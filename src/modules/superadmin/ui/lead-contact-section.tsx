@@ -20,6 +20,8 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
   const [email, setEmail] = useState(lead.email ?? '');
   const [phone, setPhone] = useState(lead.phone ?? '');
   const [website, setWebsite] = useState(lead.website ?? '');
+  const [city, setCity] = useState(lead.city ?? '');
+  const [state, setState] = useState(lead.state ?? '');
   const [shows, setShows] = useState(
     lead.shows_per_year != null ? String(lead.shows_per_year) : '',
   );
@@ -74,6 +76,14 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
       onChange: setWebsite,
       placeholder: 'example.com',
       inputProps: URL_INPUT_PROPS,
+    },
+    { key: 'city', label: 'City', value: city, onChange: setCity, placeholder: 'Not captured yet' },
+    {
+      key: 'state',
+      label: 'State',
+      value: state,
+      onChange: setState,
+      placeholder: 'Not captured yet',
     },
     {
       key: 'showsPerYear',
@@ -136,6 +146,8 @@ export function ContactSection({ lead }: { lead: LeadRow }) {
               email,
               phone,
               website,
+              city,
+              state,
               status: status as (typeof LEAD_STATUSES)[number]['value'],
               showsPerYear: shows.trim() ? Math.max(0, Math.floor(Number(shows) || 0)) : null,
             };

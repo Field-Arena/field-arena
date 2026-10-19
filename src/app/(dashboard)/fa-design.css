@@ -27,7 +27,8 @@
   --fa-sb-txt:#9dc7b3; --fa-sb-txt-strong:#eafff3; --fa-sb-active:rgba(255,255,255,.10); --fa-sb-hover:rgba(255,255,255,.06);
   --fa-sidebar-w:252px;
 }
-.dash{font-family:var(--fa-sans);background:var(--fa-bg);color:var(--fa-ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+/* No base .dash typography/background here: the live workspace look comes from
+   dashboard.css. These fa-* classes only style components that opt into them. */
 
 .dash .fa-app{display:flex;min-height:100vh;}
 

@@ -9,9 +9,9 @@ import Link from 'next/link';
 export function SuperAdminPreviewNotice({ showName = null }: { showName?: string | null }) {
   if (showName) {
     return (
-      <div className="mb-6 rounded-[10px] border border-[#C6DECD] bg-[#EAF4EE] px-4 py-3 text-[13px] text-[#1F4A34]">
-        <strong className="font-semibold">Previewing {showName} as SuperAdmin.</strong> Everything
-        below is this show&rsquo;s real panel and entries, exactly as its judges and scribes see it.{' '}
+      <div className="mb-4 rounded-[14px] border-[1.5px] border-[#1A5B3C] bg-[#E9F4EE] px-4 py-3 text-[13.5px] text-[#0D2C23]">
+        <strong className="font-bold">Previewing {showName} as SuperAdmin.</strong> Everything below
+        is this show&rsquo;s real panel and entries, exactly as its judges and scribes see it.{' '}
         <Link
           href="/dashboard/superadmin"
           prefetch={false}
@@ -25,8 +25,8 @@ export function SuperAdminPreviewNotice({ showName = null }: { showName?: string
   }
 
   return (
-    <div className="mb-6 rounded-[10px] border border-[#EAD9A0] bg-[#FBF0D8] px-4 py-3 text-[13px] text-[#5A4413]">
-      <strong className="font-semibold">Previewing this workspace as SuperAdmin.</strong> The
+    <div className="mb-4 rounded-[14px] border-[1.5px] border-[#E3C877] bg-[#FCF3E4] px-4 py-3 text-[13.5px] text-[#5A4413]">
+      <strong className="font-bold">Previewing this workspace as SuperAdmin.</strong> The
       assignments and panel below are example data, not a real account. Pick a show from an{' '}
       <Link href="/dashboard/superadmin" prefetch={false} className="underline underline-offset-2">
         organizer&rsquo;s show list

@@ -1,9 +1,10 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { Input } from '@/shared/ui/shadcn/input';
 import { Table, TableBody, TableCell, TableRow } from '@/shared/ui/shadcn/table';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
+import { cn } from '@/shared/lib/utils';
+import { FA_INPUT } from '@/shared/ui/organizer/fa-page';
 import { aggregateByProduct } from '@/modules/sales/utils/aggregate-by-product';
 import type { SaleRow } from '@/modules/sales/types';
 
@@ -23,16 +24,17 @@ export function ByProductView({ rows, canViewMoney }: { rows: SaleRow[]; canView
 
   return (
     <div>
-      <Input
+      <input
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
         }}
         placeholder="Search entry fees, qualifications, add-ons, vendor items…"
-        className="mb-3 h-auto w-full rounded-[10px] border-[#E7EAEE] px-3.5 py-2.5 text-sm outline-none focus-visible:ring-0"
+        aria-label="Search products"
+        className={cn(FA_INPUT, 'mb-3 w-full print:hidden')}
       />
       {filteredGroups.length === 0 ? (
-        <p className="px-1 py-8 text-center text-[13px] text-[#8A94A3]">
+        <p className="px-1 py-8 text-center text-[13px] text-[#5A6B63]">
           {groups.length === 0
             ? 'No paid sales yet for this show.'
             : 'No products match your search.'}
@@ -45,13 +47,13 @@ export function ByProductView({ rows, canViewMoney }: { rows: SaleRow[]; canView
                 <TableRow key={`${g.group}-head`} className="hover:bg-transparent">
                   <TableCell
                     colSpan={canViewMoney ? 3 : 2}
-                    className="pt-4 pb-1 text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase"
+                    className="pt-4 pb-1 text-[11px] font-bold tracking-[.06em] text-[#5A6B63] uppercase"
                   >
                     {g.group}
                   </TableCell>
                 </TableRow>
                 {g.rows.map((r) => (
-                  <TableRow key={`${g.group}-${r.label}`} className="border-b border-[#EEF1F4]">
+                  <TableRow key={`${g.group}-${r.label}`} className="border-b border-[#EEF2F0]">
                     <TableCell className="px-3 py-2 whitespace-normal">{r.label}</TableCell>
                     <TableCell className="px-3 py-2 text-right">{r.qty}</TableCell>
                     {canViewMoney && (
@@ -63,9 +65,9 @@ export function ByProductView({ rows, canViewMoney }: { rows: SaleRow[]; canView
                 ))}
                 <TableRow
                   key={`${g.group}-total`}
-                  className="border-b border-[#E7EAEE] hover:bg-transparent"
+                  className="border-b border-[#E9EDEB] hover:bg-transparent"
                 >
-                  <TableCell className="px-3 py-1.5 text-[12.5px] font-semibold text-[#8A94A3]">
+                  <TableCell className="px-3 py-1.5 text-[12.5px] font-semibold text-[#5A6B63]">
                     {g.group} total
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-right text-[12.5px] font-semibold">

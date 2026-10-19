@@ -3,7 +3,7 @@ import { ensureClassShowParam } from '@/modules/shows/data/class-show-ref';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getEntryScorecard } from '@/modules/judging/data/queries';
-import { Card, ScreenLede, ScreenTitle } from '@/shared/ui/organizer/card';
+import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
 import { MovementsMarksTable } from '@/modules/judging/ui/movements-marks-table';
 import { CollectivesMarksTable } from '@/modules/judging/ui/collectives-marks-table';
 
@@ -28,22 +28,28 @@ export default async function HistoryScorecardPage({
 
   return (
     <>
-      <div className="mb-[22px]">
-        <Link href={`/dashboard/judging/history/${classId}`} className="fa-backlink !mb-2">
-          ← Back to placings
-        </Link>
-        <ScreenTitle>
-          #{card.num} {card.rider}
-        </ScreenTitle>
-        <ScreenLede className="mb-0">
-          {card.horse} · {card.className} · Final score: {card.finalPct ?? '—'}
-        </ScreenLede>
-      </div>
+      <Link
+        href={`/dashboard/judging/history/${classId}`}
+        prefetch={false}
+        className="mb-1 inline-block text-[13px] font-semibold text-[#5A6B63] no-underline hover:text-[#1A5B3C]"
+      >
+        ← Back to placings
+      </Link>
+      <PageHeader
+        eyebrow={
+          <>
+            {card.horse} · {card.className} · Final score: {card.finalPct ?? '—'}
+          </>
+        }
+        title={
+          <>
+            #{card.num} {card.rider}
+          </>
+        }
+      />
 
       {!card.test ? (
-        <Card className="p-[24px_20px] text-[13.5px] text-[#8A94A3]">
-          No test definition on file for this ride.
-        </Card>
+        <EmptyState title="No test definition on file for this ride." />
       ) : (
         <div className="flex flex-col gap-4">
           <MovementsMarksTable
