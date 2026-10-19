@@ -327,8 +327,23 @@ export async function correctEntry(input: unknown) {
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }
 
+// Moving the ring on is the panel's job: a judge or scribe seated on this
+// class, or anyone holding canEnterScores. It never needs canEditShow — the
+// classes trigger (20261018120000) lets these callers move the pointer, but
+// only to the next unfinished ride.
+async function assertCanAdvanceRing(classId: string): Promise<void> {
+  const [mySeat, permissions] = await Promise.all([
+    getMySeat(classId),
+    getMyScoringPermissions(classId),
+  ]);
+  if (!mySeat && !permissions.canEnterScores) {
+    throw new Error('Only the judging panel can move this ring to the next rider.');
+  }
+}
+
 export async function advanceRide(input: unknown) {
   const parsed = parseInput(advanceRideSchema, input);
+  await assertCanAdvanceRing(parsed.classId);
   const supabase = await createServerClient();
 
   const [entryRes, panelRes, scoresRes, classRes] = await Promise.all([
@@ -949,8 +964,9 @@ async function advanceClassPointer(
  * the announcer always re-derive the current ride from the entries.
  *
  * Runs after the caller's own write succeeded, as the caller:
- * assert_classes_write_permission admits a scoring_pos-only change for
- * canEnterScores. Best effort — the pointer is a cache for the rider
+ * assert_classes_write_permission admits a scoring_pos-only change from
+ * canEnterScores or a panel member, as long as it lands on the ride
+ * class_current_ride_index() derives. Best effort — the pointer is a cache for the rider
  * estimate, so a failure here is logged rather than failing the action
  * whose real write already committed.
  */
