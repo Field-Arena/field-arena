@@ -648,6 +648,13 @@ export const unassignTestFromClassSchema = z.object({
 
 export type UnassignTestFromClassInput = z.input<typeof unassignTestFromClassSchema>;
 
+export const refreshClassesFromTemplateSchema = z.object({
+  templateId: z.uuid(),
+  showId: z.uuid(),
+});
+
+export type RefreshClassesFromTemplateInput = z.input<typeof refreshClassesFromTemplateSchema>;
+
 export const addManualHorseSchema = z.object({
   showId: z.uuid(),
   riderName: z.string().trim().min(1, 'A rider name is required').max(160),

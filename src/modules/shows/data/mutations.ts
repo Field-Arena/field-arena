@@ -47,6 +47,7 @@ import {
   saveTestTemplateSchema,
   assignTestTemplateToClassSchema,
   unassignTestFromClassSchema,
+  refreshClassesFromTemplateSchema,
   saveShowExpensesSchema,
   updateScheduleRulesSchema,
   setClassDurationSchema,
@@ -78,7 +79,10 @@ import {
 import { SHOW_DOCS_BUCKET } from '@/shared/constants/storage';
 import { formatDateShort } from '@/shared/lib/format/date';
 import { slugify } from '@/modules/shows/utils/slugify';
-import type { StandardVendorSpaceRow } from '@/modules/shows/types';
+import type {
+  RefreshClassesFromTemplateResult,
+  StandardVendorSpaceRow,
+} from '@/modules/shows/types';
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>;
 
@@ -1684,6 +1688,45 @@ export async function unassignTestFromClass(input: unknown): Promise<void> {
     .eq('id', parsed.classId)
     .maybeSingle();
   if (cls?.show_id) revalidatePath(`/dashboard/shows/${cls.show_id}/test-builder`);
+}
+
+// assignTestTemplateToClass copies a template into class_tests, so saving an
+// edit to the template never reached classes already using it. This re-copies
+// it into this show's classes that link the template -- but only those with no
+// scores yet and unpublished results. The check and the copy run in one
+// transaction (refresh_class_tests_from_template) with the classes locked, so
+// a judge's first mark landing mid-update can't end up on a re-copied sheet.
+export async function refreshClassesFromTemplate(
+  input: unknown,
+): Promise<RefreshClassesFromTemplateResult> {
+  const parsed = parseInput(refreshClassesFromTemplateSchema, input);
+  const supabase = await createServerClient();
+
+  // RLS on class_tests (canEditShow) is the real gate, and the function
+  // re-checks it -- this just fails fast with a readable reason.
+  const { data: allowed, error: permissionError } = await supabase.rpc('has_show_permission', {
+    target_show_id: parsed.showId,
+    permission_key: 'canEditShow',
+  });
+  if (permissionError) throw new Error(permissionError.message);
+  if (!allowed) {
+    throw new UserFacingError("You don't have permission to change tests on this show.");
+  }
+
+  const { data, error } = await supabase.rpc('refresh_class_tests_from_template', {
+    p_template_id: parsed.templateId,
+    p_show_id: parsed.showId,
+  });
+  if (error) throw new Error(error.message);
+
+  const result = (data ?? {}) as Partial<RefreshClassesFromTemplateResult>;
+  const updated = result.updated ?? [];
+  const skipped = result.skipped ?? [];
+
+  for (const cls of updated) revalidatePath(`/dashboard/scoring/${cls.classId}`);
+  revalidatePath('/dashboard/shows/[showId]/test-builder', 'page');
+
+  return { updated, skipped };
 }
 
 export async function saveShowExpenses(input: unknown): Promise<void> {

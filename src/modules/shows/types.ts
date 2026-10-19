@@ -3,6 +3,7 @@ import type {
   MEMBERSHIP_FLAGS,
   SHOW_ENTRY_STATUSES,
   STALL_STATUSES,
+  TEST_REFRESH_SKIP_REASONS,
   ShowManagerTab,
 } from './constants';
 import type { MasterSchedule } from './schedule-engine';
@@ -595,6 +596,15 @@ export interface TestCatalogEntry {
 export interface AssignedClassOption {
   classId: string;
   label: string;
+}
+
+export type TestRefreshSkipReason = (typeof TEST_REFRESH_SKIP_REASONS)[number];
+
+/** refreshClassesFromTemplate's report: which classes now carry the edited
+ * test, and which kept their old copy because scoring had already begun. */
+export interface RefreshClassesFromTemplateResult {
+  updated: AssignedClassOption[];
+  skipped: (AssignedClassOption & { reason: TestRefreshSkipReason })[];
 }
 
 export interface TestBuilderPageData {
