@@ -27,6 +27,8 @@ export interface ScoreRow {
   signedBy: string | null;
   signedAt: string | null;
   updatedAt: string;
+  /** Typed in by the show office from a signed paper sheet. */
+  enteredFromPaper: boolean;
 }
 
 export interface PanelSeat {
@@ -122,3 +124,8 @@ export type ScoringWriteFailure = 'transient' | 'denied' | 'locked' | 'invalid';
  */
 export type ScoringWriteResult =
   { ok: true } | { ok: false; reason: ScoringWriteFailure; message: string };
+
+export interface SavePaperSheetResult {
+  /** The ride's final percentage, 'ELIM', or null. */
+  finalPct: string | null;
+}

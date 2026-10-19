@@ -1559,6 +1559,8 @@ export type Database = {
         Row: {
           class_id: string
           collectives: Json | null
+          entered_by: string | null
+          entered_from_paper: boolean
           entry_id: string
           error_at: Json | null
           errors: number | null
@@ -1575,6 +1577,8 @@ export type Database = {
         Insert: {
           class_id: string
           collectives?: Json | null
+          entered_by?: string | null
+          entered_from_paper?: boolean
           entry_id: string
           error_at?: Json | null
           errors?: number | null
@@ -1591,6 +1595,8 @@ export type Database = {
         Update: {
           class_id?: string
           collectives?: Json | null
+          entered_by?: string | null
+          entered_from_paper?: boolean
           entry_id?: string
           error_at?: Json | null
           errors?: number | null
