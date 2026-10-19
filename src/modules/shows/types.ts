@@ -3,6 +3,7 @@ import type {
   MEMBERSHIP_FLAGS,
   SHOW_ENTRY_STATUSES,
   STALL_STATUSES,
+  SHOW_LIST_GROUPS,
   ShowManagerTab,
 } from './constants';
 import type { MasterSchedule } from './schedule-engine';
@@ -934,6 +935,28 @@ export interface ShowPickerSummary extends IncompleteShowSummary {
   stage: string;
 }
 
+export type ShowListGroup = (typeof SHOW_LIST_GROUPS)[number]['key'];
+
+export interface ShowListRow {
+  id: string;
+  /** slug ?? id — what the URLs use. */
+  ref: string;
+  name: string;
+  when: string;
+  venueName: string | null;
+  published: boolean;
+  stage: string;
+  stageLabel: string;
+  group: ShowListGroup;
+  /** 0–100, or null when there's nothing to measure yet. */
+  setupPct: number | null;
+  setupComplete: boolean;
+  /** Setup items still to do. */
+  toFinish: number;
+  primary: { label: string; href: string };
+  completeness: ShowCompleteness;
+}
+
 export interface StripeConnectStatus {
   configured: boolean;
   connected: boolean;
@@ -1272,6 +1295,8 @@ export interface ReadinessItem {
   label: string;
   state: 'done' | 'warn' | 'todo';
   status: string;
+  /** Set on percentage items so their figure uses the shared % colour scale. */
+  pct?: number | null;
 }
 
 export interface LiveRide {

@@ -121,14 +121,22 @@ export async function getShowCockpit(
     {
       label: 'Coggins 90%+ approved',
       state:
-        cogginsPct === null ? 'warn' : cogginsPct > 90 ? 'done' : cogginsPct > 50 ? 'warn' : 'todo',
+        cogginsPct === null
+          ? 'warn'
+          : cogginsPct >= 90
+            ? 'done'
+            : cogginsPct > 50
+              ? 'warn'
+              : 'todo',
       status: cogginsPct === null ? 'No entries yet' : `${String(cogginsPct)}%`,
+      pct: cogginsPct,
     },
     {
       label: 'Waivers 90%+ signed',
       state:
-        waiverPct === null ? 'warn' : waiverPct > 90 ? 'done' : waiverPct > 50 ? 'warn' : 'todo',
+        waiverPct === null ? 'warn' : waiverPct >= 90 ? 'done' : waiverPct > 50 ? 'warn' : 'todo',
       status: waiverPct === null ? 'No entries yet' : `${String(waiverPct)}%`,
+      pct: waiverPct,
     },
     {
       label: 'Vendor applications reviewed',

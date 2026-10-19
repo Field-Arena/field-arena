@@ -1,25 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { formatDateShort } from '@/shared/lib/format/date';
-import { SHOW_STAGES } from '@/shared/constants/show-stages';
+import { toast } from 'sonner';
+import { MoreHorizontalIcon, SearchIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
-  CardTitle,
+  Chip,
+  ChipRow,
   EmptyState,
   FA_BTN,
-  FA_BTN_DANGER,
   FA_BTN_PRIMARY,
   FA_BTN_SMALL,
-  FA_MUTED,
-  FaCard,
+  FA_INPUT,
   PageHeader,
   Pill,
   type PillTone,
 } from '@/shared/ui/organizer/fa-page';
-import type { ShowCompleteness, ShowPickerSummary } from '@/modules/shows/types';
-import { approvalTone, percent } from '@/modules/staff/ui/dashboard-format';
+import { approvalTone } from '@/shared/ui/organizer/approval-tone';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/ui/shadcn/dropdown-menu';
+import { SHOW_LIST_GROUPS } from '@/modules/shows/constants';
+import type {
+  ShowCompleteness,
+  ShowListGroup,
+  ShowListRow,
+  ShowPickerSummary,
+} from '@/modules/shows/types';
+import {
+  buildShowListSections,
+  countShowListGroups,
+  toShowListRow,
+} from '@/modules/shows/utils/show-list-rows';
 import { MissingSectionsDialog } from '@/modules/shows/ui/incomplete/missing-sections-dialog';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 import { DeleteShowButton } from '@/modules/shows/ui/show-manager/delete-show-button';
@@ -36,15 +53,43 @@ const STAGE_TONE: Record<string, PillTone> = {
   live: 'green',
 };
 
+// One fixed column grid so status, setup and actions line up row to row.
+// Below md each row stacks into a two-line block instead.
+const ROW_GRID = 'md:grid md:grid-cols-[minmax(0,1fr)_160px_170px_150px] md:items-center md:gap-4';
+
+/* Show Manager's list of every show: one aligned row per show, grouped
+ * Live → Published → In setup → Finished, with status chips and a search.
+ * Each row has a single primary action; delete, missing items and the public
+ * link live in its ⋯ menu. */
 export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: ShowPickerRow[] }) {
-  const [openShowId, setOpenShowId] = useState<string | null>(null);
-  const openRow = rows.find((r) => r.show.id === openShowId);
+  const [filter, setFilter] = useState<ShowListGroup | 'all'>('all');
+  const [query, setQuery] = useState('');
+  const [missingFor, setMissingFor] = useState<ShowListRow | null>(null);
+  const [deleteFor, setDeleteFor] = useState<ShowListRow | null>(null);
+
+  const listRows = useMemo(
+    () => rows.map(({ show, completeness }) => toShowListRow(show, completeness)),
+    [rows],
+  );
+  const counts = useMemo(() => countShowListGroups(listRows), [listRows]);
+  const sections = useMemo(
+    () => buildShowListSections(listRows, filter, query),
+    [listRows, filter, query],
+  );
+
+  function copyPublicLink(row: ShowListRow) {
+    const url = `${window.location.origin}/show/${row.ref}`;
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Public link copied'),
+      () => toast.error("Couldn't copy the link"),
+    );
+  }
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
       <PageHeader
-        eyebrow="Pick a show to set it up, schedule it and run it"
-        title="Show Manager"
+        eyebrow={orgName}
+        title="Shows"
         actions={
           <>
             <Link href="/dashboard/completed" prefetch={false} className={FA_BTN}>
@@ -55,108 +100,239 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
         }
       />
 
-      <div className="flex flex-col gap-2.5">
-        {rows.map(({ show, completeness }) => {
-          const items = completeness.sections.flatMap((s) => s.items);
-          const setupPct = completeness.complete
-            ? 100
-            : percent(items.filter((i) => i.ok).length, items.length);
-          const tone = approvalTone(setupPct);
-          const missing = completeness.sections.filter((s) => !s.ok).length;
-          const ref = show.slug ?? show.id;
-          const stageLabel = SHOW_STAGES.find((s) => s.key === show.stage)?.label ?? 'Live';
-
-          return (
-            <FaCard
-              key={show.id}
-              tone={show.published && show.stage === 'live' ? 'live' : 'default'}
-              className="flex flex-wrap items-center gap-x-5 gap-y-3"
-            >
-              <div className="min-w-[220px] flex-1">
-                <CardTitle>{show.name}</CardTitle>
-                <p className={cn(FA_MUTED, 'mt-0.5')}>
-                  {show.dateLabel ??
-                    (show.startDate ? formatDateShort(show.startDate) : 'Dates TBD')}
-                  {show.venueName ? ` · ${show.venueName}` : ''}
-                </p>
-              </div>
-
-              <div className="w-[200px] max-w-full">
-                <div className={cn('text-[12.5px] font-bold', tone.text)}>
-                  Setup {setupPct === null ? '—' : `${String(setupPct)}%`}
-                </div>
-                <div className="mt-1 h-[7px] rounded bg-[#EDF0EE]">
-                  {setupPct !== null && (
-                    <i
-                      className={cn('block h-[7px] rounded', tone.bar)}
-                      style={{ width: `${String(setupPct)}%` }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                {show.published ? (
-                  <Pill tone={STAGE_TONE[show.stage] ?? 'grey'} live={show.stage === 'live'}>
-                    {stageLabel}
-                  </Pill>
-                ) : (
-                  <Pill tone="grey">Not on sale yet</Pill>
-                )}
-
-                {!completeness.complete && (
-                  <button
-                    type="button"
-                    title="See what's missing"
-                    onClick={() => {
-                      setOpenShowId(show.id);
-                    }}
-                    className={FA_BTN_SMALL}
-                  >
-                    {missing > 0 ? `${String(missing)} missing` : 'Incomplete'}
-                  </button>
-                )}
-
-                <Link
-                  href={
-                    show.published ? `/dashboard/shows/${ref}/run-show` : `/dashboard/shows/${ref}`
-                  }
-                  prefetch={false}
-                  className={FA_BTN_PRIMARY}
+      {listRows.length === 0 ? (
+        <EmptyState
+          title="Create your first show"
+          note={`${orgName} has nothing scheduled yet. Click New show to set one up.`}
+        />
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <ChipRow className="mb-0 flex-1">
+              <Chip
+                active={filter === 'all'}
+                onClick={() => {
+                  setFilter('all');
+                }}
+              >
+                All {listRows.length}
+              </Chip>
+              {SHOW_LIST_GROUPS.filter((g) => counts[g.key] > 0).map((g) => (
+                <Chip
+                  key={g.key}
+                  active={filter === g.key}
+                  onClick={() => {
+                    setFilter(g.key);
+                  }}
                 >
-                  Open →
-                </Link>
+                  {g.chip} {counts[g.key]}
+                </Chip>
+              ))}
+            </ChipRow>
+            <label className="relative w-full sm:w-64">
+              <span className="sr-only">Search shows</span>
+              <SearchIcon
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#5A6B63]"
+              />
+              <input
+                type="search"
+                value={query}
+                placeholder="Search shows or venues"
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                }}
+                className={cn(FA_INPUT, 'w-full py-1.5 pl-9 text-[13.5px]')}
+              />
+            </label>
+          </div>
 
-                {!show.published && (
-                  <DeleteShowButton
-                    showId={show.id}
-                    showName={show.name}
-                    triggerClassName={FA_BTN_DANGER}
-                  />
-                )}
-              </div>
-            </FaCard>
-          );
-        })}
+          <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[#C9D3CE] bg-white">
+            <div
+              className={cn(
+                ROW_GRID,
+                'hidden bg-[#F5F7F6] px-4 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#5A6B63] uppercase md:grid',
+              )}
+            >
+              <span>Show</span>
+              <span>Status</span>
+              <span>Setup</span>
+              <span className="sr-only">Actions</span>
+            </div>
 
-        {rows.length === 0 && (
-          <EmptyState
-            title="No shows yet"
-            note={`Create one to get started — ${orgName} has nothing scheduled.`}
-          />
-        )}
-      </div>
+            {sections.length === 0 ? (
+              <p className="border-t border-[#EDF0EE] px-4 py-6 text-center text-[13.5px] text-[#5A6B63]">
+                {query ? <>No shows match &ldquo;{query}&rdquo;.</> : <>No shows here.</>}
+              </p>
+            ) : (
+              sections.map((section) => (
+                <section key={section.key} aria-label={section.label}>
+                  <h2 className="flex items-center justify-between border-t border-[#EDF0EE] bg-white px-4 pt-3 pb-1 text-[12px] font-bold text-[#5A6B63]">
+                    <span>{section.label}</span>
+                    {section.key === 'setup' && (
+                      <span className="font-semibold text-[#8A948F]">Not on sale yet</span>
+                    )}
+                  </h2>
+                  <ul>
+                    {section.rows.map((row) => (
+                      <ShowRow
+                        key={row.id}
+                        row={row}
+                        onShowMissing={() => {
+                          setMissingFor(row);
+                        }}
+                        onCopyLink={() => {
+                          copyPublicLink(row);
+                        }}
+                        onDelete={() => {
+                          setDeleteFor(row);
+                        }}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
-      {openRow && (
+      {missingFor && (
         <MissingSectionsDialog
-          showId={openRow.show.slug ?? openRow.show.id}
-          showName={openRow.show.name}
-          sections={openRow.completeness.sections}
+          showId={missingFor.ref}
+          showName={missingFor.name}
+          sections={missingFor.completeness.sections}
           onClose={() => {
-            setOpenShowId(null);
+            setMissingFor(null);
+          }}
+        />
+      )}
+
+      {deleteFor && (
+        <DeleteShowButton
+          showId={deleteFor.id}
+          showName={deleteFor.name}
+          open
+          onOpenChange={(open) => {
+            if (!open) setDeleteFor(null);
           }}
         />
       )}
     </div>
+  );
+}
+
+function ShowRow({
+  row,
+  onShowMissing,
+  onCopyLink,
+  onDelete,
+}: {
+  row: ShowListRow;
+  onShowMissing: () => void;
+  onCopyLink: () => void;
+  onDelete: () => void;
+}) {
+  const tone = approvalTone(row.setupPct);
+  const isLive = row.group === 'live';
+
+  return (
+    <li
+      className={cn(
+        ROW_GRID,
+        'flex flex-col gap-2 border-t border-[#EDF0EE] px-4 py-3 transition-colors first:border-t-0 hover:bg-[#FAFBFA]',
+      )}
+    >
+      <div className="min-w-0">
+        <Link
+          href={row.primary.href}
+          prefetch={false}
+          className="block truncate text-[14.5px] font-bold text-[#0D2C23] no-underline hover:underline"
+        >
+          {row.name}
+        </Link>
+        <p className="truncate text-[12.5px] font-semibold text-[#5A6B63]">
+          {row.when}
+          {' · '}
+          {row.venueName ?? <span className="text-[#8A948F]">Venue not set</span>}
+        </p>
+      </div>
+
+      <div>
+        <Pill tone={row.published ? (STAGE_TONE[row.stage] ?? 'grey') : 'grey'} live={isLive}>
+          {row.published || row.group !== 'setup' ? row.stageLabel : 'Setup'}
+        </Pill>
+      </div>
+
+      <div className="w-full max-w-[220px] md:max-w-none">
+        {row.setupComplete ? (
+          <span className={cn('text-[12.5px] font-bold', tone.text)}>Ready</span>
+        ) : (
+          <button
+            type="button"
+            onClick={onShowMissing}
+            title="See what's missing"
+            className={cn('text-[12.5px] font-bold underline-offset-2 hover:underline', tone.text)}
+          >
+            {row.setupPct === null ? 'Not started' : `${String(row.setupPct)}%`}
+            {row.toFinish > 0 && ` · ${String(row.toFinish)} to finish`}
+          </button>
+        )}
+        <div
+          className="mt-1 h-[6px] rounded bg-[#EDF0EE]"
+          role="progressbar"
+          aria-label={`${row.name} setup`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={row.setupPct ?? 0}
+        >
+          {row.setupPct !== null && (
+            <i
+              className={cn('block h-[6px] rounded', tone.bar)}
+              style={{ width: `${String(row.setupPct)}%` }}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1.5 md:justify-end">
+        <Link
+          href={row.primary.href}
+          prefetch={false}
+          className={isLive ? FA_BTN_PRIMARY : FA_BTN_SMALL}
+        >
+          {row.primary.label}
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={`More actions for ${row.name}`}
+            className="inline-flex size-8 items-center justify-center rounded-[8px] text-[#5A6B63] hover:bg-[#EDF0EE] hover:text-[#0D2C23]"
+          >
+            <MoreHorizontalIcon className="size-[18px]" aria-hidden />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 rounded-xl border-[#E7EAEE] p-1.5">
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/shows/${row.ref}`} prefetch={false}>
+                Open setup
+              </Link>
+            </DropdownMenuItem>
+            {!row.setupComplete && (
+              <DropdownMenuItem onSelect={onShowMissing}>See what&apos;s missing</DropdownMenuItem>
+            )}
+            {row.published && (
+              <DropdownMenuItem onSelect={onCopyLink}>Copy public link</DropdownMenuItem>
+            )}
+            {!row.published && (
+              <>
+                <DropdownMenuSeparator className="bg-[#EEF1F4]" />
+                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                  Delete show…
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </li>
   );
 }

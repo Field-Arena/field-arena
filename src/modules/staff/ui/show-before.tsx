@@ -220,7 +220,14 @@ export function ShowBefore({
                     {icon.mark}
                   </span>
                   <span className="flex-1 font-semibold text-[#0D2C23]">{item.label}</span>
-                  <span className={cn('text-[13px] font-bold', icon.text)}>{item.status}</span>
+                  <span
+                    className={cn(
+                      'text-[13px] font-bold',
+                      item.pct === undefined ? icon.text : approvalTone(item.pct).text,
+                    )}
+                  >
+                    {item.status}
+                  </span>
                 </li>
               );
             })}
