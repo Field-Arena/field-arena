@@ -31,7 +31,6 @@ import { enqueueScoringWrite } from '@/modules/scoring/hooks/use-mutation-queue'
 import { scoringWriteKey } from '@/modules/scoring/hooks/use-unsaved-writes';
 import { ScoringWriteError, sendScoringWrite } from '@/modules/scoring/hooks/send-scoring-write';
 import type {
-  PublishResultsInput,
   SetCollectiveInput,
   SetFinalRemarksInput,
   SetMarkInput,
@@ -241,22 +240,19 @@ export function useToggleScoringOpen() {
   });
 }
 
-async function publishWithConfirm(input: PublishResultsInput) {
-  const outcome = await publishResults(input);
-  if (outcome.published) return outcome;
-  const confirmed = window.confirm(
-    `${String(outcome.incomplete)} ride${outcome.incomplete === 1 ? " isn't" : "s aren't"} fully scored and signed yet. Publish results anyway?`,
-  );
-  if (!confirmed) return outcome;
-  return publishResults({ ...input, force: true });
-}
-
 export function usePublishResults() {
   return useMutation({
-    mutationFn: queued(publishWithConfirm),
+    mutationFn: queued(publishResults),
     ...toastedMutationOptions('Could not publish'),
     onSuccess: (outcome: PublishResultsOutcome) => {
-      if (outcome.published) toast.success('Results published');
+      if (outcome.published) {
+        toast.success('Results published');
+        return;
+      }
+      const n = outcome.incomplete;
+      toast.error(
+        `${String(n)} ride${n === 1 ? " isn't" : "s aren't"} fully scored and signed yet. Score, scratch or remove ${n === 1 ? 'it' : 'them'} before publishing.`,
+      );
     },
   });
 }

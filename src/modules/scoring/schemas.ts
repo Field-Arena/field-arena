@@ -199,8 +199,6 @@ export type MarkOrderCheckedInput = z.infer<typeof markOrderCheckedSchema>;
 
 export const publishResultsSchema = z.object({
   classId: z.uuid(),
-  /** Publish even though some rides aren't fully scored and signed. */
-  force: z.boolean().optional(),
 });
 export type PublishResultsInput = z.infer<typeof publishResultsSchema>;
 

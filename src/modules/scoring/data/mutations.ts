@@ -409,7 +409,7 @@ export async function advanceRide(input: unknown) {
   await assertCanAdvanceRing(parsed.classId);
   const supabase = await createServerClient();
 
-  const [entryRes, panelRes, scoresRes, classRes] = await Promise.all([
+  const [entryRes, panelRes, scoresRes, classRes, ridesRes] = await Promise.all([
     supabase
       .from('class_entries')
       .select('*')
@@ -419,17 +419,40 @@ export async function advanceRide(input: unknown) {
     supabase.from('class_panel').select('seat_id, judge_staff_id').eq('class_id', parsed.classId),
     supabase.from('scores').select('*').eq('entry_id', parsed.entryId),
     supabase.from('classes').select('working_in_entry_id').eq('id', parsed.classId).single(),
+    supabase
+      .from('class_entries')
+      .select('id, status, advanced_past')
+      .eq('class_id', parsed.classId)
+      .eq('holding', false)
+      .order('ride_order')
+      .order('id'),
   ]);
   if (entryRes.error) throw entryRes.error;
   if (panelRes.error) throw panelRes.error;
   if (scoresRes.error) throw scoresRes.error;
   if (classRes.error) throw classRes.error;
+  if (ridesRes.error) throw ridesRes.error;
 
   // A second client's auto-advance (or a retry) landing after the first one
   // must not re-finalize the ride with a new timestamp.
   if (entryRes.data.advanced_past || entryRes.data.status !== 'scheduled') {
     await syncScoringPointer(parsed.classId);
     return;
+  }
+
+  // Only the rider in the ring moves on. Advancing a later ride (a stale
+  // screen, or a request for the wrong entry) used to mark it scored and
+  // make the ring skip everyone before it. The class_entries trigger
+  // (20261018123000) refuses it too.
+  const rides = ridesRes.data.map((r) => ({
+    id: r.id,
+    status: r.status,
+    advancedPast: r.advanced_past ?? false,
+  }));
+  const rideInRing =
+    classRes.data.working_in_entry_id ?? rides[resolveCurrentRideIndex(rides)]?.id ?? null;
+  if (rideInRing !== parsed.entryId) {
+    throw new Error("That rider isn't in the ring, so they can't be moved on yet.");
   }
 
   // Only seats with a judge can ever sign, so they are the panel. With none,
@@ -922,34 +945,32 @@ export async function publishResults(input: unknown): Promise<PublishResultsOutc
   const parsed = parseInput(publishResultsSchema, input);
   const supabase = await createServerClient();
 
-  if (!parsed.force) {
-    const [entriesRes, panelRes, scoresRes] = await Promise.all([
-      supabase
-        .from('class_entries')
-        .select('id, status, advanced_past, holding')
-        .eq('class_id', parsed.classId),
-      supabase.from('class_panel').select('seat_id, judge_staff_id').eq('class_id', parsed.classId),
-      supabase.from('scores').select('entry_id, seat_id, submitted').eq('class_id', parsed.classId),
-    ]);
-    if (entriesRes.error) throw entriesRes.error;
-    if (panelRes.error) throw panelRes.error;
-    if (scoresRes.error) throw scoresRes.error;
+  const [entriesRes, panelRes, scoresRes] = await Promise.all([
+    supabase
+      .from('class_entries')
+      .select('id, status, advanced_past, holding')
+      .eq('class_id', parsed.classId),
+    supabase.from('class_panel').select('seat_id, judge_staff_id').eq('class_id', parsed.classId),
+    supabase.from('scores').select('entry_id, seat_id, submitted').eq('class_id', parsed.classId),
+  ]);
+  if (entriesRes.error) throw entriesRes.error;
+  if (panelRes.error) throw panelRes.error;
+  if (scoresRes.error) throw scoresRes.error;
 
-    const judgeSeatIds = panelRes.data
-      .filter((p) => p.judge_staff_id !== null)
-      .map((p) => p.seat_id);
-    const submitted = new Set(
-      scoresRes.data.filter((s) => s.submitted).map((s) => `${s.entry_id}:${s.seat_id}`),
-    );
-    // A ride still to go, or a scored ride whose sheet was reopened and not
-    // re-signed, would publish a wrong or missing result.
-    const incomplete = entriesRes.data.filter((e) => {
-      if (e.status === 'scratched' || e.status === 'disqualified') return false;
-      if (e.status !== 'scored' && !e.advanced_past) return !e.holding;
-      return judgeSeatIds.some((seatId) => !submitted.has(`${e.id}:${seatId}`));
-    }).length;
-    if (incomplete > 0) return { published: false, incomplete };
-  }
+  const judgeSeatIds = panelRes.data.filter((p) => p.judge_staff_id !== null).map((p) => p.seat_id);
+  const submitted = new Set(
+    scoresRes.data.filter((s) => s.submitted).map((s) => `${s.entry_id}:${s.seat_id}`),
+  );
+  // A ride still to go, or a scored ride whose sheet was reopened and not
+  // re-signed, would publish a wrong or missing result. There is no
+  // override: the classes_publish_requires_scored_rides trigger
+  // (20261018123000) refuses unscored rides as well.
+  const incomplete = entriesRes.data.filter((e) => {
+    if (e.status === 'scratched' || e.status === 'disqualified') return false;
+    if (e.status !== 'scored' && !e.advanced_past) return !e.holding;
+    return judgeSeatIds.some((seatId) => !submitted.has(`${e.id}:${seatId}`));
+  }).length;
+  if (incomplete > 0) return { published: false, incomplete };
 
   const { error } = await supabase
     .from('classes')
