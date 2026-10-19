@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/shared/lib/auth/session';
+import { staffIdentityFilter } from '@/shared/lib/supabase/postgrest-filter';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
 import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
 import { asStringMap } from '@/modules/scoring/utils/as-string-map';
@@ -234,6 +235,32 @@ export async function listPanelCandidates(classId: string): Promise<PanelCandida
     .map((s) => ({ staffId: s.id, name: s.name, role: s.role }));
 }
 
+type ServerClient = Awaited<ReturnType<typeof createServerClient>>;
+
+async function callerCanEditShow(supabase: ServerClient, showId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('has_show_permission', {
+    target_show_id: showId,
+    permission_key: 'canEditShow',
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Show management (canEditShow on the class's show: SuperAdmin, the org's
+ * Organizer/owners, its Show Admins) is not a panel seat and may act on any
+ * seat — the scores triggers let them past seat ownership on the same rule. */
+export async function canManageClassScoring(classId: string): Promise<boolean> {
+  const supabase = await createServerClient();
+  const { data: cls, error } = await supabase
+    .from('classes')
+    .select('show_id')
+    .eq('id', classId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!cls) return false;
+  return callerCanEditShow(supabase, cls.show_id);
+}
+
 export async function getMySeat(classId: string): Promise<MySeat | null> {
   const profile = await getStaffProfile();
   if (!profile) return null;
@@ -251,7 +278,7 @@ export async function getMySeat(classId: string): Promise<MySeat | null> {
     .from('staff_assignments')
     .select('id, name')
     .eq('show_id', cls.show_id)
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+    .or(staffIdentityFilter(profile));
   if (staffError) throw staffError;
   if (staffRows.length === 0) return null;
 
@@ -285,8 +312,6 @@ export async function getMySeat(classId: string): Promise<MySeat | null> {
   return null;
 }
 
-const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
-
 export async function getMyScoringPermissions(classId: string) {
   const profile = await getStaffProfile();
   const allTrue = Object.fromEntries(PERMISSION_KEYS.map((k) => [k, true])) as Record<
@@ -299,7 +324,6 @@ export async function getMyScoringPermissions(classId: string) {
   >;
 
   if (!profile) return allFalse;
-  if (profile.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) return allTrue;
 
   const supabase = await createServerClient();
 
@@ -313,11 +337,15 @@ export async function getMyScoringPermissions(classId: string) {
   // One person can hold several staff rows on a show (e.g. matched by both
   // user_id and email, or two roles) — merge them rather than letting
   // maybeSingle() throw on the second row.
+  // Same per-show rule the scores triggers use to let management past seat
+  // checks (assert_scores_seat_ownership): canEditShow on this show.
+  if (await callerCanEditShow(supabase, cls.show_id)) return allTrue;
+
   const { data: staffRows, error: staffError } = await supabase
     .from('staff_assignments')
     .select('role, permissions, can_scratch_skip_dq, can_view_money')
     .eq('show_id', cls.show_id)
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+    .or(staffIdentityFilter(profile));
   if (staffError) throw staffError;
   if (staffRows.length === 0) return allFalse;
 

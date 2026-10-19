@@ -11,6 +11,7 @@ import type {
   RideOrderEntry,
   ScoredRideRow,
 } from '@/modules/judging/types';
+import { staffIdentityFilter } from '@/shared/lib/supabase/postgrest-filter';
 
 /* Which staff_assignments rows this screen speaks for.
  *
@@ -42,7 +43,7 @@ async function assignmentScopeStaffIds(profile: {
   const { data, error } = await supabase
     .from('staff_assignments')
     .select('id')
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+    .or(staffIdentityFilter(profile));
   if (error) throw error;
   return data.map((s) => s.id);
 }
