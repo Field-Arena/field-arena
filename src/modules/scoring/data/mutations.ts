@@ -134,6 +134,26 @@ function assertSheetEditable(row: { submitted: boolean | null; signed_by?: strin
   }
 }
 
+// Published results are frozen until someone with canPublishShow unpublishes
+// them (also enforced by the scores_published_locked trigger, 20261018122000).
+async function assertResultsNotPublished(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  classId: string,
+) {
+  const { data, error } = await supabase
+    .from('classes')
+    .select('results_published')
+    .eq('id', classId)
+    .single();
+  if (error) throw error;
+  if (data.results_published) {
+    throw new ScoringRejection(
+      'locked',
+      'Results for this class are published. Ask show management to unpublish them before changing scores.',
+    );
+  }
+}
+
 async function writeMark(params: {
   classId: string;
   entryId: string;
@@ -146,6 +166,7 @@ async function writeMark(params: {
   await assertSeatAccess(params.classId, params.seatId, params.seatRole);
 
   const supabase = await createServerClient();
+  await assertResultsNotPublished(supabase, params.classId);
   const existing = await getScoreRow(supabase, params.entryId, params.seatId);
   assertSheetEditable(existing);
   const map = parseMarkMap(existing?.[params.field]);
@@ -215,6 +236,7 @@ export async function setRemark(input: unknown): Promise<ScoringWriteResult> {
     );
 
     const supabase = await createServerClient();
+    await assertResultsNotPublished(supabase, parsed.classId);
     assertSheetEditable(await getScoreRow(supabase, parsed.entryId, parsed.seatId));
     const patch = { [String(parsed.movementNum)]: parsed.text } as unknown as Json;
 
@@ -239,6 +261,7 @@ export async function setFinalRemarks(input: unknown): Promise<ScoringWriteResul
     );
 
     const supabase = await createServerClient();
+    await assertResultsNotPublished(supabase, parsed.classId);
     const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
     assertSheetEditable(existing);
 
@@ -266,6 +289,7 @@ export async function toggleErrorAt(input: unknown): Promise<ScoringWriteResult>
     );
 
     const supabase = await createServerClient();
+    await assertResultsNotPublished(supabase, parsed.classId);
     const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
     assertSheetEditable(existing);
     const key = String(parsed.movementNum);
@@ -296,6 +320,7 @@ export async function submitScoresheet(input: unknown) {
   }
 
   const supabase = await createServerClient();
+  await assertResultsNotPublished(supabase, parsed.classId);
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
   if (!existing) throw new Error('Nothing has been scored yet.');
   if (existing.submitted) throw new Error('This scoresheet is already signed and submitted.');
@@ -322,6 +347,7 @@ export async function reopenScoresheet(input: unknown) {
     throw new Error('Only show management can reopen a signed scoresheet.');
   }
   const supabase = await createServerClient();
+  await assertResultsNotPublished(supabase, parsed.classId);
 
   const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
   if (!existing) throw new Error('Nothing to reopen.');

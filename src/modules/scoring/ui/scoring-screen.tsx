@@ -215,7 +215,9 @@ export function ScoringScreen({
     );
   }
 
-  const locked = !mySeat || myScore?.submitted === true;
+  // Published results are frozen (the server refuses edits too); unpublish
+  // first to correct them.
+  const locked = !mySeat || myScore?.submitted === true || state.classState.resultsPublished;
   const seatId = mySeat?.seatId ?? '';
   const seatRole = mySeat?.role ?? 'judge';
   const complete = test ? isSheetComplete(toSheet(myScore ?? blankScore()), test) : false;
