@@ -127,6 +127,10 @@ export interface VendorBookingRow {
   showId: string;
   showName: string;
   showDate: string | null;
+  /** The show's last day (YYYY-MM-DD), null when it has no dates. */
+  showLastDay: string | null;
+  /** The last day is before today in the show's own time zone (or the show has no dates). */
+  showIsPast: boolean;
   orgName: string;
   status: string;
   amountTotal: number | null;

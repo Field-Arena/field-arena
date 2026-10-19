@@ -105,19 +105,6 @@ export const setClassTestSchema = z.object({
 });
 export type SetClassTestInput = z.infer<typeof setClassTestSchema>;
 
-export const setClassEntriesSchema = z.object({
-  classId: z.uuid(),
-  entries: z.array(
-    z.object({
-      draw: z.number().int().nullable().optional(),
-      num: z.string().trim().min(1),
-      rider: z.string().trim().nullable().optional(),
-      horse: z.string().trim().nullable().optional(),
-    }),
-  ),
-});
-export type SetClassEntriesInput = z.infer<typeof setClassEntriesSchema>;
-
 export const advanceRideSchema = z.object({
   classId: z.uuid(),
   entryId: z.uuid(),

@@ -6,6 +6,7 @@ import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { parseInput } from '@/shared/lib/action-result';
 import { getStaffProfile } from '@/shared/lib/auth/session';
 import {
+  canManageClassScoring,
   getEffectiveTestForEntry,
   getMyScoringPermissions,
   getMySeat,
@@ -39,7 +40,6 @@ import {
   removePanelSeatSchema,
   reopenScoresheetSchema,
   scratchRideSchema,
-  setClassEntriesSchema,
   setClassTestSchema,
   setCollectiveSchema,
   setFinalRemarksSchema,
@@ -57,21 +57,25 @@ import {
   workInEntrySchema,
 } from '@/modules/scoring/schemas';
 
-const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
-
 async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judge' | 'scribe') {
-  const profile = await getStaffProfile();
-  if (profile?.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) {
-    return { signerName: profile.name };
-  }
-
-  // getMySeat throws when a lookup fails, so reaching the check below means
+  // The caller's own seat first: this runs on every mark a judge types, and
+  // judges are the common case.
+  // getMySeat throws when a lookup fails, so reaching the checks below means
   // the seat really isn't this person's — not that the database hiccupped.
   const mySeat = await getMySeat(classId);
-  if (mySeat?.seatId !== seatId || mySeat.role !== seatRole) {
-    throw new ScoringRejection('denied', 'You do not have permission to score this seat.');
+  if (mySeat?.seatId === seatId && mySeat.role === seatRole) {
+    return { signerName: mySeat.name };
   }
-  return { signerName: mySeat.name };
+
+  // Show management isn't a panel seat; per-show canEditShow, the same rule
+  // assert_scores_seat_ownership applies. Not the platform role: an Organizer
+  // of another org, or a ShowAdmin staffed elsewhere, is not management here.
+  if (await canManageClassScoring(classId)) {
+    const profile = await getStaffProfile();
+    return { signerName: profile?.name ?? 'Show management' };
+  }
+
+  throw new ScoringRejection('denied', 'You do not have permission to score this seat.');
 }
 
 /**
@@ -96,8 +100,7 @@ async function scoringWrite(body: () => Promise<void>): Promise<ScoringWriteResu
 // assert_order_check_scribe_seat trigger on class_order_checks — this is
 // UX only, same as assertSeatAccess above.
 async function assertScribeSeatOnClass(classId: string): Promise<void> {
-  const profile = await getStaffProfile();
-  if (profile?.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) return;
+  if (await canManageClassScoring(classId)) return;
 
   const mySeat = await getMySeat(classId);
   if (mySeat?.role !== 'scribe') {
@@ -866,42 +869,6 @@ export async function setClassTest(input: unknown) {
     { onConflict: 'class_id' },
   );
   if (error) throw error;
-
-  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
-}
-
-export async function setClassEntries(input: unknown) {
-  const parsed = parseInput(setClassEntriesSchema, input);
-  const supabase = await createServerClient();
-
-  const { error: deleteScoresError } = await supabase
-    .from('scores')
-    .delete()
-    .eq('class_id', parsed.classId);
-  if (deleteScoresError) throw deleteScoresError;
-
-  const { error: deleteEntriesError } = await supabase
-    .from('class_entries')
-    .delete()
-    .eq('class_id', parsed.classId);
-  if (deleteEntriesError) throw deleteEntriesError;
-
-  if (parsed.entries.length > 0) {
-    const { error: insertError } = await supabase.from('class_entries').insert(
-      parsed.entries.map((e, i) => ({
-        class_id: parsed.classId,
-        draw: e.draw ?? null,
-        num: e.num,
-        rider: e.rider ?? null,
-        horse: e.horse ?? null,
-        ride_order: i + 1,
-        status: 'scheduled',
-        holding: false,
-      })),
-    );
-    if (insertError) throw insertError;
-  }
-  await syncScoringPointer(parsed.classId);
 
   revalidatePath(`/dashboard/scoring/${parsed.classId}`);
 }

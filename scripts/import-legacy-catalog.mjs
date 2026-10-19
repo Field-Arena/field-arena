@@ -1,27 +1,65 @@
+/**
+ * One-off import of the legacy static app's test definitions
+ * (public/data/test-defs.json) into scoring_catalog. It DELETES catalog rows
+ * it replaces, so it only runs against a local Supabase, or an allowlisted
+ * scratch project with --i-know-this-is-not-prod (scripts/lib/target-guard.mjs).
+ *
+ * Usage:
+ *   LEGACY_TEST_DEFS_PATH=/path/to/test-defs.json node scripts/import-legacy-catalog.mjs
+ *
+ * Reads NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY from the
+ * environment or this repo's .env.local.
+ */
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { assertSafeTarget } from './lib/target-guard.mjs';
 
-const envText = readFileSync('/home/haris-awais/devminified/FA/Field-Arena/.env.local', 'utf8');
-const env = Object.fromEntries(
-  envText
-    .split('\n')
-    .filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-    .map((l) => {
-      const idx = l.indexOf('=');
-      return [l.slice(0, idx).trim(), l.slice(idx + 1).trim()];
-    }),
-);
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+function loadEnvLocal() {
+  let text;
+  try {
+    text = readFileSync(join(ROOT, '.env.local'), 'utf8');
+  } catch {
+    return;
+  }
+  for (const line of text.split('\n')) {
+    if (!line.includes('=') || line.trim().startsWith('#')) continue;
+    const idx = line.indexOf('=');
+    const key = line.slice(0, idx).trim();
+    if (key && !process.env[key]) {
+      process.env[key] = line
+        .slice(idx + 1)
+        .trim()
+        .replace(/^["']|["']$/g, '');
+    }
+  }
+}
+
+loadEnvLocal();
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !serviceKey) {
+  console.error('Need NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (env or .env.local).');
+  process.exit(1);
+}
+
+assertSafeTarget({ script: 'import-legacy-catalog', url });
+
+const defsPath = process.env.LEGACY_TEST_DEFS_PATH;
+if (!defsPath) {
+  console.error('Set LEGACY_TEST_DEFS_PATH to the legacy public/data/test-defs.json file.');
+  process.exit(1);
+}
+
+const admin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const raw = JSON.parse(
-  readFileSync(
-    '/home/haris-awais/devminified/FA/field-and-arena-main/public/data/test-defs.json',
-    'utf8',
-  ),
-);
+const raw = JSON.parse(readFileSync(resolve(defsPath), 'utf8'));
 
 function titleCase(s) {
   return s
