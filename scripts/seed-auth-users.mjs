@@ -11,13 +11,17 @@
  *
  * Idempotent: an existing account is updated in place rather than duplicated.
  *
- * Usage:
- *   node scripts/seed-auth-users.mjs
+ * Usage (local Supabase):
+ *   DEMO_SEED_PASSWORD='<choose one>' node scripts/seed-auth-users.mjs
+ * A hosted scratch project also needs its ref in FA_SCRIPT_ALLOWED_PROJECT_REFS
+ * and --i-know-this-is-not-prod (see scripts/lib/target-guard.mjs). It creates
+ * a SuperAdmin, so never point it at production.
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { assertSafeTarget } from './lib/target-guard.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -35,12 +39,20 @@ if (!url || !serviceKey) {
   process.exit(1);
 }
 
+assertSafeTarget({ script: 'seed-auth-users', url });
+
+/** Demo password for every seeded account. Read from the environment so no
+ * working credential lives in the repo; at least 12 characters. */
+const PASSWORD = process.env.DEMO_SEED_PASSWORD ?? '';
+if (PASSWORD.length < 12) {
+  console.error('Set DEMO_SEED_PASSWORD (12+ characters) to the password the demo accounts should get.');
+  process.exit(1);
+}
+
 const supabase = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-/** Demo credentials. Fine for a demo project; never for anything real. */
-const PASSWORD = 'FieldArena!2026';
 const PEACHTREE_ORG = 'a0000000-0000-4000-8000-000000000004';
 const BLUE_RIDGE_SHOW = 'c0000000-0000-4000-8000-000000000001';
 
