@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
-import { getStripeClient } from '@/shared/lib/stripe';
+import { getStripeClient, isStripeLive } from '@/shared/lib/stripe';
 import { env } from '@/shared/lib/env';
 import { handleStripeEvent } from '@/modules/sales/data/stripe-webhook';
 
@@ -23,6 +23,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { error: `Webhook signature verification failed: ${message}` },
       { status: 400 },
     );
+  }
+
+  /* A live-mode event reaching a test-key deployment (or the reverse) means
+   * the endpoint and the secret key belong to different Stripe modes —
+   * fulfilling it would mark real orders paid from test payments, or the other
+   * way round. Acknowledge without acting so Stripe stops redelivering, and
+   * log it loudly: the deployment's Stripe configuration needs fixing. */
+  if (event.livemode !== isStripeLive()) {
+    console.error('[stripe-webhook] livemode mismatch — event ignored', event.id, event.type, {
+      eventLivemode: event.livemode,
+      keyIsLive: isStripeLive(),
+    });
+    return NextResponse.json({ received: true, ignored: 'livemode mismatch' });
   }
 
   /* A thrown error means fulfilment did not finish (a DB hiccup, a partial

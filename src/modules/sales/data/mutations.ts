@@ -16,6 +16,7 @@ import {
   refundAdditionalChargeSchema,
 } from '@/modules/sales/schemas';
 import { refundChargingOrganizer } from '@/modules/sales/data/stripe-refund';
+import { sendRefundNotice } from '@/modules/sales/data/refund-notice';
 import { updateAdditionalChargesLedger } from '@/modules/sales/data/additional-charges-ledger';
 import {
   chargeMaxRefundable,
@@ -200,6 +201,13 @@ export async function refundSale(input: unknown): Promise<RefundSaleResult> {
       console.error('[sales] could not flag sale for review', parsed.saleId, flagError);
     }
   }
+
+  await sendRefundNotice(admin, {
+    saleType: parsed.saleType,
+    saleId: parsed.saleId,
+    showId: parsed.showId,
+    amount: refundAmount,
+  });
 
   revalidatePath(ROUTES.eventSales);
   return { transferReversalFailed: outcome.reversalError !== null };
@@ -407,6 +415,13 @@ export async function refundAdditionalCharge(input: unknown): Promise<RefundSale
       console.error('[sales] could not flag sale for review', parsed.saleId, flagError);
     }
   }
+
+  await sendRefundNotice(admin, {
+    saleType: parsed.saleType,
+    saleId: parsed.saleId,
+    showId: parsed.showId,
+    amount: refundAmount,
+  });
 
   revalidatePath(ROUTES.eventSales);
   return { transferReversalFailed: outcome.reversalError !== null };
