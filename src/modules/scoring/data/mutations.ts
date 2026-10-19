@@ -12,21 +12,25 @@ import {
   getMySeat,
   getTestForClass,
 } from '@/modules/scoring/data/queries';
-import {
-  averagePct,
-  clampMark,
-  collectivesTotal,
-  isSheetComplete,
-  sheetPct,
-} from '@/modules/scoring/scoring-engine';
+import { clampMark, isSheetComplete } from '@/modules/scoring/scoring-engine';
 import { resolveCurrentRideIndex } from '@/shared/lib/current-ride';
+import { computeRideResult } from '@/modules/scoring/utils/compute-ride-result';
 import { asBooleanMap } from '@/modules/scoring/utils/as-boolean-map';
 import { asStringMap } from '@/modules/scoring/utils/as-string-map';
 import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
 import { toSheet } from '@/modules/scoring/utils/to-sheet';
-import { JUDGING_PATH, JUDGING_HISTORY_PATH } from '@/modules/scoring/constants';
+import {
+  JUDGING_PATH,
+  JUDGING_HISTORY_PATH,
+  PAPER_ERROR_KEY_PREFIX,
+} from '@/modules/scoring/constants';
 import type { Json } from '@/shared/types/database.types';
-import type { PublishResultsOutcome, ScoringWriteResult } from '@/modules/scoring/types';
+import type {
+  PublishResultsOutcome,
+  ScoringWriteResult,
+  SavePaperSheetResult,
+  Sheet,
+} from '@/modules/scoring/types';
 import { ScoringRejection } from '@/modules/scoring/utils/scoring-rejection';
 import { classifyScoringWriteError } from '@/modules/scoring/utils/classify-write-error';
 import {
@@ -55,6 +59,7 @@ import {
   unskipRideSchema,
   upsertPanelSeatSchema,
   workInEntrySchema,
+  savePaperSheetSchema,
 } from '@/modules/scoring/schemas';
 
 async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judge' | 'scribe') {
@@ -471,34 +476,22 @@ export async function advanceRide(input: unknown) {
   // Score against the ride's own test when it has one (test_override), the
   // same test the sheet was marked on — not always the class test.
   const test = await getEffectiveTestForEntry(parsed.classId, parsed.entryId);
-  const judgePct: Record<string, string> = {};
-  const perSeatScores = [];
-  for (const seat of judgeSeats) {
-    const row = scoreBySeat.get(seat.seat_id);
-    if (!row) continue;
-    const pct = test ? sheetPct(toSheet(toPlainSheetInput(row)), test) : null;
-    if (pct !== null) judgePct[seat.seat_id] = String(pct);
-    perSeatScores.push({ row, pct });
-  }
-
-  const finalPct = averagePct(
-    perSeatScores.map((s) => (typeof s.pct === 'number' || s.pct === 'ELIM' ? s.pct : null)),
+  const result = computeRideResult(
+    judgeSeats.flatMap((seat) => {
+      const row = scoreBySeat.get(seat.seat_id);
+      return row ? [{ seatId: seat.seat_id, sheet: toSheet(toPlainSheetInput(row)) }] : [];
+    }),
+    test,
   );
-  const ctot = test
-    ? collectivesTotal(
-        perSeatScores.map((s) => toSheet(toPlainSheetInput(s.row))),
-        test,
-      )
-    : null;
 
   const { error: entryUpdateError } = await supabase
     .from('class_entries')
     .update({
       status: 'scored',
       advanced_past: true,
-      final_pct: finalPct === null ? null : String(finalPct),
-      judge_pct: judgePct,
-      collective_total: ctot,
+      final_pct: result.finalPct,
+      judge_pct: result.judgePct,
+      collective_total: result.collectiveTotal,
       finalized_at: new Date().toISOString(),
     })
     .eq('id', parsed.entryId);
@@ -1050,4 +1043,213 @@ async function writeScoringPointer(classId: string) {
   if (classRes.data.scoring_pos === pos) return;
   const { error } = await supabase.from('classes').update({ scoring_pos: pos }).eq('id', classId);
   if (error) throw error;
+}
+
+/* The offline backup: show management types in a judge's signed paper score
+ * sheet after the show (printed from /dashboard/score-sheets, scored with no
+ * signal). One call per ride, one sheet per judge seat.
+ *
+ * Only while live scoring is closed for the class, so a class is never
+ * scored on paper and live at once; the database enforces the same rule
+ * (can_enter_paper_scores, 20261019130000), signs the rows on the judge's
+ * behalf only for this path, and records who typed them (entered_by). Rides
+ * may be entered in any order. Re-saving a paper ride replaces its sheets
+ * and appends a correction note; a ride scored live is left to the live
+ * screen.
+ *
+ * Not one transaction (each seat is its own write): if a seat fails, nothing
+ * after it is written and the ride stays unfinished, so saving again
+ * completes it. */
+export async function savePaperSheet(input: unknown): Promise<SavePaperSheetResult> {
+  const parsed = parseInput(savePaperSheetSchema, input);
+  if (!(await canManageClassScoring(parsed.classId))) {
+    throw new Error('Only show management can enter paper score sheets.');
+  }
+
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in.');
+
+  const [classRes, entryRes, panelRes, scoresRes] = await Promise.all([
+    supabase
+      .from('classes')
+      .select('scoring_open, results_published')
+      .eq('id', parsed.classId)
+      .single(),
+    supabase
+      .from('class_entries')
+      .select('id, status, holding, correction')
+      .eq('id', parsed.entryId)
+      .eq('class_id', parsed.classId)
+      .single(),
+    supabase.from('class_panel').select('seat_id, judge_staff_id').eq('class_id', parsed.classId),
+    supabase
+      .from('scores')
+      .select('id, seat_id, submitted, entered_from_paper')
+      .eq('entry_id', parsed.entryId),
+  ]);
+  if (classRes.error) throw classRes.error;
+  if (entryRes.error) throw entryRes.error;
+  if (panelRes.error) throw panelRes.error;
+  if (scoresRes.error) throw scoresRes.error;
+
+  if (classRes.data.scoring_open) {
+    throw new Error(
+      'Live scoring is open for this class. Close it on the live scoring screen before entering paper sheets.',
+    );
+  }
+  if (classRes.data.results_published) {
+    throw new Error(
+      'Results for this class are published. Unpublish them before entering or changing sheets.',
+    );
+  }
+  const entry = entryRes.data;
+  if (entry.holding) {
+    throw new Error('This rider is in the holding queue. Add them to the running order first.');
+  }
+  if (entry.status === 'scratched' || entry.status === 'disqualified') {
+    throw new Error(
+      `This rider is marked ${entry.status === 'scratched' ? 'scratched' : 'eliminated'}. Undo that first to enter a sheet.`,
+    );
+  }
+
+  const existingBySeat = new Map(scoresRes.data.map((row) => [row.seat_id, row]));
+  const reEntry = entry.status === 'scored';
+  if (reEntry && scoresRes.data.some((row) => row.submitted && !row.entered_from_paper)) {
+    throw new Error('This ride was scored live. Correct it on the live scoring screen instead.');
+  }
+
+  const judgeSeats = panelRes.data.filter(
+    (seat): seat is typeof seat & { judge_staff_id: string } => seat.judge_staff_id !== null,
+  );
+  if (judgeSeats.length === 0) {
+    throw new Error(
+      'No judges are assigned to this class yet. Assign them on the live scoring screen first.',
+    );
+  }
+  const sheetBySeat = new Map(parsed.sheets.map((sheet) => [sheet.seatId, sheet]));
+  const judgeSeatIds = new Set(judgeSeats.map((seat) => seat.seat_id));
+  if (judgeSeats.some((seat) => !sheetBySeat.has(seat.seat_id))) {
+    throw new Error('Enter a sheet for every judge on this class.');
+  }
+  if (parsed.sheets.some((sheet) => !judgeSeatIds.has(sheet.seatId))) {
+    throw new Error('A sheet was entered for a seat with no judge. Reload and try again.');
+  }
+
+  const { data: judges, error: judgesError } = await supabase
+    .from('staff_assignments')
+    .select('id, name')
+    .in(
+      'id',
+      judgeSeats.map((seat) => seat.judge_staff_id),
+    );
+  if (judgesError) throw judgesError;
+  const judgeNameById = new Map(judges.map((judge) => [judge.id, judge.name]));
+
+  const test = await getEffectiveTestForEntry(parsed.classId, parsed.entryId);
+  if (!test) throw new Error('This class has no test assigned, so sheets cannot be entered.');
+
+  // Only the test's own movements and collectives are kept; anything else in
+  // the payload is ignored.
+  const prepared = judgeSeats.map((seat) => {
+    const input = sheetBySeat.get(seat.seat_id);
+    const judgeName = judgeNameById.get(seat.judge_staff_id) ?? seat.seat_id;
+    const movements: Sheet['movements'] = {};
+    for (const m of test.movements) {
+      const value = input?.movements[String(m.num)];
+      movements[String(m.num)] = value === undefined ? null : clampMark(value);
+    }
+    const collectives: Sheet['collectives'] = {};
+    for (const c of test.collectives) {
+      const value = input?.collectives[c.key];
+      collectives[c.key] = value === undefined ? null : clampMark(value);
+    }
+    const sheet: Sheet = {
+      movements,
+      collectives,
+      errors: input?.errors ?? 0,
+      remarks: {},
+      finalRemarks: '',
+      submitted: true,
+    };
+    if (!isSheetComplete(sheet, test)) {
+      throw new Error(
+        `${judgeName}'s sheet is missing marks. Every movement and collective needs one.`,
+      );
+    }
+    return { seatId: seat.seat_id, judgeName, sheet };
+  });
+
+  const signedAt = new Date().toISOString();
+  for (const { seatId, judgeName, sheet } of prepared) {
+    const existing = existingBySeat.get(seatId);
+    const fields = {
+      movements: toMarkMap(sheet.movements),
+      collectives: toMarkMap(sheet.collectives),
+      error_at: Object.fromEntries(
+        Array.from({ length: sheet.errors }, (_, i) => [
+          `${PAPER_ERROR_KEY_PREFIX}${String(i + 1)}`,
+          true,
+        ]),
+      ),
+      submitted: true,
+      signed_by: judgeName,
+      signed_at: signedAt,
+      entered_from_paper: true,
+      entered_by: user.id,
+    };
+
+    if (!existing) {
+      const { error } = await supabase.from('scores').insert({
+        class_id: parsed.classId,
+        entry_id: parsed.entryId,
+        seat_id: seatId,
+        ...fields,
+      });
+      if (error) throw error;
+      continue;
+    }
+
+    // A signed sheet is frozen (scores_signed_locked): reopen it, then write.
+    if (existing.submitted) {
+      const { error: reopenError } = await supabase
+        .from('scores')
+        .update({ submitted: false, signed_by: null, signed_at: null })
+        .eq('id', existing.id);
+      if (reopenError) throw reopenError;
+    }
+    const { error } = await supabase.from('scores').update(fields).eq('id', existing.id);
+    if (error) throw error;
+  }
+
+  const result = computeRideResult(
+    prepared.map(({ seatId, sheet }) => ({ seatId, sheet })),
+    test,
+  );
+  const note = reEntry ? `Paper sheet re-entered — ${new Date().toLocaleString()}` : null;
+  const { error: entryUpdateError } = await supabase
+    .from('class_entries')
+    .update({
+      status: 'scored',
+      advanced_past: true,
+      final_pct: result.finalPct,
+      judge_pct: result.judgePct,
+      collective_total: result.collectiveTotal,
+      finalized_at: signedAt,
+      ...(note ? { correction: entry.correction ? `${entry.correction}\n${note}` : note } : {}),
+    })
+    .eq('id', parsed.entryId);
+  if (entryUpdateError) throw entryUpdateError;
+
+  revalidatePath(`/dashboard/scoring/${parsed.classId}`);
+  revalidatePath(`/dashboard/scoring/${parsed.classId}/paper`);
+  return { finalPct: result.finalPct };
+}
+
+function toMarkMap(values: Record<string, number | null>): Json {
+  const map: Record<string, { value: number | null; enteredBy: 'judge' }> = {};
+  for (const [key, value] of Object.entries(values)) map[key] = { value, enteredBy: 'judge' };
+  return map;
 }

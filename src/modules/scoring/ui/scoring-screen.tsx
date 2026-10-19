@@ -243,6 +243,7 @@ export function ScoringScreen({
       remarks: {},
       finalRemarks: '',
       submitted: false,
+      enteredFromPaper: false,
     };
   }
 
@@ -277,6 +278,7 @@ export function ScoringScreen({
     <ScreenShell state={state}>
       <div className="mb-6">
         <ScoringToolbar
+          classId={classId}
           open={state.classState.open}
           resultsPublished={state.classState.resultsPublished}
           permissions={permissions}

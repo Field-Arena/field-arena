@@ -60,7 +60,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
       supabase
         .from('scores')
         .select(
-          'id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted, signed_by, signed_at, updated_at',
+          'id, entry_id, seat_id, movements, collectives, errors, error_at, remarks, final_remarks, submitted, signed_by, signed_at, updated_at, entered_from_paper',
         )
         .eq('class_id', classId),
       supabase
@@ -153,6 +153,7 @@ export async function getScoringState(classId: string): Promise<ClassScoringStat
     signedBy: s.signed_by,
     signedAt: s.signed_at,
     updatedAt: s.updated_at,
+    enteredFromPaper: s.entered_from_paper,
   }));
 
   return {

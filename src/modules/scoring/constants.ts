@@ -39,3 +39,11 @@ export const BACK_NUMBER_MAX_LENGTH = 10;
 
 /** Longest reason a reopen / disqualify can carry. */
 export const REASON_MAX_LENGTH = 500;
+
+/* Paper score sheets typed in by the show office (offline backup). */
+export const PAPER_MAX_ERRORS = 9;
+
+/** error_at keys written for paper sheets, which record a count of errors of
+ * course rather than the movement each happened at. scores.errors is derived
+ * from error_at by the database (scores_a_sync_error_count). */
+export const PAPER_ERROR_KEY_PREFIX = 'paper-';

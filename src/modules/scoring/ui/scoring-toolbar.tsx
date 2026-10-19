@@ -1,11 +1,13 @@
 'use client';
 
-import { GhostButton, GoldButton } from '@/shared/ui/organizer/buttons';
+import Link from 'next/link';
+import { GhostButton, GoldButton, ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import type { PermissionKey } from '@/shared/constants/permissions';
 import type { MySeat } from '@/modules/scoring/types';
 import { formatTimestamp } from '@/shared/lib/format/date';
 
 export function ScoringToolbar({
+  classId,
   open,
   resultsPublished,
   permissions,
@@ -20,6 +22,7 @@ export function ScoringToolbar({
   isMarkingOrderChecked,
   onMarkOrderChecked,
 }: {
+  classId: string;
   open: boolean;
   resultsPublished: boolean;
   permissions: Record<PermissionKey, boolean>;
@@ -54,6 +57,16 @@ export function ScoringToolbar({
       <GhostButton type="button" onClick={onPrint}>
         Print
       </GhostButton>
+
+      {permissions.canEditShow && (
+        <Link
+          href={`/dashboard/scoring/${classId}/paper`}
+          prefetch={false}
+          className={ghostButtonClass}
+        >
+          Enter paper sheets
+        </Link>
+      )}
 
       {orderChecked ? (
         <span className="text-[12.5px] text-[#475467]">

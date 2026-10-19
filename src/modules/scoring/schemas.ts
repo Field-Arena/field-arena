@@ -4,6 +4,7 @@ import {
   MARK_MAX,
   MARK_MIN,
   MARK_STEP,
+  PAPER_MAX_ERRORS,
   REASON_MAX_LENGTH,
 } from '@/modules/scoring/constants';
 
@@ -193,3 +194,24 @@ export const unpublishResultsSchema = z.object({
   classId: z.uuid(),
 });
 export type UnpublishResultsInput = z.infer<typeof unpublishResultsSchema>;
+
+const paperMarkSchema = z.number().min(MARK_MIN).max(MARK_MAX).multipleOf(MARK_STEP);
+
+/** One judge's signed paper sheet for one ride, as typed in by the office. */
+export const paperSheetSchema = z.object({
+  seatId: z.string().min(1),
+  /** Movement number → mark. Every movement of the test must be present. */
+  movements: z.record(z.string(), paperMarkSchema),
+  /** Collective key → mark. */
+  collectives: z.record(z.string(), paperMarkSchema),
+  errors: z.number().int().min(0).max(PAPER_MAX_ERRORS),
+});
+export type PaperSheetInput = z.infer<typeof paperSheetSchema>;
+
+export const savePaperSheetSchema = z.object({
+  classId: z.uuid(),
+  entryId: z.uuid(),
+  /** One sheet per judge seat on the class panel. */
+  sheets: z.array(paperSheetSchema).min(1),
+});
+export type SavePaperSheetInput = z.infer<typeof savePaperSheetSchema>;

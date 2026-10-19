@@ -55,6 +55,22 @@ export default async function ScoreSheetsPage({
             {pack.showName} · {pack.scopeLabel} · {pack.sheets.length} sheet
             {pack.sheets.length === 1 ? '' : 's'}, in ride order
           </p>
+          <p className="mt-1.5 mb-0 text-[13.5px] text-[#5A6B63]">
+            No signal at the venue? Judges score on these sheets, and afterwards the show office
+            types them in from each class&apos;s scoring screen →{' '}
+            {classId ? (
+              <Link
+                href={`/dashboard/scoring/${classId}/paper`}
+                prefetch={false}
+                className="font-semibold text-[#1A5B3C]"
+              >
+                Enter paper sheets
+              </Link>
+            ) : (
+              <strong>Enter paper sheets</strong>
+            )}
+            .
+          </p>
           {missingTests > 0 && (
             <p className="mt-1.5 mb-0 text-[13.5px] font-semibold text-[#9A6B00]">
               {missingTests} sheet{missingTests === 1 ? ' has' : 's have'} no test assigned yet —
