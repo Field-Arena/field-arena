@@ -1265,3 +1265,70 @@ export interface ShowManagerOverview {
   countsByStep: Partial<Record<ShowManagerTab, number>>;
   setupComplete: boolean;
 }
+
+/* Show cockpit: the before-the-show and live show pages (from main). */
+
+export interface ReadinessItem {
+  label: string;
+  state: 'done' | 'warn' | 'todo';
+  status: string;
+}
+
+export interface LiveRide {
+  entryId: string;
+  num: string;
+  rider: string;
+  horse: string;
+  start: number;
+}
+
+export interface LiveRing {
+  ring: string;
+  classId: string | null;
+  classLabel: string | null;
+  current: LiveRide | null;
+  onDeck: LiveRide | null;
+  inHole: LiveRide | null;
+  rideIndex: number;
+  rideTotal: number;
+  /** Minutes behind (+) or ahead (−) of schedule; null when not meaningful. */
+  paceMinutes: number | null;
+}
+
+export interface LiveClassRow {
+  classId: string;
+  label: string;
+  ring: string;
+  start: number;
+  status: 'results' | 'running' | 'next' | 'done';
+}
+
+export interface LiveData {
+  dayIndex: number;
+  totalDays: number;
+  ridesTotal: number;
+  ridesDone: number;
+  scratches: number;
+  ridersToday: number;
+  classesToday: number;
+  resultsPublished: number;
+  lastRideEnd: number | null;
+  nowMinutes: number;
+  rings: LiveRing[];
+  schedule: LiveClassRow[];
+  needsNow: DashboardTodo[];
+  waiversBlocking: number;
+  cogginsBlocking: number;
+}
+
+export interface ShowCockpit {
+  todos: DashboardTodo[];
+  documents: ShowDocumentSummary;
+  entries: number;
+  revenue: number;
+  tickets: TicketSales;
+  detail: ShowPanelDetail;
+  newOrdersThisWeek: number;
+  readiness: ReadinessItem[];
+  live: LiveData | null;
+}

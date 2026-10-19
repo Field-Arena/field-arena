@@ -11,7 +11,16 @@ const PRIORITY: Record<TodoPriority, { label: string; pill: string; bar: string 
 };
 
 /** The running to-do list: the most urgent few, expandable to everything. */
-export function TodoList({ todos, limit = 5 }: { todos: DashboardTodo[]; limit?: number }) {
+export function TodoList({
+  todos,
+  limit = 5,
+  labels,
+}: {
+  todos: DashboardTodo[];
+  limit?: number;
+  /** Override the priority words, e.g. "Now" / "Today" during a live show. */
+  labels?: Partial<Record<TodoPriority, string>>;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   if (todos.length === 0) {
@@ -38,7 +47,7 @@ export function TodoList({ todos, limit = 5 }: { todos: DashboardTodo[]; limit?:
               <span
                 className={`flex-none rounded-md px-2.5 py-1 text-[11.5px] font-extrabold tracking-wide uppercase ${p.pill}`}
               >
-                {p.label}
+                {labels?.[todo.priority] ?? p.label}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-[15.5px] leading-snug font-bold text-[#0D2C23]">
