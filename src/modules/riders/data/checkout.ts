@@ -684,7 +684,9 @@ async function finalizeClaimedOrder(
         .select('ride_order, status')
         .eq('class_id', classId);
       if (existingError) throw existingError;
-      const maxRideOrder = existing.reduce((max, e) => Math.max(max, e.ride_order), -1);
+      // Running order is 1-based everywhere else (draw, reorder, holding
+      // queue); the first checkout entry in an empty class is ride 1, not 0.
+      const maxRideOrder = existing.reduce((max, e) => Math.max(max, e.ride_order), 0);
       nextOrderByClass.set(classId, maxRideOrder + 1);
       activeCountByClass.set(
         classId,
@@ -706,7 +708,7 @@ async function finalizeClaimedOrder(
         rider_id: rider.id,
         horse_id: item.horseId ?? null,
         order_id: order.id,
-        ride_order: nextOrderByClass.get(classId) ?? 0,
+        ride_order: nextOrderByClass.get(classId) ?? 1,
         status: 'scheduled',
         // Chosen per class at entry; older orders fall back to the profile.
         division: item.division ?? divisionCode,
@@ -721,7 +723,7 @@ async function finalizeClaimedOrder(
       .single();
     if (insertError) throw insertError;
 
-    nextOrderByClass.set(classId, (nextOrderByClass.get(classId) ?? 0) + 1);
+    nextOrderByClass.set(classId, (nextOrderByClass.get(classId) ?? 1) + 1);
     activeCountByClass.set(classId, activeCount + 1);
     created.push(row);
   }
