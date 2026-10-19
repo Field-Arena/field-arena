@@ -38,8 +38,28 @@ export function useDebouncedWrite<Value>(
     for (const key of [...pending.current.keys()]) flush(key);
   }, [flush]);
 
-  // Send anything still pending on unmount instead of dropping it.
+  // Send anything still pending on unmount (in-app navigation) instead of
+  // dropping it.
   useEffect(() => flushAll, [flushAll]);
+
+  // Unmount doesn't run when the tab is closed, reloaded or sent to the
+  // background (tablet lock, app switch), so a mark typed in the last
+  // debounce window was lost. Flush on those too: beforeunload runs first, so
+  // the flushed write is already tracked when the screen asks the judge to
+  // confirm leaving with unsaved marks.
+  useEffect(() => {
+    function onHide() {
+      if (document.visibilityState === 'hidden') flushAll();
+    }
+    window.addEventListener('beforeunload', flushAll);
+    window.addEventListener('pagehide', flushAll);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('beforeunload', flushAll);
+      window.removeEventListener('pagehide', flushAll);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [flushAll]);
 
   const debounced = useCallback(
     (key: string, value: Value) => {

@@ -107,3 +107,18 @@ export interface PanelCandidate {
   name: string;
   role: 'Judge' | 'Scribe';
 }
+
+/**
+ * Why a mark write didn't save. Only `transient` is worth retrying: the
+ * database or network hiccupped. The others need a person (no seat, sheet
+ * signed or results published, bad value), so retrying would only repeat it.
+ */
+export type ScoringWriteFailure = 'transient' | 'denied' | 'locked' | 'invalid';
+
+/**
+ * Mark writes return this instead of throwing: Next.js strips a thrown
+ * server action error's message in production, so the client couldn't tell
+ * a dropped connection from a real permission refusal.
+ */
+export type ScoringWriteResult =
+  { ok: true } | { ok: false; reason: ScoringWriteFailure; message: string };

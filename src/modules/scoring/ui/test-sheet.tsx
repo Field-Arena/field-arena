@@ -4,6 +4,7 @@ import { type ReactNode, useImperativeHandle, useState, type Ref } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Input } from '@/shared/ui/shadcn/input';
 import { useDebouncedWrite } from '@/modules/scoring/hooks/use-debounced-write';
+import type { UnsavedState } from '@/modules/scoring/hooks/use-unsaved-writes';
 import { REMARK_DEBOUNCE_MS } from '@/modules/scoring/constants';
 import { MarkStepper } from '@/modules/scoring/ui/mark-stepper';
 import type {
@@ -61,6 +62,7 @@ export function TestSheet({
   onSetRemark,
   onSetFinalRemarks,
   handleRef,
+  unsavedState,
 }: {
   test: TestDefinition;
   score: ScoreRow | undefined;
@@ -75,6 +77,8 @@ export function TestSheet({
   onSetRemark: (movementNum: number, text: string) => void;
   onSetFinalRemarks: (text: string) => void;
   handleRef?: Ref<TestSheetHandle>;
+  /** Whether a mark is still saving or failed to save (undefined = saved). */
+  unsavedState?: (field: string, key: string) => UnsavedState | undefined;
 }) {
   const [open, setOpen] = useState(!defaultCollapsed);
   const movementWrite = useDebouncedWrite<number>((key, value) => {
@@ -184,6 +188,13 @@ export function TestSheet({
           ⚠
         </button>
 
+        <UnsavedFlag
+          state={
+            unsavedState?.('movements', String(m.num)) ??
+            unsavedState?.('error_at', String(m.num)) ??
+            unsavedState?.('remarks', String(m.num))
+          }
+        />
         <MarkStepper
           value={mark?.value ?? null}
           enteredBy={mark?.enteredBy ?? null}
@@ -211,6 +222,7 @@ export function TestSheet({
         <Coef coef={c.coef} />
         {/* Movement rows carry the error-of-course toggle here. */}
         <span className="size-8 flex-none" aria-hidden />
+        <UnsavedFlag state={unsavedState?.('collectives', c.key)} />
         <MarkStepper
           value={mark?.value ?? null}
           enteredBy={mark?.enteredBy ?? null}
@@ -302,6 +314,7 @@ export function TestSheet({
         <span className="text-[12px] text-[var(--fa-ink-3)]">
           Overall comment for the test — appears on the rider&apos;s scoresheet.
         </span>
+        <UnsavedFlag state={unsavedState?.('final_remarks', 'final')} />
         <FinalRemarksField
           initialValue={score?.finalRemarks ?? ''}
           disabled={locked}
@@ -387,5 +400,21 @@ function FinalRemarksField({
       }}
       className="resize-y rounded-[10px] border border-[var(--fa-line)] px-3 py-2.5 text-[13px] text-[var(--fa-ink)] outline-none focus-visible:border-[#9FD3BA] focus-visible:shadow-[0_0_0_3px_var(--fa-brand-tint)] disabled:bg-[var(--fa-surface-2)]"
     />
+  );
+}
+
+/** Marks the row of a mark the server hasn't confirmed yet. */
+function UnsavedFlag({ state }: { state: UnsavedState | undefined }) {
+  if (!state) return null;
+  return state === 'failed' ? (
+    <span
+      role="status"
+      title="This mark has not reached the server yet. It keeps retrying."
+      className="flex-none rounded-[6px] border border-[#FBCFC9] bg-[var(--fa-red-tint)] px-1.5 py-0.5 text-[10.5px] font-bold text-[var(--fa-red)]"
+    >
+      Not saved
+    </span>
+  ) : (
+    <span className="flex-none text-[10.5px] font-semibold text-[var(--fa-ink-3)]">Saving…</span>
   );
 }

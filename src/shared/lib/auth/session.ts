@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import type { User } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type User } from '@supabase/supabase-js';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import type { RiderProfile, StaffProfile } from '@/shared/types/auth';
 
@@ -13,7 +13,12 @@ export const getAuthUser = cache(async (): Promise<User | null> => {
   const supabase = await createServerClient();
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+  // An unreachable auth server is not the same as "signed out": returning
+  // null here turned a network blip into "you do not have permission"
+  // mid-scoring. Throw so callers treat it as the transient failure it is.
+  if (error && isAuthRetryableFetchError(error)) throw error;
   return user;
 });
 

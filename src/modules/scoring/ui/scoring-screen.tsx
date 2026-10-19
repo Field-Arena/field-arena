@@ -36,6 +36,13 @@ import { ScoreTally } from '@/modules/scoring/ui/score-tally';
 import { ErrorOfCoursePanel } from '@/modules/scoring/ui/error-of-course-panel';
 import { PanelStatusStrip } from '@/modules/scoring/ui/panel-status-strip';
 import { SignatureModal } from '@/modules/scoring/ui/signature-modal';
+import {
+  resendFailedWrites,
+  scoringSheetKeyPrefix,
+  scoringWriteKey,
+  useUnsavedWrites,
+  useUnsavedWritesGuard,
+} from '@/modules/scoring/hooks/use-unsaved-writes';
 import { ReasonModal } from '@/modules/scoring/ui/reason-modal';
 import { RideActionsBar } from '@/modules/scoring/ui/ride-actions-bar';
 import { HoldingQueuePanel } from '@/modules/scoring/ui/holding-queue-panel';
@@ -128,6 +135,8 @@ export function ScoringScreen({
   const publish = usePublishResults();
   const unpublish = useUnpublishResults();
   const markOrderChecked = useMarkOrderChecked();
+  const unsavedWrites = useUnsavedWrites();
+  useUnsavedWritesGuard([...unsavedWrites.values()].includes('failed'));
 
   useEffect(() => {
     if (!lastUndo) return;
@@ -210,7 +219,15 @@ export function ScoringScreen({
   const seatId = mySeat?.seatId ?? '';
   const seatRole = mySeat?.role ?? 'judge';
   const complete = test ? isSheetComplete(toSheet(myScore ?? blankScore()), test) : false;
-  const canSubmit = seatRole === 'judge' && complete && !myScore?.submitted;
+  // Marks for this sheet the server hasn't confirmed. The sheet shows them
+  // optimistically, so "complete" alone could sign marks that never saved.
+  const sheetKeyPrefix = scoringSheetKeyPrefix(currentEntry.id, seatId);
+  const unsavedForSheet = [...unsavedWrites].filter(([key]) => key.startsWith(sheetKeyPrefix));
+  const unsavedCount = unsavedForSheet.length;
+  const failedCount = unsavedForSheet.filter(([, state]) => state === 'failed').length;
+  const unsavedState = (field: string, key: string) =>
+    unsavedWrites.get(scoringWriteKey(currentEntry.id, seatId, field, key));
+  const canSubmit = seatRole === 'judge' && complete && !myScore?.submitted && unsavedCount === 0;
 
   function blankScore(): Omit<
     ScoreRow,
@@ -372,6 +389,7 @@ export function ScoringScreen({
               locked={locked}
               defaultCollapsed={false}
               handleRef={sheetHandleRef}
+              unsavedState={unsavedState}
               deductions={
                 <ErrorOfCoursePanel
                   errors={myScore?.errors ?? 0}
@@ -440,6 +458,31 @@ export function ScoringScreen({
                 setFinalRemarks.mutate({ classId, entryId: currentEntry.id, seatId, text });
               }}
             />
+
+            {unsavedCount > 0 && (
+              <div
+                role="status"
+                className={
+                  failedCount > 0
+                    ? 'mx-5 mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-[#FBCFC9] bg-[var(--fa-red-tint)] p-[10px_14px] text-[13px] font-semibold text-[var(--fa-red)]'
+                    : 'mx-5 mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--fa-line)] bg-[var(--fa-surface-2)] p-[10px_14px] text-[13px] text-[var(--fa-ink-2)]'
+                }
+              >
+                {failedCount > 0
+                  ? `${String(failedCount)} mark${failedCount === 1 ? ' is' : 's are'} not saved — connection problem, still retrying. Signing waits until every mark is saved.`
+                  : `Saving ${String(unsavedCount)} mark${unsavedCount === 1 ? '' : 's'}…`}
+                {failedCount > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={resendFailedWrites}
+                    className="h-auto rounded-none px-0 py-0 text-[13px] font-semibold underline hover:bg-transparent"
+                  >
+                    Retry now
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <RideActionsBar
@@ -575,6 +618,12 @@ export function ScoringScreen({
         judgeName={mySeat?.name ?? ''}
         isPending={submit.isPending}
         onConfirm={() => {
+          // Pending writes were flushed when the modal opened; one may still
+          // be in flight or have failed since.
+          if (unsavedCount > 0) {
+            toast.error('Some marks are still saving — sign once every mark is saved.');
+            return;
+          }
           submit.mutate(
             { classId, entryId: currentEntry.id, seatId },
             {

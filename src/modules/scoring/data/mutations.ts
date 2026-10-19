@@ -25,7 +25,9 @@ import { parseMarkMap } from '@/modules/scoring/utils/parse-mark-map';
 import { toSheet } from '@/modules/scoring/utils/to-sheet';
 import { JUDGING_PATH, JUDGING_HISTORY_PATH } from '@/modules/scoring/constants';
 import type { Json } from '@/shared/types/database.types';
-import type { PublishResultsOutcome } from '@/modules/scoring/types';
+import type { PublishResultsOutcome, ScoringWriteResult } from '@/modules/scoring/types';
+import { ScoringRejection } from '@/modules/scoring/utils/scoring-rejection';
+import { classifyScoringWriteError } from '@/modules/scoring/utils/classify-write-error';
 import {
   addHoldingEntrySchema,
   advanceRideSchema,
@@ -63,11 +65,30 @@ async function assertSeatAccess(classId: string, seatId: string, seatRole: 'judg
     return { signerName: profile.name };
   }
 
+  // getMySeat throws when a lookup fails, so reaching the check below means
+  // the seat really isn't this person's — not that the database hiccupped.
   const mySeat = await getMySeat(classId);
   if (mySeat?.seatId !== seatId || mySeat.role !== seatRole) {
-    throw new Error('You do not have permission to score this seat.');
+    throw new ScoringRejection('denied', 'You do not have permission to score this seat.');
   }
   return { signerName: mySeat.name };
+}
+
+/**
+ * Runs a mark write and reports how it went instead of throwing, so the
+ * client can retry a dropped connection and stop retrying a real refusal.
+ */
+async function scoringWrite(body: () => Promise<void>): Promise<ScoringWriteResult> {
+  try {
+    await body();
+    return { ok: true };
+  } catch (error) {
+    const result = classifyScoringWriteError(error);
+    if (!result.ok && result.reason === 'transient') {
+      console.error('[scoring] mark write failed, client will retry', error);
+    }
+    return result;
+  }
 }
 
 // Class-level, not per-seat: any scribe seated on this class's panel may
@@ -106,7 +127,10 @@ async function getScoreRow(
 // un-submit a signed sheet while leaving the signature in place.
 function assertSheetEditable(row: { submitted: boolean | null; signed_by?: string | null } | null) {
   if (row?.submitted || row?.signed_by) {
-    throw new Error('This scoresheet has been signed and submitted — reopen it before editing.');
+    throw new ScoringRejection(
+      'locked',
+      'This scoresheet has been signed and submitted — reopen it before editing.',
+    );
   }
 }
 
@@ -128,7 +152,10 @@ async function writeMark(params: {
 
   const current = map[params.key];
   if (current?.enteredBy === 'judge' && params.seatRole === 'scribe') {
-    throw new Error("This mark was entered by the judge and can't be overwritten by a scribe.");
+    throw new ScoringRejection(
+      'denied',
+      "This mark was entered by the judge and can't be overwritten by a scribe.",
+    );
   }
 
   const patch = {
@@ -148,106 +175,116 @@ async function writeMark(params: {
   // top of this file.
 }
 
-export async function setMark(input: unknown) {
-  const parsed = parseInput(setMarkSchema, input);
-  await writeMark({
-    classId: parsed.classId,
-    entryId: parsed.entryId,
-    seatId: parsed.seatId,
-    seatRole: parsed.seatRole,
-    field: 'movements',
-    key: String(parsed.movementNum),
-    value: parsed.value,
+export async function setMark(input: unknown): Promise<ScoringWriteResult> {
+  return scoringWrite(async () => {
+    const parsed = parseInput(setMarkSchema, input);
+    await writeMark({
+      classId: parsed.classId,
+      entryId: parsed.entryId,
+      seatId: parsed.seatId,
+      seatRole: parsed.seatRole,
+      field: 'movements',
+      key: String(parsed.movementNum),
+      value: parsed.value,
+    });
   });
 }
 
-export async function setCollective(input: unknown) {
-  const parsed = parseInput(setCollectiveSchema, input);
-  await writeMark({
-    classId: parsed.classId,
-    entryId: parsed.entryId,
-    seatId: parsed.seatId,
-    seatRole: parsed.seatRole,
-    field: 'collectives',
-    key: parsed.key,
-    value: parsed.value,
+export async function setCollective(input: unknown): Promise<ScoringWriteResult> {
+  return scoringWrite(async () => {
+    const parsed = parseInput(setCollectiveSchema, input);
+    await writeMark({
+      classId: parsed.classId,
+      entryId: parsed.entryId,
+      seatId: parsed.seatId,
+      seatRole: parsed.seatRole,
+      field: 'collectives',
+      key: parsed.key,
+      value: parsed.value,
+    });
   });
 }
 
-export async function setRemark(input: unknown) {
-  const parsed = parseInput(setRemarkSchema, input);
-  await assertSeatAccess(
-    parsed.classId,
-    parsed.seatId,
-    await seatRoleFor(parsed.classId, parsed.seatId),
-  );
+export async function setRemark(input: unknown): Promise<ScoringWriteResult> {
+  return scoringWrite(async () => {
+    const parsed = parseInput(setRemarkSchema, input);
+    await assertSeatAccess(
+      parsed.classId,
+      parsed.seatId,
+      await seatRoleFor(parsed.classId, parsed.seatId),
+    );
 
-  const supabase = await createServerClient();
-  assertSheetEditable(await getScoreRow(supabase, parsed.entryId, parsed.seatId));
-  const patch = { [String(parsed.movementNum)]: parsed.text } as unknown as Json;
+    const supabase = await createServerClient();
+    assertSheetEditable(await getScoreRow(supabase, parsed.entryId, parsed.seatId));
+    const patch = { [String(parsed.movementNum)]: parsed.text } as unknown as Json;
 
-  const { error } = await supabase.rpc('merge_score_json', {
-    p_class_id: parsed.classId,
-    p_entry_id: parsed.entryId,
-    p_seat_id: parsed.seatId,
-    p_field: 'remarks',
-    p_patch: patch,
+    const { error } = await supabase.rpc('merge_score_json', {
+      p_class_id: parsed.classId,
+      p_entry_id: parsed.entryId,
+      p_seat_id: parsed.seatId,
+      p_field: 'remarks',
+      p_patch: patch,
+    });
+    if (error) throw error;
   });
-  if (error) throw error;
 }
 
-export async function setFinalRemarks(input: unknown) {
-  const parsed = parseInput(setFinalRemarksSchema, input);
-  await assertSeatAccess(
-    parsed.classId,
-    parsed.seatId,
-    await seatRoleFor(parsed.classId, parsed.seatId),
-  );
+export async function setFinalRemarks(input: unknown): Promise<ScoringWriteResult> {
+  return scoringWrite(async () => {
+    const parsed = parseInput(setFinalRemarksSchema, input);
+    await assertSeatAccess(
+      parsed.classId,
+      parsed.seatId,
+      await seatRoleFor(parsed.classId, parsed.seatId),
+    );
 
-  const supabase = await createServerClient();
-  const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
-  assertSheetEditable(existing);
+    const supabase = await createServerClient();
+    const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
+    assertSheetEditable(existing);
 
-  const { error } = await supabase.from('scores').upsert(
-    {
-      id: existing?.id,
-      class_id: parsed.classId,
-      entry_id: parsed.entryId,
-      seat_id: parsed.seatId,
-      final_remarks: parsed.text,
-    },
-    { onConflict: 'entry_id,seat_id' },
-  );
-  if (error) throw error;
+    const { error } = await supabase.from('scores').upsert(
+      {
+        id: existing?.id,
+        class_id: parsed.classId,
+        entry_id: parsed.entryId,
+        seat_id: parsed.seatId,
+        final_remarks: parsed.text,
+      },
+      { onConflict: 'entry_id,seat_id' },
+    );
+    if (error) throw error;
+  });
 }
 
-export async function toggleErrorAt(input: unknown) {
-  const parsed = parseInput(toggleErrorAtSchema, input);
-  await assertSeatAccess(
-    parsed.classId,
-    parsed.seatId,
-    await seatRoleFor(parsed.classId, parsed.seatId),
-  );
+export async function toggleErrorAt(input: unknown): Promise<ScoringWriteResult> {
+  return scoringWrite(async () => {
+    const parsed = parseInput(toggleErrorAtSchema, input);
+    await assertSeatAccess(
+      parsed.classId,
+      parsed.seatId,
+      await seatRoleFor(parsed.classId, parsed.seatId),
+    );
 
-  const supabase = await createServerClient();
-  const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
-  assertSheetEditable(existing);
-  const key = String(parsed.movementNum);
-  // The client sends the state it wants; toggling server-side from a stale
-  // read let two quick taps cancel out or double-apply.
-  const nextValue = parsed.value ?? !asBooleanMap(existing?.error_at)[key];
+    const supabase = await createServerClient();
+    const existing = await getScoreRow(supabase, parsed.entryId, parsed.seatId);
+    assertSheetEditable(existing);
+    const key = String(parsed.movementNum);
+    // The client sends the state it wants; toggling server-side from a stale
+    // read let two quick taps cancel out or double-apply.
+    const nextValue = parsed.value ?? !asBooleanMap(existing?.error_at)[key];
 
-  const patch = { [key]: nextValue } as unknown as Json;
-  const { error: mergeError } = await supabase.rpc('merge_score_json', {
-    p_class_id: parsed.classId,
-    p_entry_id: parsed.entryId,
-    p_seat_id: parsed.seatId,
-    p_field: 'error_at',
-    p_patch: patch,
+    const patch = { [key]: nextValue } as unknown as Json;
+    const { error: mergeError } = await supabase.rpc('merge_score_json', {
+      p_class_id: parsed.classId,
+      p_entry_id: parsed.entryId,
+      p_seat_id: parsed.seatId,
+      p_field: 'error_at',
+      p_patch: patch,
+    });
+    if (mergeError) throw mergeError;
+    // scores.errors is recomputed from error_at by the scores_sync_error_count
+    // trigger inside the same UPDATE, so judge and scribe toggles can't race.
   });
-  if (mergeError) throw mergeError;
-  // scores.errors is recomputed from error_at by the scores_sync_error_count
-  // trigger inside the same UPDATE, so judge and scribe toggles can't race.
 }
 
 export async function submitScoresheet(input: unknown) {
