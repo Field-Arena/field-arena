@@ -943,6 +943,8 @@ export interface ShowListRow {
   ref: string;
   name: string;
   when: string;
+  /** Month + day for the row's calendar tile; null when no start date is set. */
+  dateTile: { month: string; day: string } | null;
   venueName: string | null;
   published: boolean;
   stage: string;

@@ -3,6 +3,17 @@ import { formatDateShort } from '@/shared/lib/format/date';
 import { SHOW_LIST_GROUPS } from '../constants';
 import type { ShowCompleteness, ShowListGroup, ShowListRow, ShowPickerSummary } from '../types';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// 'YYYY-MM-DD…' → { month: 'Oct', day: '18' }; read from the string, not a
+// Date, so a timezone never shifts the day.
+function dateTileFor(startDate: string | null): ShowListRow['dateTile'] {
+  const m = startDate ? /^(\d{4})-(\d{2})-(\d{2})/.exec(startDate) : null;
+  if (!m) return null;
+  const month = MONTHS.at(Number(m[2]) - 1);
+  return month ? { month, day: String(Number(m[3])) } : null;
+}
+
 function groupFor(show: ShowPickerSummary): ShowListGroup {
   if (show.stage === 'complete') return 'finished';
   if (show.stage === 'live') return 'live';
@@ -37,6 +48,7 @@ export function toShowListRow(
     ref,
     name: show.name,
     when: show.dateLabel ?? (show.startDate ? formatDateShort(show.startDate) : 'Dates TBD'),
+    dateTile: dateTileFor(show.startDate),
     venueName: show.venueName,
     published: show.published,
     stage: show.stage,

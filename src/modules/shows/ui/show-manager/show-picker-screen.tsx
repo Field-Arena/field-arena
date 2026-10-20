@@ -60,7 +60,7 @@ const STAGE_TONE: Record<string, PillTone> = {
 // that, each row wraps: the name on one line, status, setup and actions
 // on the next.
 const ROW_GRID =
-  '@2xl:grid @2xl:grid-cols-[minmax(0,1fr)_140px_160px_140px] @2xl:items-center @2xl:gap-4';
+  '@2xl:grid @2xl:grid-cols-[52px_minmax(0,1fr)_140px_170px_140px] @2xl:items-center @2xl:gap-4';
 
 /* Show Manager's list of every show: one aligned row per show, grouped
  * Live → Published → In setup → Finished, with status chips and a search.
@@ -159,6 +159,7 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
                 'hidden bg-[#F5F7F6] px-4 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#5A6B63] uppercase @2xl:grid',
               )}
             >
+              <span aria-hidden />
               <span>Show</span>
               <span>Status</span>
               <span>Setup</span>
@@ -172,12 +173,6 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
             ) : (
               sections.map((section) => (
                 <section key={section.key} aria-label={section.label}>
-                  <h2 className="flex items-center justify-between border-t border-[#EDF0EE] bg-white px-4 pt-3 pb-1 text-[12px] font-bold text-[#5A6B63]">
-                    <span>{section.label}</span>
-                    {section.key === 'setup' && (
-                      <span className="font-semibold text-[#8A948F]">Not on sale yet</span>
-                    )}
-                  </h2>
                   <ul>
                     {section.rows.map((row) => (
                       <ShowRow
@@ -245,14 +240,32 @@ function ShowRow({
     <li
       className={cn(
         ROW_GRID,
-        'flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#EDF0EE] px-4 py-3 transition-colors first:border-t-0 hover:bg-[#FAFBFA]',
+        'flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#EDF0EE] px-4 py-3.5 transition-colors hover:bg-[#FAFBFA]',
       )}
     >
-      <div className="w-full min-w-0 @2xl:w-auto">
+      <div
+        aria-hidden
+        className="w-[52px] flex-none rounded-[11px] border-[1.5px] border-[#C9D3CE] bg-white py-1 text-center"
+      >
+        {row.dateTile ? (
+          <>
+            <span className="block text-[10.5px] font-bold tracking-[.06em] text-[#5A6B63] uppercase">
+              {row.dateTile.month}
+            </span>
+            <span className="block text-[19px] leading-[1.1] font-bold text-[#0D2C23]">
+              {row.dateTile.day}
+            </span>
+          </>
+        ) : (
+          <span className="block py-[7px] text-[11px] font-bold text-[#8A948F]">TBD</span>
+        )}
+      </div>
+
+      <div className="min-w-0 basis-[calc(100%-68px)] @2xl:basis-auto">
         <Link
           href={row.primary.href}
           prefetch={false}
-          className="block truncate text-[14.5px] font-bold text-[#0D2C23] no-underline hover:underline"
+          className="block truncate text-[15px] font-bold text-[#0D2C23] no-underline hover:underline"
         >
           {row.name}
         </Link>
@@ -280,7 +293,7 @@ function ShowRow({
             className={cn('text-[12.5px] font-bold underline-offset-2 hover:underline', tone.text)}
           >
             {row.setupPct === null ? 'Not started' : `${String(row.setupPct)}%`}
-            {row.toFinish > 0 && ` · ${String(row.toFinish)} to finish`}
+            {row.toFinish > 0 && ` · ${String(row.toFinish)} left`}
           </button>
         )}
         <div
