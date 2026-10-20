@@ -34,7 +34,7 @@ export function RingSchedule({
         return (
           <section
             key={`${arena.ring}-${String(day)}`}
-            className="mb-6 rounded-[12px] border border-[#E9EDEB] bg-white p-5 print:break-after-page"
+            className="mb-6 rounded-[12px] border border-[#E9EDEB] bg-white p-5 print:mb-0 print:break-after-page print:rounded-none print:border-0 print:p-0"
           >
             <header className="mb-3 border-b border-[#E9EDEB] pb-2.5">
               <h2 className="text-forest font-[family-name:var(--font-nr)] text-[19px] font-semibold">
@@ -60,15 +60,19 @@ export function RingSchedule({
               </span>
             </div>
 
-            <DayItems
-              items={items}
-              data={data}
-              day={day}
-              ring={arena.ring}
-              totalDays={totalDays}
-              flags={flags}
-              currentEntryId={currentEntryId}
-            />
+            {/* Two columns on paper, like the running order: a printed day
+                fits on far fewer pages, and each class stays in one column. */}
+            <div className="print:columns-2 print:gap-6">
+              <DayItems
+                items={items}
+                data={data}
+                day={day}
+                ring={arena.ring}
+                totalDays={totalDays}
+                flags={flags}
+                currentEntryId={currentEntryId}
+              />
+            </div>
 
             <div className="mt-3 text-center text-[12.5px] font-semibold text-[#7A8781]">
               — Arena Done {fmtTime(lastEnd)} —
