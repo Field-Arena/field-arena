@@ -15,6 +15,7 @@ import {
   useRemindHorseDocuments,
   useReviewHorseDocument,
 } from '@/modules/shows/hooks/use-horses-mutations';
+import { approvalTone } from '@/shared/ui/organizer/approval-tone';
 
 type HorseState = 'action' | 'review' | 'cleared';
 type Filter = 'all' | 'review' | 'problems' | 'missing' | 'cleared' | 'stallions' | 'multi';
@@ -38,15 +39,6 @@ const EDGE: Record<HorseState, string> = {
 const pill = 'inline-block rounded-[7px] px-2.5 py-0.5 text-[11.5px] font-extrabold';
 const smallBtn =
   'inline-flex cursor-pointer items-center rounded-[7px] border-[1.5px] px-2 py-0.5 text-[12px] font-bold no-underline disabled:opacity-50';
-
-/* Owner's colour scale for how much is cleared. */
-function clearedTone(pct: number | null) {
-  if (pct === null) return { text: 'text-[#5A6B63]', bar: 'bg-[#EDF0EE]' };
-  if (pct <= 50) return { text: 'text-[#B4432F]', bar: 'bg-[#B4432F]' };
-  if (pct <= 75) return { text: 'text-[#9A6B00]', bar: 'bg-[#E0A800]' };
-  if (pct <= 90) return { text: 'text-[#3E8E5A]', bar: 'bg-[#6CC08B]' };
-  return { text: 'text-[#1A5B3C]', bar: 'bg-[#1A5B3C]' };
-}
 
 /* One document's cell: where it stands, with view / approve / reject. */
 function DocCell({
@@ -357,7 +349,7 @@ export function HorsesScreen({
     );
 
   const clearedPct = rows.length ? Math.round((counts.cleared / rows.length) * 100) : null;
-  const tone = clearedTone(clearedPct);
+  const tone = approvalTone(clearedPct);
   const box = 'rounded-xl border-[1.5px] border-[#D9E1DD] bg-white px-3.5 py-3';
   const chip = (on: boolean) =>
     `inline-flex h-9 cursor-pointer items-center rounded-full border-2 px-3.5 text-[13px] font-bold ${
