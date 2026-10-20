@@ -54,8 +54,13 @@ const STAGE_TONE: Record<string, PillTone> = {
 };
 
 // One fixed column grid so status, setup and actions line up row to row.
-// Below md each row stacks into a two-line block instead.
-const ROW_GRID = 'md:grid md:grid-cols-[minmax(0,1fr)_160px_170px_150px] md:items-center md:gap-4';
+// Keyed to the list's own width (a container query), not the window's: the
+// dashboard sidebar takes ~240px, so a window-width breakpoint switched the
+// columns on while the list was still too narrow for them. Narrower than
+// that, each row wraps: the name on one line, status, setup and actions
+// on the next.
+const ROW_GRID =
+  '@2xl:grid @2xl:grid-cols-[minmax(0,1fr)_140px_160px_140px] @2xl:items-center @2xl:gap-4';
 
 /* Show Manager's list of every show: one aligned row per show, grouped
  * Live → Published → In setup → Finished, with status chips and a search.
@@ -147,11 +152,11 @@ export function ShowPickerScreen({ orgName, rows }: { orgName: string; rows: Sho
             </label>
           </div>
 
-          <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[#C9D3CE] bg-white">
+          <div className="@container overflow-hidden rounded-[14px] border-[1.5px] border-[#C9D3CE] bg-white">
             <div
               className={cn(
                 ROW_GRID,
-                'hidden bg-[#F5F7F6] px-4 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#5A6B63] uppercase md:grid',
+                'hidden bg-[#F5F7F6] px-4 py-2.5 text-[11px] font-bold tracking-[.06em] text-[#5A6B63] uppercase @2xl:grid',
               )}
             >
               <span>Show</span>
@@ -240,10 +245,10 @@ function ShowRow({
     <li
       className={cn(
         ROW_GRID,
-        'flex flex-col gap-2 border-t border-[#EDF0EE] px-4 py-3 transition-colors first:border-t-0 hover:bg-[#FAFBFA]',
+        'flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#EDF0EE] px-4 py-3 transition-colors first:border-t-0 hover:bg-[#FAFBFA]',
       )}
     >
-      <div className="min-w-0">
+      <div className="w-full min-w-0 @2xl:w-auto">
         <Link
           href={row.primary.href}
           prefetch={false}
@@ -264,7 +269,7 @@ function ShowRow({
         </Pill>
       </div>
 
-      <div className="w-full max-w-[220px] md:max-w-none">
+      <div className="w-[170px] @2xl:w-auto">
         {row.setupComplete ? (
           <span className={cn('text-[12.5px] font-bold', tone.text)}>Ready</span>
         ) : (
@@ -295,7 +300,7 @@ function ShowRow({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 md:justify-end">
+      <div className="ml-auto flex items-center gap-1.5 @2xl:ml-0 @2xl:justify-end">
         <Link
           href={row.primary.href}
           prefetch={false}
