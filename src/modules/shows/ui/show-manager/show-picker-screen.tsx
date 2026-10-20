@@ -304,7 +304,10 @@ function ShowRow({
         <Link
           href={row.primary.href}
           prefetch={false}
-          className={isLive ? FA_BTN_PRIMARY : FA_BTN_SMALL}
+          // Same size and style on every row, so the button sits in exactly
+          // the same place whatever its label; the stage pill carries
+          // "live", not the button.
+          className={cn(FA_BTN_SMALL, 'w-[92px] justify-center py-1.5')}
         >
           {row.primary.label}
         </Link>
