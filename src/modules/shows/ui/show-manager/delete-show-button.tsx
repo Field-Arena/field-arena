@@ -28,14 +28,26 @@ export function DeleteShowButton({
   orgName,
   requireNameConfirmation = false,
   triggerClassName,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   showId: string;
   showName: string;
   orgName?: string | null;
   requireNameConfirmation?: boolean;
   triggerClassName?: string;
+  /** Controlled mode: the caller opens the dialog (e.g. from a row menu) and
+   * no trigger button is rendered. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const controlled = controlledOpen !== undefined;
+  const open = controlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (controlled) onOpenChange?.(next);
+    else setUncontrolledOpen(next);
+  };
   const [typed, setTyped] = useState('');
   const { mutate, isPending } = useDeleteShow();
 
@@ -49,15 +61,17 @@ export function DeleteShowButton({
 
   return (
     <>
-      <DangerButton
-        className={triggerClassName}
-        disabled={isPending}
-        onClick={() => {
-          setOpen(true);
-        }}
-      >
-        {isPending ? 'Deleting…' : 'Delete'}
-      </DangerButton>
+      {!controlled && (
+        <DangerButton
+          className={triggerClassName}
+          disabled={isPending}
+          onClick={() => {
+            setOpen(true);
+          }}
+        >
+          {isPending ? 'Deleting…' : 'Delete'}
+        </DangerButton>
+      )}
 
       <Dialog
         open={open}
