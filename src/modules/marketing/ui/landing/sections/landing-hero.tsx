@@ -37,8 +37,8 @@ export function LandingHero() {
           <h1
             className={`mb-[26px] text-pretty ${DISPLAY} text-paper text-[40px] leading-[.98] font-medium tracking-[-.025em] md:text-[60px] xl:text-[76px]`}
           >
-            Run your entire equestrian event from <em className="text-gold-light italic">one</em>{' '}
-            modern platform.
+            <span className="text-[#E91E8C]">Run</span> your entire equestrian event from{' '}
+            <em className="text-gold-light italic">one</em> modern platform.
           </h1>
 
           <p className="mb-[18px] max-w-[520px] text-[17px] leading-[1.62] text-[rgba(251,250,247,.68)]">
