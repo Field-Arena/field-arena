@@ -6,7 +6,7 @@ import {
   normalizeStableChart,
   summarizeStableChart,
 } from '@/modules/shows/data/stable-chart-queries';
-import { createServerClient } from '@/shared/lib/supabase/server';
+import { getShowStableChartRaw } from '@/modules/shows/data/queries';
 import { HorsesScreen } from '@/modules/shows/ui/horses/horses-screen';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 
@@ -33,9 +33,8 @@ export default async function HorsesPage({
     redirect(`/dashboard/horses?show=${context.currentShow.slug ?? context.currentShow.id}`);
   }
 
-  const supabase = await createServerClient();
-  const [showRow, horsesData] = await Promise.all([
-    supabase.from('shows').select('stable_chart').eq('id', context.currentShow.id).single(),
+  const [stableChartRaw, horsesData] = await Promise.all([
+    getShowStableChartRaw(context.currentShow.id),
     getHorsesPageData(context.currentShow.id),
   ]);
 
@@ -47,7 +46,7 @@ export default async function HorsesPage({
     );
   }
 
-  const stableChartSummary = summarizeStableChart(normalizeStableChart(showRow.data?.stable_chart));
+  const stableChartSummary = summarizeStableChart(normalizeStableChart(stableChartRaw));
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">

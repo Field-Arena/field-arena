@@ -5,7 +5,11 @@ import { FA_BTN, FA_BTN_PRIMARY } from '@/shared/ui/organizer/fa-page';
 export function LaunchScoringButton({ active, classId }: { active: boolean; classId: string }) {
   if (!active) {
     return (
-      <span className={cn(FA_BTN, 'flex-none cursor-not-allowed opacity-50')} aria-hidden>
+      <span
+        className={cn(FA_BTN, 'flex-none cursor-not-allowed opacity-50')}
+        aria-disabled
+        title="Scoring opens on the day of the class"
+      >
         Launch scoring
       </span>
     );

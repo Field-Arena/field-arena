@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { RiderDemoWalkthrough } from '@/modules/riders/ui/rider-demo-walkthrough';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 
 export const metadata: Metadata = { title: 'Rider Signup Demo — Field & Arena' };
 

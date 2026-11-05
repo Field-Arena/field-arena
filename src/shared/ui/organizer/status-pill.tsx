@@ -14,8 +14,8 @@ export function StatusPill({ children, icon, bg, border, fg, className }: Status
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-[7px] rounded-full px-3 py-[5px]',
-        'border text-xs font-bold whitespace-nowrap',
+        'inline-flex items-center gap-[5px] rounded-full py-[3px] pr-[9px] pl-2',
+        'border text-[11px] font-semibold whitespace-nowrap',
         className,
       )}
       style={{ background: bg, borderColor: border, color: fg }}
@@ -28,7 +28,7 @@ export function StatusPill({ children, icon, bg, border, fg, className }: Status
 
 export function CountPill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-[#F2F6F4] px-3.5 py-[7px] text-[12.5px] font-semibold text-[#48574F]">
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E7EAEE] bg-[#FBFCFD] px-[11px] py-1.5 text-[12px] font-medium text-[#475467]">
       {children}
     </span>
   );

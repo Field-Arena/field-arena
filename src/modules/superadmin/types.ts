@@ -24,12 +24,15 @@ export interface OrganizationSummary {
   suspended: boolean;
   isDemo: boolean;
   deletedAt: string | null;
+  createdAt: string;
   feeModel: string;
   showCount: number;
   entryCount: number;
   riderCount: number;
 
-  revenueEstimate: number;
+  /** Money actually collected: paid rider orders + paid vendor bookings,
+   * including extra charges, minus refunds (same rule as Event Sales). */
+  revenueCollected: number;
 
   onboarded: boolean;
 
@@ -239,4 +242,38 @@ export interface IndependentTestTemplate {
   orgId: string;
   orgName: string;
   createdAt: string;
+}
+
+export interface ActionFailure {
+  ok: false;
+  error: string;
+}
+
+export type CreateOrganizationResult = { ok: true; id: string; name: string } | ActionFailure;
+
+export type AddSuperAdminResult = { ok: true; email: string } | ActionFailure;
+
+export interface CalendlyLead {
+  orgName: string | null;
+  contactName: string | null;
+  email: string | null;
+  website: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+  showsPerYear: number | null;
+  calendlyEventUri: string | null;
+  demoAt: string | null;
+}
+
+export type OrganizerInviteState = 'none' | 'pending' | 'signed-up';
+
+/** One row of the Sales pipeline's contact list (see listContacts). */
+export interface ContactRow {
+  lead: LeadRow;
+  demo: 'none' | 'pending' | 'complete' | 'no-show';
+  organizer: OrganizerInviteState;
+  /** Shows the organizer has created on the platform (when signed up). */
+  showsCreated: number;
+  signedUpAt: string | null;
 }

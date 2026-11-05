@@ -20,17 +20,17 @@ export function JudgeScribePreview() {
       liveToday
       footer={
         <div>
-          <div className="text-[9.5px] font-bold tracking-[.14em] text-[rgba(251,250,247,.4)] uppercase">
+          <div className="text-[9.5px] font-bold tracking-[.08em] text-[rgba(251,250,247,.4)] uppercase">
             Signed in as
           </div>
-          <div className="text-paper font-semibold">Margaret Ellison</div>
+          <div className="font-semibold text-white">Margaret Ellison</div>
         </div>
       }
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h1 className={`${DISPLAY} text-forest text-2xl font-medium`}>My Assignments</h1>
-          <p className="text-fa-muted text-sm">
+          <h1 className={`${DISPLAY} text-2xl font-medium text-[#101828]`}>My Assignments</h1>
+          <p className="text-sm text-[#475467]">
             Today&apos;s ring times and every show you&apos;re on the panel for.
           </p>
         </div>
@@ -44,7 +44,7 @@ export function JudgeScribePreview() {
         View results
       </Button>
 
-      <div className="text-fa-muted mb-2 text-xs font-bold tracking-[.1em] uppercase">
+      <div className="mb-2 text-xs font-bold tracking-[.1em] text-[#475467] uppercase">
         Today&apos;s ring times
       </div>
       <div className="space-y-2">
@@ -64,13 +64,13 @@ export function JudgeScribePreview() {
         ].map((row) => (
           <div
             key={row.cls}
-            className="border-l-gold border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border-y border-r border-l-4 bg-white px-3 py-2.5"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border-y border-r border-l-4 border-[#E7EAEE] border-l-[#146A47] bg-white px-3 py-2.5"
           >
             <div>
-              <div className="text-forest text-sm font-semibold">
+              <div className="text-sm font-semibold text-[#101828]">
                 {row.time} · {row.cls}
               </div>
-              <div className="text-fa-muted text-xs">
+              <div className="text-xs text-[#475467]">
                 Autumn Leaves Dressage Classic · Ring 1 · with {row.partner}
               </div>
             </div>
@@ -83,13 +83,13 @@ export function JudgeScribePreview() {
         ))}
       </div>
 
-      <div className="text-fa-muted mt-4 mb-2 text-xs font-bold tracking-[.1em] uppercase">
+      <div className="mt-4 mb-2 text-xs font-bold tracking-[.1em] text-[#475467] uppercase">
         Upcoming
       </div>
-      <div className="border-line flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E7EAEE] px-3 py-2.5">
         <div>
-          <div className="text-forest text-sm font-semibold">Chattahoochee Fall Classic</div>
-          <div className="text-fa-muted text-xs">Sun, Aug 2 · Ring 2 · Second Level Test 2</div>
+          <div className="text-sm font-semibold text-[#101828]">Chattahoochee Fall Classic</div>
+          <div className="text-xs text-[#475467]">Sun, Aug 2 · Ring 2 · Second Level Test 2</div>
         </div>
         <Badge variant="outline">Upcoming</Badge>
       </div>

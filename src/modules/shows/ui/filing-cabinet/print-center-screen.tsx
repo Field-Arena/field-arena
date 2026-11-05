@@ -10,9 +10,11 @@ import {
   FaCard,
   Pill,
 } from '@/shared/ui/organizer/fa-page';
-import type { EntryLedgerPageData } from '@/modules/shows/data/entry-ledger-queries';
-import type { TestPrintPageData } from '@/modules/shows/data/test-print-queries';
-import type { RingPacketPageData } from '@/modules/shows/data/ring-packet-queries';
+import type {
+  EntryLedgerPageData,
+  RingPacketPageData,
+  TestPrintPageData,
+} from '@/modules/shows/types';
 import { EntryLedgerPrintView } from '@/modules/shows/ui/filing-cabinet/print/entry-ledger-print-view';
 import { NumberCardsPrintView } from '@/modules/shows/ui/filing-cabinet/print/number-cards-print-view';
 import { TestPrintView } from '@/modules/shows/ui/filing-cabinet/print/test-print-view';

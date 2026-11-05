@@ -29,7 +29,7 @@ export function RemoveSuperAdminAction({
   });
 
   if (isSelf) {
-    return <span className="text-fa-muted-2 pr-1 text-[12px] font-semibold">You</span>;
+    return <span className="pr-1 text-[12px] font-semibold text-[#8A94A3]">You</span>;
   }
 
   const pending = account.status === 'pending';
@@ -42,7 +42,7 @@ export function RemoveSuperAdminAction({
         onClick={() => {
           setOpen(true);
         }}
-        className="border-status-danger text-status-danger hover:bg-status-danger-bg h-auto rounded-lg border px-3 py-1.5 text-[12.5px] font-bold transition-colors"
+        className="fa-act fa-danger h-auto"
       >
         {pending ? 'Cancel invite' : 'Remove'}
       </Button>
@@ -50,7 +50,7 @@ export function RemoveSuperAdminAction({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">
+            <DialogTitle className="font-serif text-xl text-[#101828]">
               {pending ? 'Cancel this invite?' : `Remove ${account.name} as a Super Admin?`}
             </DialogTitle>
             <DialogDescription className="leading-relaxed">

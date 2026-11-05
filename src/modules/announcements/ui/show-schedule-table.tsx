@@ -9,7 +9,7 @@ import {
   FA_TR,
   Pill,
 } from '@/shared/ui/organizer/fa-page';
-import type { ScheduleRow } from '@/modules/announcements/data/queries';
+import type { ScheduleRow } from '@/modules/announcements/types';
 
 export function ShowScheduleTable({ schedule }: { schedule: ScheduleRow[] }) {
   if (schedule.length === 0) {

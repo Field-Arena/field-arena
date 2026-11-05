@@ -49,25 +49,23 @@ export function ShowRosterBoard({
         <Link
           href={`/dashboard/superadmin/organizations/${orgId}`}
           prefetch={false}
-          className="text-fa-muted hover:text-gold mb-4 inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
+          className="mb-4 inline-flex items-center gap-2 text-[13px] font-semibold text-[#475467] transition-colors hover:text-[#146A47]"
         >
           <ArrowLeftIcon className="size-4" aria-hidden />
           {roster.orgName} — Shows
         </Link>
 
-        <h1
-          className={`${NR} text-hunter-deep mb-2 text-[32px] leading-[1.06] font-medium tracking-[-.022em]`}
-        >
+        <h1 className="mb-2 font-[family-name:var(--fa-serif)] text-[29px] leading-tight font-semibold tracking-[-.5px] text-[#101828]">
           Riders
         </h1>
-        <p className="text-fa-muted max-w-[680px] text-[14.5px] leading-[1.6]">
-          Everyone entered in <strong className="text-hunter-deep">{roster.showName}</strong>.
+        <p className="max-w-[680px] text-[14.5px] leading-[1.6] text-[#475467]">
+          Everyone entered in <strong className="text-[#101828]">{roster.showName}</strong>.
           Scratched entries are excluded. Open a rider to see their classes, fees and scores.
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-hunter-deep text-[13px] font-bold">
+        <span className="text-[13px] font-bold text-[#101828]">
           {roster.riders.length} {roster.riders.length === 1 ? 'rider' : 'riders'}
         </span>
         {/* Legacy's "Experience as this rider" opened the rider app scoped to
@@ -79,14 +77,14 @@ export function ShowRosterBoard({
           target="_blank"
           rel="noreferrer"
           prefetch={false}
-          className="text-hunter-deep hover:border-gold inline-flex items-center gap-2 rounded-lg border border-[#C4D3CB] bg-white px-3 py-2 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+          className="inline-flex items-center gap-2 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[12.5px] font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
         >
           Experience as a rider
           <ExternalLinkIcon className="size-[13px]" aria-hidden />
         </Link>
         <div className="relative ml-auto max-w-[300px] min-w-[190px] flex-[1_1_220px]">
           <SearchIcon
-            className="absolute top-1/2 left-[13px] size-[15px] -translate-y-1/2 text-[#9AA6A0]"
+            className="absolute top-1/2 left-[13px] size-[15px] -translate-y-1/2 text-[#8A94A3]"
             aria-hidden
           />
           <Input
@@ -96,22 +94,22 @@ export function ShowRosterBoard({
               setSearch(event.target.value);
             }}
             placeholder="Search rider or horse…"
-            className="text-hunter-deep focus-visible:border-gold focus-visible:ring-gold/[.14] h-auto w-full rounded-[9px] border border-[#D7E0DA] bg-white py-2.5 pr-3.5 pl-9 text-[13.5px] focus-visible:ring-[3px] focus-visible:outline-none"
+            className="h-auto w-full rounded-[9px] border border-[#E7EAEE] bg-white py-2.5 pr-3.5 pl-9 text-[13.5px] text-[#101828] focus-visible:border-[#9FD3BA] focus-visible:ring-[3px] focus-visible:ring-[#EAF5EF] focus-visible:outline-none"
           />
         </div>
       </div>
 
-      <div className="rounded-[14px] border border-[#E2E8E4] bg-white">
+      <div className="rounded-[14px] border border-[#E7EAEE] bg-white">
         <div className="overflow-x-auto">
           <div
-            className="grid min-w-[820px] gap-3.5 border-b border-[#E2E8E4] bg-[#F6F3EC] px-5 py-[11px]"
+            className="grid min-w-[820px] gap-3.5 border-b border-[#E7EAEE] bg-[#FBFCFD] px-5 py-[11px]"
             style={{ gridTemplateColumns: COLS }}
           >
             {['No.', 'Rider', 'Horse', 'Classes (Division)', 'Fees'].map((h, i) => (
               <span
                 key={h}
                 className={cn(
-                  'text-fa-muted-2 text-[10px] font-bold tracking-[0.14em] uppercase',
+                  'text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase',
                   i === 4 && 'text-right',
                 )}
               >
@@ -122,10 +120,10 @@ export function ShowRosterBoard({
 
           {visible.length === 0 ? (
             <div className="px-5 py-[52px] text-center">
-              <div className={`${NR} text-hunter-deep mb-2 text-[23px]`}>
+              <div className={`${NR} mb-2 text-[23px] text-[#101828]`}>
                 {search.trim() ? 'No matches' : 'No entries yet'}
               </div>
-              <p className="text-fa-muted-2 text-[13.5px]">
+              <p className="text-[13.5px] text-[#8A94A3]">
                 {search.trim()
                   ? `Nobody matches “${search.trim()}”.`
                   : 'Nobody has entered this show yet.'}
@@ -135,7 +133,7 @@ export function ShowRosterBoard({
             visible.map((rider) => {
               const expanded = openRider === rider.key;
               return (
-                <div key={rider.key} className="border-b border-[#EEF2EF] last:border-b-0">
+                <div key={rider.key} className="border-b border-[#EEF1F4] last:border-b-0">
                   <Button
                     type="button"
                     variant="ghost"
@@ -143,29 +141,29 @@ export function ShowRosterBoard({
                     onClick={() => {
                       setOpenRider(expanded ? null : rider.key);
                     }}
-                    className="grid h-auto w-full min-w-[820px] items-center gap-3.5 rounded-none px-5 py-[13px] text-left hover:bg-[#FAFCFB]"
+                    className="grid h-auto w-full min-w-[820px] items-center gap-3.5 rounded-none px-5 py-[13px] text-left hover:bg-[#FBFCFD]"
                     style={{ gridTemplateColumns: COLS }}
                   >
-                    <span className="text-fa-muted-2 text-[12.5px] font-bold">#{rider.num}</span>
-                    <span className="text-hunter-deep truncate text-[13.5px] font-bold">
+                    <span className="text-[12.5px] font-bold text-[#8A94A3]">#{rider.num}</span>
+                    <span className="truncate text-[13.5px] font-bold text-[#101828]">
                       {rider.name}
                     </span>
-                    <span className="text-fa-muted truncate text-[13px]">{rider.horse}</span>
-                    <span className="text-fa-muted truncate text-[12.5px]">
+                    <span className="truncate text-[13px] text-[#475467]">{rider.horse}</span>
+                    <span className="truncate text-[12.5px] text-[#475467]">
                       {rider.entries
                         .map((e) => (e.division ? `${e.className} (${e.division})` : e.className))
                         .join(', ')}
                     </span>
-                    <span className="text-hunter-deep text-right text-[13px] font-bold">
+                    <span className="text-right text-[13px] font-bold text-[#101828]">
                       {money(rider.feeTotal)}
                     </span>
                   </Button>
 
                   {expanded && (
-                    <div className="bg-[#FAFCFB] px-5 pt-1 pb-5">
+                    <div className="bg-[#FBFCFD] px-5 pt-1 pb-5">
                       <table className="w-full text-[13px]">
                         <thead>
-                          <tr className="text-fa-muted-2 text-[10px] tracking-[0.14em] uppercase">
+                          <tr className="text-[10px] tracking-[.08em] text-[#8A94A3] uppercase">
                             <th className="py-2 text-left font-bold">Class</th>
                             <th className="py-2 text-left font-bold">Division</th>
                             <th className="py-2 text-right font-bold">Fee</th>
@@ -176,18 +174,16 @@ export function ShowRosterBoard({
                           {rider.entries.map((entry, i) => (
                             <tr
                               key={`${entry.className}-${String(i)}`}
-                              className="border-t border-[#EEF2EF]"
+                              className="border-t border-[#EEF1F4]"
                             >
-                              <td className="text-hunter-deep py-2">{entry.className}</td>
-                              <td className="text-fa-muted py-2">{entry.division || '—'}</td>
-                              <td className="text-hunter-deep py-2 text-right">
-                                {money(entry.fee)}
-                              </td>
+                              <td className="py-2 text-[#101828]">{entry.className}</td>
+                              <td className="py-2 text-[#475467]">{entry.division || '—'}</td>
+                              <td className="py-2 text-right text-[#101828]">{money(entry.fee)}</td>
                               <td className="py-2 text-right">
                                 {entry.percent == null ? (
-                                  <span className="text-fa-muted-2">not ridden</span>
+                                  <span className="text-[#8A94A3]">not ridden</span>
                                 ) : (
-                                  <span className="text-hunter-deep font-bold">
+                                  <span className="font-bold text-[#101828]">
                                     {entry.percent.toFixed(3)}%
                                   </span>
                                 )}
@@ -196,7 +192,7 @@ export function ShowRosterBoard({
                           ))}
                         </tbody>
                       </table>
-                      <p className="text-fa-muted-2 mt-3 text-[12px] leading-[1.5]">
+                      <p className="mt-3 text-[12px] leading-[1.5] text-[#8A94A3]">
                         Entry fees only — add-on and stabling purchases aren&apos;t broken out per
                         rider here. Event Sales carries the full per-order totals.
                       </p>

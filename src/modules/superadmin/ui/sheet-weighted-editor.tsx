@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
+import { parseCoefInput } from '@/modules/superadmin/utils/parse-coef-input';
 import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
 import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
@@ -26,27 +27,28 @@ export function SheetWeightedEditor({
         <h2 className={H2}>Categories</h2>
         <span
           className="text-[12.5px] font-bold"
-          style={{ color: balanced ? '#2E7048' : '#8A6D14' }}
+          style={{ color: balanced ? '#15794F' : '#B45309' }}
         >
           {totalWeight} / 100
           {!balanced && def.categories.length > 0 && ' — weights don’t total 100'}
         </span>
       </div>
-      <p className="mb-4 text-[12.5px] text-[#8A8275]">
+      <p className="mb-4 text-[12.5px] text-[#8A94A3]">
         Each section carries a weight; the weighted marks sum toward 100.
       </p>
 
       <div className="mb-3.5 flex flex-col gap-2.5">
         {def.categories.length === 0 && (
-          <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+          <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
         )}
         {def.categories.map((row, i) => (
           <div
             key={i}
-            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+            className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
           >
             <Input
               value={row.name}
+              maxLength={200}
               placeholder="Category — e.g. Position and seat"
               aria-label={`Category ${String(i + 1)} name`}
               onChange={(e) => {
@@ -61,6 +63,7 @@ export function SheetWeightedEditor({
             />
             <Input
               value={row.criteria ?? ''}
+              maxLength={2000}
               placeholder="Criteria"
               aria-label={`Category ${String(i + 1)} criteria`}
               onChange={(e) => {
@@ -75,15 +78,14 @@ export function SheetWeightedEditor({
             />
             <Input
               value={String(row.weight)}
+              inputMode="decimal"
               placeholder="Weight"
               aria-label={`Category ${String(i + 1)} weight`}
               onChange={(e) => {
-                const w = Number(e.target.value);
+                const w = parseCoefInput(e.target.value, 100);
                 setDef((d) => ({
                   ...d,
-                  categories: d.categories.map((c, j) =>
-                    j === i ? { ...c, weight: Number.isFinite(w) ? w : 0 } : c,
-                  ),
+                  categories: d.categories.map((c, j) => (j === i ? { ...c, weight: w } : c)),
                 }));
               }}
               className={`h-auto ${SMALL_INPUT} w-[86px] flex-none`}

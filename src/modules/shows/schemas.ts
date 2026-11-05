@@ -3,8 +3,15 @@ import {
   MAX_STABLES,
   MAX_STALLS_PER_STABLE,
   MANUALLY_SETTABLE_STALL_STATUSES,
+  STALL_STATUSES,
 } from '@/modules/shows/constants';
 import { isValidPhoneValue, PHONE_INVALID_MESSAGE } from '@/shared/schemas/phone';
+import { optionalWebsiteSchema } from '@/shared/schemas/website';
+import { minAllowedTodayIso } from '@/modules/shows/utils/today-iso';
+import {
+  MEMBERSHIP_NUMBER_INVALID_MESSAGE,
+  MEMBERSHIP_NUMBER_PATTERN,
+} from '@/modules/shows/utils/membership-number';
 
 const optionalText = (max: number) =>
   z
@@ -22,6 +29,24 @@ const optionalPhone = (max: number) =>
     .refine(isValidPhoneValue, PHONE_INVALID_MESSAGE)
     .optional()
     .transform((value) => (value === '' ? undefined : value));
+
+const feeAmount = z.coerce
+  .number('Enter a fee')
+  .min(0, 'Fee cannot be negative')
+  .max(100000, 'Fee must be $100,000 or less');
+
+const priceAmount = z.coerce
+  .number('Enter a price')
+  .min(0, 'Price cannot be negative')
+  .max(100000, 'Price must be $100,000 or less');
+
+const optionalMembershipNumber = z
+  .string()
+  .trim()
+  .max(60)
+  .regex(MEMBERSHIP_NUMBER_PATTERN, MEMBERSHIP_NUMBER_INVALID_MESSAGE)
+  .optional()
+  .transform((value) => (value === '' ? undefined : value));
 
 const isoDate = z
   .string()
@@ -63,7 +88,7 @@ export const createShowSchema = z
     message: 'End date cannot be before the start date',
     path: ['endDate'],
   })
-  .refine((d) => d.startDate >= new Date().toISOString().slice(0, 10), {
+  .refine((d) => d.startDate >= minAllowedTodayIso(d.timezone), {
     message: 'Start date cannot be in the past',
     path: ['startDate'],
   });
@@ -74,7 +99,7 @@ export const createClassSchema = z.object({
   showId: z.uuid(),
   label: z.string().trim().min(2, 'Class name is required').max(160),
   division: optionalText(120),
-  fee: z.coerce.number().min(0).max(100000),
+  fee: feeAmount,
   judgesCount: z.coerce.number().int().min(1).max(9),
   ribbonPlaces: z.coerce.number().int().min(1).max(20),
 
@@ -91,7 +116,7 @@ export const updateClassReviewSchema = z.object({
   // resolveArenaForLocation in mutations.ts).
   location: z.string().trim().max(120).nullable().optional(),
   judgesCount: z.coerce.number().int().min(1).max(9).optional(),
-  fee: z.coerce.number().min(0).max(100000).optional(),
+  fee: feeAmount.optional(),
   sponsor: z.string().trim().max(120).nullable().optional(),
 });
 
@@ -114,7 +139,7 @@ export type CreateDivisionInput = z.input<typeof createDivisionSchema>;
 export const createAddOnSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(2, 'Name is required').max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
 
   qty: z
     .union([z.coerce.number().int().min(0).max(100000), z.literal('')])
@@ -195,9 +220,21 @@ const clockTime = z
 
 export const updateSchedulePrefsSchema = z.object({
   showId: z.uuid(),
-  perMin: z.coerce.number().int().min(3).max(30),
-  buffer: z.coerce.number().int().min(0).max(15),
-  upper: z.coerce.number().int().min(0).max(15),
+  perMin: z.coerce
+    .number()
+    .int('Use whole minutes')
+    .min(3, 'Use 3–30 minutes')
+    .max(30, 'Use 3–30 minutes'),
+  buffer: z.coerce
+    .number()
+    .int('Use whole minutes')
+    .min(0, 'Use 0–15 minutes')
+    .max(15, 'Use 0–15 minutes'),
+  upper: z.coerce
+    .number()
+    .int('Use whole minutes')
+    .min(0, 'Use 0–15 minutes')
+    .max(15, 'Use 0–15 minutes'),
   end: clockTime,
   order: z.enum(['low', 'high', 'custom']),
   warmup: z.enum(['yes', 'no']),
@@ -220,16 +257,21 @@ export type ReorderClassesInput = z.input<typeof reorderClassesSchema>;
 
 export const updateContactSchema = z.object({
   showId: z.uuid(),
-  website: optionalText(300),
+  website: optionalWebsiteSchema(300),
   phone: optionalPhone(40),
-  contactEmail: z.union([z.email(), z.literal('')]).optional(),
+  contactEmail: z
+    .string()
+    .trim()
+    .max(254)
+    .pipe(z.union([z.literal(''), z.email('Enter a valid email address')]))
+    .optional(),
 });
 
 export type UpdateContactInput = z.input<typeof updateContactSchema>;
 
 export const updatePrizeListSchema = z.object({
   showId: z.uuid(),
-  prizeListUrl: optionalText(500),
+  prizeListUrl: optionalWebsiteSchema(500),
 });
 
 export type UpdatePrizeListInput = z.input<typeof updatePrizeListSchema>;
@@ -267,7 +309,7 @@ export type UpdateDocumentRequirementsInput = z.input<typeof updateDocumentRequi
 const merchItemSchema = z.object({
   id: z.string(),
   name: z.string().trim().min(1).max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
 });
 
 export const updateMerchandiseSchema = z.object({
@@ -334,7 +376,7 @@ export const addCatalogGroupSchema = z.object({
   group: z.string().trim().min(1).max(120),
   division: z.string().trim().min(1).max(80).optional(),
   tests: z.array(z.string().trim().min(1).max(160)).min(1).max(40),
-  fee: z.coerce.number().min(0).max(100000),
+  fee: feeAmount,
 
   location: z
     .string()
@@ -376,7 +418,7 @@ export const addCustomClassSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(2, 'Name this class').max(160),
   division: optionalText(120),
-  fee: z.coerce.number().min(0).max(100000),
+  fee: feeAmount,
   sponsor: optionalText(120),
 });
 
@@ -386,7 +428,7 @@ export const createTocClassSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(2, 'Name this Test of Choice event').max(160),
   division: optionalText(120),
-  fee: z.coerce.number().min(0).max(100000),
+  fee: feeAmount,
   testOptions: z.array(z.string().trim().min(1).max(200)).min(1, 'Pick at least one test').max(60),
 });
 
@@ -395,7 +437,7 @@ export type CreateTocClassInput = z.input<typeof createTocClassSchema>;
 export const addQualTypePresetSchema = z.object({
   showId: z.uuid(),
   body: z.string().trim().min(2).max(40),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
 });
 
 export type AddQualTypePresetInput = z.input<typeof addQualTypePresetSchema>;
@@ -403,7 +445,7 @@ export type AddQualTypePresetInput = z.input<typeof addQualTypePresetSchema>;
 export const updateCatalogItemSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(1, 'Name is required').max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
 });
 
 export type UpdateCatalogItemInput = z.input<typeof updateCatalogItemSchema>;
@@ -411,7 +453,7 @@ export type UpdateCatalogItemInput = z.input<typeof updateCatalogItemSchema>;
 export const updateAddOnSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(1, 'Name is required').max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
   stalls: z.coerce.number().int().min(0).max(99).default(0),
   tack: z.coerce.number().int().min(0).max(99).default(0),
 });
@@ -426,7 +468,7 @@ const optionalQty = z
 export const createVendorItemSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(1, 'Name is required').max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
   qty: optionalQty,
 });
 
@@ -435,7 +477,7 @@ export type CreateVendorItemInput = z.input<typeof createVendorItemSchema>;
 export const updateVendorItemSchema = z.object({
   id: z.uuid(),
   name: z.string().trim().min(1, 'Name is required').max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
   qty: optionalQty,
 });
 
@@ -444,7 +486,7 @@ export type UpdateVendorItemInput = z.input<typeof updateVendorItemSchema>;
 export const createQualTypeSchema = z.object({
   showId: z.uuid(),
   name: z.string().trim().min(1, 'Name is required').max(160),
-  price: z.coerce.number().min(0).max(100000),
+  price: priceAmount,
 });
 
 export type CreateQualTypeInput = z.input<typeof createQualTypeSchema>;
@@ -623,7 +665,10 @@ export const verifyHorseDocumentSchema = z.object({
    * PATCH behaved the same way, so a verified-only call (the checkbox) never
    * clobbers a stored expiry, and a date correction never flips verification. */
   verified: z.boolean().optional(),
-  expirationDate: z.string().trim().nullable().optional(),
+  expirationDate: z
+    .union([isoDate, z.literal('')])
+    .nullable()
+    .optional(),
 });
 
 export type VerifyHorseDocumentInput = z.input<typeof verifyHorseDocumentSchema>;
@@ -675,6 +720,8 @@ export const setStallStatusSchema = z.object({
   stableId: z.string().trim().min(1),
   stallId: z.string().trim().min(1),
   status: z.enum(MANUALLY_SETTABLE_STALL_STATUSES),
+  // The status the caller saw — the write only lands if the stall still has it.
+  expectedStatus: z.enum(STALL_STATUSES),
   reason: z.string().trim().max(200).optional(),
 });
 
@@ -726,7 +773,11 @@ export const assignGroupToStableSchema = z.object({
 
 export type AssignGroupToStableInput = z.input<typeof assignGroupToStableSchema>;
 
-export const toggleStableChartStatusSchema = z.object({ showId: z.uuid() });
+export const toggleStableChartStatusSchema = z.object({
+  showId: z.uuid(),
+  // The chart status the caller saw — the flip only lands if it is unchanged.
+  expectedStatus: z.enum(['draft', 'published']),
+});
 
 export type ToggleStableChartStatusInput = z.input<typeof toggleStableChartStatusSchema>;
 
@@ -880,8 +931,16 @@ export type UpdateEntryNumberInput = z.input<typeof updateEntryNumberSchema>;
 export const createNumberRangeSchema = z
   .object({
     showId: z.uuid(),
-    rangeStart: z.coerce.number().int().min(1).max(999999),
-    rangeEnd: z.coerce.number().int().min(1).max(999999),
+    rangeStart: z.coerce
+      .number()
+      .int('Use whole numbers')
+      .min(1, 'Numbers start at 1')
+      .max(999999, 'Use numbers up to 999999'),
+    rangeEnd: z.coerce
+      .number()
+      .int('Use whole numbers')
+      .min(1, 'Numbers start at 1')
+      .max(999999, 'Use numbers up to 999999'),
     label: optionalText(60),
   })
   .refine((d) => d.rangeEnd >= d.rangeStart, {
@@ -900,7 +959,11 @@ export type DeleteNumberRangeInput = z.input<typeof deleteNumberRangeSchema>;
 
 export const markNumberUnavailableSchema = z.object({
   showId: z.uuid(),
-  number: z.coerce.number().int().min(1).max(999999),
+  number: z.coerce
+    .number()
+    .int('Use a whole number')
+    .min(1, 'Numbers start at 1')
+    .max(999999, 'Use a number up to 999999'),
   reason: optionalText(200),
 });
 
@@ -921,6 +984,22 @@ export const assignBridleNumberSchema = z.object({
 });
 
 export type AssignBridleNumberInput = z.input<typeof assignBridleNumberSchema>;
+
+// Back-number cards print two per Letter sheet, so a card can be at most
+// the page width (8.5in) by half the page height (5.5in).
+export const BACK_NUMBER_CARD_MAX_WIDTH_IN = 8.5;
+export const BACK_NUMBER_CARD_MAX_HEIGHT_IN = 5.5;
+
+export const backNumberCardDimsSchema = z.object({
+  cardWidthIn: z.coerce
+    .number('Enter a card width')
+    .min(1, 'Card width must be at least 1 in')
+    .max(BACK_NUMBER_CARD_MAX_WIDTH_IN, 'Card width can be at most 8.5 in'),
+  cardHeightIn: z.coerce
+    .number('Enter a card height')
+    .min(1, 'Card height must be at least 1 in')
+    .max(BACK_NUMBER_CARD_MAX_HEIGHT_IN, 'Card height can be at most 5.5 in'),
+});
 
 export const updateBackNumberSchema = z.object({
   showId: z.uuid(),
@@ -963,9 +1042,9 @@ export const updateMembershipCheckSchema = z.object({
   showId: z.uuid(),
   showEntryId: z.uuid(),
   association: optionalText(80),
-  riderMembershipNumber: optionalText(60),
-  horseRegistrationNumber: optionalText(60),
-  ownerMembershipNumber: optionalText(60),
+  riderMembershipNumber: optionalMembershipNumber,
+  horseRegistrationNumber: optionalMembershipNumber,
+  ownerMembershipNumber: optionalMembershipNumber,
   membershipStatus: z.enum(['active', 'inactive', 'unknown']),
   horseRegistrationStatus: z.enum(['active', 'inactive', 'unknown']),
   flags: z.array(
@@ -1009,3 +1088,69 @@ export const resolveIssueSchema = z.object({
 });
 
 export type ResolveIssueInput = z.input<typeof resolveIssueSchema>;
+
+// ── Select Events: per-test controls on the Offered classes table ─────────
+const classIdsSchema = z.array(z.uuid()).min(1).max(200);
+
+export const setTestDivisionSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+  division: z.string().trim().min(1).max(120),
+  on: z.boolean(),
+});
+export type SetTestDivisionInput = z.input<typeof setTestDivisionSchema>;
+
+export const updateTestFeeSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+  fee: feeAmount,
+});
+export type UpdateTestFeeInput = z.input<typeof updateTestFeeSchema>;
+
+export const setTestQualifyingSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+  qualifying: z.boolean(),
+});
+export type SetTestQualifyingInput = z.input<typeof setTestQualifyingSchema>;
+
+export const removeTestClassesSchema = z.object({
+  showId: z.uuid(),
+  classIds: classIdsSchema,
+});
+export type RemoveTestClassesInput = z.input<typeof removeTestClassesSchema>;
+
+// ── Raw-argument server actions ──────────────────────────────────────────
+// These actions keep their positional signatures for the hooks, but every
+// 'use server' export is publicly callable, so each validates its args here.
+
+export const showIdArgSchema = z.object({ showId: z.uuid() });
+
+export const idArgSchema = z.object({ id: z.uuid() });
+
+export const setShowPublishedSchema = z.object({
+  showId: z.uuid(),
+  published: z.boolean(),
+});
+
+export const runnerStatePatchSchema = z
+  .object({
+    ticketClosed: z.boolean().optional(),
+    approved: z.boolean().optional(),
+  })
+  .strict();
+
+export const advanceRunnerStateSchema = z.object({
+  showId: z.uuid(),
+  patch: runnerStatePatchSchema,
+});
+
+export const applySavedVenueSchema = z.object({
+  showId: z.uuid(),
+  venueId: z.uuid(),
+});
+
+export const approveWaiverSchema = z.object({
+  showId: z.uuid(),
+  waiverText: z.string().max(20000),
+});

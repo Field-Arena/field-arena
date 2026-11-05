@@ -3,12 +3,24 @@ import type Stripe from 'stripe';
 import { getStripeClient, reusablePaymentMethodId } from '@/shared/lib/stripe';
 import { calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { env } from '@/shared/lib/env';
+import { sendEmail } from '@/shared/lib/email';
+import { renderEmail } from '@/shared/lib/email-layout';
+import { formatMoneyExact } from '@/shared/lib/format/currency';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
+import type { Json } from '@/shared/types/database.types';
+import {
+  VENDOR_DASHBOARD_PATH,
+  PAYABLE_BOOKING_STATUSES,
+  REVIEW_BOOKING_STATUS,
+  REVIEWABLE_BOOKING_STATUSES,
+} from '@/modules/vendors/constants';
 import type {
-  FinalizeVendorBookingResult,
+  ConfirmVendorCheckoutResult,
   PricedVendorBooking,
   VendorBookingDbRow,
   VendorCheckoutLineItem,
+  VendorCheckoutSnapshot,
+  VendorPaidPricing,
 } from '@/modules/vendors/types';
 
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -20,14 +32,6 @@ function allInFlat8(price: number | null): number {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 export async function priceVendorBooking(
@@ -42,7 +46,12 @@ export async function priceVendorBooking(
 
   const itemIds = [...new Set(lineRows.map((l) => l.vendor_item_id))];
   const catalogResult = itemIds.length
-    ? await admin.from('vendor_items').select('*').in('id', itemIds)
+    ? await admin
+        .from('vendor_items')
+        .select('*')
+        .in('id', itemIds)
+        // Never price another show's catalog item onto this booking.
+        .eq('show_id', booking.show_id)
     : { data: [], error: null };
   if (catalogResult.error) throw catalogResult.error;
   const catalogById = new Map(catalogResult.data.map((c) => [c.id, c]));
@@ -108,9 +117,96 @@ export async function priceVendorBooking(
   };
 }
 
+export function parseCheckoutSnapshot(raw: Json | null): VendorCheckoutSnapshot | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const snap = raw as unknown as Partial<VendorCheckoutSnapshot>;
+  if (
+    typeof snap.sessionId !== 'string' ||
+    typeof snap.total !== 'number' ||
+    typeof snap.feeTotal !== 'number' ||
+    !Array.isArray(snap.items)
+  ) {
+    return null;
+  }
+  return {
+    sessionId: snap.sessionId,
+    total: snap.total,
+    feeTotal: snap.feeTotal,
+    currency: typeof snap.currency === 'string' ? snap.currency : 'usd',
+    items: snap.items,
+    pricedAt: typeof snap.pricedAt === 'string' ? snap.pricedAt : '',
+  };
+}
+
+export function buildCheckoutSnapshot(priced: PricedVendorBooking, sessionId: string): Json {
+  const snapshot: VendorCheckoutSnapshot = {
+    sessionId,
+    total: priced.total,
+    feeTotal: priced.feeTotal,
+    currency: priced.currency,
+    items: priced.items,
+    pricedAt: new Date().toISOString(),
+  };
+  return snapshot as unknown as Json;
+}
+
+/* H14: the price a paid session is fulfilled at is the one stored when that
+ * session was created, never today's catalog. Returns null when the paid
+ * session is not the booking's current checkout (a superseded session) —
+ * the caller parks the booking for review rather than guessing.
+ *
+ * Bookings whose checkout started before snapshots existed have none; those
+ * fall back to live pricing (the pre-H14 behaviour) for the few hours such a
+ * session can still be paid. */
+export async function resolvePaidBookingPricing(
+  admin: AdminClient,
+  booking: VendorBookingDbRow,
+  sessionId: string,
+): Promise<VendorPaidPricing | null> {
+  const snapshot = parseCheckoutSnapshot(booking.checkout_snapshot);
+  if (!snapshot) return priceVendorBooking(admin, booking);
+  if (snapshot.sessionId !== sessionId) return null;
+  return { total: snapshot.total, feeTotal: snapshot.feeTotal, items: snapshot.items };
+}
+
+// The lines a paid booking was charged for, for its confirmation screen.
+export async function paidBookingItems(
+  admin: AdminClient,
+  booking: VendorBookingDbRow,
+): Promise<VendorCheckoutLineItem[]> {
+  const snapshot = parseCheckoutSnapshot(booking.checkout_snapshot);
+  if (snapshot) return snapshot.items;
+  return (await priceVendorBooking(admin, booking)).items;
+}
+
+/* H13: a payment that cannot be accepted as-is (amount mismatch, rejected or
+ * superseded booking) parks the booking in 'review'. It is then no longer
+ * payable, so the vendor cannot pay twice while the organizer reconciles. A
+ * failed write throws (webhook answers 500, Stripe retries). */
+export async function markVendorBookingForReview(
+  admin: AdminClient,
+  bookingId: string,
+  reason: string,
+  paymentIntentId: string | null,
+): Promise<void> {
+  const { error } = await admin
+    .from('vendor_bookings')
+    .update({
+      status: REVIEW_BOOKING_STATUS,
+      review_reason: reason,
+      ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
+    })
+    .eq('id', bookingId)
+    .in('status', REVIEWABLE_BOOKING_STATUSES);
+  if (error) throw error;
+}
+
+/* Reuses the customer already stored on the booking (from an earlier
+ * checkout attempt) instead of creating a new Stripe customer every time. */
 export async function createVendorBookingStripeCustomer(
   booking: VendorBookingDbRow,
 ): Promise<string> {
+  if (booking.stripe_customer_id) return booking.stripe_customer_id;
   const stripe = getStripeClient();
   const customer = await stripe.customers.create({
     email: booking.contact ?? undefined,
@@ -159,7 +255,7 @@ export async function saveVendorOffSessionCard(
 async function sendVendorBookingConfirmationEmail(
   admin: AdminClient,
   booking: VendorBookingDbRow,
-  priced: PricedVendorBooking,
+  priced: VendorPaidPricing,
 ): Promise<void> {
   if (!booking.contact) return;
   const { data: show } = await admin
@@ -168,37 +264,54 @@ async function sendVendorBookingConfirmationEmail(
     .eq('id', booking.show_id)
     .maybeSingle();
 
+  const showName = show?.name ?? 'the show';
+
+  // Never throws: the booking is paid either way, and a failed email must not
+  // undo that.
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.resendApiKey}`,
-        'Content-Type': 'application/json',
+    const { html, text } = renderEmail({
+      preheader: `Your booth booking for ${showName} is confirmed.`,
+      eyebrow: 'Booking confirmed',
+      heading: 'Your vendor booking is confirmed',
+      greeting: `Hi ${booking.name || 'there'},`,
+      paragraphs: [['Your booth booking for ', { strong: showName }, ' is confirmed.']],
+      details: [
+        { label: 'Show', value: showName },
+        { label: 'Vendor', value: booking.name },
+      ],
+      lineItems: {
+        items: priced.items.map((item) => ({
+          label: item.label,
+          qty: item.qty,
+          amount: formatMoneyExact(item.amount),
+        })),
+        totalLabel: 'Total charged',
+        total: formatMoneyExact(priced.total),
       },
-      body: JSON.stringify({
-        from: 'Field & Arena <notifications@field-arena.com>',
-        to: booking.contact,
-        subject: 'Your Field & Arena vendor booking is confirmed',
-        html:
-          `<p>Hi ${escapeHtml(booking.name || 'there')},</p>` +
-          `<p>Your booth booking for <b>${escapeHtml(show?.name ?? 'the show')}</b> is confirmed.</p>` +
-          `<p>Total charged: $${priced.total.toFixed(2)}</p>`,
-      }),
+      link: {
+        label: 'View your booking any time using this link:',
+        url: `${env.siteUrl}${VENDOR_DASHBOARD_PATH}`,
+      },
+      footerNote: `you booked vendor space at ${showName} on Field & Arena.`,
     });
-    if (!res.ok) {
-      console.error('[vendors] booking confirmation email failed', res.status, await res.text());
-    }
+    const sent = await sendEmail({
+      to: booking.contact,
+      subject: 'Your Field & Arena vendor booking is confirmed',
+      html,
+      text,
+    });
+    if (!sent) console.error('[vendors] booking confirmation email was not delivered');
   } catch (cause) {
-    console.error('[vendors] booking confirmation email transport failure', cause);
+    console.error('[vendors] booking confirmation email failed', cause);
   }
 }
 
 export async function finalizeVendorBookingPayment(
   admin: AdminClient,
   booking: VendorBookingDbRow,
-  priced: PricedVendorBooking,
+  priced: VendorPaidPricing,
   paymentIntentId: string | null,
-): Promise<FinalizeVendorBookingResult> {
+): Promise<ConfirmVendorCheckoutResult> {
   const { data: claimed, error: claimError } = await admin
     .from('vendor_bookings')
     .update({
@@ -209,12 +322,28 @@ export async function finalizeVendorBookingPayment(
       ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
     })
     .eq('id', booking.id)
-    .neq('status', 'paid')
+    // Only a live application can become paid — a booking the organizer
+    // rejected (possibly after checkout started) must never flip to paid.
+    .in('status', PAYABLE_BOOKING_STATUSES)
     .select()
     .maybeSingle();
   if (claimError) throw claimError;
 
   if (!claimed) {
+    const { data: current, error: currentError } = await admin
+      .from('vendor_bookings')
+      .select('status')
+      .eq('id', booking.id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (current?.status === REVIEW_BOOKING_STATUS) {
+      return { ok: false, reason: 'review', bookingId: booking.id };
+    }
+    if (current?.status !== 'paid') {
+      throw new Error(
+        `Vendor booking ${booking.id} is ${current?.status ?? 'missing'} and cannot be marked paid.`,
+      );
+    }
     return {
       ok: true,
       alreadyFulfilled: true,

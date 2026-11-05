@@ -37,16 +37,16 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
 
   return (
     <div
-      className="grid min-w-[740px] items-center gap-3 border-b border-[#F2F5F3] px-4 py-2.5 last:border-b-0 hover:bg-[#FAFCFB]"
+      className="grid min-w-[740px] items-center gap-3 border-b border-[#F5F7F8] px-4 py-2.5 last:border-b-0 hover:bg-[#FBFCFD]"
       style={{ gridTemplateColumns: STAFF_COLS }}
     >
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-hunter-deep truncate text-[13px] font-semibold">{staff.name}</span>
-        <span className="text-fa-muted-2 truncate text-[11.5px]">{staff.email ?? '—'}</span>
+        <span className="truncate text-[13px] font-semibold text-[#101828]">{staff.name}</span>
+        <span className="truncate text-[11.5px] text-[#8A94A3]">{staff.email ?? '—'}</span>
       </span>
 
       {isVendor ? (
-        <span className="bg-hunter-pale text-hunter-deep inline-flex h-[34px] items-center justify-center rounded-lg px-2 text-[11px] font-bold">
+        <span className="inline-flex h-[34px] items-center justify-center rounded-lg bg-[#EAF5EF] px-2 text-[11px] font-bold text-[#101828]">
           Vendor
         </span>
       ) : (
@@ -59,7 +59,7 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
               role: event.target.value as (typeof GRANTABLE_ROLES)[number],
             });
           }}
-          className="text-hunter-deep focus-visible:border-gold rounded-[7px] border border-[#D7E0DA] bg-white px-2 py-[7px] text-[12.5px] focus-visible:outline-none disabled:opacity-50"
+          className="rounded-[7px] border border-[#E7EAEE] bg-white px-2 py-[7px] text-[12.5px] text-[#101828] focus-visible:border-[#9FD3BA] focus-visible:outline-none disabled:opacity-50"
           aria-label={`Role for ${staff.name}`}
         >
           {GRANTABLE_ROLES.filter((r) => r !== 'Vendor').map((role) => (
@@ -70,14 +70,14 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
         </select>
       )}
 
-      <span className="text-fa-muted text-[12px] leading-[1.4]" title={staff.showName}>
+      <span className="text-[12px] leading-[1.4] text-[#475467]" title={staff.showName}>
         {staff.showName}
       </span>
 
       <StatusPill status={staff.status} />
 
       {isVendor ? (
-        <span className="text-fa-muted-2 text-center text-[11px]">—</span>
+        <span className="text-center text-[11px] text-[#8A94A3]">—</span>
       ) : (
         <StaffPermissionsDialog staff={staff} />
       )}
@@ -89,7 +89,7 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
           onClick={() => {
             setConfirmOpen(true);
           }}
-          className="h-auto rounded-[7px] border border-[#E4CFC9] px-2.5 py-1.5 text-[11.5px] font-bold text-[#B4432F] transition-colors hover:border-[#B4432F] hover:bg-[#FCF1EF]"
+          className="h-auto rounded-[7px] border border-[#FBCFC9] px-2.5 py-1.5 text-[11.5px] font-bold text-[#B42318] transition-colors hover:border-[#B42318] hover:bg-[#FEF3F2]"
         >
           Remove
         </Button>
@@ -98,7 +98,7 @@ export function StaffRow({ staff }: { staff: DirectoryStaff }) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle className={cn(NR, 'text-hunter-deep text-[26px] font-medium')}>
+            <DialogTitle className={cn(NR, 'text-[26px] font-medium text-[#101828]')}>
               Remove {staff.name}?
             </DialogTitle>
             <DialogDescription>

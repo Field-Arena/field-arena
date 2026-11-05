@@ -45,11 +45,11 @@ export function ConfirmDeleteDocument({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[460px]">
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-lg">
+            <DialogTitle className="font-serif text-lg text-[#101828]">
               Delete this document?
             </DialogTitle>
             <DialogDescription className="leading-relaxed">
-              <span className="text-hunter-deep font-semibold">{fileName}</span> and its stored file
+              <span className="font-semibold text-[#101828]">{fileName}</span> and its stored file
               are removed permanently. This cannot be undone.
             </DialogDescription>
           </DialogHeader>

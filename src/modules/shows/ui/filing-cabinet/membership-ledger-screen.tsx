@@ -20,10 +20,7 @@ import {
   SelectValue,
 } from '@/shared/ui/shadcn/select';
 import { MEMBERSHIP_FLAG_LABELS } from '@/modules/shows/constants';
-import type {
-  MembershipLedgerPageData,
-  MembershipFlag,
-} from '@/modules/shows/data/membership-ledger-queries';
+import type { MembershipFlag, MembershipLedgerPageData } from '@/modules/shows/types';
 import {
   useLinkMembershipRecord,
   useSetMembershipVerificationStatus,

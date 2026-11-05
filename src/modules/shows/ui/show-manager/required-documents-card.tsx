@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -8,7 +8,7 @@ import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import { useUpdateDocumentRequirements } from '@/modules/shows/hooks/use-show-mutations';
-import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
+import type { DocumentRequirement } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -27,10 +27,25 @@ export function RequiredDocumentsCard({
   const [rows, setRows] = useState(documentRequirements);
   const [newLabel, setNewLabel] = useState('');
   const { mutate, isPending } = useUpdateDocumentRequirements();
+  // Last list the server accepted — a failed save rolls back to it.
+  const savedRows = useRef(documentRequirements);
 
   function commit(next: DocumentRequirement[]) {
     setRows(next);
-    mutate({ showId, requirements: next });
+    const previous = savedRows.current;
+    if (JSON.stringify(previous) === JSON.stringify(next)) return;
+    savedRows.current = next;
+    mutate(
+      { showId, requirements: next },
+      {
+        onError: () => {
+          // Only roll back if no newer save has gone out since this one.
+          if (savedRows.current !== next) return;
+          savedRows.current = previous;
+          setRows(previous);
+        },
+      },
+    );
   }
 
   function add() {
@@ -53,7 +68,7 @@ export function RequiredDocumentsCard({
       </p>
 
       {rows.length === 0 ? (
-        <p className="mb-4 text-[13px] text-[#98A29D] italic">
+        <p className="mb-4 text-[13px] text-[#8A94A3] italic">
           No requirements yet — add whatever this show needs on file
         </p>
       ) : (
@@ -62,16 +77,20 @@ export function RequiredDocumentsCard({
             <div key={doc.id} className="flex flex-wrap items-center gap-3.5">
               <Input
                 value={doc.label}
+                maxLength={160}
                 className={cn('h-auto', SM_ROW_INPUT, 'flex-[0_1_210px]')}
                 onChange={(e) => {
-                  commit(rows.map((d) => (d.id === doc.id ? { ...d, label: e.target.value } : d)));
+                  setRows(rows.map((d) => (d.id === doc.id ? { ...d, label: e.target.value } : d)));
+                }}
+                onBlur={() => {
+                  commit(rows);
                 }}
               />
-              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#475467]">
                 <input
                   type="checkbox"
                   checked={!!doc.requiresExpiration}
-                  className="size-3.5 accent-[#1A5B3C]"
+                  className="size-3.5 accent-[#146A47]"
                   onChange={(e) => {
                     commit(
                       rows.map((d) =>
@@ -82,11 +101,11 @@ export function RequiredDocumentsCard({
                 />
                 Requires expiration date
               </Label>
-              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#48574F]">
+              <Label className="inline-flex items-center gap-[7px] text-[13px] text-[#475467]">
                 <input
                   type="checkbox"
                   checked={!!doc.requiresApproval}
-                  className="size-3.5 accent-[#1A5B3C]"
+                  className="size-3.5 accent-[#146A47]"
                   onChange={(e) => {
                     commit(
                       rows.map((d) =>
@@ -118,7 +137,7 @@ export function RequiredDocumentsCard({
                 onClick={() => {
                   commit(rows.filter((d) => d.id !== doc.id));
                 }}
-                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
+                className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
               >
                 Remove
               </Button>
@@ -147,6 +166,7 @@ export function RequiredDocumentsCard({
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <Input
           value={newLabel}
+          maxLength={160}
           placeholder="e.g. Coggins, Vaccination record"
           className={cn('h-auto', SM_INPUT)}
           onChange={(e) => {

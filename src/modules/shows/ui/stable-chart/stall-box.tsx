@@ -35,11 +35,7 @@ import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { PromptDialog } from '@/shared/ui/prompt-dialog';
 import { STALL_STATUS_LABELS } from '@/modules/shows/constants';
 import { buildStallDndId } from '@/modules/shows/utils/stall-dnd-id';
-import type {
-  StableChartStable,
-  StableChartStall,
-  StallStatus,
-} from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStable, StableChartStall, StallStatus } from '@/modules/shows/types';
 
 type BlockableStatus = Extract<StallStatus, 'reserved' | 'unusable' | 'tack' | 'hold'>;
 
@@ -49,7 +45,7 @@ const STALL_STATUS_STYLES: Record<StallStatus, { border: string; bg: string; fg:
   reserved: { border: fa.gold, bg: fa.goldTint, fg: fa.goldFg },
   unusable: { border: fa.red, bg: fa.redTint, fg: fa.red },
   tack: { border: fa.blue, bg: '#E7F0F9', fg: '#1F4E80' },
-  hold: { border: '#8A6D14', bg: '#F3ECDC', fg: '#6B540F' },
+  hold: { border: '#B45309', bg: '#F3ECDC', fg: '#6B540F' },
 };
 
 const BLOCKABLE_STATUSES: BlockableStatus[] = ['reserved', 'unusable', 'tack', 'hold'];
@@ -65,6 +61,7 @@ function TextAreaDialog({
   label,
   defaultValue,
   placeholder,
+  maxLength,
   pending,
   onSubmit,
 }: {
@@ -75,6 +72,7 @@ function TextAreaDialog({
   label: string;
   defaultValue: string;
   placeholder?: string;
+  maxLength?: number;
   pending: boolean;
   onSubmit: (value: string) => void;
 }) {
@@ -96,7 +94,7 @@ function TextAreaDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle className="text-hunter-deep font-serif text-xl">{title}</DialogTitle>
+            <DialogTitle className="font-serif text-xl text-[#101828]">{title}</DialogTitle>
             {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
 
@@ -107,6 +105,7 @@ function TextAreaDialog({
               rows={3}
               value={value}
               placeholder={placeholder}
+              maxLength={maxLength}
               disabled={pending}
               onChange={(event) => {
                 setValue(event.target.value);
@@ -168,7 +167,7 @@ function TargetStallPickerDialog({
     >
       <DialogContent className="sm:max-w-[380px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">{title}</DialogTitle>
+          <DialogTitle className="font-serif text-xl text-[#101828]">{title}</DialogTitle>
           {options.length === 0 && (
             <DialogDescription>No eligible stalls right now.</DialogDescription>
           )}
@@ -176,7 +175,7 @@ function TargetStallPickerDialog({
 
         {options.length > 0 && (
           <select
-            className="border-line-mint w-full rounded-lg border px-3 py-2 text-[13px]"
+            className="w-full rounded-lg border border-[#E7EAEE] px-3 py-2 text-[13px]"
             value={value}
             disabled={pending}
             onChange={(event) => {
@@ -275,12 +274,19 @@ export function StallBox({
   }
 
   function selectBlockableStatus(target: BlockableStatus) {
+    if (busy) return;
     if (occupied) {
       setConfirmClearFor(target);
       return;
     }
     if (target === 'tack') {
-      setStatus.mutate({ showId, stableId, stallId: stall.id, status: target });
+      setStatus.mutate({
+        showId,
+        stableId,
+        stallId: stall.id,
+        status: target,
+        expectedStatus: stall.status,
+      });
       return;
     }
     setReasonPrompt(target);
@@ -345,7 +351,7 @@ export function StallBox({
           onClick={(event: MouseEvent) => {
             event.stopPropagation();
           }}
-          className="text-fa-muted-2 absolute top-1 right-1 grid size-6 place-items-center rounded-md hover:bg-black/5"
+          className="text-[#475467]-2 absolute top-1 right-1 grid size-6 place-items-center rounded-md hover:bg-black/5"
         >
           <EllipsisVerticalIcon className="size-3.5" aria-hidden />
         </DropdownMenuTrigger>
@@ -385,8 +391,15 @@ export function StallBox({
           )}
           {blocked && (
             <DropdownMenuItem
+              disabled={busy}
               onSelect={() => {
-                setStatus.mutate({ showId, stableId, stallId: stall.id, status: 'available' });
+                setStatus.mutate({
+                  showId,
+                  stableId,
+                  stallId: stall.id,
+                  status: 'available',
+                  expectedStatus: stall.status,
+                });
               }}
             >
               Make available
@@ -394,6 +407,7 @@ export function StallBox({
           )}
           {(occupied || blocked) && <DropdownMenuSeparator />}
           <DropdownMenuItem
+            disabled={busy}
             onSelect={() => {
               selectBlockableStatus('tack');
             }}
@@ -401,6 +415,7 @@ export function StallBox({
             Mark as tack stall
           </DropdownMenuItem>
           <DropdownMenuItem
+            disabled={busy}
             onSelect={() => {
               selectBlockableStatus('reserved');
             }}
@@ -408,6 +423,7 @@ export function StallBox({
             Reserve
           </DropdownMenuItem>
           <DropdownMenuItem
+            disabled={busy}
             onSelect={() => {
               selectBlockableStatus('unusable');
             }}
@@ -415,6 +431,7 @@ export function StallBox({
             Block stall
           </DropdownMenuItem>
           <DropdownMenuItem
+            disabled={busy}
             onSelect={() => {
               selectBlockableStatus('hold');
             }}
@@ -442,17 +459,17 @@ export function StallBox({
         </div>
       )}
       {stall.statusReason && (
-        <div className="mt-0.5 truncate text-[10px] text-[#7A8781]" title={stall.statusReason}>
+        <div className="mt-0.5 truncate text-[10px] text-[#8A94A3]" title={stall.statusReason}>
           {stall.statusReason}
         </div>
       )}
 
       {occupied && (
         <>
-          <div className="mt-0.5 truncate text-[11px] text-[#7A8781]">
+          <div className="mt-0.5 truncate text-[11px] text-[#8A94A3]">
             {truncateHorseName(stall.riderName ?? '')}
           </div>
-          <div className="text-ink-deep truncate text-[11px] font-bold">
+          <div className="truncate text-[11px] font-bold text-[#101828]">
             {truncateHorseName(stall.horseName ?? '')}
             {stall.isStallion && (
               <span title="Stallion" style={{ color: fa.goldFg }}>
@@ -462,18 +479,18 @@ export function StallBox({
             )}
           </div>
           {stall.trainerName && (
-            <div className="truncate text-[10px] text-[#7A8781]">{stall.trainerName}</div>
+            <div className="truncate text-[10px] text-[#8A94A3]">{stall.trainerName}</div>
           )}
-          <div className="mt-0.5 text-[10.5px] text-[#7A8781]">🛏 {stall.shavings} shavings</div>
+          <div className="mt-0.5 text-[10.5px] text-[#8A94A3]">🛏 {stall.shavings} shavings</div>
         </>
       )}
 
       {stall.status === 'available' && (
-        <div className="mt-0.5 text-[11px] text-[#7A8781]">Available</div>
+        <div className="mt-0.5 text-[11px] text-[#8A94A3]">Available</div>
       )}
 
       {stall.note && (
-        <div className="mt-1 truncate text-[10px] text-[#7A8781] italic" title={stall.note}>
+        <div className="mt-1 truncate text-[10px] text-[#8A94A3] italic" title={stall.note}>
           📝 {stall.note}
         </div>
       )}
@@ -484,6 +501,7 @@ export function StallBox({
         title="Rename stall"
         label="Stall name"
         placeholder='e.g. "C4"'
+        maxLength={20}
         defaultValue={stall.label}
         pending={rename.isPending}
         onSubmit={(label) => {
@@ -502,6 +520,7 @@ export function StallBox({
         title={reasonPrompt ? `${STALL_STATUS_LABELS[reasonPrompt]} — reason (optional)` : ''}
         label="Reason"
         placeholder="e.g. Door broken"
+        maxLength={200}
         defaultValue=""
         pending={busy}
         onSubmit={(reason) => {
@@ -512,6 +531,7 @@ export function StallBox({
                 stableId,
                 stallId: stall.id,
                 status: reasonPrompt,
+                expectedStatus: stall.status,
                 reason: reason || undefined,
               },
               {
@@ -530,6 +550,7 @@ export function StallBox({
         title="Stall note"
         label="Note"
         placeholder="e.g. Needs extra shavings"
+        maxLength={500}
         defaultValue={stall.note ?? ''}
         pending={busy}
         onSubmit={(note) => {
@@ -625,7 +646,13 @@ export function StallBox({
         onConfirm={() => {
           if (confirmClearFor) {
             setStatus.mutate(
-              { showId, stableId, stallId: stall.id, status: confirmClearFor },
+              {
+                showId,
+                stableId,
+                stallId: stall.id,
+                status: confirmClearFor,
+                expectedStatus: stall.status,
+              },
               {
                 onSuccess: () => {
                   setConfirmClearFor(null);

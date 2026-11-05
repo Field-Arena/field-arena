@@ -92,27 +92,27 @@ export function SignupFlowPreview({ vendorShowId }: { vendorShowId: string | nul
     >
       {step?.embeddable && step.href ? (
         <div className="mx-auto flex h-full max-w-4xl flex-col">
-          <div className="border-line mb-3 flex flex-none items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3">
-            <p className="text-fa-muted text-xs">
+          <div className="mb-3 flex flex-none items-center justify-between gap-3 rounded-xl border border-[#E7EAEE] bg-white px-4 py-3">
+            <p className="text-xs text-[#475467]">
               Live, public route — no login needed, same as the real entry point.
             </p>
             <a
               href={step.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-forest hover:text-gold inline-flex flex-none items-center gap-1.5 text-xs font-bold"
+              className="inline-flex flex-none items-center gap-1.5 text-xs font-bold text-[#101828] hover:text-[#146A47]"
             >
               Open in new tab <ExternalLinkIcon className="size-3.5" aria-hidden />
             </a>
           </div>
-          <div className="border-line h-[70vh] flex-none overflow-hidden rounded-xl border bg-white">
+          <div className="h-[70vh] flex-none overflow-hidden rounded-xl border border-[#E7EAEE] bg-white">
             <iframe src={step.href} title={step.title} className="h-full w-full border-0" />
           </div>
         </div>
       ) : (
         <div className="mx-auto max-w-4xl">
-          <div className="border-line mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3">
-            <p className="text-fa-muted text-xs">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E7EAEE] bg-white px-4 py-3">
+            <p className="text-xs text-[#475467]">
               Demo content — sample data, no login, nothing here is saved or real.
             </p>
             {step?.href && (
@@ -120,7 +120,7 @@ export function SignupFlowPreview({ vendorShowId }: { vendorShowId: string | nul
                 href={step.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-forest hover:text-gold inline-flex flex-none items-center gap-1.5 text-xs font-bold"
+                className="inline-flex flex-none items-center gap-1.5 text-xs font-bold text-[#101828] hover:text-[#146A47]"
               >
                 Open live route <ExternalLinkIcon className="size-3.5" aria-hidden />
               </a>

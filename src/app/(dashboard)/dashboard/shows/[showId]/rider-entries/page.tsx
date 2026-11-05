@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getRiderEntriesData } from '@/modules/shows/data/setup-queries';
 import { RiderEntriesPanel } from '@/modules/shows/ui/show-manager/rider-entries-panel';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 
 export const metadata: Metadata = { title: 'Rider Entries — Field & Arena' };

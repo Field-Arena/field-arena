@@ -19,6 +19,7 @@ export function PromptDialog({
   label,
   defaultValue,
   placeholder,
+  maxLength,
   confirmLabel = 'Save',
   pending = false,
   onSubmit,
@@ -30,6 +31,8 @@ export function PromptDialog({
   label: string;
   defaultValue: string;
   placeholder?: string;
+  /** Optional cap on the typed value (native `maxLength`). */
+  maxLength?: number;
   confirmLabel?: string;
   pending?: boolean;
   onSubmit: (value: string) => void;
@@ -67,6 +70,7 @@ export function PromptDialog({
               autoFocus
               defaultValue={defaultValue}
               placeholder={placeholder}
+              maxLength={maxLength}
               disabled={pending}
             />
           </div>

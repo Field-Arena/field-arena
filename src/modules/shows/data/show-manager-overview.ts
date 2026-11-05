@@ -4,33 +4,7 @@ import { getShowCompleteness } from '@/modules/shows/data/setup-queries';
 import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
 import { daysUntilShow } from '@/modules/shows/utils/current-shows';
 import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/constants';
-import type { TodoPriority } from '@/modules/shows/types';
-
-export interface ShowManagerNeed {
-  key: string;
-  priority: TodoPriority;
-  label: string;
-  detail: string;
-  actionLabel: string;
-  href: string;
-  /** Show Manager step this item belongs to, when it maps to one. */
-  step: ShowManagerTab | null;
-  /** Short tag shown next to the label. */
-  tag: string;
-}
-
-export interface ShowManagerOverview {
-  name: string;
-  startDate: string | null;
-  endDate: string | null;
-  venue: string | null;
-  daysOut: number | null;
-  readyCount: number;
-  readyTotal: number;
-  needs: ShowManagerNeed[];
-  countsByStep: Partial<Record<ShowManagerTab, number>>;
-  setupComplete: boolean;
-}
+import type { ShowManagerNeed, ShowManagerOverview } from '@/modules/shows/types';
 
 /* Setup-readiness sections that live on another Show Manager step. Every
  * other section is edited on the Setup page. */

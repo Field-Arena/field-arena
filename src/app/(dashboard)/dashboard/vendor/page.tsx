@@ -7,6 +7,7 @@ import { VendorAgreementDialog } from '@/modules/vendors/ui/vendor-agreement-dia
 import { VendorPayButton } from '@/modules/vendors/ui/vendor-pay-button';
 import { VendorCheckoutConfirmation } from '@/modules/vendors/ui/vendor-checkout-confirmation';
 import { previewAmountDue } from '@/modules/vendors/utils/preview-amount-due';
+import { summarizeBookings } from '@/modules/vendors/utils/summarize-bookings';
 import {
   CardTitle,
   EmptyState,
@@ -55,8 +56,7 @@ export default async function VendorPage({
 
   const bookings = await listMyBookings();
 
-  const paid = bookings.filter((b) => b.status === 'paid').length;
-  const spend = bookings.reduce((sum, b) => sum + (b.amountTotal ?? 0), 0);
+  const stats = summarizeBookings(bookings);
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">
@@ -79,9 +79,14 @@ export default async function VendorPage({
       )}
 
       <StatGrid cols={3}>
-        <StatBox label="Bookings" value={bookings.length} />
-        <StatBox label="Paid" value={paid} tone="green" />
-        <StatBox label="Total booked" value={formatMoney(spend)} />
+        {stats.map((stat) => (
+          <StatBox
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            tone={stat.label === 'Paid' ? 'green' : 'default'}
+          />
+        ))}
       </StatGrid>
 
       {bookings.length === 0 ? (
@@ -112,6 +117,10 @@ export default async function VendorPage({
                   </Pill>
                 ) : booking.status === 'rejected' ? (
                   <Pill tone="red">Rejected</Pill>
+                ) : booking.status === 'review' ? (
+                  <Pill tone="yellow" className="whitespace-normal">
+                    Payment under review
+                  </Pill>
                 ) : (
                   <Pill tone="grey">Pending review</Pill>
                 )}
@@ -146,8 +155,11 @@ export default async function VendorPage({
                   {/* Legacy offered "Pay now" on any unpaid booking, not only
                    * an approved one (vendor.html:242) — a vendor could pay the
                    * moment they applied. */}
+                  {/* A booking in 'review' already has a payment the organizer
+                   * is reconciling, so it is never offered for payment again. */}
                   {booking.status !== 'paid' &&
                     booking.status !== 'rejected' &&
+                    booking.status !== 'review' &&
                     booking.agreementSignedAt && (
                       <VendorPayButton
                         bookingId={booking.id}
@@ -159,6 +171,7 @@ export default async function VendorPage({
 
               {booking.status !== 'paid' &&
                 booking.status !== 'rejected' &&
+                booking.status !== 'review' &&
                 !booking.agreementSignedAt && (
                   <p className="mt-2 text-right text-[12.5px] font-semibold text-[#8A6D14]">
                     Sign the booth agreement to pay

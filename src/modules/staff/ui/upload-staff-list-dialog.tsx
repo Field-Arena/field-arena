@@ -14,7 +14,7 @@ import {
 import { Button } from '@/shared/ui/shadcn/button';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { IconUpload } from '@/shared/ui/organizer/icons';
-import { parseStaffCsv } from '../utils';
+import { findStaffCsvProblem, parseStaffCsv } from '../utils';
 import { useImportStaffList } from '../hooks/use-user-directory-mutations';
 
 const TEMPLATE_CSV =
@@ -49,6 +49,8 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
       const parsed = parseStaffCsv(text);
       if (parsed.length === 0) {
         setParseError('No rows with an email address were found in that file.');
+      } else {
+        setParseError(findStaffCsvProblem(parsed));
       }
       setRows(parsed);
     });
@@ -64,9 +66,7 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
 
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">
-            Upload staff list
-          </DialogTitle>
+          <DialogTitle className="font-serif text-xl text-[#101828]">Upload staff list</DialogTitle>
           <DialogDescription>
             A CSV with a row per person for {showName} — First name, Last name, Role (Show Admin,
             Judge, Scribe, ShowStaff, Vendor, or Announcer), Phone, and Email. Each new address gets
@@ -77,7 +77,7 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
         <a
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE_CSV)}`}
           download="field-and-arena-staff-template.csv"
-          className="text-forest text-[12.5px] font-semibold underline"
+          className="text-[12.5px] font-semibold text-[#101828] underline"
         >
           ⤓ Download CSV template
         </a>
@@ -95,7 +95,7 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
         />
 
         {fileName && !parseError && (
-          <p className="text-[12.5px] text-[#7A8781]">Selected: {fileName}</p>
+          <p className="text-[12.5px] text-[#8A94A3]">Selected: {fileName}</p>
         )}
         {parseError && (
           <p role="alert" className="text-status-danger text-[13px]">
@@ -103,7 +103,7 @@ export function UploadStaffListDialog({ showId, showName }: { showId: string; sh
           </p>
         )}
         {rows.length > 0 && !parseError && (
-          <p className="text-[13px] text-[#5A6B63]">
+          <p className="text-[13px] text-[#475467]">
             {rows.length} {rows.length === 1 ? 'row' : 'rows'} ready to import.
           </p>
         )}

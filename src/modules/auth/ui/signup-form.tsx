@@ -9,6 +9,7 @@ import { MailIcon } from 'lucide-react';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthSubmit, PasswordStrengthMeter } from '@/shared/ui/auth/auth-primitives';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import { EmailCodeInput } from '@/shared/ui/auth/email-code-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { signUpSchema, type SignUpInput } from '@/modules/auth/schemas';
@@ -177,8 +178,7 @@ export function SignUpForm() {
       >
         <AuthField
           label="Email address"
-          type="email"
-          autoComplete="email"
+          {...EMAIL_INPUT_PROPS}
           placeholder="you@yourbarn.com"
           error={errors.email?.message}
           {...form.register('email')}
@@ -188,6 +188,7 @@ export function SignUpForm() {
           <AuthPasswordField
             label="Password"
             autoComplete="new-password"
+            maxLength={72}
             placeholder="At least 8 characters"
             error={errors.password?.message}
             {...form.register('password')}

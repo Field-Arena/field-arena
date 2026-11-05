@@ -243,15 +243,20 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Auth emails. Every template in supabase/templates/ uses the same layout as the
+# app's own emails (src/shared/lib/email-layout.ts), so a sign-up code and an
+# order receipt look like the same product.
+#
+# The hosted project carries the same subjects and templates — they are set
+# through the Management API (config/auth: mailer_subjects_* and
+# mailer_templates_*_content; scripts/apply-auth-email-templates.sh pushes all
+# of them from these files), not from this file, which only governs
+# `supabase start`. Change both together or local and deployed drift apart.
+
 # Sign-up confirmation. Supabase's stock template mails a confirmation LINK
 # only; the app's sign-up screen asks for a six-digit code, so this template
 # renders the token instead. Without it, sign-up mails a link nobody can use and
 # the verify step has nothing to type.
-#
-# The hosted project carries the same template — it is set through the
-# Management API (config/auth: mailer_subjects_confirmation and
-# mailer_templates_confirmation_content), not from this file, which only governs
-# `supabase start`. Change both together or local and deployed drift apart.
 [auth.email.template.confirmation]
 subject = "Your Field & Arena confirmation code"
 content_path = "./supabase/templates/confirmation.html"
@@ -262,16 +267,62 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Your Field & Arena sign-in code"
 content_path = "./supabase/templates/magic-link.html"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Owner / co-owner / show-staff invitations. Links to /auth/confirm with the
+# token hash, which lands on the set-password screen.
+[auth.email.template.invite]
+subject = "{{ if .Data.role }}You've been added as {{ .Data.role }}{{ if .Data.showName }} for {{ .Data.showName }}{{ end }}{{ else }}You've been invited to Field & Arena{{ end }}"
+content_path = "./supabase/templates/invite.html"
 
-# Uncomment to customize notification email template
-# [auth.email.notification.password_changed]
-# enabled = true
-# subject = "Your password has been changed"
-# content_path = "./templates/password_changed_notification.html"
+# "Forgot password" (and the Super Admin re-invite for an existing owner).
+# Token-hash link to /auth/confirm, which lands on the set-password screen.
+[auth.email.template.recovery]
+subject = "Reset your Field & Arena password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email address"
+content_path = "./supabase/templates/email-change.html"
+
+[auth.email.template.reauthentication]
+subject = "Your Field & Arena verification code"
+content_path = "./supabase/templates/reauthentication.html"
+
+# Security notices, sent after the change. Off on the hosted project too; the
+# templates are kept so switching one on sends a branded message.
+[auth.email.notification.password_changed]
+enabled = false
+subject = "Your password was changed"
+content_path = "./supabase/templates/password-changed.html"
+
+[auth.email.notification.email_changed]
+enabled = false
+subject = "Your email address was changed"
+content_path = "./supabase/templates/email-changed.html"
+
+[auth.email.notification.phone_changed]
+enabled = false
+subject = "Your phone number was changed"
+content_path = "./supabase/templates/phone-changed.html"
+
+[auth.email.notification.identity_linked]
+enabled = false
+subject = "A new sign-in method was linked to your account"
+content_path = "./supabase/templates/identity-linked.html"
+
+[auth.email.notification.identity_unlinked]
+enabled = false
+subject = "A sign-in method was removed from your account"
+content_path = "./supabase/templates/identity-unlinked.html"
+
+[auth.email.notification.mfa_factor_enrolled]
+enabled = false
+subject = "A new verification method was added to your account"
+content_path = "./supabase/templates/mfa-factor-enrolled.html"
+
+[auth.email.notification.mfa_factor_unenrolled]
+enabled = false
+subject = "A verification method was removed from your account"
+content_path = "./supabase/templates/mfa-factor-unenrolled.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

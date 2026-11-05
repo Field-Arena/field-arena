@@ -1,6 +1,6 @@
 'use client';
 
-import type { RingPacketClass } from '@/modules/shows/data/ring-packet-queries';
+import type { RingPacketClass } from '@/modules/shows/types';
 
 export function RingPacketPrintView({
   showName,

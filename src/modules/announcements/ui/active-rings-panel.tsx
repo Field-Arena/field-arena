@@ -1,5 +1,5 @@
 import { CardTitle, EmptyState, FaCard, Pill } from '@/shared/ui/organizer/fa-page';
-import type { RingRow } from '@/modules/announcements/data/queries';
+import type { RingRow } from '@/modules/announcements/types';
 
 export function ActiveRingsPanel({ liveRings }: { liveRings: RingRow[] }) {
   if (liveRings.length === 0) {

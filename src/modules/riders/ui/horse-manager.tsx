@@ -10,6 +10,8 @@ import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
 import { RequiredDocumentSign } from '@/modules/riders/ui/required-document-sign';
 import { isSignableRequirement } from '@/modules/riders/utils/is-signable-requirement';
 import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -86,6 +88,7 @@ export function HorseManager({
             <Input
               id="new-horse-name"
               placeholder="Click here to type the horse’s registered name…"
+              maxLength={RIDER_FIELD_MAX.horseName}
               value={newHorseName}
               onChange={(event) => {
                 setNewHorseName(event.target.value);
@@ -142,6 +145,7 @@ function HorseCard({
           <Input
             id={`stable-${horse.id}`}
             placeholder={TYPE_HERE}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.stable ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, stable: event.target.value });
@@ -153,6 +157,7 @@ function HorseCard({
           <Input
             id={`trainer-${horse.id}`}
             placeholder={TYPE_HERE}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.trainer ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, trainer: event.target.value });
@@ -163,7 +168,11 @@ function HorseCard({
           <Label htmlFor={`trainer-phone-${horse.id}`}>Trainer phone</Label>
           <Input
             id={`trainer-phone-${horse.id}`}
-            type="tel"
+            {...PHONE_INPUT_PROPS}
+            onChange={(event) => {
+              const next = sanitizePhoneInput(event.target.value);
+              if (next !== event.target.value) event.target.value = next;
+            }}
             placeholder={TYPE_HERE}
             defaultValue={horse.trainer_phone ?? ''}
             onBlur={(event) => {
@@ -176,6 +185,7 @@ function HorseCard({
           <Input
             id={`height-${horse.id}`}
             placeholder={`${TYPE_HERE} e.g. 15.2`}
+            maxLength={RIDER_FIELD_MAX.horseHeight}
             defaultValue={horse.height ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, height: event.target.value });

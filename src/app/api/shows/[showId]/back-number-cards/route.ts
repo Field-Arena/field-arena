@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/shared/lib/supabase/server';
 import { assertCanManageEntryLedger } from '@/modules/shows/data/entry-numbering';
 import { generateBackNumberCardsPdf } from '@/modules/shows/data/back-number-cards';
+import { listBackNumberCards } from '@/modules/shows/data/entry-ledger-queries';
 
 interface BackNumberCardsRequestBody {
   showEntryIds?: unknown;
@@ -19,7 +19,8 @@ export async function POST(request: Request, context: { params: Promise<{ showId
   try {
     await assertCanManageEntryLedger(showId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "You don't have permission to do that.";
+    const message =
+      error instanceof Error ? error.message : "You don't have permission to do that.";
     return NextResponse.json({ error: message }, { status: 403 });
   }
 
@@ -31,27 +32,19 @@ export async function POST(request: Request, context: { params: Promise<{ showId
     return NextResponse.json({ error: 'Select at least one rider.' }, { status: 400 });
   }
 
-  const supabase = await createServerClient();
-  const { data: entries, error } = await supabase
-    .from('show_entries')
-    .select('id, back_number')
-    .eq('show_id', showId)
-    .in('id', showEntryIds)
-    .not('back_number', 'is', null);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  let cards: Awaited<ReturnType<typeof listBackNumberCards>>;
+  try {
+    cards = await listBackNumberCards(showId, showEntryIds);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not load back numbers.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-  if (entries.length === 0) {
+  if (!cards) {
     return NextResponse.json(
       { error: 'None of the selected riders have an equitation back number yet.' },
       { status: 400 },
     );
   }
-
-  const cards = entries.reduce<{ backNumber: string }[]>((acc, e) => {
-    if (e.back_number) acc.push({ backNumber: e.back_number });
-    return acc;
-  }, []);
 
   const pdfBytes = await generateBackNumberCardsPdf(cards, {
     cardWidthIn: parseNumber(body.cardWidthIn),

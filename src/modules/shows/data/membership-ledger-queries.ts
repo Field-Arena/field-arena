@@ -1,39 +1,16 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import { assertCanManageEntryLedger, reconcileShowEntries } from '@/modules/shows/data/entry-numbering';
-import type { MEMBERSHIP_FLAGS } from '@/modules/shows/constants';
-
-export type MembershipFlag = (typeof MEMBERSHIP_FLAGS)[number];
-export type MembershipStatusValue = 'active' | 'inactive' | 'unknown';
-export type VerificationStatusValue = 'unverified' | 'verified' | 'flagged';
-
-export interface MembershipLedgerRow {
-  showEntryId: string;
-  entryNumber: string;
-  bridleNumber: string;
-  riderName: string;
-  horseName: string;
-  association: string | null;
-  riderMembershipNumber: string | null;
-  horseRegistrationNumber: string | null;
-  ownerMembershipNumber: string | null;
-  membershipStatus: MembershipStatusValue;
-  horseRegistrationStatus: MembershipStatusValue;
-  verificationStatus: VerificationStatusValue;
-  flags: MembershipFlag[];
-  notes: string | null;
-  linkedMemberId: string | null;
-  linkedMemberName: string | null;
-  suggestedUsef: string | null;
-  suggestedFei: string | null;
-}
-
-export interface MembershipLedgerPageData {
-  showId: string;
-  showName: string;
-  rows: MembershipLedgerRow[];
-  orgMembers: { id: string; name: string }[];
-}
+import {
+  assertCanManageEntryLedger,
+  reconcileShowEntries,
+} from '@/modules/shows/data/entry-numbering';
+import type {
+  MembershipFlag,
+  MembershipLedgerPageData,
+  MembershipLedgerRow,
+  MembershipStatusValue,
+  VerificationStatusValue,
+} from '@/modules/shows/types';
 
 export async function getMembershipLedgerPageData(
   showId: string,
@@ -90,7 +67,9 @@ export async function getMembershipLedgerPageData(
     const showHorse = showHorseById.get(entry.show_horse_id);
     const check = checkByShowEntryId.get(entry.id);
     const rider = entry.rider_id ? riderById.get(entry.rider_id) : undefined;
-    const linkedMember = check?.member_database_id ? memberById.get(check.member_database_id) : undefined;
+    const linkedMember = check?.member_database_id
+      ? memberById.get(check.member_database_id)
+      : undefined;
 
     return {
       showEntryId: entry.id,
@@ -103,7 +82,8 @@ export async function getMembershipLedgerPageData(
       horseRegistrationNumber: check?.horse_registration_number ?? null,
       ownerMembershipNumber: check?.owner_membership_number ?? null,
       membershipStatus: (check?.membership_status ?? 'unknown') as MembershipStatusValue,
-      horseRegistrationStatus: (check?.horse_registration_status ?? 'unknown') as MembershipStatusValue,
+      horseRegistrationStatus: (check?.horse_registration_status ??
+        'unknown') as MembershipStatusValue,
       verificationStatus: (check?.verification_status ?? 'unverified') as VerificationStatusValue,
       flags: (check?.flags ?? []) as unknown as MembershipFlag[],
       notes: check?.notes ?? null,

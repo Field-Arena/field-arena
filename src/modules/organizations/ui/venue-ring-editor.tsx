@@ -1,6 +1,7 @@
 'use client';
 
 import { Input } from '@/shared/ui/shadcn/input';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { RING_SIZES, MAX_RINGS } from '@/modules/organizations/constants';
 import {
   VT_LABEL,
@@ -33,7 +34,9 @@ export function VenueRingEditor({
           type="number"
           min={0}
           max={MAX_RINGS}
+          step={1}
           value={rings.length}
+          onKeyDown={blockNonIntegerKeys}
           className={`h-auto ${VT_INPUT}`}
           onChange={(e) => {
             onSetCount(e.target.value);
@@ -42,14 +45,15 @@ export function VenueRingEditor({
       </div>
 
       {rings.length === 0 ? (
-        <p className="mb-1 text-[13px] text-[#7A8781] italic">No rings yet — add at least one</p>
+        <p className="mb-1 text-[13px] text-[#8A94A3] italic">No rings yet — add at least one</p>
       ) : (
         <div className="flex flex-col gap-2">
           {rings.map((ring, i) => (
             <div key={i} className="grid grid-cols-[22px_minmax(0,1fr)_170px] items-center gap-2.5">
-              <span className="text-forest text-[13px] font-bold">{i + 1}</span>
+              <span className="text-[13px] font-bold text-[#101828]">{i + 1}</span>
               <Input
                 value={ring.name}
+                maxLength={80}
                 placeholder="e.g. Ring 1, Warm-up Ring"
                 className={`h-auto ${VT_ROW_INPUT}`}
                 onChange={(e) => {

@@ -4,6 +4,7 @@ import { DashboardHome } from '@/modules/staff/ui/dashboard-home';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import {
   getShowInventory,
+  getShowRingNames,
   getShowStage,
   getShowStats,
   listShowsForPicker,
@@ -12,7 +13,6 @@ import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
 import { getShowCockpit } from '@/modules/shows/data/show-cockpit-queries';
 import { ShowBefore } from '@/modules/staff/ui/show-before';
 import { ShowDuring } from '@/modules/staff/ui/show-during';
-import { createServerClient } from '@/shared/lib/supabase/server';
 import { todayIsoInZone } from '@/modules/staff/utils';
 import {
   daysUntilShow,
@@ -87,18 +87,13 @@ export default async function DashboardPage({
     );
   }
 
-  const supabase = await createServerClient();
-  const [stats, inventory, stage, { todos, documents }, { data: showRow }] = await Promise.all([
+  const [stats, inventory, stage, { todos, documents }, rings] = await Promise.all([
     getShowStats(currentShow.id),
     getShowInventory(currentShow.id),
     getShowStage(currentShow.id),
     getShowTodos(currentShow, daysOut),
-    supabase.from('shows').select('locations').eq('id', currentShow.id).single(),
+    getShowRingNames(currentShow.id),
   ]);
-
-  const rings = ((showRow?.locations ?? []) as { name?: string; num?: number }[])
-    .map((loc) => loc.name ?? (loc.num ? `Ring ${String(loc.num)}` : null))
-    .filter((name): name is string => !!name);
 
   return (
     <DashboardOverview

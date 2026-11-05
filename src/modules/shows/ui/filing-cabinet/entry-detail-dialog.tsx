@@ -10,7 +10,7 @@ import {
 import { StatusBadge, type StatusTone } from '@/shared/ui/status-badge';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SHOW_ENTRY_STATUS_LABELS } from '@/modules/shows/constants';
-import type { EntryLedgerRow } from '@/modules/shows/data/entry-ledger-queries';
+import type { EntryLedgerRow } from '@/modules/shows/types';
 
 const STATUS_TONE: Record<string, StatusTone> = {
   submitted: 'neutral',
@@ -66,7 +66,7 @@ export function EntryDetailDialog({
               <StatusBadge tone={STATUS_TONE[row.status] ?? 'neutral'}>
                 {SHOW_ENTRY_STATUS_LABELS[row.status]}
               </StatusBadge>
-              <span className="text-[#7A8781]">
+              <span className="text-[#8A94A3]">
                 {formatMoney(row.fees)} fees · {formatMoney(row.amountPaid)} paid ·{' '}
                 <span className={row.balance > 0 ? 'text-status-danger font-semibold' : ''}>
                   {formatMoney(row.balance)} balance
@@ -75,11 +75,11 @@ export function EntryDetailDialog({
             </div>
 
             <div>
-              <h3 className="mb-2 text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase">
+              <h3 className="mb-2 text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase">
                 Classes
               </h3>
               {row.classLines.length === 0 ? (
-                <p className="text-[#98A29D] italic">No classes on this entry.</p>
+                <p className="text-[#8A94A3] italic">No classes on this entry.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {row.classLines.map((line) => (
@@ -93,11 +93,11 @@ export function EntryDetailDialog({
             </div>
 
             <div>
-              <h3 className="mb-2 text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase">
+              <h3 className="mb-2 text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase">
                 Documents
               </h3>
               {row.documents.length === 0 ? (
-                <p className="text-[#98A29D] italic">No document requirements for this horse.</p>
+                <p className="text-[#8A94A3] italic">No document requirements for this horse.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {row.documents.map((doc) => (
@@ -113,18 +113,18 @@ export function EntryDetailDialog({
             </div>
 
             <div>
-              <h3 className="mb-2 text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase">
+              <h3 className="mb-2 text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase">
                 Open issues
               </h3>
               {row.issues.length === 0 ? (
-                <p className="text-[#98A29D] italic">Nothing outstanding.</p>
+                <p className="text-[#8A94A3] italic">Nothing outstanding.</p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {row.issues.map((issue) => (
                     <li key={issue.id} className="rounded-md bg-[#FFF5F5] p-2.5">
                       <div className="font-semibold text-[#B3261E] capitalize">{issue.kind}</div>
                       <div>{issue.message}</div>
-                      {issue.detail && <div className="mt-0.5 text-[#7A8781]">{issue.detail}</div>}
+                      {issue.detail && <div className="mt-0.5 text-[#8A94A3]">{issue.detail}</div>}
                     </li>
                   ))}
                 </ul>

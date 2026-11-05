@@ -54,7 +54,7 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
     >
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">Upload a list</DialogTitle>
+          <DialogTitle className="font-serif text-xl text-[#101828]">Upload a list</DialogTitle>
           <DialogDescription>
             A CSV with a header row. First name, Last name, Type, Phone, Email and Notes are
             recognised — any other column is kept against each person as an extra field.
@@ -76,14 +76,14 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
             />
           ) : (
             <>
-              <p className="mb-3 text-[13px] text-[#6E7C76]">
+              <p className="mb-3 text-[13px] text-[#8A94A3]">
                 Found <b>{rowCount}</b> {rowCount === 1 ? 'row' : 'rows'} in {fileName} with these
                 columns. Name is always brought in; everything else is checked by default — uncheck
                 anything you&apos;d rather leave out.
               </p>
 
               {pickable.length === 0 ? (
-                <p className="text-[13px] text-[#7A8781]">
+                <p className="text-[13px] text-[#8A94A3]">
                   Just names in this file — nothing else to choose.
                 </p>
               ) : (
@@ -107,7 +107,7 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
                       />
                       {col.header}
                       {!col.field && (
-                        <span className="text-[11.5px] text-[#98A29D]">custom field</span>
+                        <span className="text-[11.5px] text-[#8A94A3]">custom field</span>
                       )}
                     </label>
                   ))}
@@ -116,7 +116,7 @@ export function MemberImportDialog({ onClose }: { onClose: () => void }) {
             </>
           )}
 
-          {error && <p className="mt-3 text-[13px] text-[#B4432F]">{error}</p>}
+          {error && <p className="mt-3 text-[13px] text-[#B42318]">{error}</p>}
         </div>
 
         <DialogFooter>

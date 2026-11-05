@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { FA_BTN_SMALL, FA_MUTED, FaCard } from '@/shared/ui/organizer/fa-page';
 import { BILLING_SECTIONS } from '@/modules/shows/constants';
-import type { OrgBilling } from '@/modules/shows/data/queries';
+import type { OrgBilling } from '@/modules/shows/types';
 import { BillingDetailDialog } from '@/modules/shows/ui/financial/billing-detail-dialog';
 
 type BillingKind = (typeof BILLING_SECTIONS)[number]['kind'];

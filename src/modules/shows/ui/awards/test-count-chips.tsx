@@ -4,7 +4,7 @@ export function TestCountChips({ tally }: { tally: Record<string, number> }) {
   const names = Object.keys(tally).sort((a, b) => a.localeCompare(b));
 
   if (names.length === 0) {
-    return <p className="text-[12.5px] text-[#98A29D]">No entries yet.</p>;
+    return <p className="text-[12.5px] text-[#8A94A3]">No entries yet.</p>;
   }
 
   return (

@@ -1,6 +1,7 @@
 'use client';
 
-import type { TestPrintRow } from '@/modules/shows/data/test-print-queries';
+import { PrintedToday } from '@/modules/shows/ui/printed-today';
+import type { TestPrintRow } from '@/modules/shows/types';
 
 export function TestPrintView({ showName, rows }: { showName: string; rows: TestPrintRow[] }) {
   if (rows.length === 0) return null;
@@ -9,7 +10,7 @@ export function TestPrintView({ showName, rows }: { showName: string; rows: Test
     <div data-print-report className="hidden p-10 print:block">
       <h1 className="text-[26px] font-bold">{showName} — Test Copy Counts</h1>
       <p className="mb-4 text-sm text-[#555]">
-        {rows.length} classes · printed {new Date().toLocaleDateString()}
+        {rows.length} classes · printed <PrintedToday />
       </p>
       <table className="w-full border-collapse text-[12px]">
         <thead>
@@ -27,7 +28,11 @@ export function TestPrintView({ showName, rows }: { showName: string; rows: Test
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.classId} className="border-b border-[#DDD]" style={{ pageBreakInside: 'avoid' }}>
+            <tr
+              key={row.classId}
+              className="border-b border-[#DDD]"
+              style={{ pageBreakInside: 'avoid' }}
+            >
               <td className="py-1 pr-2">{row.classLabel}</td>
               <td className="py-1 pr-2">
                 {row.testName ?? '—'}

@@ -19,10 +19,7 @@ import {
 } from '@/shared/ui/organizer/fa-page';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SHOW_ENTRY_STATUS_LABELS } from '@/modules/shows/constants';
-import type {
-  EntryLedgerPageData,
-  DocumentRollupStatus,
-} from '@/modules/shows/data/entry-ledger-queries';
+import type { DocumentRollupStatus, EntryLedgerPageData } from '@/modules/shows/types';
 import {
   useUpdateEntryNumber,
   useUpdateBackNumber,
@@ -67,6 +64,7 @@ function NumberCell({
   return (
     <input
       value={draft}
+      maxLength={20}
       disabled={pending}
       aria-label="Number"
       className={cn(FA_INPUT, 'h-8 w-[84px] px-2 py-1 text-[13px]')}

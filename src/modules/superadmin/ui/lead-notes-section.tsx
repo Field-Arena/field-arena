@@ -15,6 +15,7 @@ export function NotesSection({ lead }: { lead: LeadRow }) {
       <h2 className={`${H2} mb-4`}>Notes</h2>
       <textarea
         value={notes}
+        maxLength={8000}
         onChange={(e) => {
           setNotes(e.target.value);
         }}

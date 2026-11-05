@@ -14,8 +14,15 @@ export function LoginDialogMount() {
   const key = params.get('notice');
   const message = key ? NOTICES[key] : undefined;
   const wantsSignIn = params.get('signin') === '1';
+  const next = params.get('next');
   const openDialog = useLoginDialogStore((state) => state.openDialog);
   const openWithNotice = useLoginDialogStore((state) => state.openWithNotice);
+  const setNext = useLoginDialogStore((state) => state.setNext);
+
+  // The server validates `next` again before redirecting to it.
+  useEffect(() => {
+    setNext(next);
+  }, [next, setNext]);
 
   useEffect(() => {
     if (message) openWithNotice(message);

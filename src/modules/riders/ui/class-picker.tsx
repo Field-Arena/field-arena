@@ -1,5 +1,6 @@
 'use client';
 
+import { riderClassName } from '@/shared/lib/format/class-name';
 import { ENTRY_DIVISION_OPTIONS } from '@/modules/riders/constants';
 import { useEntryCartStore } from '@/modules/riders/store';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
@@ -94,7 +95,11 @@ export function ClassPicker({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-forest text-sm font-medium">
-                      {(cls.display_name?.trim() ?? '') || cls.label}
+                      {riderClassName({
+                        label: cls.label,
+                        displayName: cls.display_name,
+                        division: cls.division,
+                      })}
                       {cls.division ? ` (${cls.division})` : ''}
                     </span>
                     <RatedBadge rated={rated} />

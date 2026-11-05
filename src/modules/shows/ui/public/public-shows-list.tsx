@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { formatDateRange } from '@/shared/lib/format/date';
-import type { PublicShowListItem } from '@/modules/shows/data/public-queries';
+import type { PublicShowListItem } from '@/modules/shows/types';
 
 export function PublicShowsList({ shows }: { shows: PublicShowListItem[] }) {
   return (

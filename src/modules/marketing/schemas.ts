@@ -3,11 +3,13 @@ import { DEMO_VOLUMES, DEMO_DISCIPLINES } from '@/modules/marketing/landing-cont
 
 export const demoRequestSchema = z.object({
   name: z.string().trim().min(2, 'Tell us who you are').max(120),
-  email: z.email('Enter a valid email address'),
+  email: z.string().trim().max(254).pipe(z.email('Enter a valid email address')),
   organization: z.string().trim().min(2, 'Which organization is this for?').max(160),
   discipline: z.enum(DEMO_DISCIPLINES),
   volume: z.enum(DEMO_VOLUMES),
   notes: z.string().trim().max(1000).optional(),
+  /** Honeypot — hidden from people, so anything in it came from a bot. */
+  hpCompanyUrl: z.string().max(200).optional(),
 });
 
 export type DemoRequestInput = z.infer<typeof demoRequestSchema>;

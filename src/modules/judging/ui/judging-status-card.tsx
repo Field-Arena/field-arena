@@ -1,11 +1,46 @@
 'use client';
 
-import { useState } from 'react';
-import { LiveClock } from '@/shared/ui/organizer/live-clock';
-import { FA_BTN, FaCard } from '@/shared/ui/organizer/fa-page';
-import type { TodayPanelContact } from '@/modules/judging/data/queries';
+import { useEffect, useState } from 'react';
+import { scheduleDelta, type ScheduleStatus } from '@/shared/lib/schedule-delta';
+import { FA_BTN, FA_MUTED, FaCard, Pill, type PillTone } from '@/shared/ui/organizer/fa-page';
+import type { TodayPanelContact } from '@/modules/judging/types';
+import type { RingSummary } from '@/modules/judging/utils/build-today-snapshot';
+import { formatClassTime } from '@/modules/judging/utils/format-class-time';
 import { PeopleIcon } from '@/modules/judging/ui/people-icon';
 import { todayRingLabel } from '@/modules/judging/utils/today-ring-label';
+
+/** Ticking wall-clock time. Null until mounted — a server-rendered time never
+ * matches the browser's. */
+function useNow(): Date | null {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      setNow(new Date());
+    };
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, []);
+  return now;
+}
+
+export function LiveClock({ className }: { className?: string }) {
+  const now = useNow();
+  return (
+    <span className={className} suppressHydrationWarning>
+      {now
+        ? now.toLocaleTimeString(undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+        : '—:—:—'}
+    </span>
+  );
+}
 
 export function PanelPopoverButton({ contacts }: { contacts: TodayPanelContact[] }) {
   const [open, setOpen] = useState(false);
@@ -68,4 +103,77 @@ export function JudgingStatusCard({
       <PanelPopoverButton contacts={contacts} />
     </FaCard>
   );
+}
+
+/** Today's rings at a glance: per ring, the live pace of the class running
+ * there (ahead / behind schedule), or the day's line-up before it starts. */
+export function RingPaceCard({ ringSummaries }: { ringSummaries: RingSummary[] }) {
+  const now = useNow();
+  if (ringSummaries.length === 0) return null;
+
+  return (
+    <FaCard className="mb-4 flex flex-col gap-2.5">
+      {ringSummaries.map((r) => {
+        const pace = paceFor(r, now);
+        return (
+          <div key={r.ring} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="min-w-[140px] text-[15px] font-bold text-[#0D2C23]">{r.ring}</span>
+            {pace ? (
+              <>
+                <Pill tone={PACE_TONE[pace.status]} className="flex-none">
+                  {pace.headline}
+                </Pill>
+                <span className={FA_MUTED}>{pace.sub}</span>
+              </>
+            ) : (
+              <span className={FA_MUTED}>
+                {r.active
+                  ? `${plural(r.classes, 'class', 'classes')} today${r.firstTime ? ` · first at ${formatClassTime(r.firstTime) ?? r.firstTime}` : ''}`
+                  : 'Done for today'}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </FaCard>
+  );
+}
+
+const PACE_TONE: Record<ScheduleStatus, PillTone> = {
+  ahead: 'green',
+  yellow: 'yellow',
+  pink: 'red',
+  red: 'red',
+};
+
+function plural(n: number, one: string, many: string) {
+  return `${String(n)} ${n === 1 ? one : many}`;
+}
+
+/** Live pace of the ring's running class — the same rule the scoring screen
+ * uses (scheduled start + rides done × ride minutes). Before that class's
+ * start there's no pace yet, so the row shows the day's line-up instead. */
+function paceFor(
+  ring: RingSummary,
+  now: Date | null,
+): { status: ScheduleStatus; headline: string; sub: string } | null {
+  if (!now || !ring.active?.time) return null;
+
+  // Class time is wall-clock at the show, so read it in the show's zone.
+  const delta = scheduleDelta(ring.active.time.slice(0, 5), ring.active.pos, now, ring.timeZone);
+  if (!delta) return null;
+  // Before the class's start with nobody ridden there's no pace yet.
+  if (delta.deltaMin < 0 && ring.active.pos === 0) return null;
+  const mins = Math.abs(delta.deltaMin);
+  return {
+    status: delta.status,
+    headline:
+      delta.deltaMin === 0 ? 'on time' : `${delta.deltaMin > 0 ? '+' : '−'}${String(mins)} min`,
+    sub:
+      delta.deltaMin === 0
+        ? 'on schedule'
+        : delta.deltaMin > 0
+          ? 'behind schedule'
+          : 'ahead of schedule',
+  };
 }

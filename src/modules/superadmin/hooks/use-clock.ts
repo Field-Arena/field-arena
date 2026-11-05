@@ -1,16 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
-export function useClock(): string {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-    return () => {
-      clearInterval(id);
-    };
-  }, []);
-  return now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+function subscribe(onTick: () => void): () => void {
+  const id = setInterval(onTick, 1000);
+  return () => {
+    clearInterval(id);
+  };
+}
+
+function readTime(): string {
+  return new Date().toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+/* null on the server and during hydration, so the server HTML and the first
+ * client render match (a time string differs between the two and between
+ * locales); the live time takes over right after mount. */
+export function useClock(): string | null {
+  return useSyncExternalStore(subscribe, readTime, () => null);
 }

@@ -3,6 +3,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { isPast } from '@/shared/lib/format/date';
 import { resolveStaffPermissions } from '../utils';
+import type { PermissionKey } from '@/shared/constants/permissions';
 import type {
   UserDirectoryRow,
   UserDirectoryStatus,
@@ -12,8 +13,7 @@ import type {
   RiderDetailDocument,
   VendorDetail,
 } from '../types';
-import type { ShowListItem } from '@/modules/shows/data/queries';
-import type { DocumentRequirement } from '@/modules/shows/data/setup-queries';
+import type { DocumentRequirement, ShowListItem } from '@/modules/shows/types';
 
 interface HorseUpload {
   requirementId?: string;
@@ -33,7 +33,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
     supabase
       .from('staff_assignments')
       .select(
-        'id, show_id, name, first_name, last_name, role, email, phone, status, user_id, is_steward, can_scratch_skip_dq, can_view_money, permissions',
+        'id, show_id, name, first_name, last_name, role, email, phone, status, user_id, is_steward, license, can_scratch_skip_dq, can_view_money, permissions',
       )
       .in('show_id', showIds)
       .neq('role', 'Vendor'),
@@ -246,6 +246,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       showName: show.name,
       status,
       isSteward: s.is_steward ?? false,
+      license: s.license,
       canScratchSkipDq: s.can_scratch_skip_dq ?? false,
       canViewMoney: s.can_view_money ?? false,
       permissions: resolveStaffPermissions({
@@ -308,6 +309,7 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
 
         status: 'onboard',
         isSteward: false,
+        license: null,
         canScratchSkipDq: false,
         canViewMoney: false,
         permissions: null,
@@ -339,10 +341,11 @@ export async function listAllUsersAcrossShows(shows: ShowListItem[]): Promise<Us
       status:
         v.status === 'paid' || v.status === 'approved'
           ? 'onboard'
-          : v.status === 'pending'
+          : v.status === 'pending' || v.status === 'review'
             ? 'pending'
             : 'not_invited',
       isSteward: false,
+      license: null,
       canScratchSkipDq: false,
       canViewMoney: false,
       permissions: null,
@@ -512,4 +515,31 @@ export async function getRingCoverageByShow(
     };
   }
   return result;
+}
+
+/* Whether the signed-in user owns this org (Organizer / co-owner) or is a
+ * SuperAdmin — can_access_org, the same predicate RLS and the
+ * staff_assignments grant trigger use. Drives which grant controls the Users
+ * screen enables; the server actions re-check it on every write. */
+export async function isViewerOrgOwner(orgId: string): Promise<boolean> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.rpc('can_access_org', { target_org_id: orgId });
+  if (error) throw error;
+  return data;
+}
+
+/* The signed-in user's resolved per-show grant (has_show_permission: SuperAdmin
+ * and the org's owners always pass; staff resolve role defaults + overrides).
+ * A UX gate only — RLS re-checks every read and write. */
+export async function hasMyShowPermission(
+  showId: string,
+  permissionKey: PermissionKey,
+): Promise<boolean> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.rpc('has_show_permission', {
+    target_show_id: showId,
+    permission_key: permissionKey,
+  });
+  if (error) throw error;
+  return data;
 }

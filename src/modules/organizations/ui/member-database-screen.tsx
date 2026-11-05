@@ -30,7 +30,7 @@ import {
   MEMBER_ROW_CAP,
   type MemberColumnKey,
 } from '@/modules/organizations/constants';
-import type { MemberRow } from '@/modules/organizations/data/queries';
+import type { MemberRow } from '@/modules/organizations/types';
 import { buildMembersCsv } from '@/modules/organizations/utils/build-members-csv';
 import { useAddMembersToShow } from '@/modules/organizations/hooks/use-member-mutations';
 import { MemberEditDialog } from '@/modules/organizations/ui/member-edit-dialog';

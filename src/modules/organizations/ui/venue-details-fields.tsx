@@ -1,21 +1,25 @@
 'use client';
 
+import type { ComponentProps } from 'react';
 import type { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
 import type { VenueDetailsInput } from '@/modules/organizations/schemas';
+import { withSanitizer } from '@/shared/lib/format/input-sanitize';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
 
 interface DetailField {
   id: string;
   label: string;
   required?: boolean;
-  type?: string;
+  /** Native input attributes (type, inputMode, autoComplete, maxLength). */
+  inputProps?: ComponentProps<'input'>;
   placeholder?: string;
   colSpan2?: boolean;
   name: keyof VenueDetailsInput;
-
-  showsError?: boolean;
+  sanitize?: (value: string) => string;
 }
 
 const FIELDS: DetailField[] = [
@@ -25,13 +29,31 @@ const FIELDS: DetailField[] = [
     required: true,
     placeholder: 'e.g. Wills Park Equestrian',
     colSpan2: true,
+    inputProps: { maxLength: 160 },
     name: 'name',
-    showsError: true,
   },
-  { id: 'vf-address', label: 'Address', colSpan2: true, name: 'address' },
-  { id: 'vf-website', label: 'Website', type: 'url', name: 'website' },
-  { id: 'vf-phone', label: 'Phone', type: 'tel', name: 'phone' },
-  { id: 'vf-contact', label: 'Contact', colSpan2: true, name: 'contact' },
+  {
+    id: 'vf-address',
+    label: 'Address',
+    colSpan2: true,
+    inputProps: { autoComplete: 'street-address', maxLength: 240 },
+    name: 'address',
+  },
+  { id: 'vf-website', label: 'Website', inputProps: URL_INPUT_PROPS, name: 'website' },
+  {
+    id: 'vf-phone',
+    label: 'Phone',
+    inputProps: PHONE_INPUT_PROPS,
+    name: 'phone',
+    sanitize: sanitizePhoneInput,
+  },
+  {
+    id: 'vf-contact',
+    label: 'Contact',
+    colSpan2: true,
+    inputProps: { maxLength: 120 },
+    name: 'contact',
+  },
 ];
 
 export function VenueDetailsFields({
@@ -48,8 +70,13 @@ export function VenueDetailsFields({
           <Label htmlFor={f.id}>
             {f.label} {f.required && <span className="text-status-danger">*</span>}
           </Label>
-          <Input id={f.id} type={f.type} placeholder={f.placeholder} {...register(f.name)} />
-          {f.showsError && errors[f.name] && (
+          <Input
+            id={f.id}
+            {...f.inputProps}
+            placeholder={f.placeholder}
+            {...(f.sanitize ? withSanitizer(register(f.name), f.sanitize) : register(f.name))}
+          />
+          {errors[f.name] && (
             <p role="alert" className="text-status-danger text-[13px]">
               {errors[f.name]?.message}
             </p>

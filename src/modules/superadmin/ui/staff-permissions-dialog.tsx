@@ -42,14 +42,14 @@ export function StaffPermissionsDialog({ staff }: { staff: DirectoryStaff }) {
         onClick={() => {
           onOpenChange(true);
         }}
-        className="border-line-strong text-forest hover:border-gold h-auto rounded-lg border px-3 py-1.5 text-[12.5px] font-bold transition-colors hover:bg-[#FFFCF2]"
+        className="h-auto rounded-lg border border-[#D0D5DD] px-3 py-1.5 text-[12.5px] font-bold text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD]"
       >
         Permissions ({staff.permissionCount}/{PERMISSION_KEYS.length})
       </Button>
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">
+          <DialogTitle className="font-serif text-xl text-[#101828]">
             {staff.name}&apos;s permissions
           </DialogTitle>
           <DialogDescription>
@@ -60,14 +60,14 @@ export function StaffPermissionsDialog({ staff }: { staff: DirectoryStaff }) {
         <ul className="space-y-1.5">
           {PERMISSION_KEYS.map((key) => (
             <li key={key}>
-              <label className="border-border text-hunter-deep hover:bg-hunter-pale flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-[13.5px] transition-colors">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#E7EAEE] px-3 py-2.5 text-[13.5px] text-[#101828] transition-colors hover:bg-[#EAF5EF]">
                 <input
                   type="checkbox"
                   checked={draft[key]}
                   onChange={(event) => {
                     setDraft((prev) => ({ ...prev, [key]: event.target.checked }));
                   }}
-                  className="accent-hunter-deep size-4"
+                  className="size-4 accent-[#146A47]"
                 />
                 {PERMISSION_LABELS[key]}
               </label>

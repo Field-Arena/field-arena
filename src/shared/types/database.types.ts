@@ -1205,7 +1205,9 @@ export type Database = {
           id: string
           items: Json | null
           paid_at: string | null
+          refund_log: Json
           refunded_amount: number | null
+          review_reason: string | null
           rider_id: string
           show_id: string
           stabling_request: Json | null
@@ -1225,7 +1227,9 @@ export type Database = {
           id?: string
           items?: Json | null
           paid_at?: string | null
+          refund_log?: Json
           refunded_amount?: number | null
+          review_reason?: string | null
           rider_id: string
           show_id: string
           stabling_request?: Json | null
@@ -1245,7 +1249,9 @@ export type Database = {
           id?: string
           items?: Json | null
           paid_at?: string | null
+          refund_log?: Json
           refunded_amount?: number | null
+          review_reason?: string | null
           rider_id?: string
           show_id?: string
           stabling_request?: Json | null
@@ -2118,6 +2124,7 @@ export type Database = {
           id: string
           is_steward: boolean | null
           last_name: string | null
+          license: string | null
           name: string
           permissions: Json | null
           phone: string | null
@@ -2135,6 +2142,7 @@ export type Database = {
           id?: string
           is_steward?: boolean | null
           last_name?: string | null
+          license?: string | null
           name: string
           permissions?: Json | null
           phone?: string | null
@@ -2152,6 +2160,7 @@ export type Database = {
           id?: string
           is_steward?: boolean | null
           last_name?: string | null
+          license?: string | null
           name?: string
           permissions?: Json | null
           phone?: string | null
@@ -2339,6 +2348,7 @@ export type Database = {
           agreement_signed_name: string | null
           agreement_signed_text: string | null
           amount_total: number | null
+          checkout_snapshot: Json | null
           contact: string | null
           contact_name: string | null
           created_at: string
@@ -2349,7 +2359,9 @@ export type Database = {
           paid_at: string | null
           phone: string | null
           products_offered: string | null
+          refund_log: Json
           refunded_amount: number | null
+          review_reason: string | null
           show_id: string
           special_requests: string | null
           status: string | null
@@ -2365,6 +2377,7 @@ export type Database = {
           agreement_signed_name?: string | null
           agreement_signed_text?: string | null
           amount_total?: number | null
+          checkout_snapshot?: Json | null
           contact?: string | null
           contact_name?: string | null
           created_at?: string
@@ -2375,7 +2388,9 @@ export type Database = {
           paid_at?: string | null
           phone?: string | null
           products_offered?: string | null
+          refund_log?: Json
           refunded_amount?: number | null
+          review_reason?: string | null
           show_id: string
           special_requests?: string | null
           status?: string | null
@@ -2391,6 +2406,7 @@ export type Database = {
           agreement_signed_name?: string | null
           agreement_signed_text?: string | null
           amount_total?: number | null
+          checkout_snapshot?: Json | null
           contact?: string | null
           contact_name?: string | null
           created_at?: string
@@ -2401,7 +2417,9 @@ export type Database = {
           paid_at?: string | null
           phone?: string | null
           products_offered?: string | null
+          refund_log?: Json
           refunded_amount?: number | null
+          review_reason?: string | null
           show_id?: string
           special_requests?: string | null
           status?: string | null
@@ -2559,6 +2577,18 @@ export type Database = {
     }
     Functions: {
       abandon_stale_orders: { Args: never; Returns: undefined }
+      append_sale_refund_log: {
+        Args: { p_entry: Json; p_sale_id: string; p_sale_type: string }
+        Returns: undefined
+      }
+      append_show_manual_horse: {
+        Args: { p_entry: Json; p_show_id: string }
+        Returns: boolean
+      }
+      apply_stable_chart_ops: {
+        Args: { p_ops: Json; p_show_id: string }
+        Returns: boolean
+      }
       assign_bridle_number: {
         Args: {
           p_explicit_number?: number
@@ -2568,12 +2598,21 @@ export type Database = {
         }
         Returns: string
       }
+      booking_accepts_public_items: {
+        Args: { target_booking_id: string }
+        Returns: boolean
+      }
       booking_is_pending: {
         Args: { target_booking_id: string }
         Returns: boolean
       }
       booking_show_id: { Args: { target_booking_id: string }; Returns: string }
       can_access_org: { Args: { target_org_id: string }; Returns: boolean }
+      can_access_show_org: {
+        Args: { target_show_id: string }
+        Returns: boolean
+      }
+      can_browse_venue_directory: { Args: never; Returns: boolean }
       can_manage_org_test_templates: {
         Args: { target_org_id: string }
         Returns: boolean
@@ -2588,6 +2627,10 @@ export type Database = {
       current_org_id: { Args: never; Returns: string }
       current_platform_role: { Args: never; Returns: string }
       delete_division: { Args: { division_id: string }; Returns: undefined }
+      delete_show_classes_if_unentered: {
+        Args: { p_class_ids: string[]; p_show_id: string }
+        Returns: Json
+      }
       entry_is_own: { Args: { target_entry_id: string }; Returns: boolean }
       entry_is_own_and_published: {
         Args: { target_entry_id: string }
@@ -2613,6 +2656,7 @@ export type Database = {
       }
       is_rider: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      is_trusted_db_role: { Args: never; Returns: boolean }
       merge_score_json: {
         Args: {
           p_class_id: string
@@ -2623,6 +2667,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      org_is_active: { Args: { target_org_id: string }; Returns: boolean }
       org_is_public: { Args: { target_org_id: string }; Returns: boolean }
       organization_entry_summaries: {
         Args: never
@@ -2632,6 +2677,19 @@ export type Database = {
           rider_count: number
           show_count: number
         }[]
+      }
+      patch_horse_document_upload: {
+        Args: {
+          p_horse_id: string
+          p_requirement_id: string
+          p_set: Json
+          p_unset?: string[]
+        }
+        Returns: boolean
+      }
+      reconcile_show_entry_numbering: {
+        Args: { p_show_id: string }
+        Returns: number
       }
       rename_division: {
         Args: { division_id: string; new_name: string }
@@ -2646,11 +2704,21 @@ export type Database = {
           out_show_entry_id: string
         }[]
       }
+      resolve_staff_permissions: {
+        Args: {
+          p_can_scratch_skip_dq: boolean
+          p_can_view_money: boolean
+          p_permissions: Json
+          p_role: string
+        }
+        Returns: Json
+      }
       rider_in_viewable_show: {
         Args: { target_rider_id: string }
         Returns: boolean
       }
       safe_uuid: { Args: { value: string }; Returns: string }
+      scores_count_errors: { Args: { p_error_at: Json }; Returns: number }
       scores_seat_role: {
         Args: { p_class_id: string; p_seat_id: string }
         Returns: string
@@ -2660,6 +2728,25 @@ export type Database = {
         Returns: boolean
       }
       show_is_published: { Args: { target_show_id: string }; Returns: boolean }
+      show_org_is_active: { Args: { target_show_id: string }; Returns: boolean }
+      stable_chart_apply_ops: {
+        Args: { p_chart: Json; p_ops: Json }
+        Returns: Json
+      }
+      stable_chart_field: {
+        Args: { p_default: Json; p_key: string; p_obj: Json }
+        Returns: Json
+      }
+      stable_chart_horse_fields: { Args: { p_stall: Json }; Returns: Json }
+      stable_chart_stable_index: {
+        Args: { p_chart: Json; p_stable_id: string }
+        Returns: number
+      }
+      stable_chart_stall_index: {
+        Args: { p_chart: Json; p_stable_index: number; p_stall_id: string }
+        Returns: number
+      }
+      stable_chart_stall_status: { Args: { p_stall: Json }; Returns: string }
       storage_show_id: { Args: { object_name: string }; Returns: string }
     }
     Enums: {

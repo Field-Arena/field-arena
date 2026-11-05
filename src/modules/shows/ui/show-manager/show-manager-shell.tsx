@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SHOW_STAGES } from '@/shared/constants/show-stages';
-import type { ShowListItem } from '@/modules/shows/data/queries';
-import type { ShowManagerOverview } from '@/modules/shows/data/show-manager-overview';
+import type { ShowListItem, ShowManagerOverview } from '@/modules/shows/types';
 import { SHOW_MANAGER_SECTIONS, type ShowManagerTab } from '@/modules/shows/constants';
 import { NewShowButton } from '@/modules/shows/ui/show-manager/new-show-button';
 import { ShowSwitcher } from '@/modules/shows/ui/show-manager/show-switcher';

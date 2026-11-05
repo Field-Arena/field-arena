@@ -1,9 +1,6 @@
 import 'server-only';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-
-export interface BackNumberCard {
-  backNumber: string;
-}
+import type { BackNumberCard } from '@/modules/shows/types';
 
 const PT_PER_IN = 72;
 const PAGE_WIDTH_PT = 8.5 * PT_PER_IN;
@@ -23,6 +20,11 @@ const FONT_STEP = 5;
  * pdf-lib's own width/height metrics). */
 const CAP_HEIGHT_RATIO = 0.72;
 
+function clampInches(value: number | undefined, fallback: number, max: number): number {
+  if (value === undefined || !Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(value, 1), max);
+}
+
 /* Generates one Letter-page PDF, two cards per sheet (top/bottom half,
  * split by a dashed cutting guide at the page's vertical midpoint),
  * with the number auto-fit as large as possible inside a safe margin —
@@ -34,8 +36,12 @@ export async function generateBackNumberCardsPdf(
   cards: BackNumberCard[],
   options?: { cardWidthIn?: number; cardHeightIn?: number },
 ): Promise<Uint8Array> {
-  const cardWidthPt = (options?.cardWidthIn ?? DEFAULT_CARD_WIDTH_IN) * PT_PER_IN;
-  const cardHeightPt = (options?.cardHeightIn ?? DEFAULT_CARD_HEIGHT_IN) * PT_PER_IN;
+  // Any size the request carries is clamped to what fits two-up on a Letter
+  // sheet (and at least 1in), so a bad value can't produce an unusable PDF.
+  const cardWidthIn = clampInches(options?.cardWidthIn, DEFAULT_CARD_WIDTH_IN, 8.5);
+  const cardHeightIn = clampInches(options?.cardHeightIn, DEFAULT_CARD_HEIGHT_IN, 5.5);
+  const cardWidthPt = cardWidthIn * PT_PER_IN;
+  const cardHeightPt = cardHeightIn * PT_PER_IN;
 
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -93,7 +99,14 @@ function drawCard(
   page: Awaited<ReturnType<PDFDocument['addPage']>>,
   font: Awaited<ReturnType<PDFDocument['embedFont']>>,
   text: string,
-  box: { originX: number; originY: number; width: number; height: number; maxTextWidth: number; maxTextHeight: number },
+  box: {
+    originX: number;
+    originY: number;
+    width: number;
+    height: number;
+    maxTextWidth: number;
+    maxTextHeight: number;
+  },
 ): void {
   const size = fitFontSize(font, text, box.maxTextWidth, box.maxTextHeight);
   const textWidth = font.widthOfTextAtSize(text, size);

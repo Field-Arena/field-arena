@@ -17,6 +17,7 @@ import {
   setMark,
   setRemark,
   skipRide,
+  startRide,
   submitScoresheet,
   toggleErrorAt,
   toggleScoringOpen,
@@ -27,28 +28,36 @@ import {
   workInEntry,
 } from '@/modules/scoring/data/mutations';
 import { enqueueScoringWrite } from '@/modules/scoring/hooks/use-mutation-queue';
-import { MAX_WRITE_RETRIES, WRITE_RETRY_MS } from '@/modules/scoring/constants';
+import { scoringWriteKey } from '@/modules/scoring/hooks/use-unsaved-writes';
+import { ScoringWriteError, sendScoringWrite } from '@/modules/scoring/hooks/send-scoring-write';
+import type {
+  SetCollectiveInput,
+  SetFinalRemarksInput,
+  SetMarkInput,
+  SetRemarkInput,
+  ToggleErrorAtInput,
+} from '@/modules/scoring/schemas';
+import type { PublishResultsOutcome } from '@/modules/scoring/types';
 
 function queued<Input, Output>(action: (input: Input) => Promise<Output>) {
   return (input: Input) => enqueueScoringWrite(() => action(input));
 }
 
-function isNetworkFailure(error: unknown): boolean {
-  return error instanceof TypeError && /fetch|network/i.test(error.message);
-}
-
 const SYNC_FAILURE_TOAST_ID = 'scoring-sync-failure';
 
-function silentMutationOptions() {
+function markWriteOptions() {
   return {
-    retry: (failureCount: number, error: unknown) =>
-      failureCount < MAX_WRITE_RETRIES && isNetworkFailure(error),
-    retryDelay: WRITE_RETRY_MS,
-    onError: () => {
-      toast.error("Not synced — a mark didn't save. Check your connection and try again.", {
-        id: SYNC_FAILURE_TOAST_ID,
-        duration: Infinity,
-      });
+    retry: false,
+    onError: (error: unknown) => {
+      if (error instanceof ScoringWriteError && error.reason !== 'transient') {
+        // The judge needs to see why; the next poll restores the saved value.
+        toast.error(error.message);
+        return;
+      }
+      toast.error(
+        "Connection problem — some marks aren't saved yet. They're marked on the sheet and will keep retrying; you can't sign until they're saved.",
+        { id: SYNC_FAILURE_TOAST_ID, duration: Infinity },
+      );
     },
     onSuccess: () => {
       toast.dismiss(SYNC_FAILURE_TOAST_ID);
@@ -65,23 +74,56 @@ function toastedMutationOptions(errorMessage: string) {
 }
 
 export function useSetMark() {
-  return useMutation({ mutationFn: queued(setMark), ...silentMutationOptions() });
+  return useMutation({
+    mutationFn: (input: SetMarkInput) =>
+      sendScoringWrite(
+        scoringWriteKey(input.entryId, input.seatId, 'movements', String(input.movementNum)),
+        () => setMark(input),
+      ),
+    ...markWriteOptions(),
+  });
 }
 
 export function useSetCollective() {
-  return useMutation({ mutationFn: queued(setCollective), ...silentMutationOptions() });
+  return useMutation({
+    mutationFn: (input: SetCollectiveInput) =>
+      sendScoringWrite(scoringWriteKey(input.entryId, input.seatId, 'collectives', input.key), () =>
+        setCollective(input),
+      ),
+    ...markWriteOptions(),
+  });
 }
 
 export function useSetRemark() {
-  return useMutation({ mutationFn: queued(setRemark), ...silentMutationOptions() });
+  return useMutation({
+    mutationFn: (input: SetRemarkInput) =>
+      sendScoringWrite(
+        scoringWriteKey(input.entryId, input.seatId, 'remarks', String(input.movementNum)),
+        () => setRemark(input),
+      ),
+    ...markWriteOptions(),
+  });
 }
 
 export function useSetFinalRemarks() {
-  return useMutation({ mutationFn: queued(setFinalRemarks), ...silentMutationOptions() });
+  return useMutation({
+    mutationFn: (input: SetFinalRemarksInput) =>
+      sendScoringWrite(scoringWriteKey(input.entryId, input.seatId, 'final_remarks', 'final'), () =>
+        setFinalRemarks(input),
+      ),
+    ...markWriteOptions(),
+  });
 }
 
 export function useToggleErrorAt() {
-  return useMutation({ mutationFn: queued(toggleErrorAt), ...silentMutationOptions() });
+  return useMutation({
+    mutationFn: (input: ToggleErrorAtInput) =>
+      sendScoringWrite(
+        scoringWriteKey(input.entryId, input.seatId, 'error_at', String(input.movementNum)),
+        () => toggleErrorAt(input),
+      ),
+    ...markWriteOptions(),
+  });
 }
 
 export function useSubmitScoresheet() {
@@ -202,8 +244,21 @@ export function usePublishResults() {
   return useMutation({
     mutationFn: queued(publishResults),
     ...toastedMutationOptions('Could not publish'),
-    onSuccess: () => toast.success('Results published'),
+    onSuccess: (outcome: PublishResultsOutcome) => {
+      if (outcome.published) {
+        toast.success('Results published');
+        return;
+      }
+      const n = outcome.incomplete;
+      toast.error(
+        `${String(n)} ride${n === 1 ? " isn't" : "s aren't"} fully scored and signed yet. Score, scratch or remove ${n === 1 ? 'it' : 'them'} before publishing.`,
+      );
+    },
   });
+}
+
+export function useStartRide() {
+  return useMutation({ mutationFn: queued(startRide), retry: false });
 }
 
 export function useUnpublishResults() {

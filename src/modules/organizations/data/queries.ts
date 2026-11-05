@@ -1,21 +1,12 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import type { VenueListItem, VenueRing, VenueStable } from '@/modules/organizations/types';
-
-export interface MemberRow {
-  id: string;
-  name: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | null;
-  phone: string | null;
-  role: string | null;
-  membershipStatus: string;
-  membershipExpires: string | null;
-  notes: string | null;
-
-  extraFields: Record<string, string>;
-}
+import type {
+  OrganizationProfile,
+  VenueListItem,
+  VenueRing,
+  VenueStable,
+} from '@/modules/organizations/types';
+import type { MemberRow, TestTemplateRow } from '@/modules/organizations/types';
 
 export async function listMembers(orgId: string): Promise<MemberRow[]> {
   const supabase = await createServerClient();
@@ -42,14 +33,6 @@ export async function listMembers(orgId: string): Promise<MemberRow[]> {
     notes: m.notes,
     extraFields: (m.extra_fields ?? {}) as Record<string, string>,
   }));
-}
-
-export interface TestTemplateRow {
-  id: string;
-  name: string;
-  level: string | null;
-  sourceLabel: string | null;
-  movementCount: number;
 }
 
 export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[]> {
@@ -103,4 +86,16 @@ export async function listVenues(orgId: string): Promise<VenueListItem[]> {
     stables: (v.stables ?? []) as unknown as VenueStable[],
     showCount: usage.get(v.id) ?? 0,
   }));
+}
+
+/** One org's onboarding profile, or null when missing / not visible. */
+export async function getOrganizationProfile(orgId: string): Promise<OrganizationProfile | null> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id, name, email, website, phone, city, region, country')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
