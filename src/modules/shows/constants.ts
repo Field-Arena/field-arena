@@ -532,3 +532,11 @@ export const MEMBERSHIP_FLAG_LABELS: Record<(typeof MEMBERSHIP_FLAGS)[number], s
 };
 
 export const ENTRY_ISSUE_KINDS = ['document', 'membership', 'number', 'note', 'request'] as const;
+
+/** Show Manager list groups, in display order (most urgent first). */
+export const SHOW_LIST_GROUPS = [
+  { key: 'live', label: 'Live now', chip: 'Live' },
+  { key: 'published', label: 'Published', chip: 'Published' },
+  { key: 'setup', label: 'In setup', chip: 'In setup' },
+  { key: 'finished', label: 'Finished', chip: 'Finished' },
+] as const;
