@@ -11,6 +11,7 @@ import { parseInput } from '@/shared/lib/action-result';
 import { refundSaleSchema, chargeMoreSchema } from '@/modules/sales/schemas';
 import { MAX_CHARGE_RECORD_ATTEMPTS } from '@/modules/sales/constants';
 import { SETTLED_ORDER_STATUS, SETTLED_BOOKING_STATUS } from '@/shared/lib/sales-math';
+import { recordSaleEventSafely } from '@/modules/payouts/data/events';
 
 const TABLE_BY_TYPE = { order: 'orders', vendor_booking: 'vendor_bookings' } as const;
 
@@ -91,7 +92,9 @@ export async function refundSale(input: unknown): Promise<void> {
 
   const { data: sale, error: readError } = await admin
     .from(table)
-    .select('amount_total, fee_total, refunded_amount, stripe_payment_intent_id, show_id, status')
+    .select(
+      'amount_total, fee_total, refunded_amount, stripe_payment_intent_id, show_id, status, settlement',
+    )
     .eq('id', parsed.saleId)
     .single();
   if (readError) throw new Error(readError.message);
@@ -114,9 +117,7 @@ export async function refundSale(input: unknown): Promise<void> {
    * slightly above the remaining balance got an error instead of the refund
    * they meant; legacy just refunded what was actually left. */
   if (maxRefundable <= 0) {
-    throw new Error(
-      'Nothing left to refund on this sale — the platform fee is never refundable.',
-    );
+    throw new Error('Nothing left to refund on this sale — the platform fee is never refundable.');
   }
   const refundAmount = Math.min(amount, maxRefundable);
   const refundAmountCents = toCents(refundAmount);
@@ -133,19 +134,35 @@ export async function refundSale(input: unknown): Promise<void> {
     throw new Error('This sale was just refunded by someone else — reload and try again.');
   }
 
+  let refund: { id: string; created: number };
   try {
     const stripe = getStripeClient();
-    await stripe.refunds.create(
+    const created = await stripe.refunds.create(
       { payment_intent: sale.stripe_payment_intent_id, amount: refundAmountCents },
       {
         idempotencyKey: `refund-${parsed.saleId}-${refundedBefore.toFixed(2)}-${refundAmount.toFixed(2)}`,
       },
     );
+    refund = { id: created.id, created: created.created };
   } catch (err) {
     await admin.from(table).update({ refunded_amount: refundedBefore }).eq('id', parsed.saleId);
     throw new Error(
       err instanceof Error ? `Stripe refund failed: ${err.message}` : 'Stripe refund failed.',
     );
+  }
+
+  // Dated, so the weekly statement takes it off the week it happened in. Sales
+  // paid out at checkout (legacy) were already settled, so they are not netted.
+  if (sale.settlement === 'platform') {
+    await recordSaleEventSafely(admin, {
+      saleType: parsed.saleType,
+      saleId: parsed.saleId,
+      showId: sale.show_id,
+      kind: 'refund',
+      amount: refundAmount,
+      stripeRef: refund.id,
+      occurredAt: new Date(refund.created * 1000),
+    });
   }
 
   revalidatePath(ROUTES.eventSales);
@@ -177,6 +194,8 @@ export async function chargeMore(input: unknown): Promise<void> {
 
   const stripe = getStripeClient();
   let paymentIntentId: string;
+  let chargedAt = new Date();
+  let chargeSucceeded = false;
   try {
     const paymentIntent = await stripe.paymentIntents.create(
       {
@@ -191,10 +210,26 @@ export async function chargeMore(input: unknown): Promise<void> {
       { idempotencyKey: `charge-${parsed.saleId}-${Date.now().toString()}` },
     );
     paymentIntentId = paymentIntent.id;
+    chargedAt = new Date(paymentIntent.created * 1000);
+    chargeSucceeded = paymentIntent.status === 'succeeded';
   } catch (err) {
     throw new Error(
       err instanceof Error ? `Stripe charge failed: ${err.message}` : 'Stripe charge failed.',
     );
+  }
+
+  // Extra charges are always held by the platform (never sent to the
+  // organizer at the time), so they always count toward the weekly statement.
+  if (chargeSucceeded) {
+    await recordSaleEventSafely(admin, {
+      saleType: parsed.saleType,
+      saleId: parsed.saleId,
+      showId: parsed.showId,
+      kind: 'additional_charge',
+      amount,
+      stripeRef: paymentIntentId,
+      occurredAt: chargedAt,
+    });
   }
 
   const chargeRecord = { id: paymentIntentId, amount, createdAt: new Date().toISOString() };

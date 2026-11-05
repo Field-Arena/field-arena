@@ -659,6 +659,9 @@ export async function createCheckoutSession(
         status: 'pending',
         items: itemsToJson(priced.items),
         fee_total: priced.feeTotal,
+        // The platform holds every payment and settles with the organizer
+        // weekly, so there is no per-sale transfer to the organizer.
+        settlement: 'platform',
         stabling_request: parsed.stabling ? (parsed.stabling as unknown as Json) : null,
       })
       .select()
@@ -669,15 +672,6 @@ export async function createCheckoutSession(
     const stripe = getStripeClient();
     const returnPath = `/rider/shows/${parsed.showId}`;
 
-    const paymentIntentData: NonNullable<
-      import('stripe').Stripe.Checkout.SessionCreateParams['payment_intent_data']
-    > = {};
-
-    if (priced.chargesEnabled && priced.stripeConnectAccountId) {
-      paymentIntentData.application_fee_amount = Math.round(priced.feeTotal * 100);
-      paymentIntentData.transfer_data = { destination: priced.stripeConnectAccountId };
-    }
-
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer: stripeCustomerId,
@@ -685,7 +679,6 @@ export async function createCheckoutSession(
       success_url: `${env.siteUrl}${returnPath}?order=${order.id}&checkoutSession={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
       metadata: { showId: parsed.showId, riderId: rider.id, orderId: order.id },
-      payment_intent_data: paymentIntentData,
       // No payment_method_types: the Stripe Dashboard decides which methods show
       // (card, Apple Pay / Google Pay, Klarna, ...). Card saving for "charge more"
       // is set per method, not on payment_intent_data — a PaymentIntent-level
@@ -761,8 +754,9 @@ export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOr
     throw new Error('Payment amount does not match this order.');
   }
 
+  let piId: string | null = null;
   if (session.payment_intent) {
-    const piId =
+    piId =
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : session.payment_intent.id;
@@ -770,7 +764,7 @@ export async function confirmCheckoutSession(input: unknown): Promise<FinalizeOr
     if (paymentIntent) await saveOffSessionCard(admin, order.id, paymentIntent);
   }
 
-  return finalizeOrder(admin, order, rider);
+  return finalizeOrder(admin, order, rider, piId);
 }
 
 export async function saveStablingDates(input: unknown): Promise<OrderRow> {

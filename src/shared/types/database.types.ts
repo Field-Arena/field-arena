@@ -1206,6 +1206,7 @@ export type Database = {
           items: Json | null
           paid_at: string | null
           refunded_amount: number | null
+          settlement: string
           rider_id: string
           show_id: string
           stabling_request: Json | null
@@ -1226,6 +1227,7 @@ export type Database = {
           items?: Json | null
           paid_at?: string | null
           refunded_amount?: number | null
+          settlement?: string
           rider_id: string
           show_id: string
           stabling_request?: Json | null
@@ -1246,6 +1248,7 @@ export type Database = {
           items?: Json | null
           paid_at?: string | null
           refunded_amount?: number | null
+          settlement?: string
           rider_id?: string
           show_id?: string
           stabling_request?: Json | null
@@ -1545,6 +1548,63 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_events: {
+        Row: {
+          amount: number
+          created_at: string
+          fee: number
+          id: string
+          kind: string
+          occurred_at: string
+          org_id: string
+          sale_id: string
+          sale_type: string
+          show_id: string
+          stripe_ref: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          fee?: number
+          id?: string
+          kind: string
+          occurred_at: string
+          org_id: string
+          sale_id: string
+          sale_type: string
+          show_id: string
+          stripe_ref: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          fee?: number
+          id?: string
+          kind?: string
+          occurred_at?: string
+          org_id?: string
+          sale_id?: string
+          sale_type?: string
+          show_id?: string
+          stripe_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_events_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "shows"
             referencedColumns: ["id"]
           },
         ]
@@ -2350,6 +2410,7 @@ export type Database = {
           phone: string | null
           products_offered: string | null
           refunded_amount: number | null
+          settlement: string
           show_id: string
           special_requests: string | null
           status: string | null
@@ -2376,6 +2437,7 @@ export type Database = {
           phone?: string | null
           products_offered?: string | null
           refunded_amount?: number | null
+          settlement?: string
           show_id: string
           special_requests?: string | null
           status?: string | null
@@ -2402,6 +2464,7 @@ export type Database = {
           phone?: string | null
           products_offered?: string | null
           refunded_amount?: number | null
+          settlement?: string
           show_id?: string
           special_requests?: string | null
           status?: string | null
