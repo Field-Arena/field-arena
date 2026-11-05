@@ -28,7 +28,7 @@ export function DayItems({
         block.rides.length === 0 ? (
           <div
             key={block.cls}
-            className="my-2.5 text-center text-[12.5px] font-semibold text-[#7A8781]"
+            className="my-2.5 text-center text-[12.5px] font-semibold text-[#7A8781] print:my-1 print:break-inside-avoid print:text-[10px]"
           >
             — {block.label} —
           </div>
