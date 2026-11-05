@@ -22,7 +22,7 @@ export type OrderRow = Database['public']['Tables']['orders']['Row'];
  * grant will fail at the database, not silently return null. */
 export type RiderVisibleOrderRow = Omit<
   OrderRow,
-  'stripe_customer_id' | 'stripe_payment_method_id' | 'stabling_request'
+  'stripe_customer_id' | 'stripe_payment_method_id' | 'stabling_request' | 'settlement'
 >;
 export type ClassEntryRow = Database['public']['Tables']['class_entries']['Row'];
 export type WaiverSignatureRow = Database['public']['Tables']['waiver_signatures']['Row'];

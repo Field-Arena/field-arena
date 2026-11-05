@@ -2,7 +2,6 @@
 
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
-import type Stripe from 'stripe';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient, SAVE_FOR_CHARGE_MORE } from '@/shared/lib/stripe';
@@ -518,14 +517,6 @@ export async function createVendorCheckoutSession(
   const stripe = getStripeClient();
   const returnPath = VENDOR_DASHBOARD_PATH;
 
-  const paymentIntentData: NonNullable<Stripe.Checkout.SessionCreateParams['payment_intent_data']> =
-    {};
-
-  if (priced.chargesEnabled && priced.stripeConnectAccountId) {
-    paymentIntentData.application_fee_amount = Math.round(priced.feeTotal * 100);
-    paymentIntentData.transfer_data = { destination: priced.stripeConnectAccountId };
-  }
-
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     customer: stripeCustomerId,
@@ -534,7 +525,6 @@ export async function createVendorCheckoutSession(
     cancel_url: `${env.siteUrl}${returnPath}?checkoutCanceled=1`,
 
     metadata: { bookingId: booking.id, showId: booking.show_id },
-    payment_intent_data: paymentIntentData,
     // No payment_method_types: the Stripe Dashboard decides which methods show
     // (card, Apple Pay / Google Pay, Klarna, ...). Card saving for "charge more"
     // is set per method, not on payment_intent_data — a PaymentIntent-level
@@ -548,7 +538,8 @@ export async function createVendorCheckoutSession(
       : (session.payment_intent?.id ?? null);
   await admin
     .from('vendor_bookings')
-    .update({ stripe_payment_intent_id: paymentIntentId })
+    // The platform holds the payment and settles with the organizer weekly.
+    .update({ stripe_payment_intent_id: paymentIntentId, settlement: 'platform' })
     .eq('id', booking.id);
 
   if (!session.url) throw new Error('Stripe did not return a checkout URL. Please try again.');
