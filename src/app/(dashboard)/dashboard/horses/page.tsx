@@ -34,6 +34,9 @@ export default async function HorsesPage({
   }
 
   const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const [showRow, horsesData] = await Promise.all([
     supabase.from('shows').select('stable_chart').eq('id', context.currentShow.id).single(),
     getHorsesPageData(context.currentShow.id),
@@ -55,6 +58,7 @@ export default async function HorsesPage({
         data={horsesData}
         stableChartSummary={stableChartSummary}
         publicId={context.currentShow.slug ?? context.currentShow.id}
+        viewerId={user?.id ?? null}
       />
     </div>
   );

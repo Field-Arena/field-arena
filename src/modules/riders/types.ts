@@ -1,4 +1,4 @@
-import type { Database } from '@/shared/types/database.types';
+import type { Database, Json } from '@/shared/types/database.types';
 import type {
   CLASS_ENTRY_STATUSES,
   ENTRY_DIVISION_CODES,
@@ -150,6 +150,8 @@ export interface HorseWithDocumentUrls {
   trainer_city: string | null;
   trainer_state: string | null;
   trainer_zip: string | null;
+  /** Who last set each USEF detail; see utils/horse-usef-meta. */
+  usef_field_meta?: Json;
   created_at: string;
   documentUploads: HorseDocumentUploadWithUrl[];
 }

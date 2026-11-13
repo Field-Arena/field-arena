@@ -367,6 +367,7 @@ export async function listRiderHorses(): Promise<HorseWithDocumentUrls[]> {
         trainer_city: horse.trainer_city,
         trainer_state: horse.trainer_state,
         trainer_zip: horse.trainer_zip,
+        usef_field_meta: horse.usef_field_meta,
         created_at: horse.created_at,
         documentUploads,
       };

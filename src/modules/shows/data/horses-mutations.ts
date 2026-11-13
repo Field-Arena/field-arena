@@ -2,9 +2,20 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { env } from '@/shared/lib/env';
 import { parseInput } from '@/shared/lib/action-result';
+import { ROUTES } from '@/shared/constants/routes';
 import type { Json } from '@/shared/types/database.types';
+import { getStaffProfile } from '@/modules/auth/data/queries';
+import { horseUsefDetailsSchema } from '@/modules/riders/schemas';
+import {
+  decideHorseEditAccess,
+  parseUsefMeta,
+  stampChangedFields,
+  type UsefFieldMeta,
+} from '@/modules/riders/utils/horse-usef-meta';
+import { usefColumnUpdates } from '@/modules/riders/utils/horse-usef-updates';
 import {
   addManualHorseSchema,
   verifyHorseDocumentSchema,
@@ -77,9 +88,7 @@ export async function verifyHorseDocument(input: unknown): Promise<void> {
           ...(parsed.verified !== undefined
             ? { verified: parsed.verified, status: parsed.verified ? 'approved' : 'pending' }
             : {}),
-          ...(parsed.expirationDate !== undefined
-            ? { expirationDate: parsed.expirationDate }
-            : {}),
+          ...(parsed.expirationDate !== undefined ? { expirationDate: parsed.expirationDate } : {}),
         }
       : u,
   );
@@ -221,4 +230,91 @@ export async function remindHorseDocuments(input: unknown): Promise<{ ok: true }
   });
 
   return { ok: true };
+}
+
+/* An organizer (or Show Admin) saving a horse's USEF details.
+ *
+ * Horses belong to riders and carry from show to show, so this edits the horse
+ * everywhere, and the rider sees it on their own form. It is allowed only for a
+ * horse entered in a show where the caller has the approve-documents grant (the
+ * grant organizers, org owners and Show Admins hold, and the one the document
+ * review policy uses). Each field that really changed is stamped with who changed
+ * it and when. */
+export async function updateHorseUsefDetails(
+  input: unknown,
+): Promise<{ ok: true; meta: UsefFieldMeta }> {
+  const parsed = parseInput(horseUsefDetailsSchema, input);
+  const supabase = await createServerClient();
+
+  const profile = await getStaffProfile();
+  if (!profile) throw new Error('Not signed in.');
+
+  const { data: horse, error: readError } = await supabase
+    .from('horses')
+    .select(
+      'id, usef_field_meta, usef_number, fei_number, passport_number, registration_number, year_of_birth, breed, owner_name, owner_email, owner_usef, owner_usef_exempt_reason, owner_street, owner_city, owner_state, owner_zip, trainer, trainer_phone, trainer_usef, trainer_street, trainer_city, trainer_state, trainer_zip',
+    )
+    .eq('id', parsed.horseId)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (!horse) throw new Error('Horse not found.');
+
+  // The shows this horse is entered in.
+  const { data: entries, error: entriesError } = await supabase
+    .from('class_entries')
+    .select('class_id')
+    .eq('horse_id', parsed.horseId);
+  if (entriesError) throw entriesError;
+  const classIds = [...new Set(entries.map((entry) => entry.class_id))];
+  let showIds: string[] = [];
+  if (classIds.length > 0) {
+    const { data: classes, error: classError } = await supabase
+      .from('classes')
+      .select('show_id')
+      .in('id', classIds);
+    if (classError) throw classError;
+    showIds = [...new Set(classes.map((c) => c.show_id))];
+  }
+
+  const grants = await Promise.all(
+    showIds.map(async (showId) => {
+      const { data, error } = await supabase.rpc('has_show_permission', {
+        target_show_id: showId,
+        permission_key: 'canApproveDocuments',
+      });
+      if (error) throw error;
+      return { allowed: data };
+    }),
+  );
+  const access = decideHorseEditAccess(grants);
+  if (access === 'not-entered') throw new Error("This horse isn't entered in any of your shows.");
+  if (access === 'denied') {
+    throw new Error("You don't have permission to edit this horse's details.");
+  }
+
+  const updates = usefColumnUpdates(parsed);
+  const meta = stampChangedFields(horse, updates, parseUsefMeta(horse.usef_field_meta), {
+    source: 'organizer',
+    by: profile.name,
+    byId: profile.id,
+    at: new Date().toISOString(),
+  });
+
+  // horses' own triggers let only the rider (or the server) change anything but
+  // document review, so this write goes through the admin client. That bypasses
+  // RLS, which is why the access check above is the real gate: it ran as the
+  // signed-in user, against the shows this horse is entered in.
+  const admin = createAdminClient();
+  const { data: saved, error } = await admin
+    .from('horses')
+    .update({ ...updates, usef_field_meta: meta as Json })
+    .eq('id', parsed.horseId)
+    .select('id')
+    .maybeSingle();
+  if (error) throw error;
+  if (!saved) throw new Error('Horse not found.');
+
+  revalidatePath(HORSES_PATH);
+  revalidatePath(ROUTES.rider);
+  return { ok: true, meta };
 }

@@ -893,6 +893,7 @@ export type Database = {
           stable: string | null
           trainer: string | null
           trainer_phone: string | null
+          usef_field_meta: Json
           usef_number: string | null
           passport_number: string | null
           fei_number: string | null
@@ -925,6 +926,7 @@ export type Database = {
           stable?: string | null
           trainer?: string | null
           trainer_phone?: string | null
+          usef_field_meta?: Json
           usef_number?: string | null
           passport_number?: string | null
           fei_number?: string | null
@@ -957,6 +959,7 @@ export type Database = {
           stable?: string | null
           trainer?: string | null
           trainer_phone?: string | null
+          usef_field_meta?: Json
           usef_number?: string | null
           passport_number?: string | null
           fei_number?: string | null
