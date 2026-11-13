@@ -42,6 +42,13 @@ export const ORGANIZER_NAV = [
     tip: "Your organization's reusable venues — name, contact info, ring layout, and stables, built once and picked up by any show",
   },
   {
+    key: 'judges',
+    label: 'Judges',
+    icon: 'judges',
+    href: '/dashboard/judges',
+    tip: "Your organization's reusable judges. Add a judge once, bring them into any show, and their USEF ID goes with them",
+  },
+  {
     key: 'horses',
     label: 'Horses',
     icon: 'horses',

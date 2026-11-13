@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getShowResults } from '@/modules/shows/data/queries';
 import { maxPoints } from '@/modules/scoring/scoring-engine';
 import { parseTestDefinition } from '@/modules/scoring/utils/parse-test-definition';
@@ -108,13 +109,31 @@ export async function getExportInput(showId: string): Promise<ExportInput | null
     staffIds.length
       ? supabase
           .from('staff_assignments')
-          .select('id, name, first_name, last_name, usef_id')
+          .select('id, name, first_name, last_name, usef_id, judge_id')
           .in('id', staffIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (ridersRes.error) throw ridersRes.error;
   if (horsesRes.error) throw horsesRes.error;
   if (staffRes.error) throw staffRes.error;
+
+  // A judge's USEF ID lives on the organization's judge record, so one correction
+  // reaches every class and show they are in. Read with the admin client (the
+  // judges table is owner-only under RLS, and the caller may be a Show Admin);
+  // the ids come only from this show's own panel, and the access check has
+  // already passed. A staff row with no judge record falls back to its own copy.
+  const judgeRecordIds = [
+    ...new Set(staffRes.data.map((s) => s.judge_id).filter((id): id is string => !!id)),
+  ];
+  const judgeUsefById = new Map<string, string | null>();
+  if (judgeRecordIds.length > 0) {
+    const { data: records, error: recordsError } = await createAdminClient()
+      .from('judges')
+      .select('id, usef_id')
+      .in('id', judgeRecordIds);
+    if (recordsError) throw recordsError;
+    for (const record of records) judgeUsefById.set(record.id, record.usef_id);
+  }
 
   const riderById = new Map(ridersRes.data.map((r) => [r.id, r]));
   const horseById = new Map(horsesRes.data.map((h) => [h.id, h]));
@@ -144,7 +163,7 @@ export async function getExportInput(showId: string): Promise<ExportInput | null
       seatId: seat.seat_id,
       firstName: text(staff.first_name) ?? fromName.first,
       lastName: text(staff.last_name) ?? fromName.last,
-      usefId: text(staff.usef_id),
+      usefId: text(staff.judge_id ? judgeUsefById.get(staff.judge_id) : null) ?? text(staff.usef_id),
     });
     judgesByClass.set(seat.class_id, list);
   }

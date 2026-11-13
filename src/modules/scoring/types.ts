@@ -86,6 +86,16 @@ export interface ClassScoringState {
 
 export type SeatRole = 'judge' | 'scribe';
 
+/** The USEF ID shown at the top of a scoresheet: the seat's judge's, editable only by that judge. */
+export interface SeatUsefId {
+  usefId: string | null;
+  updatedAt: string | null;
+  enteredBy: string | null;
+  /** True only for the judge's own seat. A scribe sees it read-only. */
+  canEdit: boolean;
+  judgeName: string | null;
+}
+
 export interface MySeat {
   seatId: string;
   role: SeatRole;

@@ -28,7 +28,8 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { ADD_USER_ROLES } from '../constants';
 import { addStaffUserSchema, type AddStaffUserInput } from '../schemas';
-import { useAddStaffUser } from '../hooks/use-user-directory-mutations';
+import { useAddJudgesToShow, useAddStaffUser } from '../hooks/use-user-directory-mutations';
+import type { JudgePickerOption } from '@/modules/judges/types';
 import type { ShowListItem } from '@/modules/shows/data/queries';
 
 const SELECT_CLASS =
@@ -43,12 +44,17 @@ export function AddUserDialog({
   shows,
   defaultShowId,
   classes,
+  judges = [],
 }: {
   shows: ShowListItem[];
   defaultShowId: string;
   classes: ClassOption[];
+  /** The organization's saved judges, for "Add from my judges". */
+  judges?: JudgePickerOption[];
 }) {
   const [open, setOpen] = useState(false);
+  const [judgeSearch, setJudgeSearch] = useState('');
+  const [pickedJudgeIds, setPickedJudgeIds] = useState<string[]>([]);
 
   const resetDefaults: AddStaffUserInput = {
     showId: defaultShowId,
@@ -78,6 +84,14 @@ export function AddUserDialog({
     },
   });
 
+  const addJudges = useAddJudgesToShow({
+    onSuccess: () => {
+      setOpen(false);
+      setPickedJudgeIds([]);
+      setJudgeSearch('');
+    },
+  });
+
   const { errors } = form.formState;
   const role = useWatch({ control: form.control, name: 'role' });
   const isMember = useWatch({ control: form.control, name: 'addToMemberDatabase' });
@@ -91,7 +105,11 @@ export function AddUserDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) form.reset(resetDefaults);
+        if (next) {
+          form.reset(resetDefaults);
+          setPickedJudgeIds([]);
+          setJudgeSearch('');
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -196,6 +214,22 @@ export function AddUserDialog({
                 </select>
               </div>
             </div>
+
+            {role === 'Judge' && judges.length > 0 && (
+              <JudgePicker
+                judges={judges}
+                showId={defaultShowId}
+                showName={showName}
+                search={judgeSearch}
+                onSearch={setJudgeSearch}
+                picked={pickedJudgeIds}
+                onPick={setPickedJudgeIds}
+                pending={addJudges.isPending}
+                onAdd={() => {
+                  addJudges.mutate({ showId: defaultShowId, judgeIds: pickedJudgeIds });
+                }}
+              />
+            )}
 
             {(role === 'Judge' || role === 'Scribe') && (
               <div>
@@ -326,5 +360,114 @@ export function AddUserDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* "Add from my judges": search the organization's saved judges and add several
+ * to this show at once. Judges already on the show are shown but not selectable. */
+function JudgePicker({
+  judges,
+  showId,
+  showName,
+  search,
+  onSearch,
+  picked,
+  onPick,
+  pending,
+  onAdd,
+}: {
+  judges: JudgePickerOption[];
+  showId: string;
+  showName: string;
+  search: string;
+  onSearch: (value: string) => void;
+  picked: string[];
+  onPick: (ids: string[]) => void;
+  pending: boolean;
+  onAdd: () => void;
+}) {
+  const needle = search.trim().toLowerCase();
+  const visible = judges.filter(
+    (j) =>
+      needle === '' ||
+      j.name.toLowerCase().includes(needle) ||
+      (j.email ?? '').toLowerCase().includes(needle),
+  );
+
+  return (
+    <div className="rounded-xl border-[1.5px] border-[#1A5B3C] bg-[#F6FBF8] p-3">
+      <Label htmlFor="au-judge-search" className="mb-1.5 block text-[11px] tracking-[.08em] uppercase">
+        Add from my judges
+      </Label>
+      <Input
+        id="au-judge-search"
+        placeholder={`Search ${String(judges.length)} judge${judges.length === 1 ? '' : 's'}…`}
+        value={search}
+        onChange={(e) => {
+          onSearch(e.target.value);
+        }}
+      />
+      <div className="mt-2 max-h-[190px] overflow-y-auto rounded-lg border border-[#D9E1DD] bg-white">
+        {visible.length === 0 ? (
+          <p className="px-3 py-2 text-[12.5px] text-[#7A8781]">No judge matches that search.</p>
+        ) : (
+          visible.map((j, i) => {
+            const onShow = j.showIds.includes(showId);
+            const checked = picked.includes(j.id);
+            return (
+              <label
+                key={j.id}
+                className={cn(
+                  'flex items-center justify-between gap-2 px-3 py-2 text-[13px]',
+                  i > 0 && 'border-t border-[#EDF0EE]',
+                  onShow ? 'cursor-default opacity-60' : 'cursor-pointer',
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="accent-hunter-deep size-4"
+                    disabled={onShow}
+                    checked={checked}
+                    onChange={(e) => {
+                      onPick(
+                        e.target.checked ? [...picked, j.id] : picked.filter((id) => id !== j.id),
+                      );
+                    }}
+                  />
+                  <span className="min-w-0 truncate">
+                    <b>{j.name}</b>{' '}
+                    <span className="text-[12px] font-semibold text-[#5A6B63]">
+                      · {j.usefId ? `USEF ${j.usefId}` : 'no USEF ID yet'}
+                    </span>
+                  </span>
+                </span>
+                {onShow && (
+                  <span className="flex-none rounded-[7px] bg-[#EDF0EE] px-2 py-0.5 text-[11.5px] font-extrabold text-[#5A6B63]">
+                    on this show
+                  </span>
+                )}
+              </label>
+            );
+          })
+        )}
+      </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={pending || picked.length === 0}
+          onClick={onAdd}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-2 border-[#1A5B3C] bg-[#1A5B3C] px-3.5 py-2 text-[13.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {pending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
+          {picked.length === 0
+            ? 'Pick judges to add'
+            : `Add ${String(picked.length)} judge${picked.length === 1 ? '' : 's'} to ${showName}`}
+        </button>
+        <span className="text-[12px] font-semibold text-[#5A6B63]">
+          Each gets an invite. A new judge? Fill in the form below and they are saved to your list.
+        </span>
+      </div>
+    </div>
   );
 }

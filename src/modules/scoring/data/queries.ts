@@ -15,6 +15,7 @@ import type {
   PanelSeat,
   RideEntry,
   ScoreRow,
+  SeatUsefId,
 } from '@/modules/scoring/types';
 import type { Json } from '@/shared/types/database.types';
 
@@ -304,6 +305,73 @@ export async function getMySeat(classId: string): Promise<MySeat | null> {
     }
   }
   return null;
+}
+
+/**
+ * The USEF ID for the judge on the caller's seat. A judge sees and edits their own;
+ * a scribe sees the judge they are recording for, read-only. The value lives on
+ * the organization's judge record when there is one (so it follows the judge from
+ * show to show) and on the show's staff row otherwise.
+ *
+ * The judge record is read with the admin client because a judge cannot read the
+ * organization's private judges table; the row read is the one linked to the staff
+ * row of the seat the caller already holds, so nothing else is exposed.
+ */
+export async function getSeatUsefId(
+  classId: string,
+  mySeat: MySeat | null,
+): Promise<SeatUsefId | null> {
+  if (!mySeat) return null;
+  const supabase = await createServerClient();
+
+  let judgeStaffId: string | null = null;
+  if (mySeat.role === 'judge') {
+    judgeStaffId = mySeat.staffId;
+  } else {
+    const { data: seat, error: seatError } = await supabase
+      .from('class_panel')
+      .select('judge_staff_id')
+      .eq('class_id', classId)
+      .eq('seat_id', mySeat.seatId)
+      .maybeSingle();
+    if (seatError) throw seatError;
+    judgeStaffId = seat?.judge_staff_id ?? null;
+  }
+  if (!judgeStaffId) return null;
+
+  const { data: staff, error: staffError } = await supabase
+    .from('staff_assignments')
+    .select('name, judge_id, usef_id')
+    .eq('id', judgeStaffId)
+    .maybeSingle();
+  if (staffError) throw staffError;
+  if (!staff) return null;
+
+  if (staff.judge_id) {
+    const { data: judge, error: judgeError } = await createAdminClient()
+      .from('judges')
+      .select('usef_id, usef_id_entered_by, usef_id_updated_at')
+      .eq('id', staff.judge_id)
+      .maybeSingle();
+    if (judgeError) throw judgeError;
+    if (judge) {
+      return {
+        usefId: judge.usef_id,
+        updatedAt: judge.usef_id_updated_at,
+        enteredBy: judge.usef_id_entered_by,
+        canEdit: mySeat.role === 'judge',
+        judgeName: staff.name,
+      };
+    }
+  }
+
+  return {
+    usefId: staff.usef_id,
+    updatedAt: null,
+    enteredBy: null,
+    canEdit: mySeat.role === 'judge',
+    judgeName: staff.name,
+  };
 }
 
 const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);

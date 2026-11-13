@@ -11,6 +11,7 @@ import type {
 } from '@/modules/shows/data/horses-queries';
 import type { StableChartSummary } from '@/modules/shows/data/stable-chart-queries';
 import { AddHorseDialog } from '@/modules/shows/ui/horses/add-horse-dialog';
+import { HorseUsefCard } from '@/modules/shows/ui/horses/horse-usef-card';
 import {
   useRemindHorseDocuments,
   useReviewHorseDocument,
@@ -283,10 +284,13 @@ export function HorsesScreen({
   stableChartSummary,
   publicId,
   readOnly = false,
+  viewerId = null,
 }: {
   data: HorsesPageData;
   stableChartSummary: StableChartSummary | null;
   publicId?: string;
+  /** The signed-in user, so USEF detail stamps can say "you". */
+  viewerId?: string | null;
   /** Show staff view: hides adding horses, document review, reminders and the stable-chart editor link. */
   readOnly?: boolean;
 }) {
@@ -612,6 +616,15 @@ export function HorsesScreen({
                             </button>
                           )}
                         </div>
+                        {!readOnly && row.horseId && row.usef && (
+                          <HorseUsefCard
+                            key={row.horseId}
+                            horseId={row.horseId}
+                            horseName={row.horseName}
+                            usef={row.usef}
+                            viewerId={viewerId}
+                          />
+                        )}
                       </td>
                     </tr>
                   )}

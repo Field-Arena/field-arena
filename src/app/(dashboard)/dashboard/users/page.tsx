@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
 import { listAllUsersAcrossShows, getRingCoverageByShow } from '@/modules/staff/data/queries';
 import { listClasses } from '@/modules/shows/data/setup-queries';
+import { listJudgePickerOptions } from '@/modules/judges/data/queries';
 import { UsersDirectory } from '@/modules/staff/ui/users-directory';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
 import type { ClassOption } from '@/modules/staff/ui/add-user-dialog';
@@ -27,10 +28,13 @@ export default async function UsersPage({
     );
   }
 
-  const [users, classLists, ringCoverageByShow] = await Promise.all([
+  // The Users page is the organization's own staff screen (Organizers and the
+  // Show Admins they staff), so the saved-judges picker is scoped to that org.
+  const [users, classLists, ringCoverageByShow, judges] = await Promise.all([
     listAllUsersAcrossShows(context.shows),
     Promise.all(context.shows.map((show) => listClasses(show.id))),
     getRingCoverageByShow(context.shows),
+    context.orgId ? listJudgePickerOptions(context.orgId) : Promise.resolve([]),
   ]);
 
   const classesByShow: Record<string, ClassOption[]> = {};
@@ -49,6 +53,7 @@ export default async function UsersPage({
       initialShowFilter={requestedShowId ? context.currentShow.id : ''}
       classesByShow={classesByShow}
       ringCoverageByShow={ringCoverageByShow}
+      judges={judges}
     />
   );
 }

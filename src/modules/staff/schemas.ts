@@ -42,6 +42,12 @@ export const addStaffUserSchema = z
   });
 export type AddStaffUserInput = z.input<typeof addStaffUserSchema>;
 
+export const addJudgesToShowSchema = z.object({
+  showId: z.uuid('Choose a show'),
+  judgeIds: z.array(z.uuid()).min(1, 'Choose at least one judge').max(50),
+});
+export type AddJudgesToShowInput = z.input<typeof addJudgesToShowSchema>;
+
 export const changeStaffRoleSchema = z.object({
   staffId: z.uuid(),
   role: z.enum(GRANTABLE_ROLES),

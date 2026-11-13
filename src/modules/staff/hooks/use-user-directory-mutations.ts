@@ -4,6 +4,7 @@ import { unwrap } from '@/shared/lib/unwrap-action';
 import { useRefreshingMutation } from '@/shared/hooks/use-refreshing-mutation';
 import {
   addStaffUser,
+  addJudgesToShow,
   changeStaffRole,
   updateStaffPermissions,
   removeStaffAssignment,
@@ -16,6 +17,7 @@ import {
 } from '../data/mutations';
 import type {
   AddStaffUserInput,
+  AddJudgesToShowInput,
   ChangeStaffRoleInput,
   UpdateStaffPermissionsInput,
   ImportStaffListInput,
@@ -32,6 +34,22 @@ export function useAddStaffUser(options?: { onSuccess?: () => void }) {
     {
       successMessage: ({ email }) => `${email} added.`,
       errorFallback: 'Could not add this user',
+      onSuccess: () => {
+        options?.onSuccess?.();
+      },
+    },
+  );
+}
+
+export function useAddJudgesToShow(options?: { onSuccess?: () => void }) {
+  return useRefreshingMutation(
+    async (input: AddJudgesToShowInput) => unwrap(await addJudgesToShow(input)),
+    {
+      successMessage: ({ added, skipped }) =>
+        skipped > 0
+          ? `${String(added)} added, ${String(skipped)} already on this show.`
+          : `${String(added)} judge${added === 1 ? '' : 's'} added.`,
+      errorFallback: 'Could not add these judges',
       onSuccess: () => {
         options?.onSuccess?.();
       },

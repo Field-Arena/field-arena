@@ -15,6 +15,7 @@ import {
   setCollective,
   setFinalRemarks,
   setMark,
+  setMyUsefId,
   setRemark,
   skipRide,
   submitScoresheet,
@@ -62,6 +63,14 @@ function toastedMutationOptions(errorMessage: string) {
       toast.error(error instanceof Error ? error.message : errorMessage);
     },
   };
+}
+
+/* Not queued with the marks: saving an ID must never wait behind, or block, scoring. */
+export function useSetMyUsefId() {
+  return useMutation({
+    mutationFn: setMyUsefId,
+    ...toastedMutationOptions('Could not save your USEF ID'),
+  });
 }
 
 export function useSetMark() {

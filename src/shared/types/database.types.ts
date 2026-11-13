@@ -893,6 +893,7 @@ export type Database = {
           stable: string | null
           trainer: string | null
           trainer_phone: string | null
+          usef_field_meta: Json
           usef_number: string | null
           passport_number: string | null
           fei_number: string | null
@@ -925,6 +926,7 @@ export type Database = {
           stable?: string | null
           trainer?: string | null
           trainer_phone?: string | null
+          usef_field_meta?: Json
           usef_number?: string | null
           passport_number?: string | null
           fei_number?: string | null
@@ -957,6 +959,7 @@ export type Database = {
           stable?: string | null
           trainer?: string | null
           trainer_phone?: string | null
+          usef_field_meta?: Json
           usef_number?: string | null
           passport_number?: string | null
           fei_number?: string | null
@@ -1164,6 +1167,65 @@ export type Database = {
           org_id?: string | null
         }
         Relationships: []
+      }
+      judges: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          name: string
+          org_id: string
+          phone: string | null
+          updated_at: string
+          usef_id: string | null
+          usef_id_entered_by: string | null
+          usef_id_source: string | null
+          usef_id_updated_at: string | null
+          usef_id_verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          name: string
+          org_id: string
+          phone?: string | null
+          updated_at?: string
+          usef_id?: string | null
+          usef_id_entered_by?: string | null
+          usef_id_source?: string | null
+          usef_id_updated_at?: string | null
+          usef_id_verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          name?: string
+          org_id?: string
+          phone?: string | null
+          updated_at?: string
+          usef_id?: string | null
+          usef_id_entered_by?: string | null
+          usef_id_source?: string | null
+          usef_id_updated_at?: string | null
+          usef_id_verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "judges_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       member_database: {
         Row: {
@@ -2186,6 +2248,7 @@ export type Database = {
           first_name: string | null
           id: string
           is_steward: boolean | null
+          judge_id: string | null
           last_name: string | null
           name: string
           permissions: Json | null
@@ -2206,6 +2269,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           is_steward?: boolean | null
+          judge_id?: string | null
           last_name?: string | null
           name: string
           permissions?: Json | null
@@ -2226,6 +2290,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           is_steward?: boolean | null
+          judge_id?: string | null
           last_name?: string | null
           name?: string
           permissions?: Json | null
@@ -2239,6 +2304,13 @@ export type Database = {
           usef_id_verified_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "staff_assignments_judge_id_fkey"
+            columns: ["judge_id"]
+            isOneToOne: false
+            referencedRelation: "judges"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "staff_assignments_show_id_fkey"
             columns: ["show_id"]

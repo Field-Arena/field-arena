@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { parseInput } from '@/shared/lib/action-result';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getMySeat, getTestForClass } from '@/modules/scoring/data/queries';
@@ -33,6 +34,7 @@ import {
   setCollectiveSchema,
   setFinalRemarksSchema,
   setMarkSchema,
+  setMyUsefIdSchema,
   setRemarkSchema,
   skipRideSchema,
   submitScoresheetSchema,
@@ -182,6 +184,79 @@ export async function setRemark(input: unknown) {
     p_patch: patch,
   });
   if (error) throw error;
+}
+
+/**
+ * A judge entering their own USEF ID from the scoresheet. Never locked: they can
+ * change it at any time, and the results export reads the current value, so a
+ * correction fixes classes they already scored too.
+ *
+ * Only the judge holding a seat on this class may do it (the same identity check
+ * the scoresheet itself uses). RLS only lets staff managers write staff rows and
+ * the judges table, so the write goes through the admin client, limited to the
+ * caller's own staff row and the judge record that row points at.
+ */
+export async function setMyUsefId(input: unknown) {
+  const parsed = parseInput(setMyUsefIdSchema, input);
+  const mySeat = await getMySeat(parsed.classId);
+  if (mySeat?.role !== 'judge') {
+    throw new Error('Only the judge on this panel can set their USEF ID.');
+  }
+
+  const usefId = parsed.usefId === '' ? null : parsed.usefId;
+  const now = new Date().toISOString();
+  const admin = createAdminClient();
+
+  const { data: staff, error: staffError } = await admin
+    .from('staff_assignments')
+    .select('id, judge_id')
+    .eq('id', mySeat.staffId)
+    .maybeSingle();
+  if (staffError) throw staffError;
+  if (!staff) throw new Error('Your judge record was not found for this show.');
+
+  if (staff.judge_id) {
+    const { error } = await admin
+      .from('judges')
+      .update({
+        usef_id: usefId,
+        usef_id_source: usefId === null ? null : 'manual',
+        usef_id_entered_by: usefId === null ? null : 'judge',
+        usef_id_verified_at: null,
+        usef_id_updated_at: now,
+        updated_at: now,
+      })
+      .eq('id', staff.judge_id);
+    if (error) throw error;
+  }
+
+  // The show's own staff row keeps a copy: the export falls back to it, and the
+  // Users page reads it.
+  const { error: mirrorError } = await admin
+    .from('staff_assignments')
+    .update({
+      usef_id: usefId,
+      usef_id_source: usefId === null ? null : 'manual',
+      usef_id_verified_at: null,
+    })
+    .eq('id', staff.id);
+  if (mirrorError) throw mirrorError;
+
+  // Other staff rows linked to the same judge (their other shows) keep in step.
+  if (staff.judge_id) {
+    const { error: siblingsError } = await admin
+      .from('staff_assignments')
+      .update({
+        usef_id: usefId,
+        usef_id_source: usefId === null ? null : 'manual',
+        usef_id_verified_at: null,
+      })
+      .eq('judge_id', staff.judge_id);
+    if (siblingsError) throw siblingsError;
+  }
+
+  revalidatePath('/dashboard/judges');
+  return { usefId, updatedAt: now };
 }
 
 export async function setFinalRemarks(input: unknown) {
