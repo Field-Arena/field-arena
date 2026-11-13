@@ -162,7 +162,7 @@ export function DemoDialog({
 
               <div>
                 <Label htmlFor="demo-org" className={LABEL}>
-                  Organization
+                  Barn or organization (optional)
                 </Label>
                 <Input
                   id="demo-org"
