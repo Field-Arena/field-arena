@@ -7,6 +7,7 @@ import type {
 } from './constants';
 import type { MasterSchedule } from './schedule-engine';
 import type { AwardsReport } from './awards-engine';
+import type { UsefSectionCode } from './utils/suggest-section-codes';
 
 export interface ArrivalDepartureRow {
   riderId: string;
@@ -576,6 +577,17 @@ export interface SelectedClassOption {
    * catalog); 'official' — linked to an official Scoring Catalog sheet with
    * something to score; 'none' — neither, so it still needs a test. */
   testStatus: ClassTestStatus;
+  /** USEF section code for the results export; null until one is picked. */
+  sectionCode: string | null;
+  sectionName: string | null;
+}
+
+/** Select Events' USEF setup: competition ID, classes and the code list. */
+export interface UsefSetupData {
+  showId: string;
+  usefCompId: string;
+  classes: SelectedClassOption[];
+  sectionCodes: UsefSectionCode[];
 }
 
 export type ClassTestStatus = 'official' | 'custom' | 'none';
@@ -983,6 +995,7 @@ export interface ShowResultRow {
   classId: string;
   className: string;
   division: string | null;
+  sectionCode: string | null;
   entryId: string;
   num: string;
   rider: string;
