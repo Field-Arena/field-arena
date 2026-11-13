@@ -48,12 +48,12 @@ export function ClassBlock({
   const minutes = data.rideMinutesByClass[block.cls] ?? 0;
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 print:mb-2.5 print:break-inside-avoid">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2.5">
-        <span className="text-ink-deep text-[13.5px] font-bold">
+        <span className="text-ink-deep text-[13.5px] font-bold print:text-[11px]">
           {block.label}
           {block.continues && <span className="ml-1.5 font-normal text-[#7A8781]">Continues</span>}
-          <span className="ml-1.5 text-[12px] font-normal text-[#7A8781]">
+          <span className="ml-1.5 text-[12px] font-normal text-[#7A8781] print:hidden">
             — Day {day + 1}, {dayDate(data.startDate, day)}
           </span>
         </span>
@@ -112,11 +112,11 @@ export function ClassBlock({
         </span>
       </div>
 
-      <div className="mb-1 text-[12px] text-[#7A8781]">
+      <div className="mb-1 text-[12px] text-[#7A8781] print:mb-0.5 print:text-[9.5px]">
         {judges.length > 0 ? judges.join(' · ') : 'No judge assigned'}
       </div>
 
-      <Table className="w-full border-collapse text-[12.5px]">
+      <Table className="w-full border-collapse text-[12.5px] print:text-[10px]">
         <TableBody className="[&_tr:last-child]:border-b">
           {block.rides.map((ride, index) => {
             const scratched = ride.status === 'scratched';
@@ -152,11 +152,11 @@ export function ClassBlock({
                 className={cn(
                   'border-b border-[#F1F4F3] hover:bg-transparent',
                   scratched && 'text-[#98A29D] line-through',
-                  isCurrent && 'bg-[#FCF3E4]',
+                  isCurrent && 'bg-[#FCF3E4] print:bg-transparent',
                   movable && 'cursor-grab',
                 )}
               >
-                <TableCell className="w-[112px] py-1.5 font-semibold whitespace-normal">
+                <TableCell className="w-[112px] py-1.5 font-semibold whitespace-normal print:w-[62px] print:py-[2px] print:whitespace-nowrap">
                   {fmtTime(ride.start)}
                   {isCurrent && (
                     <span className="ml-1 text-[10px] font-bold text-[#8A6D14] print:hidden">
@@ -164,7 +164,7 @@ export function ClassBlock({
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="py-1.5 whitespace-normal">
+                <TableCell className="py-1.5 whitespace-normal print:py-[2px]">
                   {movable && (
                     <span
                       aria-hidden
@@ -185,7 +185,7 @@ export function ClassBlock({
                     {ride.name}
                   </span>
                 </TableCell>
-                <TableCell className="w-[70px] py-1.5 whitespace-normal text-[#7A8781]">
+                <TableCell className="w-[70px] py-1.5 whitespace-normal text-[#7A8781] print:w-[34px] print:py-[2px]">
                   {ride.division !== 'O' && ride.division}
                   {ride.qualifying && (
                     <span
@@ -196,7 +196,7 @@ export function ClassBlock({
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="w-[64px] py-1.5 text-right font-semibold whitespace-normal">
+                <TableCell className="w-[64px] py-1.5 text-right font-semibold whitespace-normal print:w-[42px] print:py-[2px]">
                   {score ?? ''}
                 </TableCell>
                 <TableCell className="w-[74px] py-1.5 text-right whitespace-normal print:hidden">
