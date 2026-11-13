@@ -1,6 +1,7 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import type { UsefSectionCode } from '@/modules/shows/utils/suggest-section-codes';
 import {
   DEFAULT_SHOW_EXPENSES,
   PNL_CATEGORY_ORDER,
@@ -1263,6 +1264,73 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
   }));
 }
 
+export async function listUsefSectionCodes(): Promise<UsefSectionCode[]> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('usef_section_codes')
+    .select('code, division_name, section_name, sort_order')
+    .order('sort_order')
+    .limit(2000);
+  if (error) throw error;
+
+  return data.map((row) => ({
+    code: row.code,
+    divisionName: row.division_name,
+    sectionName: row.section_name,
+    sortOrder: row.sort_order,
+  }));
+}
+
+export interface UsefSetupData {
+  showId: string;
+  usefCompId: string;
+  classes: SelectedClassOption[];
+  sectionCodes: UsefSectionCode[];
+}
+
+export async function getUsefSetupData(showId: string): Promise<UsefSetupData | null> {
+  const supabase = await createServerClient();
+
+  const [show, classesRes, sectionCodes] = await Promise.all([
+    supabase.from('shows').select('id, usef_comp_id').eq('id', showId).maybeSingle(),
+    supabase
+      .from('classes')
+      .select('id, label, division, fee, location, section_code')
+      .eq('show_id', showId)
+      .order('label'),
+    listUsefSectionCodes(),
+  ]);
+  if (show.error) throw show.error;
+  if (!show.data) return null;
+  if (classesRes.error) throw classesRes.error;
+
+  const classIds = classesRes.data.map((c) => c.id);
+  const classTestsRes = classIds.length
+    ? await supabase.from('class_tests').select('class_id').in('class_id', classIds)
+    : { data: [], error: null };
+  if (classTestsRes.error) throw classTestsRes.error;
+
+  const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
+  const sectionNameByCode = new Map(sectionCodes.map((c) => [c.code, c.sectionName]));
+
+  return {
+    showId: show.data.id,
+    usefCompId: show.data.usef_comp_id ?? '',
+    sectionCodes,
+    classes: classesRes.data.map((c) => ({
+      id: c.id,
+      label: c.label,
+      division: c.division,
+      fee: c.fee ?? 0,
+      location: c.location,
+      hasTest: classIdsWithTest.has(c.id),
+      sectionCode: c.section_code,
+      sectionName: c.section_code ? (sectionNameByCode.get(c.section_code) ?? null) : null,
+    })),
+  };
+}
+
 export interface TestBuilderClassOption {
   id: string;
   label: string;
@@ -1275,6 +1343,8 @@ export interface SelectedClassOption {
   fee: number;
   location: string | null;
   hasTest: boolean;
+  sectionCode: string | null;
+  sectionName: string | null;
 }
 
 /* The official test library (scoring_catalog, family='movement') — USEF/USDF
@@ -1378,14 +1448,15 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (show.error) throw show.error;
   if (!show.data) return null;
 
-  const [templates, catalog, classesRes] = await Promise.all([
+  const [templates, catalog, classesRes, sectionCodes] = await Promise.all([
     listTestTemplates(show.data.org_id),
     listTestCatalog(),
     supabase
       .from('classes')
-      .select('id, label, division, fee, location')
+      .select('id, label, division, fee, location, section_code')
       .eq('show_id', showId)
       .order('label'),
+    listUsefSectionCodes(),
   ]);
   if (classesRes.error) throw classesRes.error;
 
@@ -1399,6 +1470,7 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (classTestsRes.error) throw classTestsRes.error;
 
   const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
+  const sectionNameByCode = new Map(sectionCodes.map((c) => [c.code, c.sectionName]));
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
   const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
   const assignedByTemplateName: Record<string, AssignedClassOption[]> = {};
@@ -1427,6 +1499,8 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
       fee: c.fee ?? 0,
       location: c.location,
       hasTest: classIdsWithTest.has(c.id),
+      sectionCode: c.section_code,
+      sectionName: c.section_code ? (sectionNameByCode.get(c.section_code) ?? null) : null,
     })),
     assignedByTemplateId,
     assignedByTemplateName,

@@ -4,12 +4,16 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
+import { unwrap } from '@/shared/lib/unwrap-action';
+import { useRefreshingMutation } from '@/shared/hooks/use-refreshing-mutation';
 import {
   addCatalogGroup,
   addCustomClass,
   addQualTypePreset,
   createTocClass,
   removeCatalogGroup,
+  setClassSectionCode,
+  setShowUsefCompId,
   updateGroupLocation,
   updateGroupDivision,
   updateTicketWindow,
@@ -19,6 +23,8 @@ import type {
   AddCustomClassInput,
   AddQualTypePresetInput,
   CreateTocClassInput,
+  SetClassSectionCodeInput,
+  SetShowUsefCompIdInput,
   UpdateGroupLocationInput,
   UpdateGroupDivisionInput,
   UpdateTicketWindowInput,
@@ -150,4 +156,25 @@ export function useAddQualTypePreset() {
       toast.error(message(error, 'Could not add the qualifying type'));
     },
   });
+}
+
+export function useSetClassSectionCode() {
+  return useRefreshingMutation(
+    async (input: SetClassSectionCodeInput) => unwrap(await setClassSectionCode(input)),
+    {
+      successMessage: (_data, { code }) =>
+        code ? `USEF section ${code} saved` : 'USEF section cleared',
+      errorFallback: 'Could not save the USEF section code',
+    },
+  );
+}
+
+export function useSetShowUsefCompId() {
+  return useRefreshingMutation(
+    async (input: SetShowUsefCompIdInput) => unwrap(await setShowUsefCompId(input)),
+    {
+      successMessage: 'USEF competition ID saved',
+      errorFallback: 'Could not save the USEF competition ID',
+    },
+  );
 }

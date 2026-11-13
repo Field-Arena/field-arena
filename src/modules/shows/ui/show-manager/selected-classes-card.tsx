@@ -11,9 +11,45 @@ import {
 } from '@/shared/ui/shadcn/table';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
+import { SectionCodeCell } from '@/modules/shows/ui/show-manager/section-code-picker';
 import type { SelectedClassOption } from '@/modules/shows/data/setup-queries';
+import type { UsefSectionCode } from '@/modules/shows/utils/suggest-section-codes';
 
-export function SelectedClassesCard({ classes }: { classes: SelectedClassOption[] }) {
+export interface UsefSectionPicking {
+  showId: string;
+  codes: UsefSectionCode[];
+}
+
+export function UsefSectionBanner({ classes }: { classes: SelectedClassOption[] }) {
+  if (classes.length === 0) return null;
+  const missing = classes.filter((c) => !c.sectionCode).length;
+
+  if (missing === 0) {
+    return (
+      <p className="text-[13px] font-bold text-[#1A5B3C]">
+        ✓ All classes have a USEF section code.
+      </p>
+    );
+  }
+  return (
+    <div
+      role="status"
+      className="rounded-[10px] border border-[#E0A800] bg-[#FCF3E4] px-4 py-2.5 text-[13px] font-semibold text-[#5C4500]"
+    >
+      Every class reports to USEF with a section code. {String(missing)} of {String(classes.length)}{' '}
+      {missing === 1 ? 'class' : 'classes'} still need{missing === 1 ? 's' : ''} one — pick it from
+      the USEF list in the USEF section column.
+    </div>
+  );
+}
+
+export function SelectedClassesCard({
+  classes,
+  usef,
+}: {
+  classes: SelectedClassOption[];
+  usef?: UsefSectionPicking;
+}) {
   const byDivision = new Map<string, SelectedClassOption[]>();
   for (const cls of classes) {
     const key = cls.division ?? 'No division set';
@@ -57,6 +93,14 @@ export function SelectedClassesCard({ classes }: { classes: SelectedClassOption[
               >
                 Location
               </TableHead>
+              {usef && (
+                <TableHead
+                  scope="col"
+                  className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                >
+                  USEF section
+                </TableHead>
+              )}
               <TableHead
                 scope="col"
                 className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
@@ -76,21 +120,23 @@ export function SelectedClassesCard({ classes }: { classes: SelectedClassOption[
               <Fragment key={division}>
                 <TableRow className="border-b border-[#EEF2F0] hover:bg-transparent">
                   <TableCell
-                    colSpan={4}
+                    colSpan={usef ? 5 : 4}
                     className="text-forest bg-[#F6FBF8] px-2.5 py-1.5 text-[11.5px] font-bold tracking-[.04em] uppercase"
                   >
                     {division}
                   </TableCell>
                 </TableRow>
                 {rows.map((cls) => (
-                  <TableRow
-                    key={cls.id}
-                    className="border-b border-[#EEF2F0] hover:bg-transparent"
-                  >
+                  <TableRow key={cls.id} className="border-b border-[#EEF2F0] hover:bg-transparent">
                     <TableCell className="px-2.5 py-2 whitespace-normal">{cls.label}</TableCell>
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       {cls.location ?? 'No location set'}
                     </TableCell>
+                    {usef && (
+                      <TableCell className="px-2.5 py-2 whitespace-normal">
+                        <SectionCodeCell showId={usef.showId} cls={cls} codes={usef.codes} />
+                      </TableCell>
+                    )}
                     <TableCell className="px-2.5 py-2 text-right whitespace-normal">
                       {formatMoney(cls.fee)}
                     </TableCell>

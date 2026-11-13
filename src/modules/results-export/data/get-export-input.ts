@@ -182,6 +182,8 @@ export async function getExportInput(showId: string): Promise<ExportInput | null
 
     return {
       classId: e.class_id,
+      riderKey: e.rider_id ?? `name:${e.rider ?? e.id}`,
+      horseKey: e.horse_id ?? `name:${e.horse ?? e.id}`,
       num: text(e.num),
       status: e.status,
       finalPct: e.final_pct,

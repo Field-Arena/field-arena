@@ -32,6 +32,8 @@ const cls = (over: Partial<ExportClass> = {}): ExportClass => ({
 
 const entry = (over: Partial<ExportEntry> = {}): ExportEntry => ({
   classId: 'c1',
+  riderKey: 'rider-1',
+  horseKey: 'horse-1',
   num: '117',
   status: 'scored',
   finalPct: '68.5',

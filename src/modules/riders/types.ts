@@ -131,6 +131,25 @@ export interface HorseWithDocumentUrls {
   height: string | null;
   farrier: string | null;
   is_stallion: boolean | null;
+  usef_number: string | null;
+  fei_number: string | null;
+  passport_number: string | null;
+  registration_number: string | null;
+  year_of_birth: string | null;
+  breed: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+  owner_usef: string | null;
+  owner_usef_exempt_reason: string | null;
+  owner_street: string | null;
+  owner_city: string | null;
+  owner_state: string | null;
+  owner_zip: string | null;
+  trainer_usef: string | null;
+  trainer_street: string | null;
+  trainer_city: string | null;
+  trainer_state: string | null;
+  trainer_zip: string | null;
   created_at: string;
   documentUploads: HorseDocumentUploadWithUrl[];
 }

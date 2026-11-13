@@ -2,10 +2,8 @@
 
 import Link from 'next/link';
 import type { ShowResultRow } from '@/modules/shows/data/queries';
-import { buildResultsCsv } from '@/modules/shows/utils/build-results-csv';
-import { resultsCsvFilename } from '@/modules/shows/utils/results-csv-filename';
+import { ExportResultsMenu } from '@/modules/results-export/ui/export-results-menu';
 import { Card } from '@/shared/ui/organizer/card';
-import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import {
   Table,
   TableBody,
@@ -16,11 +14,12 @@ import {
 } from '@/shared/ui/shadcn/table';
 
 export function ResultsPanel({
-  showName,
+  showRef,
   rows,
   canExportRoster,
 }: {
-  showName: string;
+  /** The show's slug or id, used to build the export links. */
+  showRef: string;
   rows: ShowResultRow[];
   canExportRoster: boolean;
 }) {
@@ -39,29 +38,10 @@ export function ResultsPanel({
       <div className="flex items-center justify-between gap-4">
         <p className="text-[13.5px] text-[#5A6B63]">
           Every class&apos;s riders and scores, ranked per test for Test of Choice classes and
-          combined for classes sharing a championship. Unscored riders are included so this
-          doubles as a full roster.
+          combined for classes sharing a championship. Unscored riders are included so this doubles
+          as a full roster.
         </p>
-        {canExportRoster && (
-          <PrimaryButton
-            type="button"
-            className="flex-none whitespace-nowrap"
-            onClick={() => {
-              const csv = buildResultsCsv(rows);
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = resultsCsvFilename(showName);
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            }}
-          >
-            Export CSV
-          </PrimaryButton>
-        )}
+        {canExportRoster && <ExportResultsMenu showRef={showRef} />}
       </div>
 
       {byUnit.size === 0 ? (
@@ -76,6 +56,9 @@ export function ResultsPanel({
           const pooledClasses = pooled
             ? [...new Set(unitRows.map((r) => r.className))].sort((a, b) => a.localeCompare(b))
             : [];
+          const sectionCodes = [
+            ...new Set(unitRows.map((r) => r.sectionCode).filter((c): c is string => !!c)),
+          ];
           const distinctClasses = [
             ...new Map(unitRows.map((r) => [r.classId, r.className])).entries(),
           ];
@@ -84,6 +67,11 @@ export function ResultsPanel({
               <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <h3 className="text-ink-deep font-[Newsreader,serif] text-[17px] font-semibold">
                   {unitLabel}
+                  {sectionCodes.length > 0 && (
+                    <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
+                      · Section {sectionCodes.join(', ')}
+                    </span>
+                  )}
                   {unitRows[0]?.division ? (
                     <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
                       ({unitRows[0].division})
@@ -133,7 +121,10 @@ export function ResultsPanel({
                         {row.ribbonName && (
                           <span
                             className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                            style={{ background: row.ribbonBg ?? undefined, color: row.ribbonFg ?? undefined }}
+                            style={{
+                              background: row.ribbonBg ?? undefined,
+                              color: row.ribbonFg ?? undefined,
+                            }}
                           >
                             {row.ribbonPlace} · {row.ribbonName}
                           </span>

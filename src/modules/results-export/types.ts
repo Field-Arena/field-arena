@@ -32,6 +32,9 @@ export interface ExportPerson {
 
 export interface ExportEntry {
   classId: string;
+  /** Stable identity of the rider / horse, so the checklist counts each once. */
+  riderKey: string;
+  horseKey: string;
   /** Back / bridle number. */
   num: string | null;
   /** class_entries.status: scheduled, scored, scratched or disqualified. */
