@@ -79,6 +79,9 @@ export const updateStaffDetailsSchema = z.object({
     .default(''),
 
   isSteward: z.boolean().optional().default(false),
+
+  /** USEF ID (digits only). Omit to leave it as it is; send '' to clear it. */
+  usefId: z.string().trim().max(20).regex(/^\d*$/, 'A USEF ID is numbers only').optional(),
 });
 export type UpdateStaffDetailsInput = z.input<typeof updateStaffDetailsSchema>;
 

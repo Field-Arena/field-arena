@@ -671,3 +671,12 @@ alter table public.horses
 alter table public.riders
   add column if not exists usef_exempt_reason text,
   add column if not exists usdf_number text;
+
+-- Judges' USEF IDs, reported on every results row they judged. Entered by hand
+-- for now; usef_id_source records where the value came from so the planned USEF
+-- integration can refresh synced values without overwriting one an organizer
+-- typed in, and usef_id_verified_at is set only when USEF itself confirmed it.
+alter table public.staff_assignments
+  add column if not exists usef_id text,
+  add column if not exists usef_id_source text check (usef_id_source in ('manual', 'usef')),
+  add column if not exists usef_id_verified_at timestamptz;

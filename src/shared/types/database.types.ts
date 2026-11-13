@@ -2194,6 +2194,9 @@ export type Database = {
           show_id: string
           status: string | null
           user_id: string | null
+          usef_id: string | null
+          usef_id_source: string | null
+          usef_id_verified_at: string | null
         }
         Insert: {
           can_scratch_skip_dq?: boolean | null
@@ -2211,6 +2214,9 @@ export type Database = {
           show_id: string
           status?: string | null
           user_id?: string | null
+          usef_id?: string | null
+          usef_id_source?: string | null
+          usef_id_verified_at?: string | null
         }
         Update: {
           can_scratch_skip_dq?: boolean | null
@@ -2228,6 +2234,9 @@ export type Database = {
           show_id?: string
           status?: string | null
           user_id?: string | null
+          usef_id?: string | null
+          usef_id_source?: string | null
+          usef_id_verified_at?: string | null
         }
         Relationships: [
           {

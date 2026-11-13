@@ -288,6 +288,13 @@ export async function updateStaffDetails(input: unknown): Promise<ActionResult<{
         email: parsed.email.trim().toLowerCase(),
         phone: parsed.phone || null,
         is_steward: parsed.isSteward,
+        // Only touched when the caller sends it. A hand-typed ID is 'manual'
+        // and unverified; the USEF integration will set 'usef' itself.
+        ...(parsed.usefId === undefined
+          ? {}
+          : parsed.usefId === ''
+            ? { usef_id: null, usef_id_source: null, usef_id_verified_at: null }
+            : { usef_id: parsed.usefId, usef_id_source: 'manual', usef_id_verified_at: null }),
       })
       .eq('id', parsed.staffId);
     if (error) throw error;

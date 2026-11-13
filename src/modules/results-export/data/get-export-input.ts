@@ -108,7 +108,7 @@ export async function getExportInput(showId: string): Promise<ExportInput | null
     staffIds.length
       ? supabase
           .from('staff_assignments')
-          .select('id, name, first_name, last_name')
+          .select('id, name, first_name, last_name, usef_id')
           .in('id', staffIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -144,8 +144,7 @@ export async function getExportInput(showId: string): Promise<ExportInput | null
       seatId: seat.seat_id,
       firstName: text(staff.first_name) ?? fromName.first,
       lastName: text(staff.last_name) ?? fromName.last,
-      // Judges' USEF IDs are not recorded anywhere yet.
-      usefId: null,
+      usefId: text(staff.usef_id),
     });
     judgesByClass.set(seat.class_id, list);
   }
