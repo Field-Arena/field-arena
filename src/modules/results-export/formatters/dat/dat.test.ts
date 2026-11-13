@@ -12,12 +12,15 @@ test('an unknown .dat format is refused', () => {
   assert.throws(() => getDatFormatter('nope'), /Unknown \.dat format/);
 });
 
-test('usef-universal is tab-delimited with CRLF and keeps every column', () => {
-  const out = getDatFormatter('usef-universal').format(['A', 'B', 'C'], [['x', null, 3]]);
-  assert.equal(out, 'A\tB\tC\r\nx\t\t3\r\n');
+test('the placeholder is pipe-delimited with CRLF and keeps every column', () => {
+  const out = getDatFormatter('placeholder').format(['A', 'B', 'C'], [['x', null, 3]]);
+  assert.equal(out, 'A|B|C\r\nx||3\r\n');
 });
 
-test('tabs and line breaks inside values cannot break the layout', () => {
-  const out = getDatFormatter('usef-universal').format(['A'], [['has\ttab\nand newline']]);
-  assert.equal(out, 'A\r\nhas tab and newline\r\n');
+test('pipes, tabs and line breaks inside values cannot break the layout', () => {
+  const out = getDatFormatter('placeholder').format(
+    ['A', 'B'],
+    [['has|pipe\ttab\nand newline', 'ok']],
+  );
+  assert.equal(out, 'A|B\r\nhas pipe tab and newline|ok\r\n');
 });

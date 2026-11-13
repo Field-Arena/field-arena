@@ -6,6 +6,7 @@ import { buildUsefRows } from '@/modules/results-export/utils/build-usef-rows';
 import { exportFilename } from '@/modules/results-export/utils/filename';
 import { toCsv } from '@/modules/results-export/formatters/csv';
 import { getDatFormatter } from '@/modules/results-export/formatters/dat';
+import { XLSX_CONTENT_TYPE, toXlsx } from '@/modules/results-export/formatters/xlsx';
 import { isExportFormat } from '@/modules/results-export/types';
 
 /* GET /api/shows/{show}/results-export?format=csv|dat|xlsx
@@ -53,8 +54,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ sho
         headers: headers(formatter.contentType, formatter.extension),
       });
     }
-    // .xlsx needs the exceljs package, which is not installed yet.
-    return NextResponse.json({ error: 'Excel export is not available yet.' }, { status: 501 });
+    return new NextResponse(new Uint8Array(toXlsx(bundle.header, bundle.rows)), {
+      headers: headers(XLSX_CONTENT_TYPE, 'xlsx'),
+    });
   } catch (error) {
     if (error instanceof ExportAccessError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

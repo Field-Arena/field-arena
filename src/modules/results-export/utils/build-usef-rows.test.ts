@@ -86,7 +86,7 @@ test('fills show, class, rider, horse, owner and trainer columns', () => {
   assert.equal(row[COL.classNumber], 1);
   assert.equal(row[COL.classTitle], 'Training Level Test 1');
   assert.equal(row[COL.sectionCode], '1502');
-  assert.equal(row[COL.placing], '1');
+  assert.equal(row[COL.placing], 1);
   assert.equal(row[COL.exhibitorNumber], 117);
   assert.equal(row[COL.horseName], 'Juniper M');
   assert.equal(row[COL.horseRegistration], 'R9');
@@ -125,7 +125,7 @@ test('every entry is listed, with letter codes for rides that did not place', ()
     }),
   );
   const placings = out.rows.map((r) => r[COL.placing]);
-  assert.deepEqual(placings, ['1', '2', '0', 'S', 'E']);
+  assert.deepEqual(placings, [1, 2, 0, 'S', 'E']);
   assert.equal(out.rows[0]?.[COL.numEntries], 5);
   assert.equal(out.rows[0][COL.numberCompeted], 4);
   assert.equal(out.rows[0][COL.numberCompleted], 3);

@@ -1,13 +1,13 @@
 import type { DatFormatter } from './types';
-import { usefUniversalDat } from './usef-universal';
+import { placeholderDat } from './placeholder';
 
 export type { DatFormatter } from './types';
 
 export const DAT_FORMATTERS: Readonly<Record<string, DatFormatter>> = {
-  [usefUniversalDat.id]: usefUniversalDat,
+  [placeholderDat.id]: placeholderDat,
 };
 
-export const DEFAULT_DAT_FORMAT = usefUniversalDat.id;
+export const DEFAULT_DAT_FORMAT = placeholderDat.id;
 
 export function getDatFormatter(id: string = DEFAULT_DAT_FORMAT): DatFormatter {
   const formatter = DAT_FORMATTERS[id];

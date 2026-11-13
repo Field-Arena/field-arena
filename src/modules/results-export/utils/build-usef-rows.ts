@@ -87,7 +87,8 @@ export function buildUsefRows(input: ExportInput): ExportBundle {
       set(COL.sectionCode, orNull(cls.sectionCode));
       set(COL.numEntries, list.length);
       set(COL.qualifier, cls.qualifying ? 'Q' : null);
-      set(COL.placing, placingFor(entry));
+      const placing = placingFor(entry);
+      set(COL.placing, /^\d+$/.test(placing) ? Number(placing) : placing);
       const bib = Number(entry.num);
       set(COL.exhibitorNumber, entry.num && Number.isFinite(bib) ? bib : orNull(entry.num));
 
