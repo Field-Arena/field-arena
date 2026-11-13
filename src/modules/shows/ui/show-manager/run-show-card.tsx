@@ -1,19 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import { env } from '@/shared/lib/env';
 
 import { toast } from 'sonner';
 import { Card, Eyebrow } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton, ghostButtonClass } from '@/shared/ui/organizer/buttons';
-import { fa } from '@/shared/lib/organizer-theme';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import { Input } from '@/shared/ui/shadcn/input';
 import {
   useOpenTicketSales,
   useCloseTicketSales,
   useApproveSchedule,
 } from '@/modules/shows/hooks/use-run-show-mutations';
-import type { RunShowData } from '@/modules/shows/data/queries';
+import type { RunShowData } from '@/modules/shows/types';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
@@ -26,14 +25,11 @@ export function RunShowCard({ data }: { data: RunShowData }) {
   return (
     <>
       <Card className={SM_CARD_PAD}>
-        <h2 className={SM_SECTION_HEAD}>Run Show</h2>
+        <h2 className={SM_SECTION_HEAD}>Run Show — day-of control</h2>
         <p className={SM_NOTE}>Where this show stands right now, and the day-of actions for it.</p>
-        <p className="mb-5 text-[12px] text-[#98A29D]">
-          Stage and vitals are shown at the top of this page.
-        </p>
 
         <Eyebrow className="mb-2.5 block">Results</Eyebrow>
-        <p className="text-ink-deep mb-5 text-[13.5px]">
+        <p className="mb-5 text-[13.5px] text-[#101828]">
           {data.classResults.total === 0
             ? 'No classes on this show yet.'
             : `${String(data.classResults.resultsPublished)} of ${String(data.classResults.total)} classes have published results, ${String(data.classResults.scoringOpen)} open for scoring.`}
@@ -98,38 +94,35 @@ export function RunShowCard({ data }: { data: RunShowData }) {
 
         {data.published && (
           <div
-            className="mt-5 rounded-xl p-4"
-            style={{ background: fa.greenTint, border: `1px solid ${fa.greenLine}` }}
+            className={`fa-ticket-bar !mt-5 !mb-0 ${data.runner.ticketClosed ? 'fa-closed' : ''}`}
           >
-            <p className="text-[13.5px]" style={{ color: fa.green }}>
-              <strong>✓ Published</strong> — riders can see this show and buy tickets
-              {data.publishedAt ? ` since ${formatTimestamp(data.publishedAt)}` : ''}.
-            </p>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <Input
-                type="text"
-                readOnly
-                value={ticketLinkUrl(publicId)}
-                onClick={(event) => {
-                  event.currentTarget.select();
-                }}
-                className="text-ink-deep h-auto min-w-[220px] flex-1 rounded-md border border-[#D9E1DD] bg-white px-2.5 py-[7px] text-[12.5px]"
-              />
-              <GhostButton
+            <div className="fa-tb-status">
+              <span className="fa-tb-dot" />
+              <div>
+                <b>{data.runner.ticketClosed ? 'Ticket sales closed' : 'Ticket sales open'}</b>
+                <span>
+                  Published{data.publishedAt ? ` ${formatTimestamp(data.publishedAt)}` : ''} —
+                  riders can see this show
+                </span>
+              </div>
+            </div>
+            <div className="fa-tb-link">
+              <span className="fa-tb-url">{ticketLinkUrl(publicId)}</span>
+              <button
+                type="button"
+                className="fa-btn fa-btn-ghost fa-btn-sm"
                 onClick={() => {
                   void copyTicketLink(publicId);
                 }}
               >
                 Copy link
-              </GhostButton>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+              </button>
               <Link
                 href={`/rider/shows/${publicId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 prefetch={false}
-                className={ghostButtonClass}
+                className="fa-btn fa-btn-ghost fa-btn-sm"
               >
                 Preview ticket page ↗
               </Link>
@@ -144,7 +137,7 @@ export function RunShowCard({ data }: { data: RunShowData }) {
 }
 
 function ticketLinkUrl(showId: string): string {
-  return `${typeof window !== 'undefined' ? window.location.origin : ''}/rider/shows/${showId}`;
+  return `${env.siteUrl}/rider/shows/${showId}`;
 }
 
 async function copyTicketLink(showId: string): Promise<void> {
@@ -158,7 +151,7 @@ async function copyTicketLink(showId: string): Promise<void> {
 }
 
 async function copyVendorApplyLink(showId: string): Promise<void> {
-  const url = `${window.location.origin}/vendor-apply/${showId}`;
+  const url = `${env.siteUrl}/vendor-apply/${showId}`;
   try {
     await navigator.clipboard.writeText(url);
     toast.success('Vendor application link copied.');

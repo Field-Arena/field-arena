@@ -5,6 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { riderDetailsFormSchema, type RiderDetailsFormInput } from '@/modules/riders/schemas';
 import { useUpdateRiderProfile } from '@/modules/riders/hooks/use-rider-profile-mutations';
 import type { RiderRow } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
+import { sanitizeMembershipNumber } from '@/modules/riders/utils/sanitize-membership-number';
+import { withSanitizer } from '@/shared/lib/format/input-sanitize';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthSubmit } from '@/shared/ui/auth/auth-primitives';
 
@@ -15,6 +19,7 @@ export function RiderDetailsForm({ rider }: { rider: RiderRow }) {
   const alreadySet = Boolean(rider.dob);
   const form = useForm<RiderDetailsFormInput>({
     resolver: zodResolver(riderDetailsFormSchema),
+    mode: 'onTouched',
     defaultValues: {
       usef: rider.usef ?? '',
       fei: rider.fei ?? '',
@@ -92,17 +97,24 @@ export function RiderDetailsForm({ rider }: { rider: RiderRow }) {
           <AuthField
             label="USEF number"
             placeholder={`${TYPE_HERE} e.g. 5551234`}
-            {...form.register('usef')}
+            inputMode="numeric"
+            maxLength={RIDER_FIELD_MAX.membershipNumber}
+            error={errors.usef?.message}
+            {...withSanitizer(form.register('usef'), sanitizeMembershipNumber)}
           />
           <AuthField
             label="FEI number"
             placeholder={`${TYPE_HERE} e.g. 10012345`}
-            {...form.register('fei')}
+            inputMode="numeric"
+            maxLength={RIDER_FIELD_MAX.membershipNumber}
+            error={errors.fei?.message}
+            {...withSanitizer(form.register('fei'), sanitizeMembershipNumber)}
           />
 
           <AuthField
             label="Date of birth"
             type="date"
+            max={new Date().toISOString().slice(0, 10)}
             error={errors.dob?.message}
             {...form.register('dob')}
           />
@@ -116,26 +128,30 @@ export function RiderDetailsForm({ rider }: { rider: RiderRow }) {
             <AuthField
               label="Contact first name"
               placeholder={TYPE_HERE}
+              maxLength={RIDER_FIELD_MAX.name}
               error={errors.ecFirstName?.message}
               {...form.register('ecFirstName')}
             />
             <AuthField
               label="Contact last name"
               placeholder={TYPE_HERE}
+              maxLength={RIDER_FIELD_MAX.name}
               error={errors.ecLastName?.message}
               {...form.register('ecLastName')}
             />
             <AuthField
               label="Relationship"
               placeholder={`${TYPE_HERE} e.g. Spouse`}
+              maxLength={RIDER_FIELD_MAX.name}
+              error={errors.ecRel?.message}
               {...form.register('ecRel')}
             />
             <AuthField
               label="Contact phone"
-              type="tel"
+              {...PHONE_INPUT_PROPS}
               placeholder={TYPE_HERE}
               error={errors.ecPhone?.message}
-              {...form.register('ecPhone')}
+              {...withSanitizer(form.register('ecPhone'), sanitizePhoneInput)}
             />
           </div>
         </div>

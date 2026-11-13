@@ -26,14 +26,14 @@ export function BrandingSlot({
 
   return (
     <div>
-      <div className="text-ink-deep text-[13px] font-bold">{label}</div>
-      <div className="mb-2 text-[11.5px] text-[#98A29D]">{hint}</div>
+      <div className="text-[13px] font-bold text-[#101828]">{label}</div>
+      <div className="mb-2 text-[11.5px] text-[#8A94A3]">{hint}</div>
 
       <Label
         className={cn(
           'grid min-h-[104px] cursor-pointer place-items-center gap-1.5 rounded-[10px]',
-          'border border-dashed border-[#D9E1DD] bg-white p-3 text-center transition-colors',
-          'hover:border-gold',
+          'border border-dashed border-[#E7EAEE] bg-white p-3 text-center transition-colors',
+          'hover:border-[#D6DBE1]',
         )}
       >
         <Input
@@ -49,7 +49,7 @@ export function BrandingSlot({
           }}
         />
         {upload.isPending ? (
-          <Loader2Icon className="size-5 animate-spin text-[#6E7C76]" aria-hidden />
+          <Loader2Icon className="size-5 animate-spin text-[#8A94A3]" aria-hidden />
         ) : url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -59,8 +59,8 @@ export function BrandingSlot({
           />
         ) : (
           <>
-            <ArrowUpIcon className="size-[17px] text-[#6E7C76]" aria-hidden />
-            <span className="text-[12.5px] text-[#6E7C76]">{prompt}</span>
+            <ArrowUpIcon className="size-[17px] text-[#8A94A3]" aria-hidden />
+            <span className="text-[12.5px] text-[#8A94A3]">{prompt}</span>
           </>
         )}
       </Label>

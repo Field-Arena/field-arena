@@ -56,7 +56,12 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
       if (next) params.set('q', next);
       else params.delete('q');
       const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      // Typing on Overview filters the full organizer list, which lives on its
+      // own page now.
+      const target =
+        pathname === '/dashboard/superadmin' ? '/dashboard/superadmin/organizers' : pathname;
+      if (target !== pathname) router.push(query ? `${target}?${query}` : target);
+      else router.replace(query ? `${target}?${query}` : target, { scroll: false });
     }, 250);
   }
 
@@ -81,12 +86,9 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
     : [];
 
   return (
-    <span ref={wrapper} className="relative flex items-center gap-2">
-      <label
-        htmlFor="organizer-search"
-        className="text-fa-muted text-[11px] font-bold tracking-[0.06em] uppercase"
-      >
-        Organizer
+    <span ref={wrapper} className="fa-org-switch relative">
+      <label htmlFor="organizer-search" className="fa-lab">
+        Org
       </label>
       <Input
         id="organizer-search"
@@ -102,18 +104,18 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
         onFocus={() => {
           if (value.trim()) setOpen(true);
         }}
-        placeholder="Search organizers…"
-        className="border-border text-ink focus-visible:border-gold focus-visible:ring-gold/30 h-auto w-[210px] rounded-lg border bg-white px-3 py-1.5 text-[13px] outline-none placeholder:text-[#8a968f] focus-visible:ring-2"
+        placeholder="All organizers"
+        className="h-auto w-[220px] border-0 bg-transparent px-1 py-0 text-[13px] font-medium text-[#101828] shadow-none outline-none placeholder:text-[#101828] focus-visible:ring-0"
       />
 
       {open && (
         <div
           id="organizer-search-menu"
           role="listbox"
-          className="border-line absolute top-full right-0 z-50 mt-1.5 max-h-[300px] w-[280px] overflow-y-auto rounded-xl border bg-white py-1.5 shadow-[0_18px_44px_rgba(9,26,21,.16)]"
+          className="absolute top-full right-0 z-50 mt-1.5 max-h-[300px] w-[280px] overflow-y-auto rounded-xl border border-[#E7EAEE] bg-white py-1.5 shadow-[0_18px_44px_rgba(9,26,21,.16)]"
         >
           {matches.length === 0 ? (
-            <p className="text-fa-muted-2 px-3.5 py-2.5 text-[12.5px]">
+            <p className="px-3.5 py-2.5 text-[12.5px] text-[#8A94A3]">
               No organizers match &ldquo;{value}&rdquo;.
             </p>
           ) : (
@@ -129,13 +131,13 @@ export function OrganizerSearch({ organizers }: { organizers: OrganizerOption[] 
                 }}
                 className={cn(
                   'flex h-auto w-full items-baseline justify-between gap-3 rounded-none px-3.5 py-2 text-left',
-                  'hover:bg-[#F6F3EC]',
+                  'hover:bg-[#FBFCFD]',
                 )}
               >
-                <span className="text-hunter-deep truncate text-[13px] font-semibold">
+                <span className="truncate text-[13px] font-semibold text-[#101828]">
                   {org.name}
                 </span>
-                <span className="text-fa-muted-2 flex-none text-[11.5px]">{org.location}</span>
+                <span className="flex-none text-[11.5px] text-[#8A94A3]">{org.location}</span>
               </Button>
             ))
           )}

@@ -13,7 +13,7 @@ import {
   FA_TR,
 } from '@/shared/ui/organizer/fa-page';
 import { rankPlacings, type PlacingRow } from '@/modules/judging/utils/rank-placings';
-import type { ClassPlacingEntry } from '@/modules/judging/data/queries';
+import type { ClassPlacingEntry } from '@/modules/judging/types';
 
 export function PlacingsTable({
   entries,

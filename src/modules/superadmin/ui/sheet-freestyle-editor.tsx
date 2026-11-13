@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { Input } from '@/shared/ui/shadcn/input';
+import { parseCoefInput } from '@/modules/superadmin/utils/parse-coef-input';
 import type { SheetDefShape } from '@/modules/superadmin/utils/read-sheet-def';
 import { SECTION, H2, SMALL_INPUT } from '@/modules/superadmin/ui/sheet-detail-styles';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
@@ -20,20 +21,21 @@ export function SheetFreestyleEditor({
     <>
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Technical panel</h2>
-        <p className="mb-4 text-[12.5px] text-[#8A8275]">
+        <p className="mb-4 text-[12.5px] text-[#8A94A3]">
           The required elements, and what the judge is looking for in each.
         </p>
         <div className="mb-3.5 flex flex-col gap-2.5">
           {def.technical.length === 0 && (
-            <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+            <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
           )}
           {def.technical.map((row, i) => (
             <div
               key={i}
-              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
             >
               <Input
                 value={row.name}
+                maxLength={200}
                 placeholder="Element — e.g. Halt / rein back"
                 aria-label={`Technical element ${String(i + 1)} name`}
                 onChange={(e) => {
@@ -48,6 +50,7 @@ export function SheetFreestyleEditor({
               />
               <Input
                 value={row.criteria ?? ''}
+                maxLength={2000}
                 placeholder="Criteria"
                 aria-label={`Technical element ${String(i + 1)} criteria`}
                 onChange={(e) => {
@@ -80,20 +83,21 @@ export function SheetFreestyleEditor({
 
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Artistic panel</h2>
-        <p className="mb-4 text-[12.5px] text-[#8A8275]">
+        <p className="mb-4 text-[12.5px] text-[#8A94A3]">
           Presentation marks and their coefficients.
         </p>
         <div className="mb-3.5 flex flex-col gap-2.5">
           {def.artistic.length === 0 && (
-            <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+            <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
           )}
           {def.artistic.map((row, i) => (
             <div
               key={i}
-              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3"
+              className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3"
             >
               <Input
                 value={row.name}
+                maxLength={200}
                 placeholder="Mark — e.g. Harmony"
                 aria-label={`Artistic mark ${String(i + 1)} name`}
                 onChange={(e) => {
@@ -108,6 +112,7 @@ export function SheetFreestyleEditor({
               />
               <Input
                 value={row.criteria ?? ''}
+                maxLength={2000}
                 placeholder="Criteria"
                 aria-label={`Artistic mark ${String(i + 1)} criteria`}
                 onChange={(e) => {
@@ -122,15 +127,14 @@ export function SheetFreestyleEditor({
               />
               <Input
                 value={String(row.coef)}
+                inputMode="decimal"
                 placeholder="Coef"
                 aria-label={`Artistic mark ${String(i + 1)} coefficient`}
                 onChange={(e) => {
-                  const c = Number(e.target.value);
+                  const c = parseCoefInput(e.target.value, 20);
                   setDef((d) => ({
                     ...d,
-                    artistic: d.artistic.map((a, j) =>
-                      j === i ? { ...a, coef: Number.isFinite(c) ? c : 0 } : a,
-                    ),
+                    artistic: d.artistic.map((a, j) => (j === i ? { ...a, coef: c } : a)),
                   }));
                 }}
                 className={`h-auto ${SMALL_INPUT} w-[78px] flex-none`}

@@ -3,27 +3,8 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { getShowStats } from '@/modules/shows/data/queries';
 import { getExportInput } from '@/modules/results-export/data/get-export-input';
 import { buildUsefRows } from '@/modules/results-export/utils/build-usef-rows';
-import { computeUsefReadiness, type ReadinessItem } from '@/modules/results-export/utils/readiness';
-
-export interface PostShowReport {
-  showName: string;
-  startDate: string | null;
-  endDate: string | null;
-  venue: string | null;
-  days: number;
-  rings: number;
-  classes: number;
-  entries: number;
-  riders: number;
-  horses: number;
-  scored: number;
-  scratched: number;
-  resultsPublished: number;
-  revenue: number;
-  /** Rows the export will contain. */
-  exportRows: number;
-  readiness: ReadinessItem[];
-}
+import { computeUsefReadiness } from '@/modules/results-export/utils/readiness';
+import type { PostShowReport } from '@/modules/results-export/types';
 
 /* Everything the post-show report shows, built from the same data the export
  * uses so the page and the file always agree. Read with the caller's own

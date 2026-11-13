@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { ROUTES } from '@/shared/constants/routes';
-import type { PublicShowClass, PublicShowPageData } from '@/modules/shows/data/public-queries';
+import type { PublicShowClass, PublicShowPageData } from '@/modules/shows/types';
 
-function groupByDivision(classes: PublicShowClass[]): { division: string; classes: PublicShowClass[] }[] {
+function groupByDivision(
+  classes: PublicShowClass[],
+): { division: string; classes: PublicShowClass[] }[] {
   const order: string[] = [];
   const byDivision = new Map<string, PublicShowClass[]>();
   for (const c of classes) {
@@ -89,10 +91,7 @@ export function PublicShowPage({ data }: { data: PublicShowPageData }) {
               </a>
             )}
             {data.contactEmail && (
-              <a
-                href={`mailto:${data.contactEmail}`}
-                className="text-fa-muted hover:text-forest"
-              >
+              <a href={`mailto:${data.contactEmail}`} className="text-fa-muted hover:text-forest">
                 {data.contactEmail}
               </a>
             )}

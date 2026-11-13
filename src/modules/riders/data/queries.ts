@@ -2,8 +2,9 @@ import 'server-only';
 import { cache } from 'react';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { scheduleDelta, type ScheduleStatus } from '@/modules/scoring/utils/schedule-delta';
-import { SHOW_DOCS_BUCKET } from '@/modules/shows/constants';
+import { scheduleDelta } from '@/shared/lib/schedule-delta';
+import { resolveTimeZone } from '@/shared/lib/format/time-zone';
+import { SHOW_DOCS_BUCKET } from '@/shared/constants/storage';
 import {
   HORSE_DOCUMENTS_BUCKET,
   HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS,
@@ -27,6 +28,7 @@ import type {
   RiderScorecardCard,
   WaiverSignatureRow,
 } from '@/modules/riders/types';
+import type { RiderShowLink, RingScheduleStatus } from '@/modules/riders/types';
 
 /* auth.getUser() re-verifies the JWT against Supabase's Auth server on
  * every call (unlike getSession(), which trusts the local cookie) — a real
@@ -51,17 +53,6 @@ export async function getCurrentRiderProfile(): Promise<RiderRow | null> {
   const { data, error } = await supabase.from('riders').select('*').eq('id', user.id).maybeSingle();
   if (error) throw error;
   return data;
-}
-
-export interface RiderShowLink {
-  showId: string;
-  showSlug: string | null;
-  showName: string;
-  /* The rider's assigned number for this show (class_entries.num, assigned
-   * once per checkout by nextRiderNumberForShow in checkout.ts — same value
-   * across every entry the rider has for that show). Null only if every
-   * entry is somehow missing it. */
-  riderNumber: string | null;
 }
 
 /* Every show this rider has at least one class_entries row in — the /rider
@@ -324,54 +315,68 @@ export async function listRiderHorses(): Promise<HorseWithDocumentUrls[]> {
     .order('created_at', { ascending: true });
   if (error) throw error;
 
-  return Promise.all(
-    horses.map(async (horse) => {
-      const uploads = (horse.document_uploads ?? []) as unknown as HorseDocumentUpload[];
+  // Batch every horse's document paths into one storage call instead of one
+  // createSignedUrl() round-trip per document -- a rider with several
+  // horses, each with a few uploaded docs, was firing that many separate
+  // signing requests just to load their own horse list.
+  const allPaths = [
+    ...new Set(
+      horses.flatMap((horse) =>
+        ((horse.document_uploads ?? []) as unknown as HorseDocumentUpload[])
+          .map((u) => u.path)
+          .filter((p): p is string => !!p),
+      ),
+    ),
+  ];
+  const signedUrlByPath = new Map<string, string>();
+  if (allPaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from(HORSE_DOCUMENTS_BUCKET)
+      .createSignedUrls(allPaths, HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS);
+    for (const s of signedUrls ?? []) {
+      if (s.path && s.signedUrl) signedUrlByPath.set(s.path, s.signedUrl);
+    }
+  }
 
-      const documentUploads: HorseDocumentUploadWithUrl[] = await Promise.all(
-        uploads.map(async (upload) => {
-          if (!upload.path) return { ...upload, url: null };
-          const { data: signed, error: signError } = await supabase.storage
-            .from(HORSE_DOCUMENTS_BUCKET)
-            .createSignedUrl(upload.path, HORSE_DOCUMENT_SIGNED_URL_TTL_SECONDS);
-          if (signError) return { ...upload, url: null };
-          return { ...upload, url: signed.signedUrl };
-        }),
-      );
-      return {
-        id: horse.id,
-        rider_id: horse.rider_id,
-        name: horse.name,
-        stable: horse.stable,
-        trainer: horse.trainer,
-        trainer_phone: horse.trainer_phone,
-        height: horse.height,
-        farrier: horse.farrier,
-        is_stallion: horse.is_stallion,
-        usef_number: horse.usef_number,
-        fei_number: horse.fei_number,
-        passport_number: horse.passport_number,
-        registration_number: horse.registration_number,
-        year_of_birth: horse.year_of_birth,
-        breed: horse.breed,
-        owner_name: horse.owner_name,
-        owner_email: horse.owner_email,
-        owner_usef: horse.owner_usef,
-        owner_usef_exempt_reason: horse.owner_usef_exempt_reason,
-        owner_street: horse.owner_street,
-        owner_city: horse.owner_city,
-        owner_state: horse.owner_state,
-        owner_zip: horse.owner_zip,
-        trainer_usef: horse.trainer_usef,
-        trainer_street: horse.trainer_street,
-        trainer_city: horse.trainer_city,
-        trainer_state: horse.trainer_state,
-        trainer_zip: horse.trainer_zip,
-        created_at: horse.created_at,
-        documentUploads,
-      };
-    }),
-  );
+  return horses.map((horse) => {
+    const uploads = (horse.document_uploads ?? []) as unknown as HorseDocumentUpload[];
+    const documentUploads: HorseDocumentUploadWithUrl[] = uploads.map((upload) => ({
+      ...upload,
+      url: upload.path ? (signedUrlByPath.get(upload.path) ?? null) : null,
+    }));
+    return {
+      id: horse.id,
+      rider_id: horse.rider_id,
+      name: horse.name,
+      stable: horse.stable,
+      trainer: horse.trainer,
+      trainer_phone: horse.trainer_phone,
+      height: horse.height,
+      farrier: horse.farrier,
+      is_stallion: horse.is_stallion,
+      usef_number: horse.usef_number,
+      fei_number: horse.fei_number,
+      passport_number: horse.passport_number,
+      registration_number: horse.registration_number,
+      year_of_birth: horse.year_of_birth,
+      breed: horse.breed,
+      owner_name: horse.owner_name,
+      owner_email: horse.owner_email,
+      owner_usef: horse.owner_usef,
+      owner_usef_exempt_reason: horse.owner_usef_exempt_reason,
+      owner_street: horse.owner_street,
+      owner_city: horse.owner_city,
+      owner_state: horse.owner_state,
+      owner_zip: horse.owner_zip,
+      trainer_usef: horse.trainer_usef,
+      trainer_street: horse.trainer_street,
+      trainer_city: horse.trainer_city,
+      trainer_state: horse.trainer_state,
+      trainer_zip: horse.trainer_zip,
+      created_at: horse.created_at,
+      documentUploads,
+    };
+  });
 }
 
 export async function getWaiverSignature(showId: string): Promise<WaiverSignatureRow | null> {
@@ -666,12 +671,6 @@ export async function getRiderScorecard(entryId: string): Promise<RiderScorecard
   };
 }
 
-export interface RingScheduleStatus {
-  ring: string;
-  label: string;
-  status: ScheduleStatus;
-}
-
 /* Rider-portal counterpart to the judge/scorer LiveClockStrip
  * (scoring/ui/live-clock-strip.tsx) — same real scheduleDelta formula
  * (classes.time + scoring_pos + the fixed RIDE_MINUTES pace), reused
@@ -682,19 +681,28 @@ export interface RingScheduleStatus {
 export async function getRiderRingSchedule(showId: string): Promise<RingScheduleStatus[]> {
   const supabase = await createServerClient();
 
-  const { data: classes, error } = await supabase
-    .from('classes')
-    .select('location, arena, time, scoring_pos')
-    .eq('show_id', showId)
-    .eq('scoring_open', true);
+  const [{ data: classes, error }, { data: show }] = await Promise.all([
+    supabase
+      .from('classes')
+      .select('location, arena, time, scoring_pos')
+      .eq('show_id', showId)
+      .eq('scoring_open', true),
+    supabase
+      .from('shows')
+      .select('timezone, organizations(timezone)')
+      .eq('id', showId)
+      .maybeSingle(),
+  ]);
   if (error) throw error;
+  // classes.time is wall-clock time at the show, not server (UTC) time.
+  const timeZone = resolveTimeZone(show?.timezone, show?.organizations.timezone);
 
   const now = new Date();
   const rows: RingScheduleStatus[] = [];
   for (const cls of classes) {
     const ring = cls.location ?? cls.arena;
     if (!ring) continue;
-    const result = scheduleDelta(cls.time, cls.scoring_pos ?? 0, now);
+    const result = scheduleDelta(cls.time, cls.scoring_pos ?? 0, now, timeZone);
     if (!result) continue;
     rows.push({ ring, label: result.label, status: result.status });
   }

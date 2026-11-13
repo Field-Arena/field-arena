@@ -1,3 +1,4 @@
+import { riderClassName } from '@/shared/lib/format/class-name';
 import { ScorecardLink } from '@/modules/riders/ui/scorecard-modal';
 import {
   LEGACY_COLOR,
@@ -11,10 +12,6 @@ import {
 } from '@/modules/riders/ui/legacy-theme';
 import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import type { RiderEntryDetail } from '@/modules/riders/types';
-
-function classDisplayName(cls: { label: string; displayName: string | null }): string {
-  return (cls.displayName?.trim() ?? '') || cls.label;
-}
 
 export function ResultsView({
   entries,
@@ -58,8 +55,8 @@ export function ResultsView({
                     marginBottom: subtitle ? 0 : 6,
                   }}
                 >
-                  {entry.class ? classDisplayName(entry.class) : 'Class'}
-                  {entry.class?.division ? ` (${entry.class.division})` : ''}
+                  {entry.class ? riderClassName(entry.class) : 'Class'}
+                  {entry.class?.division ? ` · ${entry.class.division}` : ''}
                 </div>
                 {subtitle && (
                   <div

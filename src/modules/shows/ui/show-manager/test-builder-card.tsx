@@ -8,6 +8,7 @@ import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
+import { blockNonDecimalKeys } from '@/shared/lib/format/number-input';
 import {
   useSaveTestTemplate,
   useDeleteTestTemplate,
@@ -17,11 +18,11 @@ import {
 import { saveTestTemplateSchema } from '@/modules/shows/schemas';
 import type { SaveTestTemplateInput } from '@/modules/shows/schemas';
 import type {
-  TestTemplateRow,
-  TestCatalogEntry,
-  TestBuilderClassOption,
   AssignedClassOption,
-} from '@/modules/shows/data/setup-queries';
+  TestBuilderClassOption,
+  TestCatalogEntry,
+  TestTemplateRow,
+} from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -142,13 +143,19 @@ const SCORE_TYPE_OPTIONS = ['0-10', '0-100', 'points'] as const;
 const FINAL_DISPLAY_OPTIONS = ['percentage', 'points', 'average'] as const;
 const FORMULA_OPTIONS = ['earned_over_possible', 'sum', 'average'] as const;
 
-const TEXT_META: { key: MetaKey; label: string; placeholder: string }[] = [
-  { key: 'sheetType', label: 'Sheet type', placeholder: 'e.g. Dressage test' },
-  { key: 'governingBody', label: 'Governing body', placeholder: 'e.g. USEF' },
-  { key: 'versionYear', label: 'Version year', placeholder: 'e.g. 2023' },
-  { key: 'arenaSize', label: 'Arena size', placeholder: 'e.g. 20m × 60m' },
-  { key: 'rideTime', label: 'Ride time', placeholder: 'e.g. 5:00' },
-  { key: 'scoringMethod', label: 'Scoring method', placeholder: 'e.g. Percentage' },
+// maxLength mirrors each field's .max() in saveTestTemplateSchema.
+const TEXT_META: { key: MetaKey; label: string; placeholder: string; maxLength: number }[] = [
+  { key: 'sheetType', label: 'Sheet type', placeholder: 'e.g. Dressage test', maxLength: 60 },
+  { key: 'governingBody', label: 'Governing body', placeholder: 'e.g. USEF', maxLength: 80 },
+  { key: 'versionYear', label: 'Version year', placeholder: 'e.g. 2023', maxLength: 16 },
+  { key: 'arenaSize', label: 'Arena size', placeholder: 'e.g. 20m × 60m', maxLength: 40 },
+  { key: 'rideTime', label: 'Ride time', placeholder: 'e.g. 5:00', maxLength: 40 },
+  {
+    key: 'scoringMethod',
+    label: 'Scoring method',
+    placeholder: 'e.g. Percentage',
+    maxLength: 60,
+  },
 ];
 
 const DEFAULT_SCORING: DraftScoringConfig = {
@@ -311,7 +318,6 @@ export function TestBuilderCard({
   catalog,
   classes,
   assignedByTemplateId,
-  assignedByTemplateName,
   showId,
 }: {
   orgId: string;
@@ -319,7 +325,6 @@ export function TestBuilderCard({
   catalog: TestCatalogEntry[];
   classes: TestBuilderClassOption[];
   assignedByTemplateId: Record<string, AssignedClassOption[]>;
-  assignedByTemplateName: Record<string, AssignedClassOption[]>;
   /** The show's slug or id from the URL — the footer's "Continue to Results"
    * link needs it, or it pointed at /dashboard/shows//results ("Show not found"). */
   showId: string;
@@ -554,11 +559,12 @@ export function TestBuilderCard({
       );
     };
 
-    const metaText = (key: MetaKey, label: string, placeholder: string) => (
+    const metaText = (key: MetaKey, label: string, placeholder: string, maxLength: number) => (
       <div key={key}>
         <Label className={SM_LABEL}>{label}</Label>
         <Input
           value={d[key]}
+          maxLength={maxLength}
           placeholder={placeholder}
           className={`h-auto ${SM_INPUT}`}
           onChange={(e) => {
@@ -578,6 +584,7 @@ export function TestBuilderCard({
             <Label className={SM_LABEL}>Test name</Label>
             <Input
               value={d.name}
+              maxLength={160}
               placeholder="e.g. Training Level Test 1"
               className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
@@ -589,6 +596,7 @@ export function TestBuilderCard({
             <Label className={SM_LABEL}>Level</Label>
             <Input
               value={d.level}
+              maxLength={80}
               placeholder="e.g. Training Level"
               className={`h-auto ${SM_INPUT}`}
               onChange={(e) => {
@@ -613,12 +621,14 @@ export function TestBuilderCard({
               ))}
             </select>
           </div>
-          {TEXT_META.map((f) => metaText(f.key, f.label, f.placeholder))}
+          {TEXT_META.map((f) => metaText(f.key, f.label, f.placeholder, f.maxLength))}
           <div>
             <Label className={SM_LABEL}>Max points</Label>
             <Input
               type="number"
               min={0}
+              max={100000}
+              onKeyDown={blockNonDecimalKeys}
               value={d.maxPoints}
               placeholder="e.g. 100"
               className={`h-auto ${SM_INPUT}`}
@@ -637,6 +647,7 @@ export function TestBuilderCard({
               <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
                 <Input
                   value={s.name}
+                  maxLength={80}
                   placeholder="Section name"
                   className={`h-auto ${SM_ROW_INPUT}`}
                   onChange={(e) => {
@@ -695,6 +706,7 @@ export function TestBuilderCard({
                     <div className="mb-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_86px_86px_auto] sm:items-center">
                       <Input
                         value={it.label}
+                        maxLength={300}
                         placeholder="e.g. Enter working trot, halt at X"
                         className={`h-auto ${SM_ROW_INPUT}`}
                         onChange={(e) => {
@@ -704,6 +716,8 @@ export function TestBuilderCard({
                       <Input
                         type="number"
                         min={0}
+                        max={1000}
+                        onKeyDown={blockNonDecimalKeys}
                         value={it.maxScore}
                         title="Max score"
                         className={`h-auto ${SM_ROW_INPUT}`}
@@ -717,6 +731,8 @@ export function TestBuilderCard({
                       <Input
                         type="number"
                         min={1}
+                        max={20}
+                        onKeyDown={blockNonDecimalKeys}
                         value={it.coef}
                         title="Coefficient"
                         className={`h-auto ${SM_ROW_INPUT}`}
@@ -754,6 +770,7 @@ export function TestBuilderCard({
 
                     <Input
                       value={it.directive}
+                      maxLength={600}
                       placeholder="Directive (what the judge is looking for) — optional"
                       className={`mb-2 h-auto ${SM_ROW_INPUT}`}
                       onChange={(e) => {
@@ -781,6 +798,7 @@ export function TestBuilderCard({
                           >
                             <Input
                               value={ins.marker}
+                              maxLength={24}
                               placeholder="Marker"
                               className={`h-auto ${SM_ROW_INPUT}`}
                               onChange={(e) => {
@@ -789,6 +807,7 @@ export function TestBuilderCard({
                             />
                             <Input
                               value={ins.instruction}
+                              maxLength={300}
                               placeholder="Instruction"
                               className={`h-auto ${SM_ROW_INPUT}`}
                               onChange={(e) => {
@@ -799,6 +818,7 @@ export function TestBuilderCard({
                             />
                             <Input
                               value={ins.gait}
+                              maxLength={80}
                               placeholder="Gait"
                               className={`h-auto ${SM_ROW_INPUT}`}
                               onChange={(e) => {
@@ -807,6 +827,7 @@ export function TestBuilderCard({
                             />
                             <Input
                               value={ins.direction}
+                              maxLength={60}
                               placeholder="Direction"
                               className={`h-auto ${SM_ROW_INPUT}`}
                               onChange={(e) => {
@@ -876,6 +897,7 @@ export function TestBuilderCard({
             >
               <Input
                 value={p.name}
+                maxLength={120}
                 placeholder="Penalty name (e.g. Error of course)"
                 className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
@@ -897,6 +919,7 @@ export function TestBuilderCard({
               </select>
               <Input
                 value={p.value}
+                maxLength={160}
                 placeholder="e.g. 2"
                 className={`h-auto ${SM_ROW_INPUT}`}
                 onChange={(e) => {
@@ -1039,6 +1062,11 @@ export function TestBuilderCard({
     <>
       <Card className={SM_CARD_PAD}>
         <h2 className={SM_SECTION_HEAD}>Test Builder</h2>
+        <p className={SM_NOTE}>
+          Classes added from an official USEF/USDF or FEI test already use that test&apos;s
+          scoresheet — nothing to do here. Use Test Builder for custom and independent classes, or
+          to replace an official test with your own (an assigned test always wins).
+        </p>
         <p className={`${SM_NOTE} font-semibold`}>Type your test below.</p>
         <ol className={`${SM_NOTE} mb-4 list-decimal space-y-1 pl-5`}>
           <li>
@@ -1148,7 +1176,7 @@ export function TestBuilderCard({
                 .filter((part): part is string => Boolean(part))
                 .join(' · ');
 
-              const assignedTo = assignedByTemplateId[t.id] ?? assignedByTemplateName[t.name] ?? [];
+              const assignedTo = assignedByTemplateId[t.id] ?? [];
 
               return (
                 <div

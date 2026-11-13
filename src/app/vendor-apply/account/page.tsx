@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/constants/routes';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { VendorSignUpForm } from '@/modules/vendors/ui/vendor-signup-form';
 
 export const metadata: Metadata = { title: 'Claim your vendor account — Field & Arena' };

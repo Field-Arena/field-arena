@@ -5,7 +5,7 @@ import { CardTitle, FaCard } from '@/shared/ui/organizer/fa-page';
 import { splitStallsIntoRows } from '@/modules/shows/utils/split-stalls-into-rows';
 import { buildStableDropId } from '@/modules/shows/utils/stall-dnd-id';
 import { StallBox } from '@/modules/shows/ui/stable-chart/stall-box';
-import type { StableChartStable } from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStable } from '@/modules/shows/types';
 
 // Wraps one stable's card as a drop target for a whole Stabling Group
 // dragged from the sidebar, in addition to the individual StallBoxes inside

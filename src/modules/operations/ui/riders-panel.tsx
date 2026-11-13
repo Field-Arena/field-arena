@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import type { RiderDirectoryRow } from '@/modules/operations/data/queries';
+import type { RiderDirectoryRow } from '@/modules/operations/types';
 import { OpsSearch } from '@/modules/operations/ui/ops-search';
 import {
   Chip,

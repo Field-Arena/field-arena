@@ -1,8 +1,9 @@
 'use client';
 
+import { PrintedToday } from '@/modules/shows/ui/printed-today';
 import { truncateHorseName } from '@/modules/shows/utils/truncate-horse-name';
 import { STALL_STATUS_LABELS } from '@/modules/shows/constants';
-import type { StableChartPageData } from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartPageData } from '@/modules/shows/types';
 
 export function StableChartPrintView({
   showName,
@@ -26,7 +27,7 @@ export function StableChartPrintView({
             {showName} — {stable.name}
           </h1>
           <p className="mb-6 text-base text-[#555]">
-            {stable.stalls.length} stalls · printed {new Date().toLocaleDateString()}
+            {stable.stalls.length} stalls · printed <PrintedToday />
           </p>
           <div className="grid grid-cols-4 gap-4">
             {stable.stalls.map((stall) => {

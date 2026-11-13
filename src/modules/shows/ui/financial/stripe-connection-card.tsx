@@ -1,8 +1,8 @@
 'use client';
 
 import { FA_BTN, FA_MUTED, FaCard, Pill, type PillTone } from '@/shared/ui/organizer/fa-page';
-import { useStartStripeConnect } from '@/modules/organizations/hooks/use-stripe-connect';
-import type { StripeConnectStatus } from '@/modules/shows/data/queries';
+import { useStartStripeConnect } from '@/modules/organizations/public';
+import type { StripeConnectStatus } from '@/modules/shows/types';
 
 const STATUS_PILL: Record<StripeConnectStatus['status'], { label: string; tone: PillTone }> = {
   not_started: { label: 'Not connected', tone: 'red' },

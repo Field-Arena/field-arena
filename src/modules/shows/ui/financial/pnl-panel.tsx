@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { formatMoneyExact } from '@/shared/lib/format/currency';
 import { CardTitle, FA_BTN_SMALL, FaCard } from '@/shared/ui/organizer/fa-page';
-import type { ShowPnl } from '@/modules/shows/data/setup-queries';
+import type { ShowPnl } from '@/modules/shows/types';
 import { RevenueBreakdown } from '@/modules/shows/ui/financial/revenue-breakdown';
 import { ExpenseEditor } from '@/modules/shows/ui/financial/expense-editor';
 

@@ -13,7 +13,7 @@ import {
   type PillTone,
 } from '@/shared/ui/organizer/fa-page';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import type { IssuesPageData } from '@/modules/shows/data/entry-issues-queries';
+import type { IssuesPageData } from '@/modules/shows/types';
 import { AddNoteDialog } from '@/modules/shows/ui/filing-cabinet/add-note-dialog';
 import { ResolveIssueDialog } from '@/modules/shows/ui/filing-cabinet/resolve-issue-dialog';
 import { CabinetSectionHead } from '@/modules/shows/ui/filing-cabinet/cabinet-section-head';

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ensureClassShowParam } from '@/modules/shows/data/class-show-ref';
 import {
   getScoringState,
   getMySeat,
@@ -6,12 +7,18 @@ import {
   listPanelCandidates,
 } from '@/modules/scoring/data/queries';
 import { ScoringScreen } from '@/modules/scoring/ui/scoring-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { isUuid } from '@/shared/lib/utils';
 
 export const metadata: Metadata = { title: 'Scoring — Field & Arena' };
 
-export default async function ScoringPage({ params }: { params: Promise<{ classId: string }> }) {
+export default async function ScoringPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ classId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { classId } = await params;
 
   if (!isUuid(classId)) {
@@ -22,6 +29,9 @@ export default async function ScoringPage({ params }: { params: Promise<{ classI
       />
     );
   }
+
+  // Keep the topbar show picker on this class's show, not the org default.
+  await ensureClassShowParam(`/dashboard/scoring/${classId}`, classId, await searchParams);
 
   const [state, mySeat, permissions, panelCandidates] = await Promise.all([
     getScoringState(classId),

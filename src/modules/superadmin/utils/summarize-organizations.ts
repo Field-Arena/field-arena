@@ -29,3 +29,11 @@ export function summarizeOrganizations(orgs: OrganizationSummary[]): Organizatio
 export function isActiveOrganization(org: OrganizationSummary): boolean {
   return org.deletedAt === null && !org.isDemo;
 }
+
+/** The `count` most recently created organizations, newest first. */
+export function mostRecentOrganizations(
+  orgs: OrganizationSummary[],
+  count: number,
+): OrganizationSummary[] {
+  return [...orgs].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, count);
+}

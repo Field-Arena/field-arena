@@ -35,7 +35,7 @@ export function PermissionsListDialog({
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="text-hunter-deep font-serif text-xl">
+          <DialogTitle className="font-serif text-xl text-[#101828]">
             Permissions — {showName}
           </DialogTitle>
           <DialogDescription>
@@ -45,7 +45,7 @@ export function PermissionsListDialog({
         </DialogHeader>
 
         {staff.length === 0 ? (
-          <p className="text-[13px] text-[#7A8781]">
+          <p className="text-[13px] text-[#8A94A3]">
             No staff on this show yet — add people above first.
           </p>
         ) : (
@@ -62,13 +62,13 @@ export function PermissionsListDialog({
                       setOpen(false);
                       onEditStaff(person);
                     }}
-                    className="text-ink-deep hover:border-gold flex w-full items-center justify-between gap-3 rounded-lg border border-[#EDF0EE] px-3.5 py-2.5 text-left text-[13.5px] transition-colors"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-[#EEF1F4] px-3.5 py-2.5 text-left text-[13.5px] text-[#101828] transition-colors hover:border-[#D6DBE1]"
                   >
                     <span className="min-w-0 truncate">
                       <strong>{person.name}</strong>{' '}
-                      <span className="text-[#7A8781]">— {person.role}</span>
+                      <span className="text-[#8A94A3]">— {person.role}</span>
                     </span>
-                    <span className="text-forest flex-none text-[12.5px] font-semibold">
+                    <span className="flex-none text-[12.5px] font-semibold text-[#101828]">
                       {grantedCount}/{PERMISSION_KEYS.length} on →
                     </span>
                   </button>

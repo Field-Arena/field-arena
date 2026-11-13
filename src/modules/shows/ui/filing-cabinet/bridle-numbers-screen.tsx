@@ -20,7 +20,11 @@ import {
   StatGrid,
 } from '@/shared/ui/organizer/fa-page';
 import { formatTimestamp } from '@/shared/lib/format/date';
-import type { BridleNumberPoolStatus } from '@/modules/shows/data/bridle-number-queries';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
+import { createNumberRangeSchema, markNumberUnavailableSchema } from '@/modules/shows/schemas';
+import { schemaFieldErrors } from '@/modules/shows/utils/schema-field-error';
+import { FieldError } from '@/modules/shows/ui/field-error';
+import type { BridleNumberPoolStatus } from '@/modules/shows/types';
 import {
   useCreateNumberRange,
   useDeleteNumberRange,
@@ -38,6 +42,11 @@ function AddRangeForm({ showId }: { showId: string }) {
   const [end, setEnd] = useState('');
   const [label, setLabel] = useState('');
   const { mutate, isPending } = useCreateNumberRange();
+  const errors =
+    start && end
+      ? schemaFieldErrors(createNumberRangeSchema, { showId, rangeStart: start, rangeEnd: end })
+      : {};
+  const rangeError = errors.rangeStart ?? errors.rangeEnd;
 
   return (
     <div className="flex flex-wrap items-end gap-2.5">
@@ -45,6 +54,10 @@ function AddRangeForm({ showId }: { showId: string }) {
         <span>Start</span>
         <input
           type="number"
+          min={1}
+          max={999999}
+          step={1}
+          onKeyDown={blockNonIntegerKeys}
           value={start}
           onChange={(e) => {
             setStart(e.target.value);
@@ -56,6 +69,10 @@ function AddRangeForm({ showId }: { showId: string }) {
         <span>End</span>
         <input
           type="number"
+          min={1}
+          max={999999}
+          step={1}
+          onKeyDown={blockNonIntegerKeys}
           value={end}
           onChange={(e) => {
             setEnd(e.target.value);
@@ -67,6 +84,7 @@ function AddRangeForm({ showId }: { showId: string }) {
         <span>Label (optional)</span>
         <input
           value={label}
+          maxLength={60}
           onChange={(e) => {
             setLabel(e.target.value);
           }}
@@ -77,7 +95,7 @@ function AddRangeForm({ showId }: { showId: string }) {
       <button
         type="button"
         className={FA_BTN_PRIMARY}
-        disabled={isPending || !start || !end}
+        disabled={isPending || !start || !end || !!rangeError}
         onClick={() => {
           mutate(
             { showId, rangeStart: start, rangeEnd: end, label: label.trim() || undefined },
@@ -94,6 +112,7 @@ function AddRangeForm({ showId }: { showId: string }) {
         {isPending && <Loader2Icon className="size-3.5 animate-spin" aria-hidden />}
         Add range
       </button>
+      <FieldError message={rangeError} className="mt-0 basis-full" />
     </div>
   );
 }
@@ -102,6 +121,9 @@ function MarkUnavailableForm({ showId }: { showId: string }) {
   const [number, setNumber] = useState('');
   const [reason, setReason] = useState('');
   const { mutate, isPending } = useMarkNumberUnavailable();
+  const numberError = number
+    ? schemaFieldErrors(markNumberUnavailableSchema, { showId, number }).number
+    : undefined;
 
   return (
     <div className="flex flex-wrap items-end gap-2.5">
@@ -109,6 +131,10 @@ function MarkUnavailableForm({ showId }: { showId: string }) {
         <span>Number</span>
         <input
           type="number"
+          min={1}
+          max={999999}
+          step={1}
+          onKeyDown={blockNonIntegerKeys}
           value={number}
           onChange={(e) => {
             setNumber(e.target.value);
@@ -120,6 +146,7 @@ function MarkUnavailableForm({ showId }: { showId: string }) {
         <span>Reason (optional)</span>
         <input
           value={reason}
+          maxLength={200}
           onChange={(e) => {
             setReason(e.target.value);
           }}
@@ -130,7 +157,7 @@ function MarkUnavailableForm({ showId }: { showId: string }) {
       <button
         type="button"
         className={FA_BTN}
-        disabled={isPending || !number}
+        disabled={isPending || !number || !!numberError}
         onClick={() => {
           mutate(
             { showId, number, reason: reason.trim() || undefined },
@@ -146,6 +173,7 @@ function MarkUnavailableForm({ showId }: { showId: string }) {
         {isPending && <Loader2Icon className="size-3.5 animate-spin" aria-hidden />}
         Mark unavailable
       </button>
+      <FieldError message={numberError} className="mt-0 basis-full" />
     </div>
   );
 }

@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
 import { getOrganizerContext } from '@/modules/staff/data/context';
-import {
-  listIncompleteShowsForOrg,
-  type IncompleteShowSummary,
-} from '@/modules/shows/data/queries';
+import type { IncompleteShowSummary } from '@/modules/shows/types';
+import { listIncompleteShowsForOrg } from '@/modules/shows/data/queries';
 import { getShowsCompleteness } from '@/modules/shows/data/setup-queries';
 import {
   IncompleteShowsScreen,
   type IncompleteShowRow,
 } from '@/modules/shows/ui/incomplete/incomplete-shows-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Incomplete Shows — Field & Arena' };
 

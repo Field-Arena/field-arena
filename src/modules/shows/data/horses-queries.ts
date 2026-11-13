@@ -1,18 +1,16 @@
 import 'server-only';
+import { fetchAllRows } from '@/modules/shows/data/fetch-all-rows';
 import { createServerClient } from '@/shared/lib/supabase/server';
-import {
-  getDocumentRequirements,
-  type DocumentRequirement,
-} from '@/modules/shows/data/setup-queries';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
+import { getDocumentRequirements } from '@/modules/shows/data/setup-queries';
 import { COGGINS_LABEL } from '@/modules/shows/constants';
-
-export interface ManualHorseEntry {
-  id: string;
-  riderName: string;
-  horseName: string;
-  isStallion: boolean;
-  addedAt: string;
-}
+import type {
+  DocumentReviewStatus,
+  HorseDocumentStatus,
+  HorseRow,
+  HorsesPageData,
+  ManualHorseEntry,
+} from '@/modules/shows/types';
 
 interface RawUpload {
   requirementId?: string;
@@ -25,8 +23,6 @@ interface RawUpload {
   reviewedAt?: string;
 }
 
-export type DocumentReviewStatus = 'pending' | 'approved' | 'rejected' | 'replacement_requested';
-
 /* Rows written before the review workflow existed only ever set `verified`.
  * Every read resolves `status` from the newer field first, falling back to
  * the boolean so old rows still render correctly without a backfill. */
@@ -36,68 +32,19 @@ function resolveReviewStatus(up: RawUpload): DocumentReviewStatus {
   return up.verified ? 'approved' : 'pending';
 }
 
-export interface HorseDocumentStatus {
-  requirementId: string;
-  label: string;
-  uploaded: boolean;
-
-  url: string | null;
-  expirationDate: string | null;
-  requiresExpiration: boolean;
-  requiresApproval: boolean;
-  verified: boolean;
-
-  expired: boolean;
-
-  needsApproval: boolean;
-
-  status: DocumentReviewStatus;
-  rejectionReason: string | null;
-  rejectionNote: string | null;
-}
-
-export interface HorseRow {
-  key: string;
-
-  horseId: string | null;
-  horseName: string;
-  riderLabel: string;
-
-  riderEmail: string | null;
-  classesCount: number;
-  isStallion: boolean;
-  height: string | null;
-  farrier: string | null;
-  trainer: string | null;
-  stable: string | null;
-  documents: HorseDocumentStatus[];
-
-  complete: boolean;
-  missingLabels: string[];
-  needsVerification: boolean;
-  cogginsExpired: boolean;
-
-  /* This same horse appears on class_entries under more than one rider name
-   * — a lease or catch-ride horse, not a data error. riders lists every
-   * distinct name seen so the organizer can see who, not just how many. */
-  isMultiEntry: boolean;
-  riders: string[];
-  /** Entry (back) numbers this horse is entered under, sorted. */
-  entryNumbers: string[];
-}
-
-export interface HorsesPageData {
-  showId: string;
-  showName: string;
-  requirements: DocumentRequirement[];
-  rows: HorseRow[];
-}
-
-export async function getHorsesPageData(showId: string): Promise<HorsesPageData | null> {
+export async function getHorsesPageData(
+  showId: string,
+  options?: { includeUrls?: boolean },
+): Promise<HorsesPageData | null> {
+  const includeUrls = options?.includeUrls ?? true;
   const supabase = await createServerClient();
 
   const [showResult, requirements] = await Promise.all([
-    supabase.from('shows').select('id, name, manual_horses').eq('id', showId).maybeSingle(),
+    supabase
+      .from('shows')
+      .select('id, name, manual_horses, timezone, organizations(timezone)')
+      .eq('id', showId)
+      .maybeSingle(),
     getDocumentRequirements(showId),
   ]);
   if (showResult.error) throw showResult.error;
@@ -105,7 +52,14 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
   const show = showResult.data;
 
   const docReqs = requirements.filter((r) => r.label.trim());
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Expiry is judged against the show's own calendar day, not the server's
+  // (UTC) one -- a document expiring today is still valid until local midnight.
+  const todayStr = todayInZone(
+    resolveTimeZone(
+      show.timezone,
+      (show.organizations as { timezone: string | null } | null)?.timezone,
+    ),
+  );
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
@@ -125,14 +79,16 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
   const byHorse = new Map<string, Group>();
 
   if (classes.length > 0) {
-    const { data: entries, error } = await supabase
-      .from('class_entries')
-      .select('horse, rider, horse_id, rider_id, num')
-      .in(
-        'class_id',
-        classes.map((c) => c.id),
-      );
-    if (error) throw error;
+    const entries = await fetchAllRows(() =>
+      supabase
+        .from('class_entries')
+        .select('horse, rider, horse_id, rider_id, num')
+        .in(
+          'class_id',
+          classes.map((c) => c.id),
+        )
+        .order('id'),
+    );
 
     for (const entry of entries) {
       if (!entry.horse) continue;
@@ -212,44 +168,58 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
     for (const r of riders) emailByRiderId.set(r.id, r.email);
   }
 
-  async function resolveDocuments(uploads: RawUpload[]): Promise<HorseDocumentStatus[]> {
-    return Promise.all(
-      docReqs.map(async (req): Promise<HorseDocumentStatus> => {
-        const up = uploads.find((u) => u.requirementId === req.id);
-        const uploaded = !!up;
-        const expired =
-          uploaded &&
-          !!req.requiresExpiration &&
-          !!up.expirationDate &&
-          up.expirationDate < todayStr;
-        const status = uploaded ? resolveReviewStatus(up) : 'pending';
-        const needsApproval = uploaded && !!req.requiresApproval && status === 'pending';
+  // Batch every horse's uploaded-document signed URL into ONE storage call
+  // instead of one round-trip per horse per document -- a show with 100
+  // horses and 3 uploaded docs each was firing ~300 separate signing
+  // requests instead of 1. Skipped entirely when the caller only needs
+  // completeness status (e.g. the entry ledger, which never renders a
+  // document link) -- includeUrls: false avoids the storage round-trip
+  // altogether rather than just batching it.
+  const signedUrlByPath = new Map<string, string>();
+  if (includeUrls) {
+    const allPaths = [
+      ...new Set(
+        [...uploadsByHorseId.values()].flatMap((uploads) =>
+          uploads.map((u) => u.path).filter((p): p is string => !!p),
+        ),
+      ),
+    ];
+    if (allPaths.length > 0) {
+      const { data: signedUrls } = await supabase.storage
+        .from('horse-documents')
+        .createSignedUrls(allPaths, 3600);
+      for (const s of signedUrls ?? []) {
+        if (s.path && s.signedUrl) signedUrlByPath.set(s.path, s.signedUrl);
+      }
+    }
+  }
 
-        let url: string | null = null;
-        if (uploaded && up.path) {
-          const { data: signed } = await supabase.storage
-            .from('horse-documents')
-            .createSignedUrl(up.path, 3600);
-          url = signed?.signedUrl ?? null;
-        }
+  function resolveDocuments(uploads: RawUpload[]): HorseDocumentStatus[] {
+    return docReqs.map((req): HorseDocumentStatus => {
+      const up = uploads.find((u) => u.requirementId === req.id);
+      const uploaded = !!up;
+      const expired =
+        uploaded && !!req.requiresExpiration && !!up.expirationDate && up.expirationDate < todayStr;
+      const status = uploaded ? resolveReviewStatus(up) : 'pending';
+      const needsApproval = uploaded && !!req.requiresApproval && status === 'pending';
+      const url = uploaded && up.path ? (signedUrlByPath.get(up.path) ?? null) : null;
 
-        return {
-          requirementId: req.id,
-          label: req.label,
-          uploaded,
-          url,
-          expirationDate: up?.expirationDate ?? null,
-          requiresExpiration: !!req.requiresExpiration,
-          requiresApproval: !!req.requiresApproval,
-          verified: status === 'approved',
-          expired,
-          needsApproval,
-          status,
-          rejectionReason: up?.rejectionReason ?? null,
-          rejectionNote: up?.rejectionNote ?? null,
-        };
-      }),
-    );
+      return {
+        requirementId: req.id,
+        label: req.label,
+        uploaded,
+        url,
+        expirationDate: up?.expirationDate ?? null,
+        requiresExpiration: !!req.requiresExpiration,
+        requiresApproval: !!req.requiresApproval,
+        verified: status === 'approved',
+        expired,
+        needsApproval,
+        status,
+        rejectionReason: up?.rejectionReason ?? null,
+        rejectionNote: up?.rejectionNote ?? null,
+      };
+    });
   }
 
   function summarize(documents: HorseDocumentStatus[]) {
@@ -269,10 +239,10 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
 
   const manualHorses = (show.manual_horses ?? []) as unknown as ManualHorseEntry[];
 
-  const rows: HorseRow[] = await Promise.all([
-    ...[...byHorse.values()].map(async (group): Promise<HorseRow> => {
+  const rows: HorseRow[] = [
+    ...[...byHorse.values()].map((group): HorseRow => {
       const uploads = group.horseId ? (uploadsByHorseId.get(group.horseId) ?? []) : [];
-      const documents = await resolveDocuments(uploads);
+      const documents = resolveDocuments(uploads);
       const { complete, missingLabels, needsVerification, cogginsExpired } = summarize(documents);
       const riderId = group.horseId
         ? (riderIdByHorseId.get(group.horseId) ?? group.riderId)
@@ -305,8 +275,8 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         ),
       };
     }),
-    ...manualHorses.map(async (mh): Promise<HorseRow> => {
-      const documents = await resolveDocuments([]);
+    ...manualHorses.map((mh): HorseRow => {
+      const documents = resolveDocuments([]);
       const { complete, missingLabels, needsVerification, cogginsExpired } = summarize(documents);
 
       return {
@@ -331,7 +301,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         entryNumbers: [],
       };
     }),
-  ]);
+  ];
 
   rows.sort((a, b) => a.horseName.localeCompare(b.horseName));
 

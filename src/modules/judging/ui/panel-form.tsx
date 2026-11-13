@@ -5,11 +5,11 @@ import { toast } from 'sonner';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
 import { useSetClassPanel } from '@/modules/judging/hooks/use-panel-mutations';
-import type { PanelClass, PanelStaff } from '@/modules/judging/ui/assign-judges-dialog';
+import type { PanelClass, PanelStaff } from '@/modules/judging/types';
 
-const LABEL = 'mb-2 block text-[10px] font-bold uppercase tracking-[.14em] text-[#6E7C76]';
+const LABEL = 'mb-2 block text-[10px] font-bold uppercase tracking-[.08em] text-[#8A94A3]';
 const SELECT =
-  'w-full appearance-none rounded-[8px] border border-[#C6CFCB] bg-white px-3 py-2.5 text-[14px] font-medium text-ink-deep outline-none focus-visible:border-gold';
+  'w-full appearance-none rounded-[8px] border border-[#C6CFCB] bg-white px-3 py-2.5 text-[14px] font-medium text-[#101828] outline-none focus-visible:border-[#9FD3BA]';
 
 export function PanelForm({
   ringName,
@@ -104,7 +104,7 @@ export function PanelForm({
             onClick={() => {
               setChecked(allChecked ? new Set() : new Set(classes.map((c) => c.id)));
             }}
-            className="text-forest hover:text-gold h-auto bg-transparent px-0 py-0 text-[12px] font-semibold hover:bg-transparent"
+            className="h-auto bg-transparent px-0 py-0 text-[12px] font-semibold text-[#101828] hover:bg-transparent hover:text-[#B45309]"
           >
             {allChecked ? 'Clear all' : 'Select all'}
           </Button>
@@ -113,7 +113,7 @@ export function PanelForm({
           {classes.map((c) => (
             <label
               key={c.id}
-              className="flex items-center gap-2.5 border-b border-[#EEF2F0] px-3 py-2 text-[13.5px] last:border-b-0 hover:bg-[#FAFBFA]"
+              className="flex items-center gap-2.5 border-b border-[#EEF1F4] px-3 py-2 text-[13.5px] last:border-b-0 hover:bg-[#FAFBFA]"
             >
               <input
                 type="checkbox"
@@ -123,9 +123,9 @@ export function PanelForm({
                 }}
                 className="size-[17px] accent-[#22503c]"
               />
-              <span className="text-ink-deep">{c.label}</span>
+              <span className="text-[#101828]">{c.label}</span>
               {c.location ? (
-                <span className="ml-auto text-[12px] text-[#7A8781]">{c.location}</span>
+                <span className="ml-auto text-[12px] text-[#8A94A3]">{c.location}</span>
               ) : null}
             </label>
           ))}

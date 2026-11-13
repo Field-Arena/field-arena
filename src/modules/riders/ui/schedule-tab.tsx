@@ -1,3 +1,4 @@
+import { riderClassName } from '@/shared/lib/format/class-name';
 import { ScorecardLink } from '@/modules/riders/ui/scorecard-modal';
 import {
   LEGACY_COLOR,
@@ -19,12 +20,12 @@ import { classSubtitle } from '@/modules/riders/utils/class-subtitle';
 import { formatDateRange } from '@/shared/lib/format/date';
 import type { ClassWithCapacity, RiderEntryDetail, ShowRow } from '@/modules/riders/types';
 
-function entryClassName(cls: { label: string; displayName: string | null }): string {
-  return (cls.displayName?.trim() ?? '') || cls.label;
-}
-
 function classDisplayName(cls: ClassWithCapacity): string {
-  return (cls.display_name?.trim() ?? '') || cls.label;
+  return riderClassName({
+    label: cls.label,
+    displayName: cls.display_name,
+    division: cls.division,
+  });
 }
 
 interface ShowDetailsFields {
@@ -128,8 +129,8 @@ export function ScheduleTab({
               <div style={legacyRideNumStyle}>Ride {index + 1}</div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={legacyRideTitleStyle}>
-                  {entry.class ? entryClassName(entry.class) : 'Class'}
-                  {entry.class?.division ? ` (${entry.class.division})` : ''}
+                  {entry.class ? riderClassName(entry.class) : 'Class'}
+                  {entry.class?.division ? ` · ${entry.class.division}` : ''}
                 </div>
                 {subtitle && (
                   <div style={{ fontStyle: 'italic', fontSize: 11.5, color: LEGACY_COLOR.inkSoft }}>

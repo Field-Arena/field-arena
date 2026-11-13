@@ -27,7 +27,9 @@ export function BulkDrop({ onFiles }: { onFiles: (files: FileList) => void }) {
       }}
       className={cn(
         'flex h-auto w-full flex-col items-center justify-start gap-3 rounded-xl border border-dashed px-6 py-[30px] transition-colors',
-        over ? 'border-gold bg-[#FCFAF4]' : 'hover:border-gold border-[#C9B98A] hover:bg-[#FCFAF4]',
+        over
+          ? 'border-[#146A47] bg-[#FBFCFD]'
+          : 'border-[#F6DCB8] hover:border-[#D6DBE1] hover:bg-[#FBFCFD]',
       )}
     >
       <Input
@@ -41,10 +43,10 @@ export function BulkDrop({ onFiles }: { onFiles: (files: FileList) => void }) {
           e.target.value = '';
         }}
       />
-      <span className="text-center text-[14px] text-[#5A6B63]">
+      <span className="text-center text-[14px] text-[#475467]">
         Drag and drop test sheet PDFs here — each is matched to its test automatically by filename.
       </span>
-      <span className="inline-flex items-center gap-2 rounded-lg border border-[#D7CFBB] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#16261F]">
+      <span className="inline-flex items-center gap-2 rounded-lg border border-[#E7EAEE] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#101828]">
         Choose files
       </span>
     </Button>

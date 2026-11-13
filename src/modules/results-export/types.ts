@@ -1,3 +1,4 @@
+import type { ReadinessItem } from '@/modules/results-export/utils/readiness';
 export type ExportFormat = 'csv' | 'xlsx' | 'dat';
 
 export const EXPORT_FORMATS: readonly ExportFormat[] = ['csv', 'xlsx', 'dat'];
@@ -99,4 +100,24 @@ export interface ExportBundle {
   rows: Cell[][];
   /** Things the organizer should know before sending the file to USEF. */
   warnings: string[];
+}
+
+export interface PostShowReport {
+  showName: string;
+  startDate: string | null;
+  endDate: string | null;
+  venue: string | null;
+  days: number;
+  rings: number;
+  classes: number;
+  entries: number;
+  riders: number;
+  horses: number;
+  scored: number;
+  scratched: number;
+  resultsPublished: number;
+  revenue: number;
+  /** Rows the export will contain. */
+  exportRows: number;
+  readiness: ReadinessItem[];
 }

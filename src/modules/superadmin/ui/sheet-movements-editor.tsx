@@ -13,6 +13,8 @@ import {
 import { Field } from '@/modules/superadmin/ui/sheet-detail-field';
 import { RowRemove } from '@/modules/superadmin/ui/sheet-row-remove';
 import { AddRow } from '@/modules/superadmin/ui/sheet-add-row';
+import { parseCoefInput } from '@/modules/superadmin/utils/parse-coef-input';
+import { sanitizeDecimalInput } from '@/shared/lib/format/number-input';
 
 export function SheetMovementsEditor({
   def,
@@ -25,7 +27,7 @@ export function SheetMovementsEditor({
     <>
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Sheet header</h2>
-        <p className="mb-[18px] text-[12.5px] text-[#8A8275]">Masthead fields the judge sees.</p>
+        <p className="mb-[18px] text-[12.5px] text-[#8A94A3]">Masthead fields the judge sees.</p>
         <div className="grid [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))] gap-[18px]">
           <Field
             label="Introduce (new movements)"
@@ -33,6 +35,7 @@ export function SheetMovementsEditor({
             onChange={(v) => {
               setDef((d) => ({ ...d, intro: v }));
             }}
+            inputProps={{ maxLength: 2000 }}
           />
           <Field
             label="Arena"
@@ -41,6 +44,7 @@ export function SheetMovementsEditor({
               setDef((d) => ({ ...d, arena: v }));
             }}
             placeholder="20x40 or 20x60"
+            inputProps={{ maxLength: 200 }}
           />
           <Field
             label="Average ride time"
@@ -49,14 +53,19 @@ export function SheetMovementsEditor({
               setDef((d) => ({ ...d, rideTime: v }));
             }}
             placeholder="5:00"
+            inputProps={{ maxLength: 200 }}
           />
           <Field
             label="Max points"
             value={def.maxPoints}
             onChange={(v) => {
-              setDef((d) => ({ ...d, maxPoints: v }));
+              setDef((d) => ({
+                ...d,
+                maxPoints: sanitizeDecimalInput(v, { decimals: 2, maxIntegerDigits: 5 }),
+              }));
             }}
             placeholder="220"
+            inputProps={{ inputMode: 'decimal' }}
           />
           <Field
             label="Error-of-course schedule"
@@ -65,6 +74,7 @@ export function SheetMovementsEditor({
               setDef((d) => ({ ...d, errorScheduleText: v }));
             }}
             placeholder="1st = 2 pts · 2nd = elimination"
+            inputProps={{ maxLength: 500 }}
           />
         </div>
 
@@ -76,6 +86,7 @@ export function SheetMovementsEditor({
             <textarea
               id="sd-purpose"
               rows={2}
+              maxLength={2000}
               value={def.purpose}
               placeholder="What this level asks the horse to confirm"
               onChange={(e) => {
@@ -91,6 +102,7 @@ export function SheetMovementsEditor({
             <textarea
               id="sd-footnote"
               rows={2}
+              maxLength={2000}
               value={def.footNote}
               placeholder="Anything printed at the bottom of the official sheet"
               onChange={(e) => {
@@ -104,20 +116,21 @@ export function SheetMovementsEditor({
 
       <section className={SECTION}>
         <h2 className={`${H2} mb-1.5`}>Movements</h2>
-        <p className="mb-4 text-[12.5px] leading-[1.55] text-[#8A8275]">
+        <p className="mb-4 text-[12.5px] leading-[1.55] text-[#8A94A3]">
           Each numbered movement: the test text as printed, the judge&rsquo;s directives, and its
           coefficient. % = (subtotal &minus; errors) &divide; max.
         </p>
         <div className="mb-3.5 flex flex-col gap-3">
           {def.movements.length === 0 && (
-            <p className="text-[13px] text-[#8A8275]">Nothing here yet.</p>
+            <p className="text-[13px] text-[#8A94A3]">Nothing here yet.</p>
           )}
           {def.movements.map((mv, i) => (
-            <div key={i} className="rounded-[10px] border border-[#E7E0D0] bg-white px-3.5 py-3">
+            <div key={i} className="rounded-[10px] border border-[#E7EAEE] bg-white px-3.5 py-3">
               <div className="flex items-center gap-3">
-                <span className="w-6 flex-none text-[13px] font-bold text-[#16261F]">{mv.n}</span>
+                <span className="w-6 flex-none text-[13px] font-bold text-[#101828]">{mv.n}</span>
                 <Input
                   value={mv.text}
+                  maxLength={1000}
                   placeholder="Test text as printed"
                   aria-label={`Movement ${String(mv.n)} test text`}
                   onChange={(e) => {
@@ -132,15 +145,14 @@ export function SheetMovementsEditor({
                 />
                 <Input
                   value={String(mv.coef)}
+                  inputMode="decimal"
                   placeholder="Coef"
                   aria-label={`Movement ${String(mv.n)} coefficient`}
                   onChange={(e) => {
-                    const c = Number(e.target.value);
+                    const c = parseCoefInput(e.target.value, 20);
                     setDef((d) => ({
                       ...d,
-                      movements: d.movements.map((m, j) =>
-                        j === i ? { ...m, coef: Number.isFinite(c) ? c : 0 } : m,
-                      ),
+                      movements: d.movements.map((m, j) => (j === i ? { ...m, coef: c } : m)),
                     }));
                   }}
                   className={`h-auto ${SMALL_INPUT} w-[78px] flex-none`}
@@ -162,6 +174,7 @@ export function SheetMovementsEditor({
               <div className="mt-2.5 grid [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))] gap-2.5 pl-9">
                 <Input
                   value={mv.directives ?? ''}
+                  maxLength={2000}
                   placeholder="Directives — what the judge is marking"
                   aria-label={`Movement ${String(mv.n)} directives`}
                   onChange={(e) => {

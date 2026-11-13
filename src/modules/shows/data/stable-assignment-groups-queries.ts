@@ -3,17 +3,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { getHorsesPageData } from '@/modules/shows/data/horses-queries';
 import { normalizeStableChart } from '@/modules/shows/data/stable-chart-queries';
 import { normalizeTrainerKey } from '@/modules/shows/utils/normalize-trainer-name';
-
-export interface StableAssignmentGroup {
-  trainerKey: string;
-  trainerName: string;
-  horseStallsNeeded: number;
-  tackStallsNeeded: number;
-  stableWith: string | null;
-  candidateHorseKeys: string[];
-  horsesPlacedCount: number;
-  horsesTotalCount: number;
-}
+import type { StableAssignmentGroup } from '@/modules/shows/types';
 
 /* Groups horses that share a trainer (falling back to stable) into one
  * stabling block, sized by what was actually purchased (stabling_requests),
@@ -25,7 +15,7 @@ export async function getStableAssignmentGroups(showId: string): Promise<StableA
   const supabase = await createServerClient();
 
   const [horsesData, requestsResult, showResult] = await Promise.all([
-    getHorsesPageData(showId),
+    getHorsesPageData(showId, { includeUrls: false }),
     supabase
       .from('stabling_requests')
       .select('trainer_name, horse_stalls, tack_stalls, stable_with')

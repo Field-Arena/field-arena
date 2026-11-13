@@ -1,8 +1,14 @@
 'use client';
 
-import type { EntryLedgerRow } from '@/modules/shows/data/entry-ledger-queries';
+import type { EntryLedgerRow } from '@/modules/shows/types';
 
-export function NumberCardsPrintView({ showName, rows }: { showName: string; rows: EntryLedgerRow[] }) {
+export function NumberCardsPrintView({
+  showName,
+  rows,
+}: {
+  showName: string;
+  rows: EntryLedgerRow[];
+}) {
   if (rows.length === 0) return null;
 
   return (

@@ -1,4 +1,4 @@
-import type { StableChartStall } from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStall } from '@/modules/shows/types';
 
 export interface StallRun {
   startIndex: number;

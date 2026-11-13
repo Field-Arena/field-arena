@@ -1,9 +1,14 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { SchedulePrefs, ClassRow } from '@/modules/shows/data/setup-queries';
-import { useUpdateSchedulePrefs, useReorderClasses } from '@/modules/shows/hooks/use-show-mutations';
+import type { ClassRow, SchedulePrefs } from '@/modules/shows/types';
+import {
+  useUpdateSchedulePrefs,
+  useReorderClasses,
+} from '@/modules/shows/hooks/use-show-mutations';
 import { showDayDates } from '@/modules/shows/utils/show-day-dates';
+import { updateSchedulePrefsSchema } from '@/modules/shows/schemas';
+import { schemaFieldErrors } from '@/modules/shows/utils/schema-field-error';
 
 function sameList(a: readonly string[], b: readonly string[]) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
@@ -95,12 +100,28 @@ export function useSchedulePreferencesForm({
     reorder({ showId, orderedClassIds: next.map((c) => c.id) });
   }
 
+  const errors = schemaFieldErrors(updateSchedulePrefsSchema, {
+    showId,
+    perMin,
+    buffer,
+    upper,
+    end,
+    order,
+    warmup,
+    lunch,
+    extraBreaks,
+    extraBreakMin,
+    dayStartTimes: dayStarts,
+    dayEndTimes: dayEnds,
+  });
+
   const rateFields: {
     id: string;
     label: string;
     min: number;
     max: number;
     value: number;
+    error?: string;
     onChange: (v: number) => void;
   }[] = [
     {
@@ -109,6 +130,7 @@ export function useSchedulePreferencesForm({
       min: 3,
       max: 30,
       value: perMin,
+      error: errors.perMin,
       onChange: setPerMin,
     },
     {
@@ -117,6 +139,7 @@ export function useSchedulePreferencesForm({
       min: 0,
       max: 15,
       value: buffer,
+      error: errors.buffer,
       onChange: setBuffer,
     },
     {
@@ -125,6 +148,7 @@ export function useSchedulePreferencesForm({
       min: 0,
       max: 15,
       value: upper,
+      error: errors.upper,
       onChange: setUpper,
     },
   ];
@@ -159,6 +183,9 @@ export function useSchedulePreferencesForm({
       sameList(payload.dayStartTimes, last.dayStartTimes) &&
       sameList(payload.dayEndTimes, last.dayEndTimes);
     if (unchanged) return;
+    // Out-of-range values stay local (with an inline error) instead of
+    // firing a save the server action would reject.
+    if (!updateSchedulePrefsSchema.safeParse(payload).success) return;
     lastSaved.current = {
       ...payload,
       dayStartTimes: [...payload.dayStartTimes],
@@ -197,6 +224,7 @@ export function useSchedulePreferencesForm({
   return {
     effDays,
     rateFields,
+    errors,
     end,
     setEnd,
     order,

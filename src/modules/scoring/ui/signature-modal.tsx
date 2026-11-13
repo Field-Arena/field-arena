@@ -38,22 +38,24 @@ export function SignatureModal({
       <DialogContent className={modalContentClass} showCloseButton={false}>
         <DialogHeader className={modalBodyClass + ' gap-1.5 pb-0'}>
           <ModalEyebrow>Scoresheet</ModalEyebrow>
-          <DialogTitle className="font-serif text-2xl font-semibold text-[#0D2C23]">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#101828]">
             Sign &amp; Submit
           </DialogTitle>
           <DialogDescription>
             This scoresheet becomes final once signed. An Admin can reopen it later if needed.
           </DialogDescription>
-          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E6F1EA] text-[#1A5B3C] transition-colors hover:bg-[#D5E8DC]">
+          <DialogClose className="absolute top-4 right-4 flex size-7 items-center justify-center rounded-full bg-[#E7F6EE] text-[#146A47] transition-colors hover:bg-[#D5E8DC]">
             <IconX size={13} />
             <span className="sr-only">Close</span>
           </DialogClose>
         </DialogHeader>
 
         <div className={modalBodyClass}>
-          <div className="rounded-xl border border-[#E9EDEB] bg-[#FBFAF5] p-6 text-center">
-            <p className="mb-1 text-[12px] text-[#7A8781]">Signed by</p>
-            <p className="text-ink-deep font-[Newsreader,serif] text-3xl italic">{judgeName}</p>
+          <div className="rounded-xl border border-[#E7EAEE] bg-[#FBFAF5] p-6 text-center">
+            <p className="mb-1 text-[12px] text-[#8A94A3]">Signed by</p>
+            <p className="font-[family-name:var(--fa-serif)] text-3xl text-[#101828] italic">
+              {judgeName}
+            </p>
           </div>
         </div>
 

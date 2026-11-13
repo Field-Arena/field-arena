@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ShowListItem } from '@/modules/shows/data/queries';
+import type { ShowListItem } from '@/modules/shows/types';
 import { EmptyState, PageHeader } from '@/shared/ui/organizer/fa-page';
 import { FaShowSelect } from '@/shared/ui/organizer/fa-show-select';
 

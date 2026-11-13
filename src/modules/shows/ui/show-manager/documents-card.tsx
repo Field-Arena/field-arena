@@ -13,7 +13,7 @@ import {
   useRemoveShowDocument,
   useUpdateDocumentEvents,
 } from '@/modules/shows/hooks/use-documents-mutations';
-import type { ShowDocumentRow } from '@/modules/shows/data/setup-queries';
+import type { ShowDocumentRow } from '@/modules/shows/types';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 

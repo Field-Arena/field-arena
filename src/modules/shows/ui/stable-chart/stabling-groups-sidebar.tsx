@@ -3,7 +3,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CardTitle, FA_MUTED, FaCard } from '@/shared/ui/organizer/fa-page';
 import { buildGroupDndId } from '@/modules/shows/utils/stall-dnd-id';
-import type { StableAssignmentGroup } from '@/modules/shows/data/stable-assignment-groups-queries';
+import type { StableAssignmentGroup } from '@/modules/shows/types';
 
 function GroupRow({ group }: { group: StableAssignmentGroup }) {
   const totalStalls = group.horseStallsNeeded + group.tackStallsNeeded;

@@ -9,15 +9,15 @@ import {
   type PillTone,
 } from '@/shared/ui/organizer/fa-page';
 import { OpsAutoRefresh } from '@/modules/operations/ui/ops-auto-refresh';
-import type { ShowListItem } from '@/modules/shows/data/queries';
-import {
-  clockLabel,
-  type LiveClassRow,
-  type LiveData,
-  type LiveRide,
-  type LiveRing,
-  type ShowCockpit,
-} from '@/modules/shows/data/show-cockpit-queries';
+import { clockLabel } from '@/modules/shows/utils/clock-label';
+import type {
+  LiveClassRow,
+  LiveData,
+  LiveRide,
+  LiveRing,
+  ShowCockpit,
+  ShowListItem,
+} from '@/modules/shows/types';
 import { TodoList } from './todo-list';
 import { approvalTone, percent } from './dashboard-format';
 import { dateRange } from './show-before';

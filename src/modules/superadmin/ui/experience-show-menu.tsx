@@ -1,6 +1,5 @@
 'use client';
 
-import { useTransition } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 import {
   DropdownMenu,
@@ -10,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/shadcn/dropdown-menu';
-import { setPreviewShow } from '@/shared/lib/preview-show';
+import { useSetPreviewShow } from '../hooks/use-session-mutations';
 
 /* Legacy's per-show "Viewing as" menu: pick a role AND the show it applies to,
  * and land in that role's real workspace scoped to that show. Picking the show
@@ -27,37 +26,35 @@ const ROLE_DESTINATIONS: { role: string; href: string; hint: string }[] = [
 ];
 
 export function ExperienceShowMenu({ showId, showName }: { showId: string; showName: string }) {
-  const [pending, startTransition] = useTransition();
+  const { isPending: pending, preview } = useSetPreviewShow();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={pending}
         aria-label={`Experience ${showName} as a role`}
-        className="text-hunter-deep hover:border-gold inline-flex items-center gap-1.5 rounded-lg border border-[#C4D3CB] bg-white px-3 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors hover:bg-[#FFFCF2] disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[12.5px] font-bold whitespace-nowrap text-[#101828] transition-colors hover:border-[#D6DBE1] hover:bg-[#FBFCFD] disabled:opacity-50"
       >
         {pending ? 'Opening…' : 'Experience'}
         <ChevronDownIcon className="size-[13px]" aria-hidden />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="border-line-mint w-64 rounded-xl p-1.5">
-        <DropdownMenuLabel className="text-fa-muted-2 text-[10px] font-bold tracking-[.14em] uppercase">
+      <DropdownMenuContent align="end" className="w-64 rounded-xl border-[#E7EAEE] p-1.5">
+        <DropdownMenuLabel className="text-[10px] font-bold tracking-[.08em] text-[#8A94A3] uppercase">
           {showName}
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-[#EEF2EF]" />
+        <DropdownMenuSeparator className="bg-[#EEF1F4]" />
 
         {ROLE_DESTINATIONS.map((target) => (
           <DropdownMenuItem
             key={target.role}
             onSelect={() => {
-              startTransition(async () => {
-                await setPreviewShow(showId, target.href);
-              });
+              preview(showId, target.href);
             }}
             className="flex-col items-start gap-0.5"
           >
-            <span className="text-hunter-deep text-[13px] font-semibold">{target.role}</span>
-            <span className="text-fa-muted-2 text-[11.5px]">{target.hint}</span>
+            <span className="text-[13px] font-semibold text-[#101828]">{target.role}</span>
+            <span className="text-[11.5px] text-[#8A94A3]">{target.hint}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

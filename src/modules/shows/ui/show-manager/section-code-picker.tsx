@@ -7,7 +7,7 @@ import {
   suggestSectionCodes,
   type UsefSectionCode,
 } from '@/modules/shows/utils/suggest-section-codes';
-import type { SelectedClassOption } from '@/modules/shows/data/setup-queries';
+import type { SelectedClassOption } from '@/modules/shows/types';
 
 const POPOVER_WIDTH = 520;
 const POPOVER_MAX_HEIGHT = 340;

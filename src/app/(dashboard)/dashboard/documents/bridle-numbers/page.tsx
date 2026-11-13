@@ -6,7 +6,7 @@ import {
 } from '@/modules/shows/data/bridle-number-queries';
 import { FilingCabinetShell } from '@/modules/shows/ui/filing-cabinet/filing-cabinet-shell';
 import { BridleNumbersScreen } from '@/modules/shows/ui/filing-cabinet/bridle-numbers-screen';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 
 export const metadata: Metadata = { title: 'Bridle Numbers — Field & Arena' };
 

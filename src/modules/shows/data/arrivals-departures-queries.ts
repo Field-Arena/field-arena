@@ -1,15 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
-
-export interface ArrivalDepartureRow {
-  riderId: string;
-  riderName: string;
-  trainerName: string;
-  horseStalls: number;
-  tackStalls: number;
-  arrivalDate: string | null;
-  departureDate: string | null;
-}
+import type { ArrivalDepartureRow } from '@/modules/shows/types';
 
 /* Rider-reported stabling logistics (src/modules/riders/ui/stabling-details-form.tsx)
  * were only ever readable back on the rider's own Purchases page -- an
@@ -33,8 +24,15 @@ export async function listArrivalsDepartures(showId: string): Promise<ArrivalDep
     // get a null embed on either side despite the not-null FKs, so both are
     // treated as genuinely nullable regardless of what the generated type
     // (based on schema constraints, not RLS) claims.
-    const rider = row.riders as { first_name: string | null; last_name: string | null; email: string } | null;
-    const order = row.orders as { arrival_date: string | null; departure_date: string | null } | null;
+    const rider = row.riders as {
+      first_name: string | null;
+      last_name: string | null;
+      email: string;
+    } | null;
+    const order = row.orders as {
+      arrival_date: string | null;
+      departure_date: string | null;
+    } | null;
     const name = rider ? [rider.first_name, rider.last_name].filter(Boolean).join(' ').trim() : '';
     const riderName = name !== '' ? name : (rider?.email ?? '—');
     return {

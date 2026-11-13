@@ -10,7 +10,7 @@ import {
   StatBox,
   StatGrid,
 } from '@/shared/ui/organizer/fa-page';
-import type { PostShowReport } from '@/modules/results-export/data/get-report-summary';
+import type { PostShowReport } from '@/modules/results-export/types';
 import type { ReadinessKey, ReadinessState } from '@/modules/results-export/utils/readiness';
 import { EXPORT_FORMAT_OPTIONS, exportHref } from '@/modules/results-export/ui/export-formats';
 

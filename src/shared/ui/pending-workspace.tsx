@@ -1,21 +1,19 @@
-'use client';
-
-import { LogOutIcon, HardHatIcon } from 'lucide-react';
-import { Button } from '@/shared/ui/shadcn/button';
-import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
+import type { ReactNode } from 'react';
+import { HardHatIcon } from 'lucide-react';
 import type { RoleWorkspace } from '@/shared/constants/role-workspaces';
 
 export function PendingWorkspace({
   workspace,
   roleLabel,
   userName,
+  action,
 }: {
   workspace: RoleWorkspace;
   roleLabel: string;
   userName: string;
+  /** The way out — typically the auth module's sign-out button. */
+  action: ReactNode;
 }) {
-  const { mutate: signOut, isPending: isSigningOut } = useSignOut();
-
   return (
     <main className="bg-cream grid min-h-screen place-items-center px-5 py-12">
       <div className="border-border w-full max-w-[560px] rounded-2xl border bg-white p-8 shadow-[0_18px_60px_rgba(13,44,35,0.10)]">
@@ -39,17 +37,7 @@ export function PendingWorkspace({
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={() => {
-            signOut();
-          }}
-          disabled={isSigningOut}
-        >
-          <LogOutIcon aria-hidden />
-          {isSigningOut ? 'Signing out…' : 'Sign out'}
-        </Button>
+        {action}
       </div>
     </main>
   );

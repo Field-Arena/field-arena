@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { escapeLikePattern } from '@/shared/lib/escape-like-pattern';
 import { ROLE_WORKSPACES } from '@/shared/constants/role-workspaces';
 import { ASSIGNMENT_ROLE_TO_WORKSPACE } from '@/modules/staff/constants';
 
@@ -48,7 +49,7 @@ export async function getUserWorkspaceRoles(profile: {
     const { data: booking, error: vendorError } = await supabase
       .from('vendor_bookings')
       .select('id')
-      .ilike('contact', profile.email)
+      .ilike('contact', escapeLikePattern(profile.email))
       .in('status', ['approved', 'paid'])
       .limit(1)
       .maybeSingle();

@@ -11,6 +11,7 @@ import { HorseUsefSection } from '@/modules/riders/ui/horse-usef-section';
 import { RequiredDocumentSign } from '@/modules/riders/ui/required-document-sign';
 import { isSignableRequirement } from '@/modules/riders/utils/is-signable-requirement';
 import type { DocumentRequirement, HorseWithDocumentUrls, RiderRow } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -90,6 +91,7 @@ export function HorseManager({
             <Input
               id="new-horse-name"
               placeholder="Click here to type the horse’s registered name…"
+              maxLength={RIDER_FIELD_MAX.horseName}
               value={newHorseName}
               onChange={(event) => {
                 setNewHorseName(event.target.value);
@@ -148,6 +150,7 @@ function HorseCard({
           <Input
             id={`stable-${horse.id}`}
             placeholder={TYPE_HERE}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.stable ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, stable: event.target.value });
@@ -159,6 +162,7 @@ function HorseCard({
           <Input
             id={`height-${horse.id}`}
             placeholder={`${TYPE_HERE} e.g. 15.2`}
+            maxLength={RIDER_FIELD_MAX.horseHeight}
             defaultValue={horse.height ?? ''}
             onBlur={(event) => {
               updateHorse.mutate({ id: horse.id, height: event.target.value });

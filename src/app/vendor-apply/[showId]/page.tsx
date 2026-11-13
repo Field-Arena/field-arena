@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 import { ROUTES } from '@/shared/constants/routes';
-import { getStaffProfile } from '@/modules/auth/data/queries';
+import { getStaffProfile } from '@/shared/lib/auth/session';
 import { getPublicVendorApplyShow } from '@/modules/vendors/data/queries';
 import { VendorApplyEntryForm } from '@/modules/vendors/ui/vendor-apply-entry-form';
 
@@ -57,8 +57,8 @@ export default async function VendorPublicApplyPage({
         ) : (
           <>
             {/* Legacy's apply page linked the booth map right above the cart
-              * (vendor-apply.html:107-110) — you pick a space knowing where it
-              * sits, not from a name alone. */}
+             * (vendor-apply.html:107-110) — you pick a space knowing where it
+             * sits, not from a name alone. */}
             {show.vendorMapUrl && (
               <p className="mb-3 text-[13.5px]">
                 <a

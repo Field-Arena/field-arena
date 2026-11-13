@@ -6,7 +6,7 @@ import { Card } from '@/shared/ui/organizer/card';
 import { ghostButtonClass } from '@/shared/ui/organizer/buttons';
 import { cn } from '@/shared/lib/utils';
 import { formatDateShort } from '@/shared/lib/format/date';
-import type { ShowPickerSummary } from '@/modules/shows/data/queries';
+import type { ShowPickerSummary } from '@/modules/shows/types';
 
 const VISIBLE_COUNT = 3;
 

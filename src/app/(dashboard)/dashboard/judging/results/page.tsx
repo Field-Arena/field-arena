@@ -8,8 +8,7 @@ import { CardTitle, EmptyState, FaCard, PageHeader } from '@/shared/ui/organizer
 export const metadata: Metadata = { title: 'Results — Field & Arena' };
 
 export default async function JudgingResultsPage() {
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const assignments = await listMyAssignments(todayIso);
+  const assignments = await listMyAssignments();
   const done = assignments.filter(isAssignmentComplete);
 
   const placingsByClass = await Promise.all(

@@ -7,7 +7,7 @@ import {
 } from '@/modules/shows/ui/show-manager/selected-classes-card';
 import { UsefCompIdCard } from '@/modules/shows/ui/show-manager/usef-comp-id-card';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
-import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
+import { EmptyPanel } from '@/shared/ui/workspace-page';
 import { resolveShowIdParam } from '@/modules/shows/data/resolve-show-id';
 
 export const metadata: Metadata = { title: 'Select Events — Field & Arena' };
@@ -41,6 +41,7 @@ export default async function SelectEventsPage({
         classes={usef.classes}
         usef={{ showId: usef.showId, codes: usef.sectionCodes }}
       />
+      {/* Footer last, outside the picker card, so it follows the USEF cards. */}
       <SectionFooter
         currentTab="Select Events"
         showId={showId}

@@ -17,6 +17,7 @@ import {
   legacyCardStyle,
 } from '@/modules/riders/ui/legacy-theme';
 import type { DocumentRequirement, HorseWithDocumentUrls, RiderRow } from '@/modules/riders/types';
+import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
 
 const fieldInputStyle: CSSProperties = {
   fontFamily: 'inherit',
@@ -138,6 +139,7 @@ export function HorseTabView({
             <input
               autoFocus
               placeholder="Click here to type the horse’s registered name…"
+              maxLength={RIDER_FIELD_MAX.horseName}
               value={newHorseName}
               style={fieldInputStyle}
               onChange={(event) => {
@@ -233,6 +235,7 @@ function LegacyHorseCard({
           </label>
           <input
             placeholder={TYPE_HERE}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.stable ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -248,6 +251,7 @@ function LegacyHorseCard({
           </label>
           <input
             placeholder={`${TYPE_HERE} e.g. 15.2`}
+            maxLength={RIDER_FIELD_MAX.horseHeight}
             defaultValue={horse.height ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {
@@ -263,6 +267,7 @@ function LegacyHorseCard({
           </label>
           <input
             placeholder={TYPE_HERE}
+            maxLength={RIDER_FIELD_MAX.horseText}
             defaultValue={horse.farrier ?? ''}
             style={fieldInputStyle}
             onBlur={(event) => {

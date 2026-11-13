@@ -14,8 +14,10 @@ import {
 import { Label } from '@/shared/ui/shadcn/label';
 import { FA_BTN, FA_BTN_PRIMARY, FA_INPUT } from '@/shared/ui/organizer/fa-page';
 import { formatMoney } from '@/shared/lib/format/currency';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { useApplyToVendorShow } from '@/modules/vendors/hooks/use-vendor-mutations';
 import type { BookableShow } from '@/modules/vendors/types';
+import { VENDOR_ITEM_QTY_MAX } from '@/modules/vendors/constants';
 
 export function VendorApplyDialog({ show }: { show: BookableShow }) {
   const [open, setOpen] = useState(false);
@@ -106,6 +108,7 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               id="va-business"
               required
               placeholder="Blue Ridge Tack Co."
+              maxLength={300}
               value={businessName}
               onChange={(e) => {
                 setBusinessName(e.target.value);
@@ -119,6 +122,7 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               className={`${FA_INPUT} w-full`}
               id="va-contact-name"
               placeholder="Jane Smith"
+              maxLength={200}
               value={contactName}
               onChange={(e) => {
                 setContactName(e.target.value);
@@ -132,6 +136,7 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
               className={`${FA_INPUT} w-full`}
               id="va-products"
               placeholder="Tack, apparel, custom leatherwork"
+              maxLength={500}
               value={productsOffered}
               onChange={(e) => {
                 setProductsOffered(e.target.value);
@@ -150,11 +155,16 @@ export function VendorApplyDialog({ show }: { show: BookableShow }) {
                 <input
                   type="number"
                   min={0}
-                  max={item.remaining ?? undefined}
+                  max={item.remaining ?? VENDOR_ITEM_QTY_MAX}
+                  step={1}
+                  onKeyDown={blockNonIntegerKeys}
                   className={`${FA_INPUT} w-20`}
                   value={qtyById[item.id] ?? 0}
                   onChange={(e) => {
-                    const n = Math.max(0, Number(e.target.value) || 0);
+                    const n = Math.min(
+                      item.remaining ?? VENDOR_ITEM_QTY_MAX,
+                      Math.max(0, Math.trunc(Number(e.target.value)) || 0),
+                    );
                     setQtyById((prev) => ({ ...prev, [item.id]: n }));
                   }}
                 />

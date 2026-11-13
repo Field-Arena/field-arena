@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MailIcon } from 'lucide-react';
 import { EMAIL_CODE_LENGTH, RESEND_COOLDOWN_SECONDS } from '@/shared/constants/auth-code';
 import { AuthField, AuthPasswordField } from '@/shared/ui/auth/auth-field';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
 import {
   AuthAlert,
   AuthEyebrow,
@@ -32,6 +33,7 @@ export function VendorSignUpForm() {
   const signUpForm = useForm<VendorSignUpInput>({
     resolver: zodResolver(vendorSignUpSchema),
     defaultValues: { name: '', email: '', password: '' },
+    mode: 'onTouched',
   });
 
   useEffect(() => {
@@ -162,14 +164,14 @@ export function VendorSignUpForm() {
           <AuthField
             label="Your name"
             autoComplete="name"
+            maxLength={200}
             placeholder="Jane Smith"
             error={errors.name?.message}
             {...signUpForm.register('name')}
           />
           <AuthField
             label="Email address"
-            type="email"
-            autoComplete="email"
+            {...EMAIL_INPUT_PROPS}
             placeholder="you@example.com"
             error={errors.email?.message}
             {...signUpForm.register('email')}

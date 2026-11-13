@@ -9,16 +9,16 @@ import type { StripeConnectStatus } from '@/modules/superadmin/types';
  * wrong with the account. */
 const STATUS: Record<StripeConnectStatus, { label: string; bg: string; fg: string; dot: string }> =
   {
-    active: { label: 'Active', bg: '#E4F1E8', fg: '#2E7048', dot: '#3E8E5A' },
-    onboarding: { label: 'Onboarding', bg: '#F6EAC8', fg: '#8A6D14', dot: '#C9A227' },
+    active: { label: 'Active', bg: '#EAF5EF', fg: '#15794F', dot: '#146A47' },
+    onboarding: { label: 'Onboarding', bg: '#FDF2E3', fg: '#B45309', dot: '#146A47' },
     restricted: {
       label: 'Restricted — info needed',
-      bg: '#FCF1EF',
-      fg: '#8E3627',
-      dot: '#B4432F',
+      bg: '#FEF3F2',
+      fg: '#B42318',
+      dot: '#B42318',
     },
-    not_connected: { label: 'Not connected', bg: '#F6EAC8', fg: '#8A6D14', dot: '#C9A227' },
-    error: { label: 'Could not load Stripe status', bg: '#FCF1EF', fg: '#8E3627', dot: '#B4432F' },
+    not_connected: { label: 'Not connected', bg: '#FDF2E3', fg: '#B45309', dot: '#146A47' },
+    error: { label: 'Could not load Stripe status', bg: '#FEF3F2', fg: '#B42318', dot: '#B42318' },
   };
 
 /** The remediation line legacy showed under a non-active account. */
@@ -44,7 +44,7 @@ export function StripeStatusPill({
   return (
     <span
       className={cn(
-        'inline-flex h-[22px] w-fit flex-none items-center gap-[6px] rounded-full px-2.5 text-[10.5px] font-bold whitespace-nowrap',
+        'inline-flex min-h-[22px] w-fit max-w-full items-center gap-[6px] rounded-full px-2.5 py-0.5 text-[10.5px] leading-tight font-bold',
         className,
       )}
       style={{ background: meta.bg, color: meta.fg }}

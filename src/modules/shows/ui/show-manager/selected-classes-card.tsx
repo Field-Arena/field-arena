@@ -12,7 +12,7 @@ import {
 import { formatMoney } from '@/shared/lib/format/currency';
 import { SM_CARD_PAD, SM_SECTION_HEAD, SM_NOTE } from '@/modules/shows/ui/show-manager/tokens';
 import { SectionCodeCell } from '@/modules/shows/ui/show-manager/section-code-picker';
-import type { SelectedClassOption } from '@/modules/shows/data/setup-queries';
+import type { SelectedClassOption } from '@/modules/shows/types';
 import type { UsefSectionCode } from '@/modules/shows/utils/suggest-section-codes';
 
 export interface UsefSectionPicking {
@@ -58,14 +58,15 @@ export function SelectedClassesCard({
     else byDivision.set(key, [cls]);
   }
   const groups = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const needingTest = classes.filter((c) => !c.hasTest).length;
+  const needingTest = classes.filter((c) => c.testStatus === 'none').length;
 
   return (
     <Card className={SM_CARD_PAD}>
       <h2 className={SM_SECTION_HEAD}>Selected Classes</h2>
       <p className={SM_NOTE}>
-        Every class on this show, its division and fee, and whether it still needs a test typed in
-        below.
+        Every class on this show, its division and fee, and its test. Classes added from an official
+        test use that test&apos;s scoresheet automatically; only custom and independent classes need
+        a test built below.
         {classes.length > 0 &&
           (needingTest > 0
             ? ` ${String(needingTest)} of ${String(classes.length)} still ${needingTest === 1 ? 'needs' : 'need'} a test.`
@@ -73,23 +74,23 @@ export function SelectedClassesCard({
       </p>
 
       {classes.length === 0 ? (
-        <p className="text-[13px] text-[#98A29D] italic">
+        <p className="text-[13px] text-[#8A94A3] italic">
           Nothing selected yet — check a division under Select Events and it lands here.
         </p>
       ) : (
         <Table className="min-w-[560px] border-collapse text-[13.5px]">
           <TableCaption className="sr-only">Classes selected for this show</TableCaption>
           <TableHeader>
-            <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+            <TableRow className="border-b border-[#E7EAEE] hover:bg-transparent">
               <TableHead
                 scope="col"
-                className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase"
               >
                 Class
               </TableHead>
               <TableHead
                 scope="col"
-                className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                className="h-auto px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase"
               >
                 Location
               </TableHead>
@@ -103,13 +104,13 @@ export function SelectedClassesCard({
               )}
               <TableHead
                 scope="col"
-                className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase"
               >
                 Fee
               </TableHead>
               <TableHead
                 scope="col"
-                className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase"
+                className="h-auto px-2.5 py-2 text-right text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase"
               >
                 Test
               </TableHead>
@@ -118,7 +119,7 @@ export function SelectedClassesCard({
           <TableBody>
             {groups.map(([division, rows]) => (
               <Fragment key={division}>
-                <TableRow className="border-b border-[#EEF2F0] hover:bg-transparent">
+                <TableRow className="border-b border-[#EEF1F4] hover:bg-transparent">
                   <TableCell
                     colSpan={usef ? 5 : 4}
                     className="text-forest bg-[#F6FBF8] px-2.5 py-1.5 text-[11.5px] font-bold tracking-[.04em] uppercase"
@@ -130,7 +131,7 @@ export function SelectedClassesCard({
                   <TableRow key={cls.id} className="border-b border-[#EEF2F0] hover:bg-transparent">
                     <TableCell className="px-2.5 py-2 whitespace-normal">{cls.label}</TableCell>
                     <TableCell className="px-2.5 py-2 whitespace-normal">
-                      {cls.location ?? 'No location set'}
+                      {cls.location ?? <span className="text-[#8A94A3]">No location set</span>}
                     </TableCell>
                     {usef && (
                       <TableCell className="px-2.5 py-2 whitespace-normal">
@@ -141,10 +142,18 @@ export function SelectedClassesCard({
                       {formatMoney(cls.fee)}
                     </TableCell>
                     <TableCell className="px-2.5 py-2 text-right whitespace-normal">
-                      {cls.hasTest ? (
-                        <span className="text-forest font-semibold">✓ Assigned</span>
+                      {cls.testStatus === 'official' ? (
+                        <span className="fa-badge fa-live">
+                          <span className="fa-dot" />
+                          Official test
+                        </span>
+                      ) : cls.testStatus === 'custom' ? (
+                        <span className="fa-badge fa-pass">Custom test</span>
                       ) : (
-                        <span className="text-status-danger font-semibold">Needs a test</span>
+                        <span className="fa-badge fa-red">
+                          <span className="fa-dot" />
+                          Needs a test
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>

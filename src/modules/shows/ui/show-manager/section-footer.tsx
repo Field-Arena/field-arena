@@ -8,8 +8,12 @@ export function SectionFooter({
   currentTab,
   showId,
   blockedReason,
+  inCard = false,
 }: {
   currentTab: ShowManagerTab;
+  /** Render as the last row of the section's own card instead of a
+   * separate card (used by Select Events). */
+  inCard?: boolean;
 
   showId?: string;
   blockedReason?: string | null;
@@ -33,6 +37,24 @@ export function SectionFooter({
     );
   }
 
+  const href = showId ? `/dashboard/shows/${showId}${next.path}` : '/dashboard/shows';
+
+  if (inCard) {
+    return (
+      <div className="flex flex-wrap items-center gap-4 border-t border-[#EDF0EE] px-5 py-4">
+        <div className="min-w-0">
+          <p className="text-[13px] text-[#6E7C76]">{section.nextNote}</p>
+          {blockedReason && (
+            <p className="mt-1 text-[12.5px] text-[#B4432F] italic">{blockedReason}</p>
+          )}
+        </div>
+        <Link href={href} className={cn(SM_GREEN_BTN, 'ml-auto')}>
+          Continue to {next.label} →
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-[#EDF0EE] bg-white px-6 py-5">
       <div className="min-w-0">
@@ -41,10 +63,7 @@ export function SectionFooter({
           <p className="mt-1 text-[12.5px] text-[#B4432F] italic">{blockedReason}</p>
         )}
       </div>
-      <Link
-        href={showId ? `/dashboard/shows/${showId}${next.path}` : '/dashboard/shows'}
-        className={cn(SM_GREEN_BTN, 'ml-auto')}
-      >
+      <Link href={href} className={cn(SM_GREEN_BTN, 'ml-auto')}>
         Continue to {next.label} →
       </Link>
     </div>

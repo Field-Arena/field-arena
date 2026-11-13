@@ -5,19 +5,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOutIcon, SmartphoneIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { ORGANIZER_NAV, ROLE_NAV } from '../constants';
-import type { MemberOrg } from '../data/org-selection';
+import { ORGANIZER_NAV } from '../constants';
+import { ROLE_NAV } from '@/shared/constants/role-nav';
+import type { MemberOrg } from '../types';
 import {
   useOrganizerShellPreview,
   useOrganizerShellOrgSwitch,
 } from '../hooks/use-organizer-shell-actions';
-import { setRailRole } from '@/shared/lib/rail-role';
 import { NavIcon } from '@/shared/ui/nav-icon';
 import { RoleIcon } from '@/shared/ui/role-icon';
 import { Tip } from '@/shared/ui/tip';
 import { ImpersonationBanner } from './impersonation-banner';
-import { useSignOut } from '@/modules/auth/hooks/use-auth-mutations';
-import type { StaffProfile } from '@/modules/auth/data/queries';
+import { useSignOut } from '@/modules/auth/public';
+import type { StaffProfile } from '@/shared/types/auth';
 import {
   RIDER_WORKSPACE,
   ROLE_RAIL_ORDER,
@@ -62,11 +62,7 @@ export function OrganizerShell({
   const pathname = usePathname();
   const { mutate: signOut, isPending: isSigningOut } = useSignOut();
   const [mobilePreview, setMobilePreview] = useState(false);
-  const {
-    isPending: isPreviewPending,
-    setPreview,
-    runTransition: runPreviewTransition,
-  } = useOrganizerShellPreview();
+  const { isPending: isPreviewPending, setPreview, setRailRole } = useOrganizerShellPreview();
   const { isPending: isOrgPending, setOrg } = useOrganizerShellOrgSwitch();
 
   const isSuperAdmin = profile.platform_role === 'SuperAdmin';
@@ -219,9 +215,7 @@ export function OrganizerShell({
                   className={cn('dash-rail-btn', active && 'active')}
                   onClick={() => {
                     if (active) return;
-                    runPreviewTransition(async () => {
-                      await setRailRole(role);
-                    });
+                    setRailRole(role);
                   }}
                 >
                   <RoleIcon role={role} size={20} />

@@ -13,8 +13,8 @@ export function TableShell({
   return (
     <div
       className={cn(
-        'overflow-x-auto rounded-[14px] border border-[#EDF0EE] bg-white',
-        'shadow-[0_1px_2px_rgba(16,40,32,.04),0_10px_26px_-16px_rgba(16,40,32,.14)]',
+        'overflow-x-auto rounded-[14px] border border-[#E7EAEE] bg-white',
+        'shadow-[0_1px_2px_rgba(16,24,40,.05)]',
         className,
       )}
       style={{ ['--table-min' as string]: `${String(minWidth)}px` }}
@@ -35,14 +35,14 @@ export function TableHead({
 }) {
   return (
     <div
-      className="grid gap-3.5 border-b border-[#EEF2F0] px-5 py-3"
+      className="grid gap-3.5 border-b border-[#EEF1F4] bg-[#FBFCFD] px-5 py-3"
       style={{ gridTemplateColumns: template, minWidth }}
     >
       {columns.map((c) => (
         <span
           key={c.label}
           className={cn(
-            'text-[9.5px] font-bold tracking-[.14em] text-[#7A8781] uppercase',
+            'text-[11px] font-semibold tracking-[.07em] whitespace-nowrap text-[#8A94A3] uppercase',
             c.align === 'right' && 'text-right',
           )}
         >
@@ -67,8 +67,8 @@ export function TableRow({
   return (
     <div
       className={cn(
-        'grid items-center gap-3.5 border-b border-[#F1F4F3] px-5 py-3',
-        'transition-colors duration-100 hover:bg-[#F8FAF9]',
+        'grid items-center gap-3.5 border-b border-[#EEF1F4] px-5 py-3.5 text-[13.5px] text-[#475467]',
+        'transition-colors duration-100 hover:bg-[#FAFBFC]',
         className,
       )}
       style={{ gridTemplateColumns: template, minWidth }}
@@ -79,9 +79,9 @@ export function TableRow({
 }
 
 export function TableFooterNote({ children }: { children: React.ReactNode }) {
-  return <div className="px-5 py-[13px] text-[12.5px] text-[#98A29D]">{children}</div>;
+  return <div className="px-5 py-[13px] text-[12.5px] text-[#8A94A3]">{children}</div>;
 }
 
 export function TableEmpty({ children }: { children: React.ReactNode }) {
-  return <div className="px-5 py-[30px] text-center text-[13.5px] text-[#7A8781]">{children}</div>;
+  return <div className="px-5 py-[30px] text-center text-[13.5px] text-[#8A94A3]">{children}</div>;
 }

@@ -1,7 +1,4 @@
-import type {
-  StableChartStable,
-  StableChartStall,
-} from '@/modules/shows/data/stable-chart-queries';
+import type { StableChartStable, StableChartStall } from '@/modules/shows/types';
 
 // dnd-kit needs one flat, unique id per draggable/droppable — a stall's own
 // id isn't guaranteed unique across stables in isolation from its parent, so

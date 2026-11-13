@@ -1,11 +1,5 @@
-export interface ActionFailure {
-  ok: false;
-  error: string;
-}
+import type { ActionFailure } from '@/modules/superadmin/types';
 
 export function fail(error: string): ActionFailure {
   return { ok: false, error };
 }
-
-export type CreateOrganizationResult = { ok: true; id: string; name: string } | ActionFailure;
-export type AddSuperAdminResult = { ok: true; email: string } | ActionFailure;

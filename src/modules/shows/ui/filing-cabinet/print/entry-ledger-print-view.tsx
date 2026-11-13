@@ -1,16 +1,23 @@
 'use client';
 
+import { PrintedToday } from '@/modules/shows/ui/printed-today';
 import { formatMoney } from '@/shared/lib/format/currency';
-import type { EntryLedgerRow } from '@/modules/shows/data/entry-ledger-queries';
+import type { EntryLedgerRow } from '@/modules/shows/types';
 
-export function EntryLedgerPrintView({ showName, rows }: { showName: string; rows: EntryLedgerRow[] }) {
+export function EntryLedgerPrintView({
+  showName,
+  rows,
+}: {
+  showName: string;
+  rows: EntryLedgerRow[];
+}) {
   if (rows.length === 0) return null;
 
   return (
     <div data-print-report className="hidden p-10 print:block">
       <h1 className="text-[26px] font-bold">{showName} — Entry Ledger</h1>
       <p className="mb-4 text-sm text-[#555]">
-        {rows.length} entries · printed {new Date().toLocaleDateString()}
+        {rows.length} entries · printed <PrintedToday />
       </p>
       <table className="w-full border-collapse text-[12px]">
         <thead>
@@ -27,7 +34,11 @@ export function EntryLedgerPrintView({ showName, rows }: { showName: string; row
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.showEntryId} className="border-b border-[#DDD]" style={{ pageBreakInside: 'avoid' }}>
+            <tr
+              key={row.showEntryId}
+              className="border-b border-[#DDD]"
+              style={{ pageBreakInside: 'avoid' }}
+            >
               <td className="py-1 pr-2">{row.entryNumber}</td>
               <td className="py-1 pr-2">{row.bridleNumber ?? '—'}</td>
               <td className="py-1 pr-2">{row.riderName}</td>

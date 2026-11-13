@@ -349,6 +349,11 @@ export function EventSalesScreen({
                         </td>
                         <td className={FA_TD}>
                           <Pill tone={STATUS_PILL[row.status]}>{STATUS_LABEL[row.status]}</Pill>
+                          {row.reviewReason && (
+                            <span title={row.reviewReason} className="ml-1.5">
+                              <Pill tone="red">Needs review</Pill>
+                            </span>
+                          )}
                         </td>
                         {canRefund && (
                           <td
@@ -361,7 +366,7 @@ export function EventSalesScreen({
                               <button
                                 type="button"
                                 className={FA_BTN_SMALL}
-                                disabled={row.maxRefundable <= 0}
+                                disabled={!row.hasRefundableBalance}
                                 onClick={() => {
                                   setRefundTarget(row);
                                 }}
@@ -448,6 +453,7 @@ export function EventSalesScreen({
         <RefundDialog
           showId={showId}
           sale={refundTarget}
+          canViewMoney={canViewMoney}
           onClose={() => {
             setRefundTarget(null);
           }}

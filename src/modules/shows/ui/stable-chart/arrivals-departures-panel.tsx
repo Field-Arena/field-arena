@@ -14,7 +14,7 @@ import {
 } from '@/shared/ui/organizer/fa-page';
 import { cn } from '@/shared/lib/utils';
 import { formatDateShort } from '@/shared/lib/format/date';
-import type { ArrivalDepartureRow } from '@/modules/shows/data/arrivals-departures-queries';
+import type { ArrivalDepartureRow } from '@/modules/shows/types';
 
 type SortKey = 'rider' | 'arrival' | 'departure';
 

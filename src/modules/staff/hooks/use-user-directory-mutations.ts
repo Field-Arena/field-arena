@@ -24,7 +24,7 @@ import type {
   AssignRingAnnouncerInput,
   UpdateRiderContactInfoInput,
 } from '../schemas';
-import type { VerifyHorseDocumentInput } from '@/modules/shows/schemas';
+import type { VerifyHorseDocumentInput } from '@/modules/shows/public';
 
 export function useAddStaffUser(options?: { onSuccess?: () => void }) {
   return useRefreshingMutation(

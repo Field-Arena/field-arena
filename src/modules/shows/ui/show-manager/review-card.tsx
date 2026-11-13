@@ -16,13 +16,14 @@ import {
   TableCaption,
 } from '@/shared/ui/shadcn/table';
 import { cn } from '@/shared/lib/utils';
+import { blockNonDecimalKeys, blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { calcPlatformFee } from '@/shared/lib/fees';
 import {
   useUpdateClassReview,
   useRemoveClass,
 } from '@/modules/shows/hooks/use-schedule-review-mutations';
-import type { ScheduleReviewData } from '@/modules/shows/data/setup-queries';
+import type { ScheduleReviewData } from '@/modules/shows/types';
 import {
   SM_CARD_PAD,
   SM_SECTION_HEAD,
@@ -33,7 +34,7 @@ import {
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
 
 const REVIEW_TABLE_HEAD =
-  'px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#6E7C76] uppercase';
+  'px-2.5 py-2 text-left text-[11px] font-bold tracking-[.06em] text-[#8A94A3] uppercase';
 
 export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publicId?: string }) {
   const id = publicId ?? data.showId;
@@ -65,19 +66,19 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
   return (
     <>
       <Card className={SM_CARD_PAD}>
-        <h2 className={SM_SECTION_HEAD}>Review</h2>
+        <h2 className={SM_SECTION_HEAD}>Class review</h2>
         <p className={SM_NOTE}>
           Everything configured for this show, class by class — arena, judges, and fees, all
           editable here.
         </p>
 
         {rows.length === 0 ? (
-          <p className="text-[13px] text-[#98A29D] italic">
+          <p className="text-[13px] text-[#8A94A3] italic">
             No classes scheduled yet — pick some in{' '}
             <Link
               href={`/dashboard/shows/${id}/select-events`}
               prefetch={false}
-              className="text-forest font-semibold underline underline-offset-2"
+              className="font-semibold text-[#101828] underline underline-offset-2"
             >
               Select Events
             </Link>{' '}
@@ -88,7 +89,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
             <Table className="w-full min-w-[900px] border-collapse text-[13.5px]">
               <TableCaption className="sr-only">Classes on this show, editable</TableCaption>
               <TableHeader>
-                <TableRow className="border-b border-[#E9EDEB] hover:bg-transparent">
+                <TableRow className="border-b border-[#E7EAEE] hover:bg-transparent">
                   <TableHead scope="col" className={cn('h-auto', REVIEW_TABLE_HEAD)}>
                     Event
                   </TableHead>
@@ -123,11 +124,11 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                 {rows.map((c) => (
                   <TableRow
                     key={c.id}
-                    className="border-b border-[#EEF2F0] transition-colors hover:bg-[#FAFBF8] [&>td]:align-middle"
+                    className="border-b border-[#EEF1F4] transition-colors hover:bg-[#FAFBF8] [&>td]:align-middle"
                   >
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       <span
-                        className="block max-w-[150px] truncate text-[#6E7C76]"
+                        className="block max-w-[150px] truncate text-[#8A94A3]"
                         title={c.event ?? undefined}
                       >
                         {c.event ?? '—'}
@@ -139,7 +140,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                     <TableCell className="px-2.5 py-2 whitespace-nowrap">
                       {c.division ?? '—'}
                     </TableCell>
-                    <TableCell className="px-2.5 py-2 whitespace-nowrap text-[#6E7C76]">
+                    <TableCell className="px-2.5 py-2 whitespace-nowrap text-[#8A94A3]">
                       {c.arena ?? '—'}
                     </TableCell>
                     <TableCell className="px-2.5 py-2 whitespace-normal">
@@ -161,6 +162,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                     <TableCell className="px-2.5 py-2 whitespace-normal">
                       <Input
                         defaultValue={c.sponsor ?? ''}
+                        maxLength={120}
                         placeholder="—"
                         className={cn('h-auto', SM_ROW_INPUT, 'w-[160px]!')}
                         onBlur={(e) => {
@@ -172,12 +174,16 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                       <Input
                         type="number"
                         min={1}
+                        max={9}
                         step={1}
+                        onKeyDown={blockNonIntegerKeys}
                         defaultValue={c.judgesCount}
                         className={cn('h-auto', SM_ROW_INPUT, 'w-[64px]! appearance-none')}
                         onBlur={(e) => {
                           const n = Number.parseInt(e.target.value, 10);
-                          commit(c.id, { judgesCount: Number.isFinite(n) && n > 0 ? n : 1 });
+                          commit(c.id, {
+                            judgesCount: Number.isFinite(n) && n > 0 ? Math.min(n, 9) : 1,
+                          });
                         }}
                       />
                     </TableCell>
@@ -185,7 +191,9 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                       <Input
                         type="number"
                         min={0}
+                        max={100000}
                         step={1}
+                        onKeyDown={blockNonDecimalKeys}
                         defaultValue={c.fee}
                         className={cn(
                           'h-auto',
@@ -194,7 +202,9 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                         )}
                         onBlur={(e) => {
                           const n = Number.parseFloat(e.target.value);
-                          commit(c.id, { fee: Number.isFinite(n) && n >= 0 ? n : 0 });
+                          commit(c.id, {
+                            fee: Number.isFinite(n) && n >= 0 ? Math.min(n, 100000) : 0,
+                          });
                         }}
                       />
                     </TableCell>
@@ -208,7 +218,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                         onClick={() => {
                           commitRemove(c.id);
                         }}
-                        className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#5A6B63] transition-colors hover:bg-transparent"
+                        className="hover:text-status-danger h-auto bg-transparent p-0 text-[13px] font-semibold text-[#475467] transition-colors hover:bg-transparent"
                       >
                         Remove
                       </Button>
@@ -218,7 +228,7 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
               </TableBody>
             </Table>
 
-            <div className="bg-cream mt-[18px] flex items-center gap-2.5 rounded-[8px] px-4 py-3">
+            <div className="mt-[18px] flex items-center gap-2.5 rounded-[8px] bg-[#FBFCFD] px-4 py-3">
               <Label htmlFor="entries-per-class" className="m-0 text-[13px]">
                 Estimated entries per class
               </Label>
@@ -226,15 +236,17 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
                 id="entries-per-class"
                 type="number"
                 min={0}
+                max={999}
                 step={1}
+                onKeyDown={blockNonIntegerKeys}
                 value={entriesPerClass}
                 className={cn('h-auto', SM_ROW_INPUT, 'w-[70px]! appearance-none')}
                 onChange={(e) => {
                   const n = Number.parseInt(e.target.value, 10);
-                  setEntriesPerClass(Number.isFinite(n) && n >= 0 ? n : 0);
+                  setEntriesPerClass(Number.isFinite(n) && n >= 0 ? Math.min(n, 999) : 0);
                 }}
               />
-              <span className="text-[12px] text-[#6E7C76]">
+              <span className="text-[12px] text-[#8A94A3]">
                 Projections below assume this many riders in each class.
               </span>
             </div>
@@ -242,15 +254,15 @@ export function ReviewCard({ data, publicId }: { data: ScheduleReviewData; publi
             <div className="mt-3.5 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
               <div>
                 <p className={SM_NOTE + ' mb-1'}>Total classes</p>
-                <div className="text-ink-deep text-xl font-bold">{totalClasses}</div>
+                <div className="text-xl font-bold text-[#101828]">{totalClasses}</div>
               </div>
               <div>
                 <p className={SM_NOTE + ' mb-1'}>Judge assignments</p>
-                <div className="text-ink-deep text-xl font-bold">{judgeAssignments}</div>
+                <div className="text-xl font-bold text-[#101828]">{judgeAssignments}</div>
               </div>
               <div>
                 <p className={SM_NOTE + ' mb-1'}>Projected entry fees</p>
-                <div className="text-ink-deep text-xl font-bold">{formatMoney(projectedFees)}</div>
+                <div className="text-xl font-bold text-[#101828]">{formatMoney(projectedFees)}</div>
               </div>
             </div>
           </>

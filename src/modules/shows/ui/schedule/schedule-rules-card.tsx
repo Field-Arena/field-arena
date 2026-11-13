@@ -6,11 +6,12 @@ import { Button } from '@/shared/ui/shadcn/button';
 import { Input } from '@/shared/ui/shadcn/input';
 import { Label } from '@/shared/ui/shadcn/label';
 import { cn } from '@/shared/lib/utils';
-import type { MasterScheduleData } from '@/modules/shows/data/setup-queries';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
+import type { MasterScheduleData } from '@/modules/shows/types';
 import { useUpdateScheduleRules } from '@/modules/shows/hooks/use-schedule-mutations';
 import { SM_CARD_PAD, SM_ROW_INPUT } from '@/modules/shows/ui/show-manager/tokens';
 
-const TITLE = 'font-[family-name:var(--font-nr)] text-[17px] font-semibold text-forest';
+const TITLE = 'text-[15px] tracking-[-.2px] font-semibold text-[#101828]';
 
 export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
   const [open, setOpen] = useState(false);
@@ -46,13 +47,13 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
         className="flex h-auto w-full items-center justify-between gap-2.5 px-0 py-0 text-left hover:bg-transparent"
       >
         <span className={TITLE}>Schedule rules in effect</span>
-        <span className="text-[12px] whitespace-nowrap text-[#7A8781]">
+        <span className="text-[12px] whitespace-nowrap text-[#8A94A3]">
           {open ? '▾ Hide details' : '▸ Show details'}
         </span>
       </Button>
 
       {!open ? (
-        <p className="mt-1.5 text-[12.5px] text-[#7A8781]">Double-booking rule: {summary}</p>
+        <p className="mt-1.5 text-[12.5px] text-[#8A94A3]">Double-booking rule: {summary}</p>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           <Label className="flex flex-wrap items-center gap-2 text-[13px] font-semibold">
@@ -72,17 +73,29 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
           {rules.hardRuleEnabled && (
             <div className="flex flex-wrap items-center gap-4">
               {durationFields.map((f) => (
-                <Label key={f.key} className="flex items-center gap-2 text-[12.5px] text-[#6E7C76]">
+                <Label key={f.key} className="flex items-center gap-2 text-[12.5px] text-[#8A94A3]">
                   {f.label}
                   <Input
                     type="number"
                     min={0}
                     max={240}
+                    step={1}
+                    onKeyDown={blockNonIntegerKeys}
                     defaultValue={f.value}
                     className={cn('h-auto', SM_ROW_INPUT, 'w-[76px] text-right')}
                     onBlur={(e) => {
                       const next = Number(e.target.value);
                       if (next === f.value) return;
+                      // Outside 0–240 whole minutes: put the saved value back.
+                      if (
+                        e.target.value.trim() === '' ||
+                        !Number.isInteger(next) ||
+                        next < 0 ||
+                        next > 240
+                      ) {
+                        e.target.value = String(f.value);
+                        return;
+                      }
                       save.mutate({
                         showId: data.showId,
                         [f.key]: next,
@@ -95,7 +108,7 @@ export function ScheduleRulesCard({ data }: { data: MasterScheduleData }) {
             </div>
           )}
 
-          <p className="text-[12px] leading-[1.55] text-[#98A29D]">
+          <p className="text-[12px] leading-[1.55] text-[#8A94A3]">
             The rule is never violated. When a gap cannot be found by reordering a ring, the
             schedule waits — the class runs longer rather than a rider being double-booked.
           </p>

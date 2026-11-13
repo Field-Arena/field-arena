@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEGACY_COLOR } from '@/modules/riders/ui/legacy-theme';
-import type { RingScheduleStatus } from '@/modules/riders/data/queries';
+import type { RingScheduleStatus } from '@/modules/riders/types';
 
 const REFRESH_MS = 15_000;
 

@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import type { StablingData } from '@/modules/operations/data/queries';
+import type { StablingData } from '@/modules/operations/types';
 import { OpsSearch } from '@/modules/operations/ui/ops-search';
 import {
   Chip,

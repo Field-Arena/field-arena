@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2Icon } from 'lucide-react';
 import { formatMoney } from '@/shared/lib/format/currency';
 import { readableError } from '@/shared/lib/error-message';
@@ -9,18 +11,40 @@ import { ROUTES } from '@/shared/constants/routes';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthAlert, AuthEyebrow, AuthSubmit } from '@/shared/ui/auth/auth-primitives';
 import { Input } from '@/shared/ui/shadcn/input';
+import { withSanitizer } from '@/shared/lib/format/input-sanitize';
+import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
+import { EMAIL_INPUT_PROPS } from '@/shared/lib/format/email-input';
+import { URL_INPUT_PROPS } from '@/shared/lib/format/url-input';
+import { blockNonIntegerKeys } from '@/shared/lib/format/number-input';
 import { useApplyToShowPublic } from '@/modules/vendors/hooks/use-vendor-apply-entry';
+import { VENDOR_ITEM_QTY_MAX } from '@/modules/vendors/constants';
+import {
+  applyToShowPublicFormSchema,
+  type ApplyToShowPublicFormInput,
+  type ApplyToShowPublicFormValues,
+} from '@/modules/vendors/schemas';
 import type { PublicVendorApplyShow } from '@/modules/vendors/types';
 
 export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) {
-  const [submitted, setSubmitted] = useState(false);
-  const [businessName, setBusinessName] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [website, setWebsite] = useState('');
-  const [productsOffered, setProductsOffered] = useState('');
-  const [specialRequests, setSpecialRequests] = useState('');
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const form = useForm<ApplyToShowPublicFormInput, unknown, ApplyToShowPublicFormValues>({
+    resolver: zodResolver(applyToShowPublicFormSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      businessName: '',
+      contactName: '',
+      email: '',
+      phone: '',
+      website: '',
+      productsOffered: '',
+      specialRequests: '',
+    },
+  });
+  const { errors } = form.formState;
+  const [businessName, contactName, email] = useWatch({
+    control: form.control,
+    name: ['businessName', 'contactName', 'email'],
+  });
   const [qtyById, setQtyById] = useState<Record<string, number>>({});
 
   const apply = useApplyToShowPublic();
@@ -29,7 +53,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
     .map((item) => ({ item, qty: qtyById[item.id] ?? 0 }))
     .filter(({ qty }) => qty > 0);
 
-  if (submitted) {
+  if (submittedEmail !== null) {
     return (
       <div className="[animation:fa-in_.22s_ease-out_both] space-y-3 text-center">
         <CheckCircle2Icon className="text-forest mx-auto size-8" aria-hidden />
@@ -38,7 +62,7 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
         </h1>
         <p className="text-fa-muted text-[14.5px] leading-[1.58]">
           {show.orgName} will review your application to vend at {show.showName} and follow up at{' '}
-          <span className="text-ink-deep font-medium">{email}</span>.
+          <span className="text-ink-deep font-medium">{submittedEmail}</span>.
         </p>
         <p className="text-fa-muted text-[14.5px] leading-[1.58]">
           Once approved, come back and{' '}
@@ -70,24 +94,20 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          apply.mutate(
-            {
-              showId: show.showId,
-              businessName,
-              contactName,
-              email,
-              phone: phone || undefined,
-              website: website || undefined,
-              productsOffered: productsOffered || undefined,
-              specialRequests: specialRequests || undefined,
-              items: cart.map(({ item, qty }) => ({ vendorItemId: item.id, qty })),
-            },
-            {
-              onSuccess: () => {
-                setSubmitted(true);
+          void form.handleSubmit((values) => {
+            apply.mutate(
+              {
+                ...values,
+                showId: show.showId,
+                items: cart.map(({ item, qty }) => ({ vendorItemId: item.id, qty })),
               },
-            },
-          );
+              {
+                onSuccess: () => {
+                  setSubmittedEmail(values.email);
+                },
+              },
+            );
+          })(event);
         }}
       >
         <div className="border-line space-y-5 border-b pb-6">
@@ -95,63 +115,55 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
             label="Business / farm name"
             required
             placeholder="Blue Ridge Tack Co."
-            value={businessName}
-            onChange={(e) => {
-              setBusinessName(e.target.value);
-            }}
+            autoComplete="organization"
+            maxLength={300}
+            error={errors.businessName?.message}
+            {...form.register('businessName')}
           />
           <AuthField
             label="Contact name"
             required
             placeholder="Jane Smith"
-            value={contactName}
-            onChange={(e) => {
-              setContactName(e.target.value);
-            }}
+            autoComplete="name"
+            maxLength={200}
+            error={errors.contactName?.message}
+            {...form.register('contactName')}
           />
           <AuthField
             label="Email address"
-            type="email"
+            {...EMAIL_INPUT_PROPS}
             required
-            autoComplete="email"
             placeholder="you@example.com"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-            }}
+            error={errors.email?.message}
+            {...form.register('email')}
           />
           <AuthField
             label="Phone (optional)"
-            type="tel"
+            {...PHONE_INPUT_PROPS}
             placeholder="(555) 123-4567"
-            value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value);
-            }}
+            error={errors.phone?.message}
+            {...withSanitizer(form.register('phone'), sanitizePhoneInput)}
           />
           <AuthField
             label="Website (optional)"
+            {...URL_INPUT_PROPS}
             placeholder="blueridgetack.com"
-            value={website}
-            onChange={(e) => {
-              setWebsite(e.target.value);
-            }}
+            error={errors.website?.message}
+            {...form.register('website')}
           />
           <AuthField
             label="Products / services offered (optional)"
             placeholder="Tack, apparel, custom leatherwork"
-            value={productsOffered}
-            onChange={(e) => {
-              setProductsOffered(e.target.value);
-            }}
+            maxLength={500}
+            error={errors.productsOffered?.message}
+            {...form.register('productsOffered')}
           />
           <AuthField
             label="Special requests (optional)"
             placeholder="Anything the organizer should know"
-            value={specialRequests}
-            onChange={(e) => {
-              setSpecialRequests(e.target.value);
-            }}
+            maxLength={500}
+            error={errors.specialRequests?.message}
+            {...form.register('specialRequests')}
           />
 
           <div>
@@ -171,11 +183,16 @@ export function VendorApplyEntryForm({ show }: { show: PublicVendorApplyShow }) 
                   <Input
                     type="number"
                     min={0}
-                    max={item.remaining ?? undefined}
+                    max={item.remaining ?? VENDOR_ITEM_QTY_MAX}
+                    step={1}
+                    onKeyDown={blockNonIntegerKeys}
                     className="border-field text-ink-deep focus-visible:border-gold focus-visible:ring-gold/[.16] h-auto w-16 rounded-lg border bg-white px-2 py-1.5 text-center text-[14px] outline-none focus-visible:ring-[3px]"
                     value={qtyById[item.id] ?? 0}
                     onChange={(e) => {
-                      const n = Math.max(0, Number(e.target.value) || 0);
+                      const n = Math.min(
+                        item.remaining ?? VENDOR_ITEM_QTY_MAX,
+                        Math.max(0, Math.trunc(Number(e.target.value)) || 0),
+                      );
                       setQtyById((prev) => ({ ...prev, [item.id]: n }));
                     }}
                     aria-label={`Quantity for ${item.name}`}
