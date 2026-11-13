@@ -13,6 +13,7 @@ import { env } from '@/shared/lib/env';
 import { ROUTES } from '@/shared/constants/routes';
 import {
   addStaffUserSchema,
+  addJudgesToShowSchema,
   changeStaffRoleSchema,
   updateStaffPermissionsSchema,
   staffIdSchema,
@@ -159,6 +160,65 @@ async function provisionIfNewAccount(
     .is('user_id', null);
 }
 
+/** A judge record as the staff flows need it. */
+interface DirectoryJudge {
+  id: string;
+  usef_id: string | null;
+  usef_id_source: string | null;
+  usef_id_verified_at: string | null;
+}
+
+const DIRECTORY_JUDGE_COLUMNS = 'id, usef_id, usef_id_source, usef_id_verified_at';
+
+/**
+ * Finds this organization's judge record for an email, creating it if it is new,
+ * so a judge typed into a show's staff form is also saved to the Judges list.
+ * Uses the admin client because a Show Admin who may manage this show's staff is
+ * not an organization owner (the judges table is owner-only under RLS); the
+ * caller has already passed requireCanManageStaff for a show in this org.
+ */
+async function upsertDirectoryJudge(
+  orgId: string,
+  person: { email: string; firstName: string; lastName: string; name: string; phone?: string },
+): Promise<DirectoryJudge> {
+  const admin = createAdminClient();
+
+  const find = async () => {
+    const { data, error } = await admin
+      .from('judges')
+      .select(DIRECTORY_JUDGE_COLUMNS)
+      .eq('org_id', orgId)
+      .eq('email', person.email)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  };
+
+  const existing = await find();
+  if (existing) return existing;
+
+  const { data, error } = await admin
+    .from('judges')
+    .insert({
+      org_id: orgId,
+      first_name: person.firstName,
+      last_name: person.lastName,
+      name: person.name,
+      email: person.email,
+      phone: person.phone ?? null,
+    })
+    .select(DIRECTORY_JUDGE_COLUMNS)
+    .single();
+  if (!error) return data;
+
+  // Two people adding the same judge at once: the unique index rejected ours.
+  if ((error as { code?: string }).code === '23505') {
+    const raced = await find();
+    if (raced) return raced;
+  }
+  throw error;
+}
+
 export async function addStaffUser(input: unknown): Promise<ActionResult<{ email: string }>> {
   return run('Could not invite this person', async () => {
     const parsed = parseInput(addStaffUserSchema, input);
@@ -197,6 +257,13 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
     const name = `${firstName} ${lastName}`.trim();
     const staffId = crypto.randomUUID();
 
+    // A judge typed in here also joins the organization's Judges list (or is
+    // matched to the one already there), carrying their USEF ID with them.
+    const directoryJudge =
+      parsed.role === 'Judge'
+        ? await upsertDirectoryJudge(orgId, { email, firstName, lastName, name })
+        : null;
+
     const { error: assignError } = await supabase.from('staff_assignments').insert({
       id: staffId,
       show_id: parsed.showId,
@@ -205,6 +272,14 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
       first_name: firstName,
       last_name: lastName,
       role: parsed.role,
+      ...(directoryJudge
+        ? {
+            judge_id: directoryJudge.id,
+            usef_id: directoryJudge.usef_id,
+            usef_id_source: directoryJudge.usef_id_source,
+            usef_id_verified_at: directoryJudge.usef_id_verified_at,
+          }
+        : {}),
       status: 'pending',
       is_steward: parsed.role === 'Announcer' ? parsed.isSteward : false,
       can_scratch_skip_dq: parsed.canScratchSkipDq,
@@ -236,6 +311,82 @@ export async function addStaffUser(input: unknown): Promise<ActionResult<{ email
 
     revalidatePath(USERS_PATH);
     return { email };
+  });
+}
+
+export async function addJudgesToShow(
+  input: unknown,
+): Promise<ActionResult<{ added: number; skipped: number }>> {
+  return run('Could not add these judges', async () => {
+    const { showId, judgeIds } = parseInput(addJudgesToShowSchema, input);
+    const { orgId, showName } = await requireCanManageStaff(showId);
+
+    // Judges come from this show's own organization only, whoever is asking.
+    const admin = createAdminClient();
+    const { data: judges, error: judgesError } = await admin
+      .from('judges')
+      .select(
+        'id, name, first_name, last_name, email, phone, usef_id, usef_id_source, usef_id_verified_at',
+      )
+      .eq('org_id', orgId)
+      .in('id', judgeIds);
+    if (judgesError) throw judgesError;
+    if (judges.length === 0) throw new UserFacingError('Those judges are not in your list.');
+
+    const supabase = await createServerClient();
+    const { data: existing, error: existingError } = await supabase
+      .from('staff_assignments')
+      .select('judge_id, email')
+      .eq('show_id', showId);
+    if (existingError) throw existingError;
+
+    const onShowJudgeIds = new Set(existing.map((r) => r.judge_id).filter((id) => !!id));
+    const onShowEmails = new Set(
+      existing.map((r) => r.email?.trim().toLowerCase()).filter((e): e is string => !!e),
+    );
+
+    let added = 0;
+    let skipped = 0;
+    for (const judge of judges) {
+      const email = judge.email?.trim().toLowerCase() ?? null;
+      if (onShowJudgeIds.has(judge.id) || (email && onShowEmails.has(email))) {
+        skipped += 1;
+        continue;
+      }
+
+      const { error: assignError } = await supabase.from('staff_assignments').insert({
+        id: crypto.randomUUID(),
+        show_id: showId,
+        email,
+        name: judge.name,
+        first_name: judge.first_name,
+        last_name: judge.last_name,
+        phone: judge.phone,
+        role: 'Judge',
+        status: 'pending',
+        judge_id: judge.id,
+        usef_id: judge.usef_id,
+        usef_id_source: judge.usef_id_source,
+        usef_id_verified_at: judge.usef_id_verified_at,
+      });
+      if (assignError) {
+        // Already on this show under the same email (unique per show): not an error.
+        if ((assignError as { code?: string }).code === '23505') {
+          skipped += 1;
+          continue;
+        }
+        throw assignError;
+      }
+
+      added += 1;
+      // Same invite the single-add form sends: a real invite for a new account,
+      // a login link for someone who already has one.
+      if (email) await provisionIfNewAccount(email, judge.name, 'Judge', showName);
+    }
+
+    revalidatePath(USERS_PATH);
+    revalidatePath('/dashboard/judges');
+    return { added, skipped };
   });
 }
 
@@ -299,7 +450,46 @@ export async function updateStaffDetails(input: unknown): Promise<ActionResult<{
       .eq('id', parsed.staffId);
     if (error) throw error;
 
+    // A judge linked to the organization's Judges list keeps their USEF ID on that
+    // record, so an edit made here must reach it too (and the judge's other shows).
+    if (parsed.usefId !== undefined) {
+      const { data: row, error: rowError } = await supabase
+        .from('staff_assignments')
+        .select('judge_id')
+        .eq('id', parsed.staffId)
+        .maybeSingle();
+      if (rowError) throw rowError;
+      if (row?.judge_id) {
+        const now = new Date().toISOString();
+        const usefId = parsed.usefId === '' ? null : parsed.usefId;
+        const admin = createAdminClient();
+        const { error: judgeError } = await admin
+          .from('judges')
+          .update({
+            usef_id: usefId,
+            usef_id_source: usefId === null ? null : 'manual',
+            usef_id_entered_by: usefId === null ? null : 'organizer',
+            usef_id_verified_at: null,
+            usef_id_updated_at: now,
+            updated_at: now,
+          })
+          .eq('id', row.judge_id);
+        if (judgeError) throw judgeError;
+
+        const { error: siblingsError } = await admin
+          .from('staff_assignments')
+          .update({
+            usef_id: usefId,
+            usef_id_source: usefId === null ? null : 'manual',
+            usef_id_verified_at: null,
+          })
+          .eq('judge_id', row.judge_id);
+        if (siblingsError) throw siblingsError;
+      }
+    }
+
     revalidatePath(USERS_PATH);
+    revalidatePath('/dashboard/judges');
     return { ok: true };
   });
 }

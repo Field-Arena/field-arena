@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { USER_STATUS_META } from '../constants';
 import { roleRank } from '../utils';
 import { AddUserDialog, type ClassOption } from './add-user-dialog';
+import type { JudgePickerOption } from '@/modules/judges/types';
 import { UploadStaffListDialog } from './upload-staff-list-dialog';
 import { ExportStaffListButton } from './export-staff-list-button';
 import { PermissionsListDialog } from './permissions-list-dialog';
@@ -107,6 +108,7 @@ export function UsersDirectory({
   initialShowFilter = '',
   classesByShow,
   ringCoverageByShow,
+  judges = [],
 }: {
   rows: UserDirectoryRow[];
   shows: ShowListItem[];
@@ -116,6 +118,8 @@ export function UsersDirectory({
 
   classesByShow: Record<string, ClassOption[]>;
   ringCoverageByShow: Record<string, RingCoverageData>;
+  /** The organization's saved judges, for "Add from my judges". */
+  judges?: JudgePickerOption[];
 }) {
   const [targetShowId, setTargetShowId] = useState(initialShowId);
   const [search, setSearch] = useState('');
@@ -230,6 +234,7 @@ export function UsersDirectory({
             shows={shows}
             defaultShowId={targetShowId}
             classes={classesByShow[targetShowId] ?? []}
+            judges={judges}
           />
         </div>
       </div>
