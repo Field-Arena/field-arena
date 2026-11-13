@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useUpdateHorse } from '@/modules/riders/hooks/use-horse-mutations';
 import { horseUpdateSchema, USEF_EXEMPT_REASON_EX } from '@/modules/riders/schemas';
 import type { HorseWithDocumentUrls } from '@/modules/riders/types';
+import { organizerChangeNote, parseUsefMeta } from '@/modules/riders/utils/horse-usef-meta';
+import { COLUMN_FOR_FIELD } from '@/modules/riders/utils/horse-usef-updates';
 import {
   horseToUsefValues,
   isOwnerRider,
@@ -32,6 +34,11 @@ export function HorseUsefSection({
   const [ownerIsRider, setOwnerIsRider] = useState(() => isOwnerRider(horse, rider));
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [saved, setSaved] = useState(false);
+  // Fields an organizer changed are labelled until the rider changes them back
+  // or over; the rider's own save clears the label for what they touched.
+  const [meta] = useState(() => parseUsefMeta(horse.usef_field_meta));
+  const [now] = useState(() => new Date());
+  const [hiddenNotes, setHiddenNotes] = useState<ReadonlySet<FieldKey>>(new Set());
 
   const owner = resolveOwnerValues(ownerIsRider, values, rider);
   const shown: HorseUsefValues = { ...values, ...owner };
@@ -62,8 +69,15 @@ export function HorseUsefSection({
           }}
         />
         {errors[key] && <p className="text-xs text-red-700">{errors[key]}</p>}
+        {!hiddenNotes.has(key) && organizerNote(key) && (
+          <p className="text-fa-muted text-xs">{organizerNote(key)}</p>
+        )}
       </div>
     );
+  }
+
+  function organizerNote(key: FieldKey): string | null {
+    return organizerChangeNote(meta[COLUMN_FOR_FIELD[key]], now);
   }
 
   function save() {
@@ -83,6 +97,13 @@ export function HorseUsefSection({
     updateHorse.mutate(input, {
       onSuccess: () => {
         setSaved(true);
+        const original = horseToUsefValues(horse);
+        const touched = (Object.keys(original) as FieldKey[]).filter(
+          (key) =>
+            (key in finalOwner ? finalOwner[key as keyof typeof finalOwner] : values[key]) !==
+            original[key],
+        );
+        setHiddenNotes((current) => new Set([...current, ...touched]));
       },
     });
   }

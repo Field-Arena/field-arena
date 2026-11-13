@@ -24,6 +24,8 @@ import {
   signableRequirementText,
 } from '@/modules/riders/utils/is-signable-requirement';
 import { todayInTimeZone } from '@/modules/riders/utils/today-in-time-zone';
+import { parseUsefMeta, stampChangedFields } from '@/modules/riders/utils/horse-usef-meta';
+import { usefColumnUpdates } from '@/modules/riders/utils/horse-usef-updates';
 import {
   confirmCheckoutSessionSchema,
   createCheckoutSessionSchema,
@@ -317,7 +319,9 @@ export async function updateHorse(input: unknown): Promise<HorseRow> {
 
   const { data: existing, error: readError } = await supabase
     .from('horses')
-    .select('rider_id')
+    .select(
+      'rider_id, usef_field_meta, usef_number, fei_number, passport_number, registration_number, year_of_birth, breed, owner_name, owner_email, owner_usef, owner_usef_exempt_reason, owner_street, owner_city, owner_state, owner_zip, trainer, trainer_phone, trainer_usef, trainer_street, trainer_city, trainer_state, trainer_zip',
+    )
     .eq('id', parsed.id)
     .maybeSingle();
   if (readError) throw readError;
@@ -326,32 +330,28 @@ export async function updateHorse(input: unknown): Promise<HorseRow> {
 
   const updates: Database['public']['Tables']['horses']['Update'] = {};
   if (parsed.stable !== undefined) updates.stable = parsed.stable;
-  if (parsed.trainer !== undefined) updates.trainer = parsed.trainer;
-  if (parsed.trainerPhone !== undefined) updates.trainer_phone = parsed.trainerPhone;
   if (parsed.height !== undefined) updates.height = parsed.height;
   if (parsed.farrier !== undefined) updates.farrier = parsed.farrier;
   if (parsed.isStallion !== undefined) updates.is_stallion = parsed.isStallion;
-  if (parsed.usefNumber !== undefined) updates.usef_number = parsed.usefNumber;
-  if (parsed.feiNumber !== undefined) updates.fei_number = parsed.feiNumber;
-  if (parsed.passportNumber !== undefined) updates.passport_number = parsed.passportNumber;
-  if (parsed.registrationNumber !== undefined)
-    updates.registration_number = parsed.registrationNumber;
-  if (parsed.yearOfBirth !== undefined) updates.year_of_birth = parsed.yearOfBirth;
-  if (parsed.breed !== undefined) updates.breed = parsed.breed;
-  if (parsed.ownerName !== undefined) updates.owner_name = parsed.ownerName;
-  if (parsed.ownerEmail !== undefined) updates.owner_email = parsed.ownerEmail;
-  if (parsed.ownerUsef !== undefined) updates.owner_usef = parsed.ownerUsef;
-  if (parsed.ownerStreet !== undefined) updates.owner_street = parsed.ownerStreet;
-  if (parsed.ownerCity !== undefined) updates.owner_city = parsed.ownerCity;
-  if (parsed.ownerState !== undefined) updates.owner_state = parsed.ownerState;
-  if (parsed.ownerZip !== undefined) updates.owner_zip = parsed.ownerZip;
-  if (parsed.trainerUsef !== undefined) updates.trainer_usef = parsed.trainerUsef;
-  if (parsed.trainerStreet !== undefined) updates.trainer_street = parsed.trainerStreet;
-  if (parsed.trainerCity !== undefined) updates.trainer_city = parsed.trainerCity;
-  if (parsed.trainerState !== undefined) updates.trainer_state = parsed.trainerState;
-  if (parsed.trainerZip !== undefined) updates.trainer_zip = parsed.trainerZip;
-  if (parsed.ownerUsefExemptReason !== undefined) {
-    updates.owner_usef_exempt_reason = updates.owner_usef ? null : parsed.ownerUsefExemptReason;
+
+  // The USEF details (and trainer name/phone) are written through one shared
+  // helper, and we remember that the rider is the one who changed them.
+  const usefUpdates = usefColumnUpdates(parsed);
+  Object.assign(updates, usefUpdates);
+  if (Object.keys(usefUpdates).length > 0) {
+    const { data: riderRow } = await supabase
+      .from('riders')
+      .select('first_name, last_name')
+      .eq('id', rider.id)
+      .maybeSingle();
+    const fullName = [riderRow?.first_name, riderRow?.last_name].filter(Boolean).join(' ');
+    const name = fullName !== '' ? fullName : (rider.email ?? 'Rider');
+    updates.usef_field_meta = stampChangedFields(
+      existing,
+      usefUpdates,
+      parseUsefMeta(existing.usef_field_meta),
+      { source: 'rider', by: name, byId: rider.id, at: new Date().toISOString() },
+    ) as Json;
   }
   if (Object.keys(updates).length === 0) throw new Error('No valid fields to update.');
 

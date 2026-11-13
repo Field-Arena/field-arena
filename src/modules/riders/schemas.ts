@@ -169,6 +169,36 @@ export const horseUpdateSchema = z.object({
 
 export type HorseUpdateInput = z.input<typeof horseUpdateSchema>;
 
+/* An organizer saving a horse's USEF details. Same fields and rules as the
+ * rider's own form (so what one accepts the other does), keyed by horse id. */
+export const horseUsefDetailsSchema = horseUpdateSchema
+  .pick({
+    usefNumber: true,
+    feiNumber: true,
+    passportNumber: true,
+    registrationNumber: true,
+    yearOfBirth: true,
+    breed: true,
+    ownerName: true,
+    ownerEmail: true,
+    ownerUsef: true,
+    ownerUsefExemptReason: true,
+    ownerStreet: true,
+    ownerCity: true,
+    ownerState: true,
+    ownerZip: true,
+    trainer: true,
+    trainerPhone: true,
+    trainerUsef: true,
+    trainerStreet: true,
+    trainerCity: true,
+    trainerState: true,
+    trainerZip: true,
+  })
+  .extend({ horseId: z.uuid() });
+
+export type HorseUsefDetailsInput = z.input<typeof horseUsefDetailsSchema>;
+
 export const horseDeleteSchema = z.object({
   id: z.uuid(),
 });
