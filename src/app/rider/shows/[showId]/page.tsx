@@ -175,6 +175,7 @@ export default async function RiderShowPage({
         showId={id}
         showName={detail.show.name}
         riderName={[rider.first_name, rider.last_name].filter(Boolean).join(' ')}
+        rider={rider}
       />
 
       <ClassPicker

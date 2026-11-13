@@ -7,6 +7,7 @@ import {
   useUpdateHorse,
 } from '@/modules/riders/hooks/use-horse-mutations';
 import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
+import { HorseUsefSection } from '@/modules/riders/ui/horse-usef-section';
 import { RequiredDocumentSign } from '@/modules/riders/ui/required-document-sign';
 import { isSignableRequirement } from '@/modules/riders/utils/is-signable-requirement';
 import {
@@ -15,7 +16,7 @@ import {
   legacyButtonGhostStyle,
   legacyCardStyle,
 } from '@/modules/riders/ui/legacy-theme';
-import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
+import type { DocumentRequirement, HorseWithDocumentUrls, RiderRow } from '@/modules/riders/types';
 
 const fieldInputStyle: CSSProperties = {
   fontFamily: 'inherit',
@@ -41,12 +42,14 @@ export function HorseTabView({
   showId,
   showName,
   riderName,
+  rider,
 }: {
   horses: HorseWithDocumentUrls[];
   documentRequirements: DocumentRequirement[];
   showId: string;
   showName: string;
   riderName: string;
+  rider: RiderRow;
 }) {
   const documentContext: DocumentContext = {
     showId,
@@ -99,6 +102,7 @@ export function HorseTabView({
           horse={horse}
           documentRequirements={documentRequirements}
           documentContext={documentContext}
+          rider={rider}
         />
       ))}
 
@@ -171,10 +175,12 @@ function LegacyHorseCard({
   horse,
   documentRequirements,
   documentContext,
+  rider,
 }: {
   horse: HorseWithDocumentUrls;
   documentRequirements: DocumentRequirement[];
   documentContext: DocumentContext;
+  rider: RiderRow;
 }) {
   const updateHorse = useUpdateHorse();
   const deleteHorse = useDeleteHorse();
@@ -238,37 +244,6 @@ function LegacyHorseCard({
           <label
             style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
           >
-            Trainer name
-          </label>
-          <input
-            placeholder={TYPE_HERE}
-            defaultValue={horse.trainer ?? ''}
-            style={fieldInputStyle}
-            onBlur={(event) => {
-              updateHorse.mutate({ id: horse.id, trainer: event.target.value });
-            }}
-          />
-        </div>
-        <div>
-          <label
-            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
-          >
-            Trainer phone
-          </label>
-          <input
-            type="tel"
-            placeholder={TYPE_HERE}
-            defaultValue={horse.trainer_phone ?? ''}
-            style={fieldInputStyle}
-            onBlur={(event) => {
-              updateHorse.mutate({ id: horse.id, trainerPhone: event.target.value });
-            }}
-          />
-        </div>
-        <div>
-          <label
-            style={{ display: 'block', fontSize: 11, color: LEGACY_COLOR.inkSoft, marginBottom: 4 }}
-          >
             Height (hands)
           </label>
           <input
@@ -316,6 +291,10 @@ function LegacyHorseCard({
         />
         Is your horse a stallion?
       </label>
+
+      <div style={{ marginTop: 10 }}>
+        <HorseUsefSection horse={horse} rider={rider} />
+      </div>
 
       {documentRequirements.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>

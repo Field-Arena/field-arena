@@ -463,7 +463,7 @@ export const FILING_CABINET_SECTIONS = [
   { key: 'volunteers', label: 'Volunteers', status: 'soon' },
   { key: 'print-center', label: 'Print Center', status: 'active' },
   { key: 'quick-reports', label: 'Quick Reports', status: 'active' },
-  { key: 'post-show-reports', label: 'Post-Show Reports', status: 'soon' },
+  { key: 'post-show-reports', label: 'Post-Show Reports', status: 'active' },
 ] as const;
 
 export type FilingCabinetSectionKey = (typeof FILING_CABINET_SECTIONS)[number]['key'];

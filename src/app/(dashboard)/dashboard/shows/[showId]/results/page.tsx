@@ -8,11 +8,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Results — Field & Arena' };
 
-export default async function ShowResultsPage({
-  params,
-}: {
-  params: Promise<{ showId: string }>;
-}) {
+export default async function ShowResultsPage({ params }: { params: Promise<{ showId: string }> }) {
   const { showId } = await params;
   const id = await resolveShowIdParam(showId);
   if (!id) {
@@ -53,5 +49,5 @@ export default async function ShowResultsPage({
     canExportRoster = allowed === true;
   }
 
-  return <ResultsPanel showName={show.name} rows={rows} canExportRoster={canExportRoster} />;
+  return <ResultsPanel showRef={showId} rows={rows} canExportRoster={canExportRoster} />;
 }

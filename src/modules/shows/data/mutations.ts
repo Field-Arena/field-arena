@@ -6,7 +6,7 @@ import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/modules/auth/data/queries';
 import { getImpersonatedOrgId } from '@/shared/lib/impersonation';
 import { getShowStage } from '@/modules/shows/data/queries';
-import { parseInput } from '@/shared/lib/action-result';
+import { parseInput, run, UserFacingError, type ActionResult } from '@/shared/lib/action-result';
 import {
   createShowSchema,
   createClassSchema,
@@ -28,6 +28,8 @@ import {
   updateTicketWindowSchema,
   addCatalogGroupSchema,
   updateGroupLocationSchema,
+  setClassSectionCodeSchema,
+  setShowUsefCompIdSchema,
   updateGroupDivisionSchema,
   addCustomClassSchema,
   createTocClassSchema,
@@ -904,6 +906,60 @@ export async function updateGroupDivision(input: unknown): Promise<void> {
 
   revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
   revalidatePath(`/dashboard/shows/${parsed.showId}/test-builder`);
+}
+
+export async function setClassSectionCode(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not save the USEF section code', async () => {
+    const parsed = parseInput(setClassSectionCodeSchema, input);
+    const supabase = await createServerClient();
+
+    if (parsed.code) {
+      const { data: known, error: codeError } = await supabase
+        .from('usef_section_codes')
+        .select('code')
+        .eq('code', parsed.code)
+        .maybeSingle();
+      if (codeError) throw codeError;
+      if (!known) throw new UserFacingError(`${parsed.code} is not a USEF section code.`);
+    }
+
+    const { data, error } = await supabase
+      .from('classes')
+      .update({ section_code: parsed.code })
+      .eq('id', parsed.classId)
+      .eq('show_id', parsed.showId)
+      .select('id');
+    if (error) throw error;
+    if (data.length === 0) {
+      throw new UserFacingError(
+        "That class wasn't found on this show, or you don't have permission to change it.",
+      );
+    }
+
+    revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
+    revalidatePath(`/dashboard/shows/${parsed.showId}/test-builder`);
+    return { ok: true };
+  });
+}
+
+export async function setShowUsefCompId(input: unknown): Promise<ActionResult<{ ok: true }>> {
+  return run('Could not save the USEF competition ID', async () => {
+    const parsed = parseInput(setShowUsefCompIdSchema, input);
+    const supabase = await createServerClient();
+
+    const { data, error } = await supabase
+      .from('shows')
+      .update({ usef_comp_id: parsed.usefCompId })
+      .eq('id', parsed.showId)
+      .select('id');
+    if (error) throw error;
+    if (data.length === 0) {
+      throw new UserFacingError("That show wasn't found, or you don't have permission to edit it.");
+    }
+
+    revalidatePath(`/dashboard/shows/${parsed.showId}/select-events`);
+    return { ok: true };
+  });
 }
 
 export async function addCustomClass(input: unknown): Promise<void> {
