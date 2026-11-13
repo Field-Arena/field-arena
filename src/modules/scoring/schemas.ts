@@ -32,6 +32,17 @@ export const setRemarkSchema = z.object({
 });
 export type SetRemarkInput = z.infer<typeof setRemarkSchema>;
 
+export const setMyUsefIdSchema = z.object({
+  classId: z.uuid(),
+  /** Digits only; blank clears it. */
+  usefId: z
+    .string()
+    .trim()
+    .max(20, 'That USEF ID is too long')
+    .regex(/^\d*$/, 'A USEF ID is numbers only'),
+});
+export type SetMyUsefIdInput = z.infer<typeof setMyUsefIdSchema>;
+
 export const setFinalRemarksSchema = z.object({
   classId: z.uuid(),
   entryId: z.uuid(),

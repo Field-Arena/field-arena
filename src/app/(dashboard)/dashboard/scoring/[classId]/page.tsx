@@ -4,6 +4,7 @@ import {
   getMySeat,
   getMyScoringPermissions,
   listPanelCandidates,
+  getSeatUsefId,
 } from '@/modules/scoring/data/queries';
 import { ScoringScreen } from '@/modules/scoring/ui/scoring-screen';
 import { EmptyPanel } from '@/modules/staff/ui/workspace-page';
@@ -30,6 +31,8 @@ export default async function ScoringPage({ params }: { params: Promise<{ classI
     listPanelCandidates(classId),
   ]);
 
+  const seatUsefId = await getSeatUsefId(classId, mySeat);
+
   return (
     <ScoringScreen
       classId={classId}
@@ -37,6 +40,7 @@ export default async function ScoringPage({ params }: { params: Promise<{ classI
       mySeat={mySeat}
       permissions={permissions}
       panelCandidates={panelCandidates}
+      seatUsefId={seatUsefId}
     />
   );
 }

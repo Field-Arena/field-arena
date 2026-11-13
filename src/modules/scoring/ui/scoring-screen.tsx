@@ -45,7 +45,13 @@ import { ScoringToolbar } from '@/modules/scoring/ui/scoring-toolbar';
 import { NotARealTestBanner } from '@/modules/scoring/ui/not-a-real-test-banner';
 import { LiveClockStrip } from '@/modules/scoring/ui/live-clock-strip';
 import { PrintScoresheet } from '@/modules/scoring/ui/print-scoresheet';
-import type { ClassScoringState, MySeat, ScoreRow } from '@/modules/scoring/types';
+import { JudgeUsefIdBox } from '@/modules/scoring/ui/judge-usef-id-box';
+import type {
+  ClassScoringState,
+  MySeat,
+  ScoreRow,
+  SeatUsefId,
+} from '@/modules/scoring/types';
 
 export function ScoringScreen({
   classId,
@@ -53,13 +59,18 @@ export function ScoringScreen({
   mySeat,
   permissions,
   panelCandidates,
+  seatUsefId = null,
 }: {
   classId: string;
   initialState: ClassScoringState;
   mySeat: MySeat | null;
   permissions: Record<PermissionKey, boolean>;
   panelCandidates: PanelCandidate[];
+  seatUsefId?: SeatUsefId | null;
 }) {
+  // The latest USEF ID the judge has saved, so signing a sheet without one can
+  // gently remind them. A reminder only, never a block.
+  const [savedUsefId, setSavedUsefId] = useState<string | null>(seatUsefId?.usefId ?? null);
   const { state, refetch, applyOptimistic } = useScoringState(classId, initialState);
 
   const currentEntry = useMemo(() => {
@@ -296,6 +307,14 @@ export function ScoringScreen({
             </Card>
           )}
 
+          {seatUsefId && (
+            <JudgeUsefIdBox
+              classId={classId}
+              initial={seatUsefId}
+              onSaved={setSavedUsefId}
+            />
+          )}
+
           <ScoreTally score={myScore} test={test} />
 
           <TestSheet
@@ -496,6 +515,12 @@ export function ScoringScreen({
         judgeName={mySeat?.name ?? ''}
         isPending={submit.isPending}
         onConfirm={() => {
+          if (seatRole === 'judge' && seatUsefId?.canEdit && !savedUsefId) {
+            toast.message('Reminder: your USEF ID is not entered yet', {
+              description:
+                'It goes on the USEF results file. Add it in the box at the top of the sheet any time.',
+            });
+          }
           submit.mutate(
             { classId, entryId: currentEntry.id, seatId },
             {
