@@ -5,6 +5,11 @@ import { env } from '@/shared/lib/env';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { finalizeOrder, saveOffSessionCard } from '@/modules/riders/data/checkout';
 import {
+  handleChargeRefunded,
+  handleDisputeClosed,
+  handleDisputeCreated,
+} from '@/modules/payouts/data/stripe-events';
+import {
   finalizeVendorBookingPayment,
   priceVendorBooking,
   saveVendorOffSessionCard,
@@ -35,6 +40,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded':
       await handleCheckoutSessionPaid(event.data.object);
+      break;
+    case 'charge.refunded':
+      await handleChargeRefunded(event.data.object);
+      break;
+    case 'charge.dispute.created':
+      await handleDisputeCreated(event.data.object);
+      break;
+    case 'charge.dispute.closed':
+      await handleDisputeClosed(event.data.object);
       break;
     default:
       break;
@@ -93,9 +107,10 @@ async function handleRiderOrderCheckoutPaid(session: Stripe.Checkout.Session): P
     return;
   }
 
+  let paymentIntentId: string | null = null;
   if (session.payment_intent) {
     const stripe = getStripeClient();
-    const paymentIntentId =
+    paymentIntentId =
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : session.payment_intent.id;
@@ -104,7 +119,7 @@ async function handleRiderOrderCheckoutPaid(session: Stripe.Checkout.Session): P
   }
 
   try {
-    await finalizeOrder(admin, order, rider);
+    await finalizeOrder(admin, order, rider, paymentIntentId);
   } catch (cause) {
     console.error('[stripe-webhook] finalizeOrder failed for order', orderId, cause);
   }

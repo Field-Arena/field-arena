@@ -4,6 +4,7 @@ import { getStripeClient, reusablePaymentMethodId } from '@/shared/lib/stripe';
 import { calcPlatformFee, calcPlatformFeeFlat8 } from '@/shared/lib/fees';
 import { env } from '@/shared/lib/env';
 import { UserFacingError } from '@/shared/lib/action-result';
+import { recordSaleEventSafely } from '@/modules/payouts/data/events';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type { Json } from '@/shared/types/database.types';
 import {
@@ -609,10 +610,17 @@ export async function finalizeOrder(
   admin: AdminClient,
   order: OrderRow,
   rider: RiderRow,
+  paymentIntentId: string | null = null,
 ): Promise<FinalizeOrderResult> {
   const { data: claimed, error: claimError } = await admin
     .from('orders')
-    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    // Stripe only creates the payment intent when the rider pays, so it is
+    // saved here — refunds and the settlement ledger both key on it.
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
+    })
     .eq('id', order.id)
     .eq('status', 'pending')
     .select()
@@ -639,6 +647,18 @@ export async function finalizeOrder(
   try {
     const result = await finalizeClaimedOrder(admin, claimed, rider);
     await sendOrderConfirmationEmail(admin, claimed, rider, result);
+    if (claimed.settlement === 'platform') {
+      await recordSaleEventSafely(admin, {
+        saleType: 'order',
+        saleId: claimed.id,
+        showId: claimed.show_id,
+        kind: 'payment',
+        amount: claimed.amount_total,
+        fee: claimed.fee_total ?? 0,
+        stripeRef: claimed.stripe_payment_intent_id,
+        occurredAt: claimed.paid_at ?? new Date(),
+      });
+    }
     return result;
   } catch (fulfillError) {
     await admin

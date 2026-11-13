@@ -2,6 +2,7 @@ import 'server-only';
 import type Stripe from 'stripe';
 import { getStripeClient, reusablePaymentMethodId } from '@/shared/lib/stripe';
 import { calcPlatformFeeFlat8 } from '@/shared/lib/fees';
+import { recordSaleEventSafely } from '@/modules/payouts/data/events';
 import { env } from '@/shared/lib/env';
 import type { createAdminClient } from '@/shared/lib/supabase/admin';
 import type {
@@ -225,6 +226,19 @@ export async function finalizeVendorBookingPayment(
   }
 
   await sendVendorBookingConfirmationEmail(admin, claimed, priced);
+
+  if (claimed.settlement === 'platform') {
+    await recordSaleEventSafely(admin, {
+      saleType: 'vendor_booking',
+      saleId: claimed.id,
+      showId: claimed.show_id,
+      kind: 'payment',
+      amount: priced.total,
+      fee: priced.feeTotal,
+      stripeRef: claimed.stripe_payment_intent_id,
+      occurredAt: claimed.paid_at ?? new Date(),
+    });
+  }
 
   return { ok: true, bookingId: claimed.id, total: priced.total, items: priced.items };
 }
