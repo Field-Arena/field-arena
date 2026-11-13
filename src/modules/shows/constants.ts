@@ -587,3 +587,14 @@ export const MEMBERSHIP_FLAG_LABELS: Record<(typeof MEMBERSHIP_FLAGS)[number], s
 };
 
 export const ENTRY_ISSUE_KINDS = ['document', 'membership', 'number', 'note', 'request'] as const;
+
+/** Why refresh_class_tests_from_template left a class on its old copy of a test. */
+export const TEST_REFRESH_SKIP_REASONS = ['scoring_started', 'published'] as const;
+
+export const TEST_REFRESH_SKIP_REASON_LABELS: Record<
+  (typeof TEST_REFRESH_SKIP_REASONS)[number],
+  string
+> = {
+  scoring_started: 'scoring has started',
+  published: 'results are published',
+};

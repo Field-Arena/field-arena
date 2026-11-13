@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { cn } from '@/shared/lib/utils';
 import { Card } from '@/shared/ui/organizer/card';
 import { PrimaryButton, GhostButton } from '@/shared/ui/organizer/buttons';
 import { Button } from '@/shared/ui/shadcn/button';
@@ -33,6 +32,13 @@ import {
   SM_ROW_INPUT,
 } from '@/modules/shows/ui/show-manager/tokens';
 import { SectionFooter } from '@/modules/shows/ui/show-manager/section-footer';
+import { TestPicker } from '@/modules/shows/ui/show-manager/test-picker';
+import {
+  RefreshClassesDialog,
+  type RefreshOffer,
+} from '@/modules/shows/ui/show-manager/refresh-classes-dialog';
+import { DiscardDraftDialog } from '@/modules/shows/ui/show-manager/discard-draft-dialog';
+import { testPickerKey, type TestPickerOption } from '@/modules/shows/utils/test-picker-options';
 
 /* ── Draft state model (typed against the score-sheet input shapes) ────────── */
 
@@ -80,6 +86,9 @@ interface DraftScoringConfig {
 
 interface Draft {
   id?: string;
+  /** Set when the draft is a copy of an official catalog test. Saving it
+   * always inserts a new org template — scoring_catalog is never written. */
+  sourceCatalogId?: string;
   name: string;
   level: string;
   sourceLabel?: string;
@@ -319,6 +328,7 @@ export function TestBuilderCard({
   classes,
   assignedByTemplateId,
   showId,
+  showUuid,
 }: {
   orgId: string;
   templates: TestTemplateRow[];
@@ -328,56 +338,79 @@ export function TestBuilderCard({
   /** The show's slug or id from the URL — the footer's "Continue to Results"
    * link needs it, or it pointed at /dashboard/shows//results ("Show not found"). */
   showId: string;
+  /** The show's uuid — server actions need it; `showId` may be the URL slug. */
+  showUuid: string;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
+  // The draft as it was opened, serialized — the unsaved-changes check
+  // compares against it (ids inside a draft are stable once created).
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const [pendingSwitch, setPendingSwitch] = useState<{ label: string; run: () => void } | null>(
+    null,
+  );
+  const [refreshOffer, setRefreshOffer] = useState<RefreshOffer | null>(null);
   const [openInstr, setOpenInstr] = useState<Record<string, boolean>>({});
   const [pickedClass, setPickedClass] = useState<Record<string, string>>({});
-  const [catalogQuery, setCatalogQuery] = useState('');
-  const [catalogLevel, setCatalogLevel] = useState('');
   const save = useSaveTestTemplate({
     onSuccess: () => {
-      setDraft(null);
+      closeDraft();
     },
   });
   const del = useDeleteTestTemplate();
   const assignToClass = useAssignTestToClass();
   const unassignFromClass = useUnassignTestFromClass();
 
-  const catalogLevels = useMemo(
+  const usedByTemplateId = useMemo(
     () =>
-      [...new Set(catalog.map((c) => c.level).filter((l): l is string => !!l))].sort((a, b) =>
-        a.localeCompare(b),
+      Object.fromEntries(
+        Object.entries(assignedByTemplateId).map(([id, list]) => [id, list.length]),
       ),
-    [catalog],
+    [assignedByTemplateId],
   );
 
-  const trimmedCatalogQuery = catalogQuery.trim().toLowerCase();
-  const catalogBrowsingActive = trimmedCatalogQuery !== '' || catalogLevel !== '';
+  const draftSnapshot = useMemo(() => (draft ? JSON.stringify(draft) : null), [draft]);
+  const isDirty = draftSnapshot !== null && draftSnapshot !== baseline;
 
-  // Grouped by level so a long catalog reads as an organized list instead
-  // of one flat pile of buttons — a level heading per group, sorted the
-  // same way the level quick-filters are. Memoized because `catalog` can be
-  // large and this recomputed on every render, including every keystroke in
-  // the (unrelated) test-draft form below.
-  const catalogGroups = useMemo(() => {
-    if (!catalogBrowsingActive) return [];
-    const filteredCatalog = catalog.filter(
-      (c) =>
-        (catalogLevel === '' || c.level === catalogLevel) &&
-        (trimmedCatalogQuery === '' ||
-          c.title.toLowerCase().includes(trimmedCatalogQuery) ||
-          (c.level ?? '').toLowerCase().includes(trimmedCatalogQuery)),
-    );
-    const catalogByLevel: Record<string, TestCatalogEntry[]> = {};
-    for (const c of filteredCatalog) {
-      const key = c.level ?? 'Other';
-      (catalogByLevel[key] ??= []).push(c);
+  function startDraft(next: Draft) {
+    setDraft(next);
+    setBaseline(JSON.stringify(next));
+    setOpenInstr({});
+  }
+
+  function closeDraft() {
+    setDraft(null);
+    setBaseline(null);
+  }
+
+  /** Runs `run` now, or after the user confirms discarding unsaved edits. */
+  function requestSwitch(label: string, run: () => void) {
+    if (isDirty) setPendingSwitch({ label, run });
+    else run();
+  }
+
+  const selectedKey = draft?.id
+    ? testPickerKey('org', draft.id)
+    : draft?.sourceCatalogId
+      ? testPickerKey('official', draft.sourceCatalogId)
+      : null;
+
+  function pickTest(option: TestPickerOption) {
+    if (option.key === selectedKey) return;
+    if (option.kind === 'org') {
+      const t = templates.find((x) => x.id === option.id);
+      if (!t) return;
+      requestSwitch(`open “${t.name}”`, () => {
+        openEdit(t);
+      });
+    } else {
+      requestSwitch(`open a copy of “${option.name}”`, () => {
+        openCatalog(option.id);
+      });
     }
-    return Object.entries(catalogByLevel).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [catalog, catalogBrowsingActive, catalogLevel, trimmedCatalogQuery]);
+  }
 
   function openNew() {
-    setDraft({
+    startDraft({
       name: '',
       level: '',
       discipline: '',
@@ -431,7 +464,8 @@ export function TestBuilderCard({
       },
     ];
 
-    setDraft({
+    startDraft({
+      sourceCatalogId: entry.id,
       name: entry.title,
       level: entry.level ?? '',
       sourceLabel: `Cloned from official catalog: ${entry.title}`,
@@ -447,11 +481,10 @@ export function TestBuilderCard({
       penalties: [],
       scoringConfig: { ...DEFAULT_SCORING },
     });
-    setCatalogQuery('');
   }
 
   function openEdit(t: TestTemplateRow) {
-    setDraft(draftFromTemplate(t));
+    startDraft(draftFromTemplate(t));
   }
 
   function duplicate(t: TestTemplateRow) {
@@ -482,8 +515,58 @@ export function TestBuilderCard({
       );
       return;
     }
-    save.mutate(input);
+    // Classes copy a test when it's assigned, so an edit to an existing test
+    // only reaches them if we re-copy it — offer that once the save lands.
+    const templateId = draft.id;
+    const assigned = templateId ? (assignedByTemplateId[templateId] ?? []) : [];
+    save.mutate(input, {
+      onSuccess: () => {
+        if (templateId && assigned.length > 0) {
+          setRefreshOffer({ templateId, templateName: input.name, classes: assigned });
+        }
+      },
+    });
   }
+
+  const shell = (content: React.ReactNode) => (
+    <>
+      <Card className={SM_CARD_PAD}>
+        <h2 className={SM_SECTION_HEAD}>Choose a test to edit</h2>
+        <p className={SM_NOTE}>
+          Pick one of your organization&apos;s tests to edit it, or an official USEF/USDF or FEI
+          test to start your own editable copy. Type to filter by name, level or governing body.
+        </p>
+        <TestPicker
+          templates={templates}
+          catalog={catalog}
+          usedByTemplateId={usedByTemplateId}
+          selectedKey={selectedKey}
+          onPick={pickTest}
+        />
+      </Card>
+      {content}
+      <DiscardDraftDialog
+        open={pendingSwitch !== null}
+        draftName={draft?.name ?? ''}
+        nextLabel={pendingSwitch?.label ?? 'continue'}
+        onKeepEditing={() => {
+          setPendingSwitch(null);
+        }}
+        onDiscard={() => {
+          const next = pendingSwitch;
+          setPendingSwitch(null);
+          next?.run();
+        }}
+      />
+      <RefreshClassesDialog
+        offer={refreshOffer}
+        showId={showUuid}
+        onClose={() => {
+          setRefreshOffer(null);
+        }}
+      />
+    </>
+  );
 
   if (draft) {
     const d = draft;
@@ -574,9 +657,21 @@ export function TestBuilderCard({
       </div>
     );
 
-    return (
+    return shell(
       <Card className={SM_CARD_PAD}>
-        <h2 className={SM_SECTION_HEAD}>{d.id ? 'Edit test' : 'New test'}</h2>
+        <h2 className={SM_SECTION_HEAD}>
+          {d.id ? 'Edit test' : d.sourceCatalogId ? 'Your copy of an official test' : 'New test'}
+        </h2>
+
+        {d.sourceCatalogId && !d.id && (
+          <div
+            role="note"
+            className="mb-5 rounded-[10px] border border-[#9FD3BA] bg-[#EAF5EF] px-4 py-3 text-[13px] leading-relaxed text-[#0E5537]"
+          >
+            <strong>Official test — you&apos;re editing your own copy.</strong> The official version
+            doesn&apos;t change. Saving adds this copy to your organization&apos;s tests.
+          </div>
+        )}
 
         {/* Test metadata */}
         <div className="mb-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -1048,17 +1143,17 @@ export function TestBuilderCard({
           </PrimaryButton>
           <GhostButton
             onClick={() => {
-              setDraft(null);
+              requestSwitch('cancel', closeDraft);
             }}
           >
             Cancel
           </GhostButton>
         </div>
-      </Card>
+      </Card>,
     );
   }
 
-  return (
+  return shell(
     <>
       <Card className={SM_CARD_PAD}>
         <h2 className={SM_SECTION_HEAD}>Test Builder</h2>
@@ -1067,18 +1162,18 @@ export function TestBuilderCard({
           scoresheet — nothing to do here. Use Test Builder for custom and independent classes, or
           to replace an official test with your own (an assigned test always wins).
         </p>
-        <p className={`${SM_NOTE} font-semibold`}>Type your test below.</p>
         <ol className={`${SM_NOTE} mb-4 list-decimal space-y-1 pl-5`}>
           <li>
-            Click <strong>+ New Test</strong> to start blank, or find one in the official catalog
-            below to clone instead of typing it from scratch.
+            Choose a test above to edit it — pick an official test to start from a copy instead of
+            typing it from scratch — or click <strong>+ New Test</strong> to start blank.
           </li>
           <li>
             Fill in the name, level, and discipline, then add each scored item as its own row.
           </li>
           <li>
             Click <strong>Save test</strong> — it&apos;s added to your library below, ready to reuse
-            on any show.
+            on any show. If classes already use the test, you&apos;ll be asked whether to update
+            them too.
           </li>
           <li>
             Pick a class from the dropdown next to a saved test and click <strong>Assign</strong> to
@@ -1088,80 +1183,14 @@ export function TestBuilderCard({
           </li>
         </ol>
 
-        <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
+        <div className="mb-4">
           <PrimaryButton onClick={openNew}>+ New Test</PrimaryButton>
-          <Input
-            value={catalogQuery}
-            placeholder={`Search ${String(catalog.length)} official tests to clone…`}
-            className={`h-auto w-64 ${SM_INPUT}`}
-            onChange={(e) => {
-              setCatalogQuery(e.target.value);
-            }}
-          />
         </div>
-
-        {catalogLevels.length > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11.5px] font-semibold text-[#98A29D]">Browse by level:</span>
-            {catalogLevels.map((level) => (
-              <Button
-                key={level}
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setCatalogLevel((prev) => (prev === level ? '' : level));
-                }}
-                className={cn(
-                  'h-auto rounded-full border px-2.5 py-1 text-[12px] font-semibold hover:bg-transparent',
-                  catalogLevel === level
-                    ? 'text-forest border-[#1A5B3C]'
-                    : 'border-[#E9EDEB] text-[#5A6B63] hover:border-[#C9A227]',
-                )}
-              >
-                {level}
-              </Button>
-            ))}
-          </div>
-        )}
-
-        {catalogBrowsingActive && (
-          <div className="mb-4 flex flex-col gap-3">
-            {catalogGroups.length === 0 ? (
-              <p className="text-[13px] text-[#98A29D] italic">
-                {catalogQuery ? (
-                  <>No official test matches &ldquo;{catalogQuery}&rdquo;.</>
-                ) : (
-                  <>No official tests in that level.</>
-                )}
-              </p>
-            ) : (
-              catalogGroups.map(([level, entries]) => (
-                <div key={level}>
-                  <div className="mb-1.5 text-[11px] font-bold tracking-[.08em] text-[#6E7C76] uppercase">
-                    {level} ({entries.length})
-                  </div>
-                  <div className="flex flex-wrap gap-2.5">
-                    {entries.slice(0, 20).map((c) => (
-                      <GhostButton
-                        key={c.id}
-                        onClick={() => {
-                          openCatalog(c.id);
-                        }}
-                      >
-                        Clone &ldquo;{c.title}&rdquo;
-                      </GhostButton>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
 
         {templates.length === 0 ? (
           <p className="text-[13px] text-[#98A29D] italic">
-            No tests in your library yet — start from a blank test or search the official catalog
-            above.
+            No tests in your library yet — start from a blank test or choose an official test above
+            to copy.
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -1290,6 +1319,6 @@ export function TestBuilderCard({
       </Card>
 
       <SectionFooter currentTab="Test Builder" showId={showId} />
-    </>
+    </>,
   );
 }

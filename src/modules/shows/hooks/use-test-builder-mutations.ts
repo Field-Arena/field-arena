@@ -8,12 +8,15 @@ import {
   deleteTestTemplate,
   assignTestTemplateToClass,
   unassignTestFromClass,
+  refreshClassesFromTemplate,
 } from '@/modules/shows/data/mutations';
 import type {
   SaveTestTemplateInput,
   AssignTestTemplateToClassInput,
   UnassignTestFromClassInput,
+  RefreshClassesFromTemplateInput,
 } from '@/modules/shows/schemas';
+import type { RefreshClassesFromTemplateResult } from '@/modules/shows/types';
 import { readableError } from '@/shared/lib/error-message';
 
 function message(error: unknown, fallback: string): string {
@@ -77,6 +80,35 @@ export function useUnassignTestFromClass() {
     },
     onError: (error) => {
       toast.error(message(error, 'Could not remove this test from that class'));
+    },
+  });
+}
+
+function classCount(n: number): string {
+  return `${String(n)} ${n === 1 ? 'class' : 'classes'}`;
+}
+
+export function useRefreshClassesFromTemplate(options?: {
+  onSuccess?: (result: RefreshClassesFromTemplateResult) => void;
+}) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: RefreshClassesFromTemplateInput) => refreshClassesFromTemplate(input),
+    onSuccess: (result) => {
+      const { updated, skipped } = result;
+      if (updated.length > 0) {
+        toast.success(`Updated ${classCount(updated.length)} to the edited test`);
+      } else if (skipped.length > 0) {
+        toast.info('No classes updated — every class using this test has started scoring');
+      } else {
+        toast.info('No classes are using this test anymore');
+      }
+      router.refresh();
+      options?.onSuccess?.(result);
+    },
+    onError: (error) => {
+      toast.error(message(error, 'Could not update the classes using this test'));
     },
   });
 }
