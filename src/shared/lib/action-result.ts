@@ -12,6 +12,7 @@ export class UserFacingError extends Error {
 const CONSTRAINT_MESSAGES: Record<string, string> = {
   staff_assignments_show_email_key: 'That email is already on this show.',
   member_database_org_email_key: 'Someone with that email is already in your database.',
+  judges_org_email_key: 'A judge with that email is already in your list.',
   organizations_email_key: 'An organization with that email already exists.',
   show_entries_number_unique_idx: 'That entry number is already assigned to another entry.',
   show_horses_bridle_unique_idx: 'That bridle number is already assigned to another horse.',

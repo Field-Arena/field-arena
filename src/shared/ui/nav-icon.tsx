@@ -55,6 +55,14 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
 
+  judges: (
+    <>
+      <circle cx="12" cy="8" r="3.2" {...S} />
+      <path {...S} d="M5.5 20a6.5 6.5 0 0113 0" />
+      <path {...S} d="M9.5 13.2L8 17l4-1.6 4 1.6-1.5-3.8" />
+    </>
+  ),
+
   horses: (
     <>
       <path
