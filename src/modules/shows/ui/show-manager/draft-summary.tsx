@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { CompletenessSection } from '@/modules/shows/types';
 import { formatDateRange } from '@/shared/lib/format/date';
+import { approvalTone } from '@/shared/ui/organizer/approval-tone';
 
 /* Where each completeness section is fixed: an anchor on the Setup tab, or
  * another Show Manager tab. */
@@ -40,6 +41,7 @@ export function DraftSummary({
 }) {
   const done = sections.filter((s) => s.ok).length;
   const percent = sections.length === 0 ? 0 : Math.round((done / sections.length) * 100);
+  const tone = approvalTone(percent);
   const open = sections.filter((s) => !s.ok);
   const inSetup = stage === 'setup';
   const hrefFor = (target: string) =>
@@ -69,7 +71,10 @@ export function DraftSummary({
       <div className="mt-4">
         <div className="fa-comp-prog-top">
           <span className="!text-[12.5px] !font-semibold !text-[var(--fa-ink-2)]">
-            Setup readiness <b className="ml-1 !text-[15px]">{percent}%</b>
+            Setup readiness{' '}
+            <b className="ml-1 !text-[15px]" style={{ color: tone.textHex }}>
+              {percent}%
+            </b>
           </span>
         </div>
         <div
@@ -79,7 +84,7 @@ export function DraftSummary({
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <i style={{ width: `${String(percent)}%` }} />
+          <i style={{ width: `${String(percent)}%`, background: tone.barHex }} />
         </div>
         <p className="mt-2 mb-0 text-[12px] text-[var(--fa-ink-3)]">
           {open.length === 0
