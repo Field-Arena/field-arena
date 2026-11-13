@@ -6,10 +6,12 @@ import { toast } from 'sonner';
 import { readableError } from '@/shared/lib/error-message';
 import {
   addManualHorse,
+  updateHorseUsefDetails,
   verifyHorseDocument,
   remindHorseDocuments,
   reviewHorseDocument,
 } from '@/modules/shows/data/horses-mutations';
+import type { HorseUsefDetailsInput } from '@/modules/riders/schemas';
 import type {
   AddManualHorseInput,
   VerifyHorseDocumentInput,
@@ -71,6 +73,22 @@ export function useReviewHorseDocument(options?: { onSuccess?: () => void }) {
     },
     onError: (error) => {
       toast.error(readableError(error, 'Could not save the review'));
+    },
+  });
+}
+
+export function useUpdateHorseUsefDetails(options?: { onSuccess?: () => void }) {
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: (input: HorseUsefDetailsInput) => updateHorseUsefDetails(input),
+    onSuccess: () => {
+      toast.success('USEF details saved');
+      router.refresh();
+      options?.onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(readableError(error, 'Could not save the USEF details'));
     },
   });
 }

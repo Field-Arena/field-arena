@@ -5,6 +5,8 @@ import {
   type DocumentRequirement,
 } from '@/modules/shows/data/setup-queries';
 import { COGGINS_LABEL } from '@/modules/shows/constants';
+import { horseToUsefValues, type HorseUsefValues } from '@/modules/riders/utils/horse-usef';
+import { parseUsefMeta, type UsefFieldMeta } from '@/modules/riders/utils/horse-usef-meta';
 
 export interface ManualHorseEntry {
   id: string;
@@ -56,6 +58,12 @@ export interface HorseDocumentStatus {
   rejectionNote: string | null;
 }
 
+/** A horse's USEF details with who last set each one. */
+export interface HorseUsefSnapshot {
+  values: HorseUsefValues;
+  meta: UsefFieldMeta;
+}
+
 export interface HorseRow {
   key: string;
 
@@ -84,6 +92,8 @@ export interface HorseRow {
   riders: string[];
   /** Entry (back) numbers this horse is entered under, sorted. */
   entryNumbers: string[];
+  /** USEF details for the organizer's edit card; null for a manually added horse. */
+  usef: HorseUsefSnapshot | null;
 }
 
 export interface HorsesPageData {
@@ -175,11 +185,14 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
   const farrierByHorseId = new Map<string, string | null>();
   const trainerByHorseId = new Map<string, string | null>();
   const stableByHorseId = new Map<string, string | null>();
+  const usefByHorseId = new Map<string, HorseUsefSnapshot>();
 
   if (horseIds.length > 0) {
     const { data: records, error } = await supabase
       .from('horses')
-      .select('id, document_uploads, is_stallion, rider_id, height, farrier, trainer, stable')
+      .select(
+        'id, document_uploads, is_stallion, rider_id, height, farrier, trainer, stable, trainer_phone, usef_field_meta, usef_number, fei_number, passport_number, registration_number, year_of_birth, breed, owner_name, owner_email, owner_usef, owner_usef_exempt_reason, owner_street, owner_city, owner_state, owner_zip, trainer_usef, trainer_street, trainer_city, trainer_state, trainer_zip',
+      )
       .in('id', horseIds);
     if (error) throw error;
     for (const r of records) {
@@ -190,6 +203,10 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
       farrierByHorseId.set(r.id, r.farrier);
       trainerByHorseId.set(r.id, r.trainer);
       stableByHorseId.set(r.id, r.stable);
+      usefByHorseId.set(r.id, {
+        values: horseToUsefValues(r),
+        meta: parseUsefMeta(r.usef_field_meta),
+      });
     }
   }
 
@@ -303,6 +320,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         entryNumbers: [...group.nums].sort((a, b) =>
           a.localeCompare(b, undefined, { numeric: true }),
         ),
+        usef: group.horseId ? (usefByHorseId.get(group.horseId) ?? null) : null,
       };
     }),
     ...manualHorses.map(async (mh): Promise<HorseRow> => {
@@ -329,6 +347,7 @@ export async function getHorsesPageData(showId: string): Promise<HorsesPageData 
         isMultiEntry: false,
         riders: mh.riderName ? [mh.riderName] : [],
         entryNumbers: [],
+        usef: null,
       };
     }),
   ]);
