@@ -11,6 +11,7 @@ import {
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { splitTicketClose } from '@/shared/lib/format/ticket-close';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import type { UsefSectionCode } from '@/modules/shows/utils/suggest-section-codes';
 import {
   DEFAULT_SHOW_EXPENSES,
   PNL_CATEGORY_ORDER,
@@ -49,6 +50,7 @@ import {
 } from '@/shared/lib/sales-math';
 import type {
   ClassTestStatus,
+  UsefSetupData,
   AssignedClassOption,
   ClassRow,
   CompletenessSection,
@@ -1033,6 +1035,101 @@ export async function listTestTemplates(orgId: string): Promise<TestTemplateRow[
   }));
 }
 
+export async function listUsefSectionCodes(): Promise<UsefSectionCode[]> {
+  const supabase = await createServerClient();
+
+  const { data, error } = await supabase
+    .from('usef_section_codes')
+    .select('code, division_name, section_name, sort_order')
+    .order('sort_order')
+    .limit(2000);
+  if (error) throw error;
+
+  return data.map((row) => ({
+    code: row.code,
+    divisionName: row.division_name,
+    sectionName: row.section_name,
+    sortOrder: row.sort_order,
+  }));
+}
+
+/**
+ * Which test each class is scored against, with the same precedence scoring
+ * uses: a Test Builder test (class_tests with a template) wins over the
+ * class's official catalog sheet. A class_tests row with no template is
+ * either startRide's frozen copy of the catalog sheet (still the official
+ * test) or a test typed in on the scoring page (custom).
+ */
+function testStatusResolver(
+  classTests: { class_id: string; test_template_id: string | null }[],
+  linkedSheets: { id: string; def: unknown }[],
+) {
+  const classIdsWithTest = new Set(classTests.map((row) => row.class_id));
+  const classIdsWithTemplate = new Set(
+    classTests.filter((row) => row.test_template_id).map((row) => row.class_id),
+  );
+  const scorableSheetIds = new Set(
+    linkedSheets.filter((row) => hasSheetContent(row.def)).map((row) => row.id),
+  );
+  return (c: { id: string; catalog_id: string | null }): ClassTestStatus => {
+    if (classIdsWithTemplate.has(c.id)) return 'custom';
+    if (c.catalog_id && scorableSheetIds.has(c.catalog_id)) return 'official';
+    if (classIdsWithTest.has(c.id)) return 'custom';
+    return 'none';
+  };
+}
+
+export async function getUsefSetupData(showId: string): Promise<UsefSetupData | null> {
+  const supabase = await createServerClient();
+
+  const [show, classesRes, sectionCodes] = await Promise.all([
+    supabase.from('shows').select('id, usef_comp_id').eq('id', showId).maybeSingle(),
+    supabase
+      .from('classes')
+      .select('id, label, division, fee, location, catalog_id, section_code')
+      .eq('show_id', showId)
+      .order('label'),
+    listUsefSectionCodes(),
+  ]);
+  if (show.error) throw show.error;
+  if (!show.data) return null;
+  if (classesRes.error) throw classesRes.error;
+
+  const classIds = classesRes.data.map((c) => c.id);
+  const catalogIds = [
+    ...new Set(classesRes.data.map((c) => c.catalog_id).filter((id): id is string => !!id)),
+  ];
+  const [classTestsRes, linkedSheetsRes] = await Promise.all([
+    classIds.length
+      ? supabase.from('class_tests').select('class_id, test_template_id').in('class_id', classIds)
+      : Promise.resolve({ data: [], error: null }),
+    catalogIds.length
+      ? supabase.from('scoring_catalog').select('id, def').in('id', catalogIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (classTestsRes.error) throw classTestsRes.error;
+  if (linkedSheetsRes.error) throw linkedSheetsRes.error;
+
+  const testStatusFor = testStatusResolver(classTestsRes.data, linkedSheetsRes.data);
+  const sectionNameByCode = new Map(sectionCodes.map((c) => [c.code, c.sectionName]));
+
+  return {
+    showId: show.data.id,
+    usefCompId: show.data.usef_comp_id ?? '',
+    sectionCodes,
+    classes: classesRes.data.map((c) => ({
+      id: c.id,
+      label: c.label,
+      division: c.division,
+      fee: c.fee ?? 0,
+      location: c.location,
+      testStatus: testStatusFor(c),
+      sectionCode: c.section_code,
+      sectionName: c.section_code ? (sectionNameByCode.get(c.section_code) ?? null) : null,
+    })),
+  };
+}
+
 function parseCatalogDef(def: unknown): {
   movements: TestTemplateMovement[];
   collectives: TestTemplateCollective[];
@@ -1096,14 +1193,15 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (show.error) throw show.error;
   if (!show.data) return null;
 
-  const [templates, catalog, classesRes] = await Promise.all([
+  const [templates, catalog, classesRes, sectionCodes] = await Promise.all([
     listTestTemplates(show.data.org_id),
     listTestCatalog(),
     supabase
       .from('classes')
-      .select('id, label, division, fee, location, catalog_id')
+      .select('id, label, division, fee, location, catalog_id, section_code')
       .eq('show_id', showId)
       .order('label'),
+    listUsefSectionCodes(),
   ]);
   if (classesRes.error) throw classesRes.error;
 
@@ -1125,23 +1223,8 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
   if (classTestsRes.error) throw classTestsRes.error;
   if (linkedSheetsRes.error) throw linkedSheetsRes.error;
 
-  const classIdsWithTest = new Set(classTestsRes.data.map((row) => row.class_id));
-  const classIdsWithTemplate = new Set(
-    classTestsRes.data.filter((row) => row.test_template_id).map((row) => row.class_id),
-  );
-  const scorableSheetIds = new Set(
-    linkedSheetsRes.data.filter((row) => hasSheetContent(row.def)).map((row) => row.id),
-  );
-  // Same precedence scoring uses: a Test Builder test (class_tests) wins over
-  // the class's official catalog sheet. A class_tests row with no template is
-  // either startRide's frozen copy of the catalog sheet (still the official
-  // test) or a test typed in on the scoring page (custom).
-  const testStatusFor = (c: { id: string; catalog_id: string | null }): ClassTestStatus => {
-    if (classIdsWithTemplate.has(c.id)) return 'custom';
-    if (c.catalog_id && scorableSheetIds.has(c.catalog_id)) return 'official';
-    if (classIdsWithTest.has(c.id)) return 'custom';
-    return 'none';
-  };
+  const testStatusFor = testStatusResolver(classTestsRes.data, linkedSheetsRes.data);
+  const sectionNameByCode = new Map(sectionCodes.map((c) => [c.code, c.sectionName]));
   const classLabelById = new Map(classesRes.data.map((c) => [c.id, c.label]));
   const assignedByTemplateId: Record<string, AssignedClassOption[]> = {};
   for (const row of classTestsRes.data) {
@@ -1166,6 +1249,8 @@ export async function getTestBuilderPageData(showId: string): Promise<TestBuilde
       fee: c.fee ?? 0,
       location: c.location,
       testStatus: testStatusFor(c),
+      sectionCode: c.section_code,
+      sectionName: c.section_code ? (sectionNameByCode.get(c.section_code) ?? null) : null,
     })),
     assignedByTemplateId,
   };

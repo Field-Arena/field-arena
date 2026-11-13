@@ -7,11 +7,11 @@ import {
   useUpdateHorse,
 } from '@/modules/riders/hooks/use-horse-mutations';
 import { HorseDocumentUpload } from '@/modules/riders/ui/horse-document-upload';
+import { HorseUsefSection } from '@/modules/riders/ui/horse-usef-section';
 import { RequiredDocumentSign } from '@/modules/riders/ui/required-document-sign';
 import { isSignableRequirement } from '@/modules/riders/utils/is-signable-requirement';
-import type { DocumentRequirement, HorseWithDocumentUrls } from '@/modules/riders/types';
+import type { DocumentRequirement, HorseWithDocumentUrls, RiderRow } from '@/modules/riders/types';
 import { RIDER_FIELD_MAX } from '@/modules/riders/constants';
-import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 import { Button } from '@/shared/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/shadcn/card';
 import { Input } from '@/shared/ui/shadcn/input';
@@ -32,12 +32,14 @@ export function HorseManager({
   showId,
   showName,
   riderName,
+  rider,
 }: {
   horses: HorseWithDocumentUrls[];
   documentRequirements: DocumentRequirement[];
   showId: string;
   showName: string;
   riderName: string;
+  rider: RiderRow;
 }) {
   const documentContext: DocumentContext = {
     showId,
@@ -70,6 +72,7 @@ export function HorseManager({
             horse={horse}
             documentRequirements={documentRequirements}
             documentContext={documentContext}
+            rider={rider}
           />
         ))}
 
@@ -112,10 +115,12 @@ function HorseCard({
   horse,
   documentRequirements,
   documentContext,
+  rider,
 }: {
   horse: HorseWithDocumentUrls;
   documentRequirements: DocumentRequirement[];
   documentContext: DocumentContext;
+  rider: RiderRow;
 }) {
   const updateHorse = useUpdateHorse();
   const deleteHorse = useDeleteHorse();
@@ -153,34 +158,6 @@ function HorseCard({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`trainer-${horse.id}`}>Trainer name</Label>
-          <Input
-            id={`trainer-${horse.id}`}
-            placeholder={TYPE_HERE}
-            maxLength={RIDER_FIELD_MAX.horseText}
-            defaultValue={horse.trainer ?? ''}
-            onBlur={(event) => {
-              updateHorse.mutate({ id: horse.id, trainer: event.target.value });
-            }}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor={`trainer-phone-${horse.id}`}>Trainer phone</Label>
-          <Input
-            id={`trainer-phone-${horse.id}`}
-            {...PHONE_INPUT_PROPS}
-            onChange={(event) => {
-              const next = sanitizePhoneInput(event.target.value);
-              if (next !== event.target.value) event.target.value = next;
-            }}
-            placeholder={TYPE_HERE}
-            defaultValue={horse.trainer_phone ?? ''}
-            onBlur={(event) => {
-              updateHorse.mutate({ id: horse.id, trainerPhone: event.target.value });
-            }}
-          />
-        </div>
-        <div className="space-y-1.5">
           <Label htmlFor={`height-${horse.id}`}>Height (hands)</Label>
           <Input
             id={`height-${horse.id}`}
@@ -204,6 +181,8 @@ function HorseCard({
         />
         Is your horse a stallion?
       </label>
+
+      <HorseUsefSection horse={horse} rider={rider} />
 
       {documentRequirements.length > 0 && (
         <div className="space-y-2">

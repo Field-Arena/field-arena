@@ -498,7 +498,9 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
 
   const { data: classes, error: classError } = await supabase
     .from('classes')
-    .select('id, label, division, group_name, award_scope, ribbon_places, ribbon_colors')
+    .select(
+      'id, label, division, section_code, group_name, award_scope, ribbon_places, ribbon_colors',
+    )
     .eq('show_id', showId)
     .order('label');
   if (classError) throw classError;
@@ -584,6 +586,7 @@ export async function getShowResults(showId: string): Promise<ShowResultRow[]> {
         classId: e.classId,
         className: cls?.label ?? unit.label,
         division: cls?.division ?? null,
+        sectionCode: cls?.section_code ?? null,
         entryId: e.entryId,
         num: e.num,
         rider: e.rider,

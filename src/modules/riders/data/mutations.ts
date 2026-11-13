@@ -331,6 +331,28 @@ export async function updateHorse(input: unknown): Promise<HorseRow> {
   if (parsed.height !== undefined) updates.height = parsed.height;
   if (parsed.farrier !== undefined) updates.farrier = parsed.farrier;
   if (parsed.isStallion !== undefined) updates.is_stallion = parsed.isStallion;
+  if (parsed.usefNumber !== undefined) updates.usef_number = parsed.usefNumber;
+  if (parsed.feiNumber !== undefined) updates.fei_number = parsed.feiNumber;
+  if (parsed.passportNumber !== undefined) updates.passport_number = parsed.passportNumber;
+  if (parsed.registrationNumber !== undefined)
+    updates.registration_number = parsed.registrationNumber;
+  if (parsed.yearOfBirth !== undefined) updates.year_of_birth = parsed.yearOfBirth;
+  if (parsed.breed !== undefined) updates.breed = parsed.breed;
+  if (parsed.ownerName !== undefined) updates.owner_name = parsed.ownerName;
+  if (parsed.ownerEmail !== undefined) updates.owner_email = parsed.ownerEmail;
+  if (parsed.ownerUsef !== undefined) updates.owner_usef = parsed.ownerUsef;
+  if (parsed.ownerStreet !== undefined) updates.owner_street = parsed.ownerStreet;
+  if (parsed.ownerCity !== undefined) updates.owner_city = parsed.ownerCity;
+  if (parsed.ownerState !== undefined) updates.owner_state = parsed.ownerState;
+  if (parsed.ownerZip !== undefined) updates.owner_zip = parsed.ownerZip;
+  if (parsed.trainerUsef !== undefined) updates.trainer_usef = parsed.trainerUsef;
+  if (parsed.trainerStreet !== undefined) updates.trainer_street = parsed.trainerStreet;
+  if (parsed.trainerCity !== undefined) updates.trainer_city = parsed.trainerCity;
+  if (parsed.trainerState !== undefined) updates.trainer_state = parsed.trainerState;
+  if (parsed.trainerZip !== undefined) updates.trainer_zip = parsed.trainerZip;
+  if (parsed.ownerUsefExemptReason !== undefined) {
+    updates.owner_usef_exempt_reason = updates.owner_usef ? null : parsed.ownerUsefExemptReason;
+  }
   if (Object.keys(updates).length === 0) throw new Error('No valid fields to update.');
 
   const { data, error } = await supabase

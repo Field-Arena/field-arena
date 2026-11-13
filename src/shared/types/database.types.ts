@@ -538,6 +538,7 @@ export type Database = {
           test_options: Json | null
           time: string | null
           working_in_entry_id: string | null
+          section_code: string | null
         }
         Insert: {
           arena?: string | null
@@ -576,6 +577,7 @@ export type Database = {
           test_options?: Json | null
           time?: string | null
           working_in_entry_id?: string | null
+          section_code?: string | null
         }
         Update: {
           arena?: string | null
@@ -614,6 +616,7 @@ export type Database = {
           test_options?: Json | null
           time?: string | null
           working_in_entry_id?: string | null
+          section_code?: string | null
         }
         Relationships: [
           {
@@ -890,6 +893,25 @@ export type Database = {
           stable: string | null
           trainer: string | null
           trainer_phone: string | null
+          usef_number: string | null
+          passport_number: string | null
+          fei_number: string | null
+          registration_number: string | null
+          year_of_birth: string | null
+          breed: string | null
+          owner_name: string | null
+          owner_street: string | null
+          owner_city: string | null
+          owner_state: string | null
+          owner_zip: string | null
+          owner_usef: string | null
+          owner_usef_exempt_reason: string | null
+          owner_email: string | null
+          trainer_usef: string | null
+          trainer_street: string | null
+          trainer_city: string | null
+          trainer_state: string | null
+          trainer_zip: string | null
         }
         Insert: {
           created_at?: string
@@ -903,6 +925,25 @@ export type Database = {
           stable?: string | null
           trainer?: string | null
           trainer_phone?: string | null
+          usef_number?: string | null
+          passport_number?: string | null
+          fei_number?: string | null
+          registration_number?: string | null
+          year_of_birth?: string | null
+          breed?: string | null
+          owner_name?: string | null
+          owner_street?: string | null
+          owner_city?: string | null
+          owner_state?: string | null
+          owner_zip?: string | null
+          owner_usef?: string | null
+          owner_usef_exempt_reason?: string | null
+          owner_email?: string | null
+          trainer_usef?: string | null
+          trainer_street?: string | null
+          trainer_city?: string | null
+          trainer_state?: string | null
+          trainer_zip?: string | null
         }
         Update: {
           created_at?: string
@@ -916,6 +957,25 @@ export type Database = {
           stable?: string | null
           trainer?: string | null
           trainer_phone?: string | null
+          usef_number?: string | null
+          passport_number?: string | null
+          fei_number?: string | null
+          registration_number?: string | null
+          year_of_birth?: string | null
+          breed?: string | null
+          owner_name?: string | null
+          owner_street?: string | null
+          owner_city?: string | null
+          owner_state?: string | null
+          owner_zip?: string | null
+          owner_usef?: string | null
+          owner_usef_exempt_reason?: string | null
+          owner_email?: string | null
+          trainer_usef?: string | null
+          trainer_street?: string | null
+          trainer_city?: string | null
+          trainer_state?: string | null
+          trainer_zip?: string | null
         }
         Relationships: [
           {
@@ -1431,6 +1491,8 @@ export type Database = {
           street: string | null
           usef: string | null
           zip: string | null
+          usef_exempt_reason: string | null
+          usdf_number: string | null
         }
         Insert: {
           category?: string | null
@@ -1451,6 +1513,8 @@ export type Database = {
           street?: string | null
           usef?: string | null
           zip?: string | null
+          usef_exempt_reason?: string | null
+          usdf_number?: string | null
         }
         Update: {
           category?: string | null
@@ -1471,6 +1535,8 @@ export type Database = {
           street?: string | null
           usef?: string | null
           zip?: string | null
+          usef_exempt_reason?: string | null
+          usdf_number?: string | null
         }
         Relationships: []
       }
@@ -1930,6 +1996,7 @@ export type Database = {
           waiver_document_name: string | null
           waiver_document_path: string | null
           waiver_text: string | null
+          usef_comp_id: string | null
         }
         Insert: {
           back_number_enabled?: boolean
@@ -1981,6 +2048,7 @@ export type Database = {
           waiver_document_name?: string | null
           waiver_document_path?: string | null
           waiver_text?: string | null
+          usef_comp_id?: string | null
         }
         Update: {
           back_number_enabled?: boolean
@@ -2032,6 +2100,7 @@ export type Database = {
           waiver_document_name?: string | null
           waiver_document_path?: string | null
           waiver_text?: string | null
+          usef_comp_id?: string | null
         }
         Relationships: [
           {
@@ -2132,6 +2201,9 @@ export type Database = {
           show_id: string
           status: string | null
           user_id: string | null
+          usef_id: string | null
+          usef_id_source: string | null
+          usef_id_verified_at: string | null
         }
         Insert: {
           can_scratch_skip_dq?: boolean | null
@@ -2150,6 +2222,9 @@ export type Database = {
           show_id: string
           status?: string | null
           user_id?: string | null
+          usef_id?: string | null
+          usef_id_source?: string | null
+          usef_id_verified_at?: string | null
         }
         Update: {
           can_scratch_skip_dq?: boolean | null
@@ -2168,6 +2243,9 @@ export type Database = {
           show_id?: string
           status?: string | null
           user_id?: string | null
+          usef_id?: string | null
+          usef_id_source?: string | null
+          usef_id_verified_at?: string | null
         }
         Relationships: [
           {
@@ -2339,6 +2417,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      usef_section_codes: {
+        Row: {
+          code: string
+          division_name: string
+          section_name: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          division_name: string
+          section_name: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          division_name?: string
+          section_name?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       vendor_bookings: {
         Row: {

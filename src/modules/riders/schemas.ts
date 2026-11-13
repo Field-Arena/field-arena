@@ -142,6 +142,58 @@ export const horseCreateSchema = z.object({
 
 export type HorseCreateInput = z.infer<typeof horseCreateSchema>;
 
+const emptyToNull = (value: string): string | null => (value === '' ? null : value);
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Keep this under ${String(max)} characters`)
+    .transform(emptyToNull)
+    .optional();
+
+const optionalDigits = (max: number) =>
+  z
+    .string()
+    .trim()
+    .regex(/^\d*$/, 'Numbers only')
+    .max(max, `Keep this under ${String(max)} digits`)
+    .transform(emptyToNull)
+    .optional();
+
+const optionalState = z
+  .string()
+  .trim()
+  .refine((value) => /^([A-Za-z]{2})?$/.test(value), 'Use the 2-letter state code')
+  .transform((value) => (value === '' ? null : value.toUpperCase()))
+  .optional();
+
+const optionalZip = optionalText(10);
+
+const optionalYear = z
+  .string()
+  .trim()
+  .regex(/^(\d{4})?$/, 'Use a 4-digit year')
+  .transform(emptyToNull)
+  .optional();
+
+const optionalEmail = z
+  .string()
+  .trim()
+  .max(120, 'Keep this under 120 characters')
+  .refine((value) => value === '' || z.email().safeParse(value).success, 'Enter a valid email')
+  .transform(emptyToNull)
+  .optional();
+
+export const USEF_EXEMPT_REASON_EX = 'EX';
+
+const optionalExemptReason = z
+  .string()
+  .trim()
+  .refine((value) => value === '' || value === USEF_EXEMPT_REASON_EX, 'Choose a valid reason')
+  .transform(emptyToNull)
+  .optional();
+
 export const horseUpdateSchema = z.object({
   id: z.uuid(),
   stable: z.string().trim().max(RIDER_FIELD_MAX.horseText).optional(),
@@ -150,9 +202,28 @@ export const horseUpdateSchema = z.object({
   height: z.string().trim().max(RIDER_FIELD_MAX.horseHeight).optional(),
   farrier: z.string().trim().max(RIDER_FIELD_MAX.horseText).optional(),
   isStallion: z.boolean().optional(),
+  usefNumber: optionalDigits(20),
+  feiNumber: optionalText(20),
+  passportNumber: optionalText(20),
+  registrationNumber: optionalText(50),
+  yearOfBirth: optionalYear,
+  breed: optionalText(50),
+  ownerName: optionalText(200),
+  ownerEmail: optionalEmail,
+  ownerUsef: optionalDigits(20),
+  ownerUsefExemptReason: optionalExemptReason,
+  ownerStreet: optionalText(150),
+  ownerCity: optionalText(50),
+  ownerState: optionalState,
+  ownerZip: optionalZip,
+  trainerUsef: optionalDigits(20),
+  trainerStreet: optionalText(150),
+  trainerCity: optionalText(50),
+  trainerState: optionalState,
+  trainerZip: optionalZip,
 });
 
-export type HorseUpdateInput = z.infer<typeof horseUpdateSchema>;
+export type HorseUpdateInput = z.input<typeof horseUpdateSchema>;
 
 export const horseDeleteSchema = z.object({
   id: z.uuid(),

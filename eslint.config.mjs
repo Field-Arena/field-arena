@@ -71,6 +71,12 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+
+  // node:test registers each test with a call whose promise is deliberately not awaited.
+  {
+    files: ['src/**/*.test.ts'],
+    rules: { '@typescript-eslint/no-floating-promises': 'off' },
+  },
 ]);
 
 export default eslintConfig;

@@ -81,6 +81,9 @@ export const updateStaffDetailsSchema = z.object({
   isSteward: z.boolean().optional().default(false),
   /** Judge licence / rating, e.g. USEF "S". Empty clears it. */
   license: z.string().trim().max(40).optional().default(''),
+
+  /** USEF ID (digits only). Omit to leave it as it is; send '' to clear it. */
+  usefId: z.string().trim().max(20).regex(/^\d*$/, 'A USEF ID is numbers only').optional(),
 });
 export type UpdateStaffDetailsInput = z.input<typeof updateStaffDetailsSchema>;
 

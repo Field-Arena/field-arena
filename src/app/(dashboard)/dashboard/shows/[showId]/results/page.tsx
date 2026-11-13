@@ -41,5 +41,5 @@ export default async function ShowResultsPage({ params }: { params: Promise<{ sh
   const canExportRoster =
     context.impersonating || (await hasMyShowPermission(id, 'canExportRoster'));
 
-  return <ResultsPanel showName={showName} rows={rows} canExportRoster={canExportRoster} />;
+  return <ResultsPanel showRef={showId} rows={rows} canExportRoster={canExportRoster} />;
 }

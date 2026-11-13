@@ -233,6 +233,7 @@ export function RiderShowDashboard({
             showId={show.id}
             showName={show.name}
             riderName={[rider.first_name, rider.last_name].filter(Boolean).join(' ')}
+            rider={rider}
           />
         )}
         {activeTab === 'purchases' && (

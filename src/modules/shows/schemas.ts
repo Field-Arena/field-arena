@@ -401,6 +401,30 @@ export const updateGroupLocationSchema = z.object({
 
 export type UpdateGroupLocationInput = z.input<typeof updateGroupLocationSchema>;
 
+export const setClassSectionCodeSchema = z.object({
+  showId: z.uuid(),
+  classId: z.uuid(),
+  code: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{1,10}$/, 'Pick a USEF section code from the list')
+    .nullable(),
+});
+
+export type SetClassSectionCodeInput = z.input<typeof setClassSectionCodeSchema>;
+
+export const setShowUsefCompIdSchema = z.object({
+  showId: z.uuid(),
+  usefCompId: z
+    .string()
+    .trim()
+    .max(20, 'The USEF competition ID can be at most 20 characters')
+    .regex(/^[A-Za-z0-9]*$/, 'Use only letters and numbers in the USEF competition ID')
+    .transform((v) => v || null),
+});
+
+export type SetShowUsefCompIdInput = z.input<typeof setShowUsefCompIdSchema>;
+
 export const updateGroupDivisionSchema = z.object({
   showId: z.uuid(),
   group: z.string().trim().min(1).max(120),

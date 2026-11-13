@@ -2,10 +2,8 @@
 
 import Link from 'next/link';
 import type { ShowResultRow } from '@/modules/shows/types';
-import { buildResultsCsv } from '@/modules/shows/utils/build-results-csv';
-import { resultsCsvFilename } from '@/modules/shows/utils/results-csv-filename';
+import { ExportResultsMenu } from '@/modules/results-export/ui/export-results-menu';
 import { Card } from '@/shared/ui/organizer/card';
-import { PrimaryButton } from '@/shared/ui/organizer/buttons';
 import {
   Table,
   TableBody,
@@ -16,11 +14,12 @@ import {
 } from '@/shared/ui/shadcn/table';
 
 export function ResultsPanel({
-  showName,
+  showRef,
   rows,
   canExportRoster,
 }: {
-  showName: string;
+  /** The show's slug or id, used to build the export links. */
+  showRef: string;
   rows: ShowResultRow[];
   canExportRoster: boolean;
 }) {
@@ -42,26 +41,7 @@ export function ResultsPanel({
           combined for classes sharing a championship. Unscored riders are included so this doubles
           as a full roster.
         </p>
-        {canExportRoster && (
-          <PrimaryButton
-            type="button"
-            className="flex-none whitespace-nowrap"
-            onClick={() => {
-              const csv = buildResultsCsv(rows);
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = resultsCsvFilename(showName);
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            }}
-          >
-            Export CSV
-          </PrimaryButton>
-        )}
+        {canExportRoster && <ExportResultsMenu showRef={showRef} />}
       </div>
 
       {byUnit.size === 0 ? (
@@ -76,6 +56,9 @@ export function ResultsPanel({
           const pooledClasses = pooled
             ? [...new Set(unitRows.map((r) => r.className))].sort((a, b) => a.localeCompare(b))
             : [];
+          const sectionCodes = [
+            ...new Set(unitRows.map((r) => r.sectionCode).filter((c): c is string => !!c)),
+          ];
           const distinctClasses = [
             ...new Map(unitRows.map((r) => [r.classId, r.className])).entries(),
           ];
@@ -84,6 +67,11 @@ export function ResultsPanel({
               <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <h3 className="text-[15px] font-semibold tracking-[-.2px] text-[#101828]">
                   {unitLabel}
+                  {sectionCodes.length > 0 && (
+                    <span className="ml-1.5 text-[13px] font-normal text-[#7A8781]">
+                      · Section {sectionCodes.join(', ')}
+                    </span>
+                  )}
                   {unitRows[0]?.division ? (
                     <span className="ml-1.5 text-[13px] font-normal text-[#8A94A3]">
                       ({unitRows[0].division})
