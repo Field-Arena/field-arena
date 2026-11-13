@@ -21,6 +21,7 @@ import {
   useVerifyRiderHorseDocument,
 } from '../hooks/use-user-directory-mutations';
 import type { UserDirectoryRow, RiderDetailDocument } from '../types';
+import { todayForViewer } from '@/shared/lib/format/time-zone';
 
 function DocumentRow({
   showId,
@@ -49,7 +50,7 @@ function DocumentRow({
   });
 
   const dirty = expirationDate !== savedExpiration || verified !== savedVerified;
-  const pastDue = !!(savedExpiration && savedExpiration < new Date().toISOString().slice(0, 10));
+  const pastDue = !!(savedExpiration && savedExpiration < todayForViewer());
 
   return (
     <li className="space-y-2 px-3 py-2.5 text-[12.5px]">

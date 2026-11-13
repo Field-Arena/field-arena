@@ -21,8 +21,25 @@ export const env = {
     return required(process.env.SUPABASE_SERVICE_ROLE_KEY, 'SUPABASE_SERVICE_ROLE_KEY');
   },
 
+  /* Base URL for auth redirects, Stripe return URLs and email links. A silent
+   * localhost fallback in production sends riders' magic links and Stripe
+   * redirects to http://localhost:3000, so on Vercel production it is required.
+   * Previews fall back to their own deployment URL; local dev and CI (no
+   * Vercel env) to localhost. VERCEL_ENV is server-only and
+   * NEXT_PUBLIC_VERCEL_ENV is what Vercel exposes to the browser bundle — both
+   * read so client components (run-show-card) apply the same rule. */
   get siteUrl(): string {
-    return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    if (configured) return configured.replace(/\/+$/, '');
+
+    const vercelEnv = process.env.VERCEL_ENV ?? process.env.NEXT_PUBLIC_VERCEL_ENV;
+    if (vercelEnv === 'production') {
+      return required(undefined, 'NEXT_PUBLIC_SITE_URL');
+    }
+    if (vercelEnv === 'preview' && process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
+    return 'http://localhost:3000';
   },
 
   get resendApiKey(): string {

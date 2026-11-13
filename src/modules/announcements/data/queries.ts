@@ -16,6 +16,7 @@ import type {
   ShowDocument,
   ShowStatus,
 } from '@/modules/announcements/types';
+import { staffIdentityFilter } from '@/shared/lib/supabase/postgrest-filter';
 
 /* Legacy derived today/upcoming/completed from the show's own dates rather
  * than from staff_assignments.status, and left a comment explaining why: that
@@ -55,7 +56,7 @@ export async function listMyShows(): Promise<AnnouncerShow[]> {
     .from('staff_assignments')
     .select('show_id')
     .eq('role', ANNOUNCER_ROLE)
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+    .or(staffIdentityFilter(profile));
   if (error) throw error;
   if (staffRows.length === 0) return [];
 

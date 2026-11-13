@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import { getShowCompleteness } from '@/modules/shows/data/setup-queries';
 import { getShowTodos } from '@/modules/shows/data/dashboard-todos';
 import { daysUntilShow } from '@/modules/shows/utils/current-shows';
@@ -45,13 +46,13 @@ export async function getShowManagerOverview(showId: string): Promise<ShowManage
   const supabase = await createServerClient();
   const { data: show, error } = await supabase
     .from('shows')
-    .select('id, slug, name, start_date, end_date, venue_name')
+    .select('id, slug, name, start_date, end_date, venue_name, timezone, organizations(timezone)')
     .eq('id', showId)
     .maybeSingle();
   if (error) throw error;
   if (!show) return null;
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = todayInZone(resolveTimeZone(show.timezone, show.organizations.timezone));
   const daysOut = daysUntilShow({ startDate: show.start_date }, todayIso);
   const ref = show.slug ?? show.id;
 

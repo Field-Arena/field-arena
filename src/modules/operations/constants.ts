@@ -1,7 +1,5 @@
 export const OPERATIONS_DOCUMENTS_PATH = '/dashboard/operations/documents';
 
-export const ORG_LEVEL_ROLES = new Set(['Organizer', 'Show Admin', 'SuperAdmin']);
-
 export const RIBBONS: { bg: string; fg: string; name: string }[] = [
   { bg: '#1E5AA8', fg: '#ffffff', name: 'Blue' },
   { bg: '#C0392B', fg: '#ffffff', name: 'Red' },

@@ -1,37 +1,32 @@
 # Git Workflow & Branching
 
-This codebase uses a two-line release model with feature branches per milestone. The model exists because the platform handles rider payments, personal data, and official competition results — accidental writes to production are unrecoverable.
+The platform handles rider payments, personal data, and official competition results — accidental writes to production are unrecoverable. Every change reaches production through a reviewed pull request and a Vercel preview.
 
-## Branch model
+## Branch model (as it actually is, 2026-10)
 
-- **`prod`** — production. Auto-deploys to Vercel prod (when wired). Receives **only** PRs from `dev`. Never receives direct commits or feature merges. Protected.
-- **`dev`** — integration / staging. Auto-deploys to Vercel preview, points at the `fieldarena-dev` Supabase project. All milestone PRs land here. **Default branch on GitHub.**
-- **`feat/m{X.Y}-{slug}`** — per-milestone feature branch off `dev`. Examples: `feat/m1-1-auth-login`, `feat/m1-2-rider-registration`. Merged via squash PR back into `dev`.
-- **`fix/{slug}`** — hotfix branches off `dev` (or `prod` for emergency). Squash-merged.
-- **`chore/{slug}`** — tooling, deps, docs without behaviour change.
+- **`main`** — production. Vercel's Git integration auto-deploys every push to `main` to www.field-arena.com. There is **no `prod` branch**; older docs that mention one are wrong.
+- **Feature branches** — `feat/{slug}`, `fix/{slug}`, `chore/{slug}` (milestone work may keep the `feat/m{X.Y}-{slug}` form). Branched from `main`, merged back into `main` through a PR.
+- **`dev`** — the former integration branch and still GitHub's default branch. It carried the 2026-10-02 audit fixes that were later synced into `main`. Whether to keep it as a staging line (with regular `dev → main` release PRs) or retire it is an owner decision; until then, don't land new work only on `dev`.
+- **`production`** — dead (last commit 2026-07-30). Do not use.
 
 ## Workflow
 
-1. Pull latest `dev`. Branch: `git checkout -b feat/m1-2-rider-registration dev`.
-2. Work on the feature. Commit often, locally — Conventional Commits format only. (See `tooling.md`.)
-3. When the milestone meets the Definition of Done (ROADMAP §"Definition of Done"): push and open a PR `feat/... → dev`.
-4. PR title matches the conventional commit format that the squash-merge will produce: `feat(shows): add show-builder wizard`.
-5. PR body includes:
-   - Milestone reference (`Closes M1.2`).
-   - Summary of changes.
-   - Migration list (if any).
-   - Manual test plan (since we don't run E2E in CI yet).
-6. After PR merges to `dev`, delete the feature branch.
-7. **Releases to `prod`** happen at phase boundaries, not per-milestone. Open a PR `dev → prod` titled `release: phase-1` with a release-notes body. Tag the merged commit `v0.1.0`, etc.
+1. Update `main` and branch from it: `git checkout -b fix/short-name origin/main`.
+2. Commit in Conventional Commits format (see `tooling.md`). Husky runs lint-staged, typecheck and commitlint locally; CI (`.github/workflows/ci.yml`) re-runs typecheck, lint and build on the PR.
+3. Push and open a PR into `main`. The PR title matches the squash-merge commit: `fix(scoring): handle tie-break on equal totals`.
+4. Vercel builds a **Preview URL** for the PR. Test there — log in as each affected role; use Stripe test cards for payments. Previews must point at a non-production Supabase project and Stripe **test** keys (Vercel → Settings → Environment Variables → Preview).
+5. PR body includes: summary of changes, migration list (if any), manual test plan, anything the owner must decide or do.
+6. **Database changes:** add a new migration file in the PR. Apply it to the non-production project first and test on the preview; apply it to production immediately before merging, and record that it was applied.
+7. After review, merge to `main` → Vercel deploys → spot-check the live site. Delete the branch.
+8. **Rollback:** Vercel → Deployments → previous deployment → "Promote to Production". That rolls back code only; a migration needs its own corrective migration.
 
 ## Hard rules
 
-- **Never push directly to `prod`.** GitHub branch protection should enforce this; even if it isn't set, treat it as binding.
-- **Never push directly to `dev` for milestone work.** Only `chore/` housekeeping (typo fix, dep bump) may go straight to `dev`.
-- **Never `git push --force` on `prod` or `dev`.** Force-push is for personal feature branches only, before review begins.
+- **Never push directly to `main`.** Everything goes through a PR with a passing CI run and a tested preview.
+- **Never `git push --force` on `main` or `dev`.** Force-push is for personal feature branches only, before review begins.
 - **Never `--no-verify`** to skip Husky hooks. If the hook fails, fix the cause.
-- **Migrations are append-only across branches.** Never edit a migration file after it has been merged to `dev`. Add a new migration that corrects course.
-- **One PR per milestone.** Don't bundle M1.2 + M1.3 in the same branch.
+- **Migrations are append-only.** Never edit a migration file once it has been merged or applied anywhere. Add a new migration that corrects course.
+- **Never run `scripts/apply-sql.mjs`, `scripts/seed-*.mjs`, `scripts/apply-demo-seed.sh` or `scripts/import-legacy-catalog.mjs` against production.** They refuse to unless the target is local or an allowlisted scratch project (`scripts/lib/target-guard.mjs`); never add the production ref to `FA_SCRIPT_ALLOWED_PROJECT_REFS`.
 - **No AI / tool attribution in commits or PRs.** No `Co-Authored-By: Claude`, no "🤖 Generated with…" footer, no mention of Claude/Cursor/Copilot anywhere in commit messages, PR titles, or PR bodies. Commits attribute to the human author only.
 
 ## Commit message format
@@ -56,22 +51,13 @@ Subject is lower-case, no trailing period, max 100 chars.
 
 ## Branch protection
 
-> **Current state (2026-05):** GitHub free-tier private repos block both classic branch-protection rules and the newer Rulesets API. A GitHub Team plan ($4/user/month) is required to enforce these via the platform. **Until that upgrade is approved, the rules below are enforced by discipline only.** The hard rules at the top of this file are binding regardless.
+> **Current state (2026-10):** not enabled. Until it is, the rules above are enforced by discipline only.
 
-When the upgrade lands, apply via API or dashboard:
+Owner to-do — on `main` (GitHub → Settings → Branches, or Rulesets):
 
-On `prod`:
+- Require a pull request before merging (allow self-approval only while there is a single developer)
+- Require the `CI` status check to pass
+- Block force-pushes and branch deletion
+- Require linear history (squash merges)
 
-- Require PR before merging
-- Require status checks: CI workflow (`typecheck + lint + tests`)
-- Require linear history
-- Restrict force-push, restrict deletion
-- Require signed commits (optional, recommended)
-
-On `dev`:
-
-- Require PR before merging (allow self-merge for solo dev phase)
-- Require status checks
-- Allow force-push: off
-
-CI itself runs on every PR via `.github/workflows/ci.yml` and produces the status check that the rules above will gate on once the upgrade lands.
+Private repos on the GitHub Free plan can't enforce these rules; GitHub Team (or making the repo public) is required.

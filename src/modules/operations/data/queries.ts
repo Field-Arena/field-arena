@@ -3,7 +3,6 @@ import type { ScheduleClass, ScheduleEntry, PastShowResult } from '@/modules/ope
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { getStaffProfile } from '@/shared/lib/auth/session';
 import { PERMISSION_KEYS, type PermissionKey } from '@/shared/constants/permissions';
-import { ORG_LEVEL_ROLES } from '@/modules/operations/constants';
 import { resolveOperationsPermissions } from '@/modules/operations/utils/resolve-operations-permissions';
 import { withSharedRank } from '@/shared/lib/with-shared-rank';
 import { overrideTestName } from '@/shared/lib/rank-placings';
@@ -17,6 +16,7 @@ import type {
   StablingStall,
   VendorRow,
 } from '@/modules/operations/types';
+import { staffIdentityFilter } from '@/shared/lib/supabase/postgrest-filter';
 
 export async function listMyShows(): Promise<OperationsShow[]> {
   const profile = await getStaffProfile();
@@ -27,7 +27,7 @@ export async function listMyShows(): Promise<OperationsShow[]> {
   const { data: staffRows, error } = await supabase
     .from('staff_assignments')
     .select('show_id')
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+    .or(staffIdentityFilter(profile));
   if (error) throw error;
   if (staffRows.length === 0) return [];
 
@@ -53,14 +53,22 @@ export async function getMyPermissions(showId: string): Promise<Record<Permissio
     boolean
   >;
   if (!profile) return allFalse;
-  if (profile.platform_role && ORG_LEVEL_ROLES.has(profile.platform_role)) return allTrue;
 
   const supabase = await createServerClient();
+  // Org-level access to this show's org (SuperAdmin, the org's Organizer and
+  // co-owners, active orgs only) sees everything. Decided per show, not by
+  // platform role: an Organizer of another org, or a ShowAdmin, gets their
+  // staff row's permissions below.
+  const { data: orgLevel, error: orgLevelError } = await supabase.rpc('can_access_show_org', {
+    target_show_id: showId,
+  });
+  if (orgLevelError) throw orgLevelError;
+  if (orgLevel) return allTrue;
   const { data, error } = await supabase
     .from('staff_assignments')
     .select('role, permissions, can_scratch_skip_dq, can_view_money')
     .eq('show_id', showId)
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`)
+    .or(staffIdentityFilter(profile))
     .maybeSingle();
   if (error) throw error;
   if (!data) return allFalse;
@@ -415,7 +423,7 @@ export async function listPastShowResults(): Promise<PastShowResult[]> {
   const { data: staffRows, error } = await supabase
     .from('staff_assignments')
     .select('show_id')
-    .or(`user_id.eq.${profile.id},email.eq.${profile.email}`);
+    .or(staffIdentityFilter(profile));
   if (error) throw error;
   if (staffRows.length === 0) return [];
 

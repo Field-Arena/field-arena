@@ -16,6 +16,7 @@ import {
   refundAdditionalChargeSchema,
 } from '@/modules/sales/schemas';
 import { refundChargingOrganizer } from '@/modules/sales/data/stripe-refund';
+import { sendRefundNotice } from '@/modules/sales/data/refund-notice';
 import { updateAdditionalChargesLedger } from '@/modules/sales/data/additional-charges-ledger';
 import {
   chargeMaxRefundable,
@@ -77,13 +78,10 @@ async function assertCanRefund(showId: string): Promise<void> {
     return;
   }
 
-  if (profile.platform_role === 'Organizer') {
-    if (profile.org_id !== show.org_id) {
-      throw new Error('That sale belongs to a different organization.');
-    }
-    return;
-  }
-
+  // Organizers included: has_show_permission is true for the show's own org
+  // owners (Organizer, co-owners) only while the org is active, so a
+  // suspended or deleted org can't move money through the admin client below
+  // — this used to return early on `profile.org_id === show.org_id` alone.
   // Everyone else needs a real per-show canRefund grant — deliberately
   // separate from canViewMoney, as legacy spelled out.
   const supabase = await createServerClient();
@@ -203,6 +201,13 @@ export async function refundSale(input: unknown): Promise<RefundSaleResult> {
       console.error('[sales] could not flag sale for review', parsed.saleId, flagError);
     }
   }
+
+  await sendRefundNotice(admin, {
+    saleType: parsed.saleType,
+    saleId: parsed.saleId,
+    showId: parsed.showId,
+    amount: refundAmount,
+  });
 
   revalidatePath(ROUTES.eventSales);
   return { transferReversalFailed: outcome.reversalError !== null };
@@ -410,6 +415,13 @@ export async function refundAdditionalCharge(input: unknown): Promise<RefundSale
       console.error('[sales] could not flag sale for review', parsed.saleId, flagError);
     }
   }
+
+  await sendRefundNotice(admin, {
+    saleType: parsed.saleType,
+    saleId: parsed.saleId,
+    showId: parsed.showId,
+    amount: refundAmount,
+  });
 
   revalidatePath(ROUTES.eventSales);
   return { transferReversalFailed: outcome.reversalError !== null };

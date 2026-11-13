@@ -16,10 +16,9 @@ export const metadata: Metadata = { title: 'History — Field & Arena' };
 
 export default async function VendorHistoryPage() {
   const bookings = await listMyBookings();
-  const today = new Date().toISOString().slice(0, 10);
   const past = bookings
-    .filter((b) => b.status === 'paid' && (!b.showDate || b.showDate < today))
-    .sort((a, b) => (b.showDate ?? '').localeCompare(a.showDate ?? ''));
+    .filter((b) => b.status === 'paid' && b.showIsPast)
+    .sort((a, b) => (b.showLastDay ?? '').localeCompare(a.showLastDay ?? ''));
 
   return (
     <div className="text-ink-deep font-[family-name:var(--font-ar)]">

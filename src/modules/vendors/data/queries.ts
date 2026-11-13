@@ -2,6 +2,7 @@ import 'server-only';
 import { createServerClient } from '@/shared/lib/supabase/server';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStaffProfile } from '@/shared/lib/auth/session';
+import { resolveTimeZone, todayInZone } from '@/shared/lib/format/time-zone';
 import {
   VENDOR_DOCUMENT_SIGNED_URL_TTL_SECONDS,
   VENDOR_MAPS_BUCKET,
@@ -73,7 +74,9 @@ export async function listMyBookings(): Promise<VendorBookingRow[]> {
   const [shows, lineItems] = await Promise.all([
     supabase
       .from('shows')
-      .select('id, name, date_label, org_id, vendor_document_requirements, vendor_agreement_text')
+      .select(
+        'id, name, date_label, start_date, end_date, timezone, org_id, vendor_document_requirements, vendor_agreement_text',
+      )
       .in('id', showIds),
     supabase
       .from('vendor_booking_items')
@@ -89,10 +92,11 @@ export async function listMyBookings(): Promise<VendorBookingRow[]> {
   const orgIds = [...new Set(shows.data.map((s) => s.org_id))];
   const { data: orgs, error: orgError } = await supabase
     .from('organizations')
-    .select('id, name')
+    .select('id, name, timezone')
     .in('id', orgIds);
   if (orgError) throw orgError;
   const orgById = new Map(orgs.map((o) => [o.id, o.name]));
+  const orgTimeZoneById = new Map(orgs.map((o) => [o.id, o.timezone]));
 
   const showById = new Map(shows.data.map((s) => [s.id, s]));
 
@@ -114,11 +118,17 @@ export async function listMyBookings(): Promise<VendorBookingRow[]> {
     const uploads = Array.isArray(b.document_uploads)
       ? (b.document_uploads as unknown as VendorDocumentUpload[])
       : [];
+    const showLastDay = show?.end_date ?? show?.start_date ?? null;
     return {
       id: b.id,
       showId: b.show_id,
       showName: show?.name ?? 'Unknown show',
       showDate: show?.date_label ?? null,
+      showLastDay,
+      showIsPast:
+        !showLastDay ||
+        showLastDay <
+          todayInZone(resolveTimeZone(show?.timezone, orgTimeZoneById.get(show?.org_id ?? ''))),
       orgName: show ? (orgById.get(show.org_id) ?? 'Unknown organizer') : 'Unknown organizer',
       status: b.status ?? 'pending',
       amountTotal: b.amount_total,
@@ -135,7 +145,6 @@ export async function listMyBookings(): Promise<VendorBookingRow[]> {
 
 export async function listBookableShows(): Promise<BookableShow[]> {
   const supabase = await createServerClient();
-  const today = new Date().toISOString().slice(0, 10);
 
   const { data: items, error } = await supabase
     .from('vendor_items')
@@ -149,7 +158,7 @@ export async function listBookableShows(): Promise<BookableShow[]> {
   const [shows, booked] = await Promise.all([
     supabase
       .from('shows')
-      .select('id, name, date_label, start_date, org_id, vendor_map_path, vendor_map_url')
+      .select('id, name, date_label, start_date, timezone, org_id, vendor_map_path, vendor_map_url')
       .in('id', showIds)
       .eq('published', true),
     supabase
@@ -163,18 +172,19 @@ export async function listBookableShows(): Promise<BookableShow[]> {
   if (shows.error) throw shows.error;
   if (booked.error) throw booked.error;
 
-  const upcomingShows = shows.data.filter((s) => !s.start_date || s.start_date >= today);
-  const orgIds = [...new Set(upcomingShows.map((s) => s.org_id))];
+  const orgIds = [...new Set(shows.data.map((s) => s.org_id))];
   const { data: orgs, error: orgError } = await supabase
     .from('organizations')
-    .select('id, name, suspended')
+    .select('id, name, suspended, timezone')
     .in('id', orgIds);
   if (orgError) throw orgError;
 
   const orgById = new Map(orgs.map((o) => [o.id, o]));
-  const visibleShows = upcomingShows.filter((s) => {
+  // "Upcoming" by the show's own calendar day, not UTC's.
+  const visibleShows = shows.data.filter((s) => {
     const org = orgById.get(s.org_id);
-    return org && !org.suspended;
+    if (!org || org.suspended) return false;
+    return !s.start_date || s.start_date >= todayInZone(resolveTimeZone(s.timezone, org.timezone));
   });
 
   const bookedByItem = new Map<string, number>();

@@ -1,4 +1,5 @@
 import 'server-only';
+import { revalidatePath } from 'next/cache';
 import type Stripe from 'stripe';
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { getStripeClient } from '@/shared/lib/stripe';
@@ -17,6 +18,7 @@ import {
 import { additionalChargeRefunded } from '@/shared/lib/sales-math';
 import { updateAdditionalChargesLedger } from '@/modules/sales/data/additional-charges-ledger';
 import { chargeAmount, roundCents } from '@/modules/sales/utils/additional-charges';
+import { ROUTES } from '@/shared/constants/routes';
 
 // Stripe webhook fulfilment. The route handler (app/api/webhooks/stripe)
 // verifies the signature and maps a thrown error to a non-2xx response; every
@@ -41,6 +43,12 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       break;
     case 'charge.dispute.created':
       await handleDisputeCreated(event.data.object);
+      break;
+    case 'payment_intent.payment_failed':
+      handlePaymentIntentFailed(event.data.object);
+      break;
+    case 'account.updated':
+      await handleConnectAccountUpdated(event.data.object);
       break;
     default:
       break;
@@ -447,4 +455,51 @@ async function handleCheckoutSessionAsyncPaymentFailed(
   if (!orderId) return;
   const admin = createAdminClient();
   await markOrderPaymentFailed(admin, orderId, session.id);
+}
+
+/* Checkout failures arrive as checkout.session.async_payment_failed (handled
+ * above) and "charge more" fails synchronously inside chargeMore, so this is
+ * the record of anything else: an off-session PaymentIntent that failed after
+ * the fact. Logged with its metadata so it can be traced to a sale. */
+function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent): void {
+  console.error(
+    '[stripe-webhook] payment failed',
+    paymentIntent.id,
+    paymentIntent.last_payment_error?.code ?? null,
+    paymentIntent.last_payment_error?.message ?? null,
+    paymentIntent.metadata,
+  );
+}
+
+/* A connected organizer account changed (onboarding finished, Stripe paused
+ * charges or payouts, details due). Connect status is always read live from
+ * Stripe (accounts.retrieve), so there is nothing stored to sync — this
+ * refreshes the billing page and logs an account that can no longer take
+ * destination charges: new checkouts for that org then keep the money on the
+ * platform until it is fixed. Delivered only to a webhook endpoint that listens
+ * to connected accounts. */
+async function handleConnectAccountUpdated(account: Stripe.Account): Promise<void> {
+  const admin = createAdminClient();
+  const { data: org, error } = await admin
+    .from('organizations')
+    .select('id, name')
+    .eq('stripe_connect_account_id', account.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!org) {
+    console.warn('[stripe-webhook] account.updated for an account no org uses', account.id);
+    return;
+  }
+
+  if (!account.charges_enabled || !account.payouts_enabled) {
+    console.warn(
+      '[stripe-webhook] organizer Stripe account restricted',
+      org.id,
+      org.name,
+      account.id,
+      { charges: account.charges_enabled, payouts: account.payouts_enabled },
+      account.requirements?.disabled_reason ?? null,
+    );
+  }
+  revalidatePath(ROUTES.billing);
 }

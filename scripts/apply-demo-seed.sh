@@ -15,6 +15,12 @@
 # its dates to that day. Regenerate it with:
 # node scripts/generate-demo-calendar-seed.mjs
 #
+# Writes (everything but the --verify modes) only run when the project ref is
+# listed in FA_SCRIPT_ALLOWED_PROJECT_REFS (shell or .env.local) and
+# --i-know-this-is-not-prod is passed, e.g.
+#   scripts/apply-demo-seed.sh --calendar --i-know-this-is-not-prod
+# Never allowlist production: the seed creates paid orders and riders.
+#
 # Seed and cleanup each run as ONE transaction (the files carry their own
 # begin/commit), so a failure leaves the database untouched. Both are
 # re-runnable. Regenerate the SQL with: node scripts/generate-demo-seed.mjs
@@ -30,8 +36,14 @@ if [[ -z "$TOKEN" || -z "$REF" ]]; then
   exit 1
 fi
 
+NOT_PROD=false
+ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--i-know-this-is-not-prod" ]]; then NOT_PROD=true; else ARGS+=("$arg"); fi
+done
+
 MODE="seed"
-case "${1:-}" in
+case "${ARGS[0]:-}" in
   "") ;;
   --cleanup) MODE="cleanup" ;;
   --verify) MODE="verify" ;;
@@ -55,6 +67,16 @@ IS_VERIFY=false
 GEN="scripts/generate-demo-seed.mjs"
 [[ "$MODE" == calendar* ]] && GEN="scripts/generate-demo-calendar-seed.mjs"
 [[ -f "$FILE" ]] || { echo "$FILE not found — run: node $GEN" >&2; exit 1; }
+
+if [[ "$IS_VERIFY" != true ]]; then
+  ALLOWED="${FA_SCRIPT_ALLOWED_PROJECT_REFS:-$(grep '^FA_SCRIPT_ALLOWED_PROJECT_REFS=' .env.local | head -1 | cut -d= -f2- | tr -d '"' || true)}"
+  if [[ "$NOT_PROD" != true || ",${ALLOWED// /}," != *",$REF,"* ]]; then
+    echo "Refusing to write to project $REF." >&2
+    echo "Add it to FA_SCRIPT_ALLOWED_PROJECT_REFS and pass --i-know-this-is-not-prod." >&2
+    echo "Never allowlist production." >&2
+    exit 1
+  fi
+fi
 
 echo "Project: $REF"
 echo "File:    $FILE"

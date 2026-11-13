@@ -8,40 +8,47 @@ Status values:
 - **done** — migrated, reads and writes work against Supabase, verified in a browser
 - **partial** — some of it works; the gaps are named
 - **pending** — not started
+- **built** — the route / action exists in this codebase, but this map has not
+  re-verified it end to end in a browser since the status was set
 - **dropped** — deliberately not carried over, with the reason
 
-Last updated: 2026-07-27.
+Last updated: 2026-07-27. Statuses refreshed from the code on 2026-10-19
+(audit follow-up): anything that moved from pending/partial to **built** was
+checked only for the existence of its routes and server actions, not
+re-tested. Re-verify before relying on a row.
 
 ---
 
-## Blockers that cap "working" regardless of build progress
+## Environment each deployment needs
 
-| Blocker | Blocks |
-|---|---|
-| `STRIPE_SECRET_KEY` empty | rider checkout, vendor checkout, refunds, additional charges, Connect onboarding, payouts, settled revenue |
-| `RESEND_API_KEY` empty | invite emails, entry confirmations, results emails, document reminders, onboarding emails |
-| Docker not running | local Supabase (`supabase start`), `supabase db dump`, migration catalog caching. Remote push works fine |
+Stripe and Resend are wired in (checkout, Connect, refunds, additional charges,
+webhooks; invite / receipt / reminder / refund emails). Each environment still
+needs its own keys — see `.env.local.example`:
 
-Neither key is needed to *build* those features — the schema, fee formulas and
-refund constraints are already in place — but nothing can transact or send until
-they are set.
+| Variable                                     | Without it                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | no checkout, refunds or webhook fulfilment                                        |
+| `RESEND_API_KEY`                             | emails are skipped (sendEmail returns false)                                      |
+| `NEXT_PUBLIC_SITE_URL`                       | required on Vercel production (the app throws); previews use their deployment URL |
+
+Local Supabase (`supabase start`) still needs Docker.
 
 ---
 
 ## Foundation
 
-| Item | Status | Notes |
-|---|---|---|
-| Schema (31 domain tables + audit_log) | **done** | 32 tables live. `sessions` / `rider_sessions` / `password_hash` / `clerk_user_id` dropped — Supabase Auth owns credentials |
-| RLS | **done** | 72 policies. Ports `authz.js` + `permissions.js`, including ShowAdmin being per-show not org-wide |
-| Storage buckets | **done** | 6 buckets, policies scoped by object path. Upload UI is pending |
-| pg_cron stale-order cleanup | **done** | Replaces the Vercel hourly cron |
-| Domain-health cron | **pending** | Probed DNS via the Vercel API; Postgres cannot. Needs an Edge Function |
-| Demo seed | **done** | 6 orgs, 12 shows, 40 classes, 400 entries / 200 riders. Idempotent (verified by re-running) |
-| Auth | **done** | Email + password, `/login`, callback, middleware, sign-out |
-| Role routing | **done** | All 9 roles resolve to a destination; unmigrated ones show an honest placeholder |
-| Design tokens | **done** | Brand palette + workspace status palette as Tailwind tokens |
-| shadcn | **done** | 14 components under `shared/ui/shadcn` |
+| Item                                  | Status      | Notes                                                                                                                      |
+| ------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Schema (31 domain tables + audit_log) | **done**    | 32 tables live. `sessions` / `rider_sessions` / `password_hash` / `clerk_user_id` dropped — Supabase Auth owns credentials |
+| RLS                                   | **done**    | 72 policies. Ports `authz.js` + `permissions.js`, including ShowAdmin being per-show not org-wide                          |
+| Storage buckets                       | **done**    | 6 buckets, policies scoped by object path. Upload UI is pending                                                            |
+| pg_cron stale-order cleanup           | **done**    | Replaces the Vercel hourly cron                                                                                            |
+| Domain-health cron                    | **pending** | Probed DNS via the Vercel API; Postgres cannot. Needs an Edge Function                                                     |
+| Demo seed                             | **done**    | 6 orgs, 12 shows, 40 classes, 400 entries / 200 riders. Idempotent (verified by re-running)                                |
+| Auth                                  | **done**    | Email + password, `/login`, callback, middleware, sign-out                                                                 |
+| Role routing                          | **done**    | All 9 roles resolve to a destination; unmigrated ones show an honest placeholder                                           |
+| Design tokens                         | **done**    | Brand palette + workspace status palette as Tailwind tokens                                                                |
+| shadcn                                | **done**    | 14 components under `shared/ui/shadcn`                                                                                     |
 
 ---
 
@@ -52,47 +59,47 @@ Legacy resolved post-login destinations through `PLATFORM_ROLE_TO_VIEW` in
 Announcer, ShowStaff and Vendor each had a fully built view that login could not
 reach. All nine are routed here.
 
-| Role | Legacy view | Lines | Status |
-|---|---|---|---|
-| SuperAdmin | `superadmin.html` | 3,176 | **partial** |
-| Organizer | `showstaff.html` | 14,629 | **pending** |
-| ShowAdmin | `showstaff.html` (money hidden) | shared | **done** |
-| ShowStaff | `showstaff-ops.html` | 1,207 | **done** |
-| Judge | `judge-scribe.html` | 767 | **done** |
-| Scribe | `judge-scribe.html` (scoped) | shared | **done** |
-| Announcer | `announcer.html` | 656 | **done** |
-| Vendor | `vendor.html` | 775 | **done** |
-| Rider | `rider.html` | 2,893 | **pending** |
-| Volunteer | — | — | **dropped** — in the legacy README and ARCHITECTURE role lists but in no API code, schema constraint or view. Never implemented |
+| Role       | Legacy view                     | Lines  | Status                                                                                                                          |
+| ---------- | ------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| SuperAdmin | `superadmin.html`               | 3,176  | **partial**                                                                                                                     |
+| Organizer  | `showstaff.html`                | 14,629 | **built**                                                                                                                       |
+| ShowAdmin  | `showstaff.html` (money hidden) | shared | **done**                                                                                                                        |
+| ShowStaff  | `showstaff-ops.html`            | 1,207  | **done**                                                                                                                        |
+| Judge      | `judge-scribe.html`             | 767    | **done**                                                                                                                        |
+| Scribe     | `judge-scribe.html` (scoped)    | shared | **done**                                                                                                                        |
+| Announcer  | `announcer.html`                | 656    | **done**                                                                                                                        |
+| Vendor     | `vendor.html`                   | 775    | **done**                                                                                                                        |
+| Rider      | `rider.html`                    | 2,893  | **built** — `/rider`, `/rider/shows/[showId]`                                                                                   |
+| Volunteer  | —                               | —      | **dropped** — in the legacy README and ARCHITECTURE role lists but in no API code, schema constraint or view. Never implemented |
 
 ---
 
 ## SuperAdmin console — action by action
 
-| Action | Status | Notes |
-|---|---|---|
-| Clients — Organizers list | **done** | Real rows. Shows, distinct riders, estimated revenue derived per org |
-| Organizer search | **done** | Driven by a `q` parameter so the table stays a Server Component |
-| Onboard / Pending badge | **done** | Derived from whether an Organizer account accepted |
-| Suspended / Deleted / Demo badges | **done** | |
-| **+ Add Organizer** | **done** | Creates org + owner invite. No email sent (Resend unset) |
-| **Edit** organizer | **done** | name, email, phone, website, city, region, country, fee model |
-| **Suspend / Reactivate** | **done** | Verified: writes the row, audit trigger records actor + before/after |
-| **Delete / Restore** | **done** | Soft delete. Legacy confirmation wording kept verbatim |
-| **Resend Invite (All Pending)** | **partial** | Extends invites 7 days; cannot email |
-| **Enter as organizer** (impersonation) | **pending** | Needs the organizer workspace to accept an org context |
-| Sales Funnel | **partial** | Lead list + pipeline totals read. Add/edit lead, demo scheduling, onboarding checklist pending |
-| Scoring Catalog | **partial** | Reads real rows — was a hardcoded array with no backend. Editor pending |
-| Documents | **partial** | Lists `catalog_documents`. Upload/delete pending |
-| Billing | **partial** | Fee model + worked fee example real. Payouts/Connect/settlement need Stripe |
-| Users | **done** | Accounts + pending invites |
-| Organizer Staff Directory | **pending** | |
-| "Experience as" embedded role apps | **dropped** | Legacy embedded four whole apps as a 441 KB base64 blob. Real routes replace it |
-| Signup Flow Preview / Demo | **dropped** | Static walkthroughs of screens becoming real routes; a preview copy would need maintaining in parallel |
+| Action                                 | Status      | Notes                                                                                                  |
+| -------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| Clients — Organizers list              | **done**    | Real rows. Shows, distinct riders, estimated revenue derived per org                                   |
+| Organizer search                       | **done**    | Driven by a `q` parameter so the table stays a Server Component                                        |
+| Onboard / Pending badge                | **done**    | Derived from whether an Organizer account accepted                                                     |
+| Suspended / Deleted / Demo badges      | **done**    |                                                                                                        |
+| **+ Add Organizer**                    | **done**    | Creates org + owner invite; emails the invite when `RESEND_API_KEY` is set                             |
+| **Edit** organizer                     | **done**    | name, email, phone, website, city, region, country, fee model                                          |
+| **Suspend / Reactivate**               | **done**    | Verified: writes the row, audit trigger records actor + before/after                                   |
+| **Delete / Restore**                   | **done**    | Soft delete. Legacy confirmation wording kept verbatim                                                 |
+| **Resend Invite (All Pending)**        | **built**   | Extends invites and re-sends the email                                                                 |
+| **Enter as organizer** (impersonation) | **built**   | View-as cookie, re-validated server-side                                                               |
+| Sales Funnel                           | **built**   | Lead CRM: add/edit, Calendly demo booking, checklist, onboarding email                                 |
+| Scoring Catalog                        | **built**   | Reads and edits `scoring_catalog`                                                                      |
+| Documents                              | **built**   | Upload, move, rename, delete `catalog_documents`                                                       |
+| Billing                                | **built**   | Fee model, per-org billing, Connect status read live from Stripe                                       |
+| Users                                  | **done**    | Accounts + pending invites                                                                             |
+| Organizer Staff Directory              | **built**   | Add staff, change role / permissions, remove                                                           |
+| "Experience as" embedded role apps     | **dropped** | Legacy embedded four whole apps as a 441 KB base64 blob. Real routes replace it                        |
+| Signup Flow Preview / Demo             | **dropped** | Static walkthroughs of screens becoming real routes; a preview copy would need maintaining in parallel |
 
 ---
 
-## Organizer workspace (`showstaff.html`) — pending
+## Organizer workspace (`showstaff.html`) — built
 
 The largest single item, ~40 render functions. Surface, from its own function
 names:
@@ -104,16 +111,17 @@ Rider entries · Results · Qualifying report · Division board · EventSales ·
 Merch checkout · Billing (+ expenses & P&L) · Member database · Documents ·
 KPIs · Next-steps checklist · ShowRunner · Add open ride
 
-Currently `/dashboard` renders **static mock data** from
-`src/modules/staff/constants.ts` (115 riders, 226 entries, $21,690). Nothing on
-it reads Supabase yet.
+`/dashboard` and the show manager read Supabase. The old static mock
+constants (115 riders, 226 entries, $21,690) were removed from
+`src/modules/staff/constants.ts` on 2026-10-19.
 
 ---
 
-## Backend API — 54 resource actions, none ported
+## Backend API — 54 resource actions, ported as Server Actions
 
-Legacy routed everything through three fat dynamic handlers. Equivalent work here
-becomes Server Actions in each module's `data/` layer.
+Legacy routed everything through three fat dynamic handlers. The equivalent
+work lives in Server Actions in each module's `data/` layer (not re-audited
+action by action against the list below).
 
 **`shows/[id]/[resource]`** (22): addons, classes, divisions, documents, logo,
 merch-sales, move-entry, my-open-classes, orders, qualtypes, remind-documents,
@@ -130,28 +138,28 @@ billing-summary, connect, locations, members, org, org-billing, shows,
 staff-assignments, stripe-status, test-templates, vendor-agreement,
 vendor-bookings, vendor-checkout-quote, vendor-checkout-confirm, vendor-document
 
-**Webhooks**: `stripe-webhook`, `calendly-webhook` — both **pending**
+**Webhooks**: `stripe-webhook`, `calendly-webhook` — both **built** (`/api/webhooks/stripe`, `/api/webhooks/calendly`, signature-verified)
 
 **Auth endpoints** (`auth/[action]`, `invites/[token]`) — **dropped**, replaced by
-Supabase Auth. The `invites` table survives because it records *what role for
-which show*, which Supabase's own invite has no concept of.
+Supabase Auth. The `invites` table survives because it records _what role for
+which show_, which Supabase's own invite has no concept of.
 
 ---
 
 ## Other pages
 
-| Page | Lines | Status |
-|---|---|---|
-| `marketing-home.html` | 1,430 | **done** |
-| `platform.html` | 305 | **done** — replaced by role routing |
-| `showbuilder.html` | 2,744 | **pending** — show creation wizard |
-| `showrunner-scoring.html` | 2,123 | **pending** — live multi-judge scoring |
-| `learning/*` (9 SEO pages) + `learning-center.html` | 2,300 | **pending** |
-| `organizer-onboarding.html` | 294 | **pending** |
-| `accept-invite.html` | 251 | **pending** |
-| `privacy-policy.html` / `terms-of-service.html` | 373 | **pending** |
-| `vendor-apply.html` | 174 | **pending** |
-| `entry.html` | 86 | **pending** |
+| Page                                                | Lines | Status                                                          |
+| --------------------------------------------------- | ----- | --------------------------------------------------------------- |
+| `marketing-home.html`                               | 1,430 | **done**                                                        |
+| `platform.html`                                     | 305   | **done** — replaced by role routing                             |
+| `showbuilder.html`                                  | 2,744 | **built** — `/dashboard/shows/new`, select events, test builder |
+| `showrunner-scoring.html`                           | 2,123 | **built** — `/dashboard/scoring/[classId]`                      |
+| `learning/*` (9 SEO pages) + `learning-center.html` | 2,300 | **built**                                                       |
+| `organizer-onboarding.html`                         | 294   | **built** — `/onboarding`                                       |
+| `accept-invite.html`                                | 251   | **built** — `/auth/confirm` → `/set-password`                   |
+| `privacy-policy.html` / `terms-of-service.html`     | 373   | **built** — wording still needs legal review                    |
+| `vendor-apply.html`                                 | 174   | **built** — `/vendor-apply/[showId]`                            |
+| `entry.html`                                        | 86    | **pending** — not checked in this refresh                       |
 
 ---
 

@@ -12,12 +12,18 @@
  * written by `supabase link`). Reads .env.local if the token is not already in
  * the environment.
  *
+ * Always a hosted project (it goes through the Management API by ref), so it
+ * only runs when that ref is in FA_SCRIPT_ALLOWED_PROJECT_REFS and
+ * --i-know-this-is-not-prod is passed (scripts/lib/target-guard.mjs). Never
+ * allowlist production: supabase/seed.sql publishes demo organizations.
+ *
  * Usage:
- *   node scripts/apply-sql.mjs supabase/seed.sql
+ *   node scripts/apply-sql.mjs supabase/seed.sql --i-know-this-is-not-prod
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertSafeTarget } from './lib/target-guard.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -45,9 +51,9 @@ function projectRef() {
   }
 }
 
-const sqlPath = process.argv[2];
+const sqlPath = process.argv.slice(2).find((arg) => !arg.startsWith('--'));
 if (!sqlPath) {
-  console.error('usage: node scripts/apply-sql.mjs <file.sql>');
+  console.error('usage: node scripts/apply-sql.mjs <file.sql> --i-know-this-is-not-prod');
   process.exit(1);
 }
 
@@ -64,6 +70,8 @@ if (!ref) {
   console.error('No project ref. Run `supabase link --project-ref <ref>` first.');
   process.exit(1);
 }
+
+assertSafeTarget({ script: 'apply-sql', ref });
 
 const sql = readFileSync(resolve(sqlPath), 'utf8');
 console.log(`Applying ${sqlPath} (${sql.length} bytes) to project ${ref}...`);

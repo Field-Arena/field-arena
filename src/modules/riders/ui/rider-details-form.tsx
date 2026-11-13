@@ -11,6 +11,7 @@ import { withSanitizer } from '@/shared/lib/format/input-sanitize';
 import { PHONE_INPUT_PROPS, sanitizePhoneInput } from '@/shared/lib/format/phone-input';
 import { AuthField } from '@/shared/ui/auth/auth-field';
 import { AuthSubmit } from '@/shared/ui/auth/auth-primitives';
+import { todayForViewer } from '@/shared/lib/format/time-zone';
 
 const TYPE_HERE = 'Click here to type…';
 
@@ -114,7 +115,7 @@ export function RiderDetailsForm({ rider }: { rider: RiderRow }) {
           <AuthField
             label="Date of birth"
             type="date"
-            max={new Date().toISOString().slice(0, 10)}
+            max={todayForViewer()}
             error={errors.dob?.message}
             {...form.register('dob')}
           />
